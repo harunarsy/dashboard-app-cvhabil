@@ -1,16 +1,25 @@
 import React, { useState } from 'react';
 import { Home, ShoppingCart, Package, DollarSign, Users, LogOut, Moon, Sun, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen }) {
   const [hoveredIcon, setHoveredIcon] = useState(null);
+  const navigate = useNavigate();
 
   const menuItems = [
-    { icon: Home, label: 'Dashboard' },
-    { icon: ShoppingCart, label: 'Orders' },
-    { icon: Package, label: 'Products' },
-    { icon: DollarSign, label: 'Finance' },
-    { icon: Users, label: 'Employees' },
+    { icon: Home, label: 'Dashboard', path: '/dashboard' },
+    { icon: ShoppingCart, label: 'Orders', path: '/orders' },
+    { icon: Package, label: 'Products', path: '/products' },
+    { icon: DollarSign, label: 'Finance', path: '/finance' },
+    { icon: Users, label: 'Employees', path: '/employees' },
+    { icon: Package, label: 'Invoices', path: '/invoices' },
   ];
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
 
   return (
     <>
@@ -61,6 +70,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
               return (
                 <button
                   key={i}
+                  onClick={() => navigate(item.path)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-base transition-all duration-150 ease-in-out ${
                     isDarkMode
                       ? 'text-[#EBEBF0] hover:bg-[#1C1C1E] active:bg-[#2C2C2E] active:opacity-70'
@@ -104,7 +114,9 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
 
         {/* Logout Button */}
         <div className="px-3 pb-6">
-          <button className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-150 ease-in-out ${
+          <button 
+            onClick={handleLogout}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-150 ease-in-out ${
             isDarkMode
               ? 'bg-[#1C1C1E] text-[#FF3B30] hover:bg-[#2C2C2E] active:opacity-70'
               : 'bg-[#F5F5F7] text-[#FF3B30] hover:bg-[#EFEFEF] active:opacity-70'
@@ -146,6 +158,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
               return (
                 <div key={i} className="relative group w-full flex justify-center">
                   <button
+                    onClick={() => navigate(item.path)}
                     onMouseEnter={() => setHoveredIcon(i)}
                     onMouseLeave={() => setHoveredIcon(null)}
                     className={`p-3 rounded-lg transition-all duration-150 ease-in-out ${
@@ -211,6 +224,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
 
           <div className="relative group w-full flex justify-center">
             <button 
+              onClick={handleLogout}
               onMouseEnter={() => setHoveredIcon('logout')}
               onMouseLeave={() => setHoveredIcon(null)}
               className={`p-3 rounded-lg transition-all duration-150 ease-in-out ${

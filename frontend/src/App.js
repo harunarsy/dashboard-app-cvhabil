@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
+import InvoiceList from './components/InvoiceList';
 import { AuthContext, AuthProvider } from './context/AuthContext';
 import './App.css';
 
@@ -34,6 +35,14 @@ function AppRoutes({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen 
         element={
           <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}>
             <Dashboard isDarkMode={isDarkMode} isSidebarOpen={isSidebarOpen} />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/invoices" 
+        element={
+          <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}>
+            <InvoiceList isDarkMode={isDarkMode} isSidebarOpen={isSidebarOpen} />
           </ProtectedRoute>
         } 
       />

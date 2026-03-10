@@ -105,3 +105,40 @@ INSERT INTO products (name, sku, category, price, stock) VALUES
 INSERT INTO employees (name, email, department, position, salary) VALUES
 ('Budi Santoso', 'budi@company.com', 'IT', 'Developer', 25000000),
 ('Siti Nurhaliza', 'siti@company.com', 'Sales', 'Manager', 20000000);
+
+-- ==================== INVOICES SCHEMA (V0.3) ====================
+
+-- Table: invoices (Faktur Pembelian)
+CREATE TABLE IF NOT EXISTS invoices (
+  id SERIAL PRIMARY KEY,
+  invoice_number VARCHAR(50) UNIQUE NOT NULL,
+  purchase_date DATE NOT NULL,
+  distributor_name VARCHAR(100) NOT NULL,
+  total_hna DECIMAL(15,2),
+  discount_amount DECIMAL(15,2) DEFAULT 0,
+  ppn_input DECIMAL(15,2) DEFAULT 0,
+  final_hna DECIMAL(15,2),
+  payment_date DATE,
+  status VARCHAR(20) DEFAULT 'Pending', -- 'Paid', 'Pending'
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table: invoice_items (Detail Faktur)
+CREATE TABLE IF NOT EXISTS invoice_items (
+  id SERIAL PRIMARY KEY,
+  invoice_id INT NOT NULL,
+  product_name VARCHAR(255) NOT NULL,
+  quantity INT NOT NULL,
+  unit_price DECIMAL(10,2) NOT NULL,
+  total_price DECIMAL(15,2),
+  margin DECIMAL(15,2) DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+);
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_invoices_purchase_date ON invoices(purchase_date);
+CREATE INDEX IF NOT EXISTS idx_invoices_distributor ON invoices(distributor_name);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
+CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON invoice_items(invoice_id);
