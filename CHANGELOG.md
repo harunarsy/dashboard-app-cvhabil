@@ -7,6 +7,38 @@ dan project ini menggunakan [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] - 2026-03-11
+
+### ✨ Added
+- Apple Human Interface Guidelines design system implementation
+- Professional Sidebar navigation with clean styling
+- Enhanced metric cards with accent lines
+- Improved Dark Mode with smooth transitions
+- Better typography hierarchy and spacing system
+- Refined chart and table styling
+- Professional dashboard layout
+
+### 🎨 Improved
+- UI/UX polish with Apple HIG principles
+- Color palette refinement (pure white/black)
+- Better interactive states (hover, active, disabled)
+- Smooth animations and transitions
+- Improved contrast and readability
+- Professional, modern aesthetic
+
+### 🔧 Technical
+- Added Tailwind CSS via CDN
+- Implemented theme context for dark mode
+- Improved component structure
+- Better CSS organization
+
+### Status
+- Desktop design: ✅ Complete
+- Dark mode: ✅ Complete
+- Responsive mobile: ⏳ Coming in V0.3
+
+---
+
 ## [0.1.0] - 2026-03-10
 
 ### ✨ Added
