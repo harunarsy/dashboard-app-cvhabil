@@ -1,37 +1,60 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
+import Sidebar from './components/Sidebar';
 import { AuthContext, AuthProvider } from './context/AuthContext';
 import './App.css';
 
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children, isDarkMode, setIsDarkMode }) {
   const { token } = useContext(AuthContext);
-  return token ? children : <Navigate to="/login" />;
+  
+  if (!token) {
+    return <Navigate to="/login" />;
+  }
+
+  return (
+    <div className={isDarkMode ? 'dark' : ''}>
+      <div className="flex">
+        <Sidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+        <div className="ml-64 flex-1">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function AppRoutes() {
+function AppRoutes({ isDarkMode, setIsDarkMode }) {
+  const { token } = useContext(AuthContext);
+
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route 
         path="/dashboard" 
         element={
-          <ProtectedRoute>
-            <Dashboard />
+          <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode}>
+            <Dashboard isDarkMode={isDarkMode} />
           </ProtectedRoute>
         } 
       />
-      <Route path="/" element={<Navigate to="/dashboard" />} />
+      <Route path="/" element={<Navigate to={token ? "/dashboard" : "/login"} />} />
     </Routes>
   );
 }
 
 function App() {
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
   return (
     <AuthProvider>
       <Router>
-        <AppRoutes />
+        <div className={`transition-colors duration-300 ${isDarkMode ? 'dark' : ''}`} style={{
+          backgroundColor: isDarkMode ? '#000000' : '#FFFFFF',
+        }}>
+          <AppRoutes isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+        </div>
       </Router>
     </AuthProvider>
   );
