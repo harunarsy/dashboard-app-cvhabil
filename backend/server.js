@@ -36,6 +36,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/invoices', require('./routes/invoices'));
+app.use('/api/distributors', require('./routes/distributors'));
 
 // WebSocket connection handling
 io.on('connection', (socket) => {

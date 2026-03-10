@@ -53,4 +53,10 @@ export const invoicesAPI = {
   delete: (id) => api.delete(`/invoices/${id}`)
 };
 
+// Distributors API
+export const distributorsAPI = {
+  getAll: () => api.get('/distributors'),
+  add: (name) => api.post('/distributors', { name })
+};
+
 export default api;
