@@ -14,12 +14,10 @@ function ProtectedRoute({ children, isDarkMode, setIsDarkMode }) {
   }
 
   return (
-    <div className={isDarkMode ? 'dark' : ''}>
-      <div className="flex">
-        <Sidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
-        <div className="ml-64 flex-1">
-          {children}
-        </div>
+    <div className="flex">
+      <Sidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+      <div className="flex-1">
+        {children}
       </div>
     </div>
   );
@@ -50,7 +48,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className={`transition-colors duration-300 ${isDarkMode ? 'dark' : ''}`} style={{
+        <div className="transition-colors duration-300" style={{
           backgroundColor: isDarkMode ? '#000000' : '#FFFFFF',
         }}>
           <AppRoutes isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
