@@ -1,7 +1,7 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-export default function Dashboard({ isDarkMode }) {
+export default function Dashboard({ isDarkMode, isSidebarOpen }) {
   const data = [
     { name: 'Jan', orders: 400 },
     { name: 'Feb', orders: 300 },
@@ -17,9 +17,11 @@ export default function Dashboard({ isDarkMode }) {
   ];
 
   return (
-    <div className={`ml-64 min-h-screen transition-all duration-300 ${
+    <div className={`transition-all duration-300 min-h-screen ${
       isDarkMode ? 'bg-black' : 'bg-white'
-    }`}>
+    }`} style={{
+      marginLeft: isSidebarOpen ? '256px' : '80px',
+    }}>
       
       {/* Header Section */}
       <div className={`border-b transition-colors duration-300 ${
