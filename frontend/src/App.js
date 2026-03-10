@@ -6,7 +6,7 @@ import Sidebar from './components/Sidebar';
 import { AuthContext, AuthProvider } from './context/AuthContext';
 import './App.css';
 
-function ProtectedRoute({ children, isDarkMode, setIsDarkMode }) {
+function ProtectedRoute({ children, isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen }) {
   const { token } = useContext(AuthContext);
   
   if (!token) {
@@ -15,7 +15,7 @@ function ProtectedRoute({ children, isDarkMode, setIsDarkMode }) {
 
   return (
     <div className="flex">
-      <Sidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+      <Sidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
       <div className="flex-1">
         {children}
       </div>
@@ -23,7 +23,7 @@ function ProtectedRoute({ children, isDarkMode, setIsDarkMode }) {
   );
 }
 
-function AppRoutes({ isDarkMode, setIsDarkMode }) {
+function AppRoutes({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen }) {
   const { token } = useContext(AuthContext);
 
   return (
@@ -32,8 +32,8 @@ function AppRoutes({ isDarkMode, setIsDarkMode }) {
       <Route 
         path="/dashboard" 
         element={
-          <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode}>
-            <Dashboard isDarkMode={isDarkMode} />
+          <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}>
+            <Dashboard isDarkMode={isDarkMode} isSidebarOpen={isSidebarOpen} />
           </ProtectedRoute>
         } 
       />
@@ -44,6 +44,7 @@ function AppRoutes({ isDarkMode, setIsDarkMode }) {
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
     <AuthProvider>
@@ -51,7 +52,7 @@ function App() {
         <div className="transition-colors duration-300" style={{
           backgroundColor: isDarkMode ? '#000000' : '#FFFFFF',
         }}>
-          <AppRoutes isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+          <AppRoutes isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
         </div>
       </Router>
     </AuthProvider>
