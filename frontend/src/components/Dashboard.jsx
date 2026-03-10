@@ -17,7 +17,7 @@ export default function Dashboard({ isDarkMode }) {
   ];
 
   return (
-    <div className={`ml-64 min-h-screen transition-colors duration-300 ${
+    <div className={`ml-64 min-h-screen transition-all duration-300 ${
       isDarkMode ? 'bg-black' : 'bg-white'
     }`}>
       
@@ -25,7 +25,7 @@ export default function Dashboard({ isDarkMode }) {
       <div className={`border-b transition-colors duration-300 ${
         isDarkMode ? 'border-[#424245] bg-black' : 'border-[#E5E5EA] bg-white'
       }`}>
-        <div className="px-8 py-8">
+        <div className="px-6 py-8">
           <h1 className={`text-4xl font-bold tracking-tight mb-2 transition-colors duration-300 ${
             isDarkMode ? 'text-white' : 'text-black'
           }`}>
@@ -40,9 +40,9 @@ export default function Dashboard({ isDarkMode }) {
       </div>
 
       {/* Main Content */}
-      <div className="px-8 py-8">
+      <div className="px-6 py-8">
         
-        {/* Metrics Grid - Apple Card Style */}
+        {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {metrics.map((metric, index) => (
             <div
@@ -78,7 +78,7 @@ export default function Dashboard({ isDarkMode }) {
           ))}
         </div>
 
-        {/* Chart Section - Apple Card Style */}
+        {/* Chart Section */}
         <div className={`p-6 rounded-2xl border transition-colors duration-300 mb-8 ${
           isDarkMode
             ? 'bg-[#1C1C1E] border-[#424245]'
@@ -101,7 +101,8 @@ export default function Dashboard({ isDarkMode }) {
             <BarChart data={data}>
               <CartesianGrid 
                 strokeDasharray="3 3" 
-                stroke={isDarkMode ? '#424245' : '#E5E5EA'}
+                stroke={isDarkMode ? '#2C2C2E' : '#D1D1D6'}
+                opacity={isDarkMode ? 0.5 : 0.3}
               />
               <XAxis 
                 dataKey="name" 
@@ -135,7 +136,7 @@ export default function Dashboard({ isDarkMode }) {
           </ResponsiveContainer>
         </div>
 
-        {/* Recent Orders Table - Apple Card Style */}
+        {/* Recent Orders Table */}
         <div className={`p-6 rounded-2xl border transition-colors duration-300 ${
           isDarkMode
             ? 'bg-[#1C1C1E] border-[#424245]'
