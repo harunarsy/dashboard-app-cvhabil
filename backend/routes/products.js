@@ -5,22 +5,22 @@ const auth = require('../middleware/auth');
 
 const ensureTable = async () => {
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS distributors (
+    CREATE TABLE IF NOT EXISTS product_catalog (
       id SERIAL PRIMARY KEY,
-      name VARCHAR(100) UNIQUE NOT NULL,
+      name VARCHAR(255) UNIQUE NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
 };
 ensureTable().catch(console.error);
 
-// GET all distributors
+// GET all products (catalog + from invoice_items)
 router.get('/', auth, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT name FROM distributors
+      SELECT name FROM product_catalog
       UNION
-      SELECT DISTINCT distributor_name AS name FROM invoices WHERE distributor_name IS NOT NULL
+      SELECT DISTINCT product_name AS name FROM invoice_items WHERE product_name IS NOT NULL AND product_name != ''
       ORDER BY name
     `);
     res.json(result.rows.map(r => ({ name: r.name })));
@@ -29,13 +29,13 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// ADD new distributor
+// ADD new product
 router.post('/', auth, async (req, res) => {
   const { name } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
   try {
     const result = await pool.query(
-      'INSERT INTO distributors (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING *',
+      'INSERT INTO product_catalog (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING *',
       [name.trim()]
     );
     res.json({ name: result.rows[0].name });
@@ -44,12 +44,12 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// DELETE distributor by name
+// DELETE product by name
 router.delete('/', auth, async (req, res) => {
   const { name } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
   try {
-    await pool.query('DELETE FROM distributors WHERE name = $1', [name.trim()]);
+    await pool.query('DELETE FROM product_catalog WHERE name = $1', [name.trim()]);
     res.json({ message: 'Deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });

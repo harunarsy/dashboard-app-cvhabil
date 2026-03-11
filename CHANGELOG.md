@@ -1,174 +1,102 @@
-# Changelog
+# Changelog — Dashboard CV Habil
 
-Semua changes penting dalam project ini akan didokumentasikan di file ini.
+## [v0.5.1] — March 11, 2026
 
-Format berdasarkan [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-dan project ini menggunakan [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+### ✨ New Features
+- **Universal Search** — satu search bar di atas untuk cari no. faktur, distributor, status sekaligus
+- **Advanced Filters** — collapsible panel di bawah search, ada indikator "!" kalau filter aktif
+- **Due Date / Jatuh Tempo** — field baru di form & kolom tersembunyi di list, dengan:
+  - Badge merah untuk faktur yang sudah terlambat
+  - Badge orange untuk jatuh tempo ≤ 7 hari
+  - Badge kuning untuk jatuh tempo ≤ 3 hari
+  - Alert counter di header halaman (klik langsung filter)
+  - Auto-sort: faktur terlambat/terdekat muncul paling atas
+- **Filter Jatuh Tempo** — opsi filter "Terlambat" dan "≤ 7 hari" di advanced filter
+- **Trash / Soft Delete** — delete faktur sekarang pindah ke Trash dulu, bisa di-restore kapan saja
+  - Confirm dialog sebelum delete (tidak bisa salah klik)
+  - Panel Trash dengan tombol Restore dan Hapus Permanen
+- **Draft Autosave** — form faktur auto-save ke server setiap 30 detik
+  - Banner "Ada draft tersimpan" saat buka halaman
+  - Klik "Lanjutkan" untuk resume sesi sebelumnya
+  - Draft bersih otomatis setelah invoice berhasil disimpan
+- **HNA per Item** — kolom baru di expanded view dan di form per-produk (HNA Baru ÷ QTY)
+- **HPP per Produk** — ditampilkan di list invoice (warna ungu)
+- **Duplicate Invoice Number** — tidak lagi error; nomor yang sama akan **update** invoice yang sudah ada
 
----
+### 🐛 Bug Fixes
+- Fixed duplicate invoice number constraint error — sekarang auto-upsert
+- Fixed filter tidak reset saat klik "Hapus Filter"
+- Fixed `getDueStatus` undefined di row expansion
 
-## [0.2.0] - 2026-03-11
-
-### ✨ Added
-- Apple Human Interface Guidelines design system implementation
-- Professional Sidebar navigation with clean styling
-- Enhanced metric cards with accent lines
-- Improved Dark Mode with smooth transitions
-- Better typography hierarchy and spacing system
-- Refined chart and table styling
-- Professional dashboard layout
-
-### 🎨 Improved
-- UI/UX polish with Apple HIG principles
-- Color palette refinement (pure white/black)
-- Better interactive states (hover, active, disabled)
-- Smooth animations and transitions
-- Improved contrast and readability
-- Professional, modern aesthetic
-
-### 🔧 Technical
-- Added Tailwind CSS via CDN
-- Implemented theme context for dark mode
-- Improved component structure
-- Better CSS organization
-
-### Status
-- Desktop design: ✅ Complete
-- Dark mode: ✅ Complete
-- Responsive mobile: ⏳ Coming in V0.3
-
----
-
-## [0.1.0] - 2026-03-10
-
-### ✨ Added
-- Initial dashboard UI/Design layout
-- Responsive design untuk desktop & tablet devices
-- Login page dengan form validation
-- Protected dashboard dengan authentication system
-- Orders management view dengan data table
-- Real-time metrics display (Orders, Sales, Inventory, Finance)
-- JWT-based authentication system
-- Database schema dengan 6 tables (users, products, orders, order_items, transactions, employees)
-- Backend API endpoints:
-  - `POST /api/auth/login` - User authentication
-  - `POST /api/auth/logout` - User logout
-  - `GET /api/orders` - Fetch orders list
-  - `GET /api/health` - Server health check
-- WebSocket (Socket.io) infrastructure untuk real-time updates
-- Error handling middleware
-- CORS configuration
-- Graceful shutdown handling
-- Database indexing untuk performance
-
-### 🔧 Technical Setup
-- **Backend**: Node.js 18+ dengan Express 5.2.1
-- **Frontend**: React 19.2.4 dengan React Router v7
-- **Database**: PostgreSQL 15
-- **Real-time**: Socket.io 4.8.3
-- **Authentication**: JWT (jsonwebtoken 9.0.3)
-- **State Management**: React Context API
-- **HTTP Client**: Axios 1.13.6
-- **UI Components**: Recharts untuk charts, Lucide React untuk icons
-
-### 📊 Database Schema
-Tabel yang dibuat:
-- `users` - User accounts & authentication
-- `products` - Inventory management
-- `orders` - Sales orders tracking
-- `order_items` - Order line items dengan relationship ke orders & products
-- `transactions` - Financial records
-- `employees` - Employee management
-
-Dengan:
-- Primary keys di semua tabel
-- Foreign key constraints untuk data integrity
-- Indexes untuk performance optimization
-- Timestamps (created_at, updated_at) untuk audit trail
-
-### 🔐 Demo Credentials
-- **Username**: `admin`
-- **Password**: `admin123`
-
-### ⚠️ Known Limitations (MVP)
-- Password hashing tidak diimplementasikan (demo auth only)
-- Limited error handling (akan ditingkatkan di v0.2)
-- Advanced charts tidak ada yet
-- Mobile responsive design belum optimal
-- Email notifications tidak ada
-- User management UI belum dibuat
-- Export functionality (PDF/Excel) belum ada
-- Input validation minimal
-- No logging system yet
-
-### ✅ Testing Status
-- [x] Backend API fully tested
-- [x] Login/Authentication working
-- [x] Dashboard displays correctly
-- [x] Database connection stable
-- [x] Protected routes functional
-- [x] Order data retrieved & displayed
-- [x] WebSocket connection established
-- [x] Error handling basic level
-
-### 📦 Installation & Setup
-
-**Backend:**
-```bash
-cd backend
-npm install
-# Jalankan development mode:
-npm run dev
-# Atau production mode:
-npm start
-```
-
-**Frontend:**
-```bash
-cd frontend
-npm install
-npm start
-# Akan membuka http://localhost:3000
-```
-
-**Database:**
-```bash
-psql -U postgres
-CREATE DATABASE dashboard_db;
-\c dashboard_db
-\i backend/schema.sql
-```
-
-### 🔒 Security Notes
-- JWT_SECRET harus diganti dengan strong value untuk production
-- Implement password hashing (bcrypt) sebelum production
-- Setup HTTPS/SSL certificates
-- Configure CORS untuk production domain
-- Add rate limiting middleware
-- Implement request validation & sanitization
-- Setup comprehensive logging
-
-### 🎯 What's Next (V0.2)
-- [ ] Implement proper password hashing (bcrypt)
-- [ ] Add API endpoints untuk products, employees, transactions
-- [ ] Implement advanced dashboard charts
-- [ ] User management interface
-- [ ] Export to PDF/Excel functionality
-- [ ] Email notification system
-- [ ] Mobile-responsive improvements
-- [ ] Dark mode theme
-- [ ] Input validation middleware
-- [ ] Comprehensive logging system
-- [ ] Rate limiting
+### 🗄️ Database Changes (auto-migrate on start)
+- `invoices`: tambah kolom `due_date`, `deleted_at`, `is_draft`, `draft_data`
+- `invoice_items`: tambah kolom `hna_per_item`
+- New soft-delete endpoints: `DELETE /invoices/:id` → pindah ke trash
+- New restore endpoint: `PUT /invoices/:id/restore`
+- New permanent delete: `DELETE /invoices/:id/permanent`
+- New draft endpoints: `POST /invoices/draft`, `GET /invoices/draft`, `DELETE /invoices/draft/clear`
+- New trash endpoint: `GET /invoices/trash`
 
 ---
 
-## Release Information
+## [v0.5.0] — March 11, 2026
 
-**Version**: 0.1.0  
-**Release Date**: March 10, 2026  
-**Status**: Stable (MVP Complete) ✅  
-**Maintainer**: Harun Arasy
+### ✨ New Features
+- **MasterSelect component** — dropdown custom dengan search, create inline, delete dengan double-confirm
+- **Products Master Database** — tabel `products_master`, endpoint GET/POST/DELETE `/api/products`
+- **Distributor delete** — endpoint DELETE `/api/distributors`
+- Layout produk per-item diubah ke card style (lebih rapih)
 
-Untuk deployment ke production, silakan baca FINAL_SUMMARY.md dan CREDENTIALS.md untuk setup instructions lengkap.
+---
 
+## [v0.4.0] — March 11, 2026
+
+### ✨ New Features
+- Form faktur didesain ulang lengkap dengan semua field
+- Per-item: Nama Produk, Expired Date, QTY, HNA, Disc%, HNA×QTY, Disc Nominal, HNA Baru
+- Kalkulasi otomatis real-time untuk semua field finansial
+- PPN Masukan = HNA Final × 11% (dengan 2 desimal, tidak ada bug input)
+- PPN Pembulatan = INT(PPN Masukan)
+- HNA Final, HNA+PPN, HPP per produk — semua auto-kalkulasi
+- Disc COD dengan opsi Ada/Tidak Ada
+- List invoice lebih informatif: HNA×QTY, HNA Final, HNA+PPN, PPN, item count
+- Expand row untuk lihat detail produk per faktur
+
+### 🗄️ Database Changes
+- `invoices`: tambah kolom `hna_baru`, `disc_cod_ada`, `disc_cod_amount`, `hna_final`, `ppn_masukan`, `ppn_pembulatan`, `hna_plus_ppn`, `harga_per_produk`
+- `invoice_items`: tambah kolom `expired_date`, `hna`, `hna_times_qty`, `disc_percent`, `disc_nominal`, `hna_baru`
+
+---
+
+## [v0.3.1] — March 11, 2026
+
+### 🐛 Bug Fixes
+- Fixed add distributor tidak tersimpan ke database
+- Backend POST `/distributors` sekarang save ke tabel `distributors`
+- GET `/distributors` gabungkan dari tabel `distributors` + `invoices` (UNION)
+- Frontend: auto-select distributor baru setelah berhasil add
+
+### 🗄️ Database Changes
+- Tabel baru: `distributors` (id, name, created_at)
+
+---
+
+## [v0.3.0] — March 11, 2026
+- Invoice Management System (CRUD)
+- Distributor dropdown + add inline
+- Rupiah currency input formatter
+- Invoice filters: bulan, distributor, status, date range
+- Excel import untuk bulk upload
+- Invoice metrics: Total HNA, PPN, Margin, Count
+
+## [v0.2.2] — March 11, 2026
+- Final Apple HIG design, bug fixes
+
+## [v0.2.1] — March 11, 2026
+- Sidebar toggle, smooth animations
+
+## [v0.2.0] — March 11, 2026
+- Apple HIG design system
+
+## [v0.1.0] — March 10, 2026
+- MVP: auth, dashboard, orders

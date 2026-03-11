@@ -37,8 +37,6 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/invoices', require('./routes/invoices'));
 app.use('/api/distributors', require('./routes/distributors'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/products', require('./routes/products'));
 
 // WebSocket connection handling
 io.on('connection', (socket) => {
