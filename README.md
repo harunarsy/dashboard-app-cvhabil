@@ -44,7 +44,7 @@ npm install
 npm run dev
 ```
 
-Default backend runs on **http://localhost:5001**
+Default backend runs on **http://localhost:5002** (or 5001 depending on branch)
 
 ### 4. Frontend
 
@@ -73,7 +73,7 @@ DB_NAME=dashboard_db
 DB_USER=postgres
 DB_PASSWORD=yourpassword
 JWT_SECRET=your_jwt_secret
-PORT=5001
+PORT=5002
 FRONTEND_URL=http://localhost:3000
 ```
 
@@ -90,6 +90,8 @@ npm run dev
 ## Release History
 
 | Version | Date | Highlights |
+|---|---|---|
+| v1.0.1 | Mar 12, 2026 | **v1.0.1 Hotfix**: Login port alignment, Dashboard UI overhaul, Auto-logout logic, Release History Modal |
 | v1.0.0 | Mar 12, 2026 | **v1.0 Official Release**: Inventory (FEFO), Surat Pesanan, Toko Online (Shopee/TikTok), Buku Besar |
 | v0.6.3 | Mar 11, 2026 | ESLint fixes, declutter, DB branch isolation |
 | v0.6.2 | Mar 11, 2026 | Ongoing updates and feature enhancements |
