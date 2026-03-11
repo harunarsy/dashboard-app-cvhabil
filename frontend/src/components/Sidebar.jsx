@@ -28,7 +28,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
     { icon: Users, label: 'Customer', path: '/customers', active: true },
     { icon: Package, label: 'Invoices', path: '/invoices', active: true },
     { icon: ShoppingCart, label: 'Orders', path: '/orders', active: false },
-    { icon: Package, label: 'Inventory', path: '/inventory', active: false },
+    { icon: Package, label: 'Inventory', path: '/inventory', active: true },
     ...(role === 'direktur' ? [
       { icon: BarChart3, label: 'Buku Besar', path: '/ledger', active: false },
       { icon: DollarSign, label: 'Finance', path: '/finance', active: false },

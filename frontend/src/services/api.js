@@ -68,12 +68,10 @@ export const productsAPI = {
 
 export default api;
 
-// Audit log
 export const auditAPI = {
   getByInvoice: (id) => api.get(`/invoices/${id}/audit`),
 };
 
-// Customers
 export const customersAPI = {
   getAll: () => api.get('/customers'),
   getById: (id) => api.get(`/customers/${id}`),
@@ -82,11 +80,24 @@ export const customersAPI = {
   remove: (id) => api.delete(`/customers/${id}`),
 };
 
-// Sales / Nota Penjualan
 export const salesAPI = {
   getAll: () => api.get('/sales'),
   getById: (id) => api.get(`/sales/${id}`),
   create: (data) => api.post('/sales', data),
   update: (id, data) => api.put(`/sales/${id}`, data),
   remove: (id) => api.delete(`/sales/${id}`),
+};
+
+export const inventoryAPI = {
+  getProducts: () => api.get('/inventory/products'),
+  getProduct: (id) => api.get(`/inventory/products/${id}`),
+  createProduct: (data) => api.post('/inventory/products', data),
+  updateProduct: (id, data) => api.put(`/inventory/products/${id}`, data),
+  deleteProduct: (id) => api.delete(`/inventory/products/${id}`),
+  stockIn: (data) => api.post('/inventory/stock-in', data),
+  stockOut: (data) => api.post('/inventory/stock-out', data),
+  getAlerts: () => api.get('/inventory/alerts'),
+  getMutations: () => api.get('/inventory/mutations'),
+  getOpname: () => api.get('/inventory/opname'),
+  createOpname: (data) => api.post('/inventory/opname', data),
 };
