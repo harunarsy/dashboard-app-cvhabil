@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, X, Search, Check, Trash2 } from 'lucide-react';
+import { Plus, X, Search, Check, Trash2, Pencil } from 'lucide-react';
 
 /**
  * MasterSelect — Creatable dropdown dengan fitur:
@@ -17,12 +17,15 @@ export default function MasterSelect({
   placeholder = 'Pilih atau ketik untuk tambah...',
   isDarkMode = false,
   disabled = false,
+  onRename,
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null); // name yang mau dihapus
+  const [renaming, setRenaming] = useState(null); // name yang sedang di-rename
+  const [renameVal, setRenameVal] = useState('');
   const wrapRef = useRef(null);
   const inputRef = useRef(null);
   const newInputRef = useRef(null);
@@ -225,7 +228,42 @@ export default function MasterSelect({
                   {opt.name}
                 </span>
 
-                {/* Delete button */}
+                {/* Rename inline */}
+                {renaming === opt.name ? (
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+                    <input
+                      value={renameVal}
+                      onChange={e => setRenameVal(e.target.value)}
+                      onKeyDown={async e => {
+                        if (e.key === 'Enter' && renameVal.trim() && onRename) {
+                          await onRename(opt.name, renameVal.trim());
+                          if (value === opt.name) onChange(renameVal.trim());
+                          setRenaming(null);
+                        }
+                        if (e.key === 'Escape') setRenaming(null);
+                      }}
+                      autoFocus
+                      style={{ width: '90px', padding: '3px 6px', border: `1px solid ${accent}`, borderRadius: '5px', fontSize: '12px', backgroundColor: bg, color: txt, outline: 'none' }}
+                    />
+                    <button onClick={async () => {
+                      if (renameVal.trim() && onRename) {
+                        await onRename(opt.name, renameVal.trim());
+                        if (value === opt.name) onChange(renameVal.trim());
+                        setRenaming(null);
+                      }
+                    }} style={{ padding: '3px 6px', backgroundColor: accent, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '11px', fontWeight: '700' }}>OK</button>
+                    <button onClick={() => setRenaming(null)} style={{ padding: '3px 5px', backgroundColor: 'transparent', border: `1px solid ${border}`, borderRadius: '5px', cursor: 'pointer' }}><X size={10} color={muted} /></button>
+                  </div>
+                ) : onRename && (
+                  <button
+                    onClick={e => { e.stopPropagation(); setRenaming(opt.name); setRenameVal(opt.name); }}
+                    title="Rename"
+                    style={{ padding: '4px 6px', backgroundColor: 'transparent', border: `1px solid ${border}`, borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                  >
+                    <Pencil size={11} color={muted} />
+                  </button>
+                )}
+              {/* Delete button */}
                 <button
                   onClick={e => handleDelete(opt.name, e)}
                   title={confirmDelete === opt.name ? 'Klik lagi untuk konfirmasi hapus' : 'Hapus dari daftar'}

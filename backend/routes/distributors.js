@@ -57,3 +57,16 @@ router.delete('/', auth, async (req, res) => {
 });
 
 module.exports = router;
+
+// PATCH — rename distributor
+router.patch('/', auth, async (req, res) => {
+  const { oldName, newName } = req.body;
+  if (!oldName || !newName) return res.status(400).json({ error: 'oldName and newName required' });
+  try {
+    // Update distributor master list
+    await pool.query(`UPDATE distributor_master SET name=$1 WHERE name=$2`, [newName, oldName]);
+    // Update all invoices referencing old name
+    await pool.query(`UPDATE invoices SET distributor_name=$1 WHERE distributor_name=$2`, [newName, oldName]);
+    res.json({ success: true, oldName, newName });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});

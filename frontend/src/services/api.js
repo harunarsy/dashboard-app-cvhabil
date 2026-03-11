@@ -56,12 +56,14 @@ export const distributorsAPI = {
   getAll: () => api.get('/distributors'),
   add: (name) => api.post('/distributors', { name }),
   remove: (name) => api.delete('/distributors', { data: { name } }),
+  rename: (oldName, newName) => api.patch('/distributors', { oldName, newName }),
 };
 
 export const productsAPI = {
   getAll: () => api.get('/products'),
   add: (name) => api.post('/products', { name }),
   remove: (name) => api.delete('/products', { data: { name } }),
+  rename: (oldName, newName) => api.patch('/products', { oldName, newName }),
 };
 
 export default api;

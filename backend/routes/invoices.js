@@ -64,7 +64,8 @@ router.get('/', auth, async (req, res) => {
     const result = await pool.query(`
       SELECT i.*,
         COUNT(ii.id) AS item_count,
-        SUM(ii.quantity) AS total_qty
+        SUM(ii.quantity) AS total_qty,
+        COALESCE(string_agg(DISTINCT ii.product_name, ', '), '') AS product_names
       FROM invoices i
       LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
       WHERE i.deleted_at IS NULL AND (i.is_draft IS NULL OR i.is_draft = FALSE)
@@ -174,7 +175,7 @@ router.post('/', auth, async (req, res) => {
       invoiceId = existing.rows[0].id;
       // snapshot before update
       const snap = await pool.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
-      await logAudit(invoiceId, invoice_number, 'UPDATE', snap.rows[0], 'Overwrite via POST');
+      await logAudit(invoiceId, invoice_number, 'UPDATE', snap.rows[0], null, 'Overwrite via POST');
 
       await pool.query(
         `UPDATE invoices SET purchase_date=$1, distributor_name=$2,
@@ -209,7 +210,7 @@ router.post('/', auth, async (req, res) => {
          due_date||null, payment_date||null, status||'Pending']
       );
       invoiceId = r.rows[0].id;
-      await logAudit(invoiceId, invoice_number, 'CREATE', { invoice_number, distributor_name, status });
+      await logAudit(invoiceId, invoice_number, 'CREATE', { invoice_number, distributor_name, status, hna_final: resolvedHnaFinal, hna_plus_ppn });
     }
 
     await pool.query('DELETE FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
@@ -218,13 +219,15 @@ router.post('/', auth, async (req, res) => {
         await pool.query(
           `INSERT INTO invoice_items
             (invoice_id, product_name, quantity, unit_price, total_price,
-             expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+             expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
+             disc_cod_per_item, hna_after_cod, hpp_inc_ppn)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
           [invoiceId, item.product_name, item.quantity||0,
            item.unit_price||item.hna||0, item.total_price||item.hna_times_qty||0,
            item.expired_date||null, item.hna||0, item.hna_times_qty||0,
            item.disc_percent||0, item.disc_nominal||0, item.hna_baru||0,
-           item.hna_per_item||0, item.margin||0]
+           item.hna_per_item||0, item.margin||0,
+           item.disc_cod_per_item||0, item.hna_after_cod||0, item.hpp_inc_ppn||0]
         );
       }
     }
@@ -257,9 +260,7 @@ router.put('/:id', auth, async (req, res) => {
   try {
     // snapshot before
     const snap = await pool.query('SELECT * FROM invoices WHERE id = $1', [id]);
-    if (snap.rows.length) {
-      await logAudit(id, snap.rows[0].invoice_number, 'UPDATE', snap.rows[0]);
-    }
+    const beforeSnap = snap.rows[0] || null;
 
     const result = await pool.query(
       `UPDATE invoices SET
@@ -279,6 +280,13 @@ router.put('/:id', auth, async (req, res) => {
        due_date||null, payment_date||null, status||'Pending', id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Not found' });
+    if (beforeSnap) {
+      const afterSnap = result.rows[0];
+      const TRACK = ['invoice_number','purchase_date','distributor_name','status','hna_final','hna_plus_ppn','disc_cod_amount','due_date','payment_date'];
+      const before = {}; const after = {};
+      TRACK.forEach(k => { if (String(beforeSnap[k]||'') !== String(afterSnap[k]||'')) { before[k] = beforeSnap[k]; after[k] = afterSnap[k]; } });
+      if (Object.keys(before).length > 0) await logAudit(id, afterSnap.invoice_number, 'UPDATE', before, after);
+    }
 
     if (items !== undefined) {
       await pool.query('DELETE FROM invoice_items WHERE invoice_id = $1', [id]);
@@ -286,13 +294,15 @@ router.put('/:id', auth, async (req, res) => {
         await pool.query(
           `INSERT INTO invoice_items
             (invoice_id, product_name, quantity, unit_price, total_price,
-             expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+             expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
+             disc_cod_per_item, hna_after_cod, hpp_inc_ppn)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
           [id, item.product_name, item.quantity||0,
            item.unit_price||item.hna||0, item.total_price||item.hna_times_qty||0,
            item.expired_date||null, item.hna||0, item.hna_times_qty||0,
            item.disc_percent||0, item.disc_nominal||0, item.hna_baru||0,
-           item.hna_per_item||0, item.margin||0]
+           item.hna_per_item||0, item.margin||0,
+           item.disc_cod_per_item||0, item.hna_after_cod||0, item.hpp_inc_ppn||0]
         );
       }
     }
