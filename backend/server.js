@@ -3,24 +3,63 @@ const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
 const bodyParser = require('body-parser');
-require('dotenv').config();
+const os = require('os');
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+// ─── Branch-aware .env loading ──────────────────────────────────────────────
+// Auto-detect git branch → if on 'dev' branch, load .env.dev instead of .env
+let currentBranch = 'main';
+try {
+  currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
+} catch (e) { /* not in a git repo, default to main */ }
+
+const envFile = currentBranch === 'dev' && fs.existsSync(path.join(__dirname, '.env.dev'))
+  ? '.env.dev'
+  : '.env';
+
+require('dotenv').config({ path: path.join(__dirname, envFile) });
+console.log(`[Branch: ${currentBranch}] Loaded env from: ${envFile} → DB: ${process.env.DB_NAME}`);
+
+// Build allowed origins: localhost + all local network IPs
+const allowedOrigins = new Set([
+  'http://localhost:3000',
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+]);
+// Auto-detect local network IPs and add them
+const nets = os.networkInterfaces();
+for (const name of Object.keys(nets)) {
+  for (const net of nets[name]) {
+    if (net.family === 'IPv4' && !net.internal) {
+      allowedOrigins.add(`http://${net.address}:3000`);
+    }
+  }
+}
+const originsArray = [...allowedOrigins];
+console.log('Allowed CORS origins:', originsArray);
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (curl, mobile apps, etc.)
+    if (!origin || originsArray.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+};
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true
-  }
-});
+const io = socketIo(server, { cors: corsOptions });
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
-  credentials: true
-}));
+app.use(cors(corsOptions));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Backend running', timestamp: new Date().toISOString(), uptime: process.uptime() });
