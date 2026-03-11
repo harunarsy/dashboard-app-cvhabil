@@ -20,8 +20,8 @@ A real-time business dashboard for managing invoices, orders, inventory, and fin
 ### 1. Clone & Setup
 
 ```bash
-git clone https://github.com/harunarsy/dashboard-cvhabil.git
-cd dashboard-cvhabil
+git clone https://github.com/harunarsy/dashboard-app-cvhabil.git
+cd dashboard-app-cvhabil
 ```
 
 ### 2. Database Setup
@@ -91,6 +91,8 @@ npm run dev
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| v0.6.3 | Mar 11, 2026 | ESLint fixes, declutter, DB branch isolation |
+| v0.6.2 | Mar 11, 2026 | Ongoing updates and feature enhancements |
 | v0.5.1 | Mar 11, 2026 | Due date reminders, trash/restore, draft autosave, universal search, HNA/item |
 | v0.5.0 | Mar 11, 2026 | MasterSelect for distributor & product, products_master DB |
 | v0.4.0 | Mar 11, 2026 | Full invoice form redesign, per-item calculations, PPN formula |

@@ -2,7 +2,33 @@ import React from 'react';
 
 const changelog = [
   {
-    version: 'v0.6.1', date: '11 Mar 2026', status: 'latest',
+    version: 'v0.6.3', date: '11 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'ESLint warnings bersih: unused imports & missing dependencies diperbaiki' },
+      { type: 'fix', text: 'Database branch isolation: otomatis deteksi branch git & load .env.dev di dev branch' },
+      { type: 'fix', text: 'Stabilitas koneksi: network access via IP 192.168.3.4 & port 5002 sinkron' },
+      { type: 'new', text: 'Clean Repo: hapus ~10MB file sampah, build lama, dan CRA boilerplate' },
+    ]
+  },
+  {
+    version: 'v0.6.2', date: '11 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'fix', text: 'Bug tanggal: restore parseLocalDate/formatLocalDate + TO_CHAR di backend — tidak lagi shift +1 hari' },
+      { type: 'fix', text: 'Tombol rename distributor & produk di dropdown (pencil icon) yang hilang di v0.6.1' },
+      { type: 'fix', text: 'Rekap per distributor selalu tampil semua, 0 faktur / Rp 0 kalau kosong di bulan tsb' },
+      { type: 'fix', text: 'Universal search sekarang include nama produk' },
+      { type: 'fix', text: 'Tanggal dibayar muncul di row kolom Status kalau sudah Paid' },
+      { type: 'fix', text: 'Field tanggal bayar disabled kalau Belum Bayar, max hari ini, otomatis clear kalau status diubah' },
+      { type: 'fix', text: 'Jatuh tempo dipindah ke bawah kolom Status — lebih rapi dan kontekstual' },
+      { type: 'new', text: 'Warna unik per distributor di rekap stack & row tabel — mudah dibaca sekilas' },
+      { type: 'new', text: 'Urutan kolom tabel: Tgl Faktur → No Faktur → Distributor → dst' },
+      { type: 'new', text: 'Badge Jatuh Tempo sejajar toolbar Add Invoice & Trash — "Semua OK" kalau tidak ada masalah' },
+      { type: 'new', text: 'Riwayat Perubahan: timeline vertikal, tabel before/after hanya field yang berubah' },
+      { type: 'new', text: 'Disc COD didistribusikan per produk proporsional — tampil di modal & expanded row' },
+    ]
+  },
+  {
+    version: 'v0.6.1', date: '11 Mar 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Disc COD sekarang bisa input % atau nominal langsung — hasil langsung muncul sebagai nominal' },
       { type: 'fix', text: 'Validasi form: minimal 1 produk, QTY & HNA harus > 0, jatuh tempo tidak boleh sebelum tgl faktur' },

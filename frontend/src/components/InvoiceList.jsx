@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { invoicesAPI, distributorsAPI, productsAPI, auditAPI } from '../services/api';
-import { Plus, X, ChevronDown, ChevronUp, Trash2, RotateCcw, Search, AlertTriangle, Clock, FileText, ChevronLeft, ChevronRight, History } from 'lucide-react';
+import { Plus, X, Trash2, RotateCcw, Search, AlertTriangle, Clock, FileText, ChevronLeft, ChevronRight, History } from 'lucide-react';
 import MasterSelect from './MasterSelect';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -150,7 +150,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
   const [successToast, setSuccessToast] = useState('');
   const [auditModal, setAuditModal] = useState(null); // { invoiceId, invoiceNumber }
   const [auditLog, setAuditLog] = useState([]);
-  const fileInputRef = useRef(null);
+
   const draftDebounceRef = useRef(null);
 
   // Sort
@@ -180,10 +180,6 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
   const totals = calcTotals(items, form);
 
   useEffect(() => { fetchInvoices(); fetchDistributors(); fetchProducts(); checkDraft(); }, []);
-  useEffect(() => { applyFilters(); setCurrentPage(1); },
-    [invoices, universalSearch, selectedMonth, searchDist, searchInv, filterStatus, filterDue, dateFrom, dateTo, sortKey, sortDir]);
-
-  // Draft debounce
   useEffect(() => {
     if (!showModal) return;
     if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
@@ -251,6 +247,10 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
     }
     setFilteredInvoices(f);
   };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const applyFiltersMemo = useCallback(applyFilters, [invoices, universalSearch, selectedMonth, searchDist, searchInv, filterStatus, filterDue, dateFrom, dateTo, sortKey, sortDir]);
+  useEffect(() => { applyFiltersMemo(); setCurrentPage(1); }, [applyFiltersMemo]);
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');

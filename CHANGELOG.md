@@ -1,5 +1,30 @@
 # Changelog — Dashboard CV Habil
 
+## [v0.6.3] — March 11, 2026
+
+### 🛠️ Improvements & Bug Fixes
+- **ESLint Clean Slate** — Fixed all linting warnings (unused imports, missing dependencies).
+- **Database Branch Isolation** — Backend now auto-detects git branch and loads `.env.dev` on `dev` branch, ensuring it never touches the production database (`dashboard_db`).
+- **Network Access Sync** — Frontend now correctly hits backend port `5002` when running on `dev` branch, allowing full access via network IP (`192.168.3.4`).
+- **Cleanup & Declutter** — Removed ~10MB of redundant files, old build folders, and unused CRA boilerplate.
+
+## [v0.6.2] — March 11, 2026
+
+### 🛠️ Improvements & Bug Fixes
+- **Date Handling Fix** — Restored timezone-safe date parsing/formatting to prevent "shift +1 day" bugs.
+- **Universal Search Enhancement** — Search now includes product names within invoices.
+- **Improved UI for Paid Status** — Payment date now appears contextually when status is "Paid".
+- **Dynamic Rekap Table** — Rekap per distributor now shows all known distributors even with 0 invoices for the month.
+- **Visual Polish** — Added unique color dots per distributor and improved sorting logic.
+
+## [v0.6.1] — March 11, 2026
+
+### 🛠️ Improvements & Bug Fixes
+- **Audit Log (Riwayat Perubahan)** — Added vertical timeline to track Create, Update, Delete, and Restore actions.
+- **Disc COD Distribution** — COD discounts are now distributed proportionally across all items in an invoice.
+- **Refined Sorting & Pagination** — Added table headers sorting and 5/10/25/50 per page pagination.
+- **Responsive Navigation** — Improved sidebar functionality for smaller screens.
+
 ## [v0.5.2] — March 11, 2026
 
 ### 🐛 Root Cause Fix: Data Berantakan di Invoice 1260300020
