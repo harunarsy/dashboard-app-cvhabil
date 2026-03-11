@@ -27,7 +27,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
     { icon: FileText, label: 'Nota Penjualan', path: '/sales', active: true },
     { icon: Users, label: 'Customer', path: '/customers', active: true },
     { icon: Package, label: 'Invoices', path: '/invoices', active: true },
-    { icon: ShoppingCart, label: 'Orders', path: '/orders', active: false },
+    { icon: ShoppingCart, label: 'Surat Pesanan', path: '/orders', active: true },
     { icon: Package, label: 'Inventory', path: '/inventory', active: true },
     ...(role === 'direktur' ? [
       { icon: BarChart3, label: 'Buku Besar', path: '/ledger', active: false },
