@@ -90,7 +90,7 @@ npm run dev
 ## Release History
 
 | Version | Date | Highlights |
-|---------|------|------------|
+| v1.0.0 | Mar 12, 2026 | **v1.0 Official Release**: Inventory (FEFO), Surat Pesanan, Toko Online (Shopee/TikTok), Buku Besar |
 | v0.6.3 | Mar 11, 2026 | ESLint fixes, declutter, DB branch isolation |
 | v0.6.2 | Mar 11, 2026 | Ongoing updates and feature enhancements |
 | v0.5.1 | Mar 11, 2026 | Due date reminders, trash/restore, draft autosave, universal search, HNA/item |
