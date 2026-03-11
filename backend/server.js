@@ -72,6 +72,8 @@ app.use('/api/invoices', require('./routes/invoices'));
 app.use('/api/distributors', require('./routes/distributors'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/bugs', require('./routes/bugs'));
+app.use('/api/customers', require('./routes/customers'));
+app.use('/api/sales', require('./routes/sales'));
 
 io.on('connection', (socket) => {
   console.log(`[${new Date().toISOString()}] User connected: ${socket.id}`);

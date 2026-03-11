@@ -72,3 +72,21 @@ export default api;
 export const auditAPI = {
   getByInvoice: (id) => api.get(`/invoices/${id}/audit`),
 };
+
+// Customers
+export const customersAPI = {
+  getAll: () => api.get('/customers'),
+  getById: (id) => api.get(`/customers/${id}`),
+  create: (data) => api.post('/customers', data),
+  update: (id, data) => api.put(`/customers/${id}`, data),
+  remove: (id) => api.delete(`/customers/${id}`),
+};
+
+// Sales / Nota Penjualan
+export const salesAPI = {
+  getAll: () => api.get('/sales'),
+  getById: (id) => api.get(`/sales/${id}`),
+  create: (data) => api.post('/sales', data),
+  update: (id, data) => api.put(`/sales/${id}`, data),
+  remove: (id) => api.delete(`/sales/${id}`),
+};
