@@ -4,6 +4,7 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
 import InvoiceList from './components/InvoiceList';
+import BugReports from './components/BugReports';
 import { AuthContext, AuthProvider } from './context/AuthContext';
 import './App.css';
 
@@ -45,6 +46,14 @@ function AppRoutes({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen 
             <InvoiceList isDarkMode={isDarkMode} isSidebarOpen={isSidebarOpen} />
           </ProtectedRoute>
         } 
+      />
+      <Route
+        path="/bugs"
+        element={
+          <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}>
+            <BugReports isDarkMode={isDarkMode} isSidebarOpen={isSidebarOpen} />
+          </ProtectedRoute>
+        }
       />
       <Route path="/" element={<Navigate to={token ? "/dashboard" : "/login"} />} />
     </Routes>
