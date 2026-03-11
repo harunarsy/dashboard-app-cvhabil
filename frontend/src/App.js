@@ -8,6 +8,7 @@ import BugReports from './components/BugReports';
 import SalesOrderList from './components/SalesOrderList';
 import CustomerList from './components/CustomerList';
 import InventoryDashboard from './components/InventoryDashboard';
+import PurchaseOrderList from './components/PurchaseOrderList';
 import { AuthContext, AuthProvider } from './context/AuthContext';
 import './App.css';
 
@@ -37,6 +38,7 @@ function AppRoutes({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen 
       <Route path="/sales" element={wrap(SalesOrderList)} />
       <Route path="/customers" element={wrap(CustomerList)} />
       <Route path="/inventory" element={wrap(InventoryDashboard)} />
+      <Route path="/orders" element={wrap(PurchaseOrderList)} />
       <Route path="/bugs" element={wrap(BugReports)} />
       <Route path="/" element={<Navigate to={token ? "/dashboard" : "/login"} />} />
     </Routes>
