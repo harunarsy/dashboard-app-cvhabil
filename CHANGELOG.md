@@ -1,108 +1,37 @@
-# Changelog — Dashboard CV Habil
+# Changelog
 
-## [v0.6.3] — March 11, 2026
+All notable changes to this project will be documented in this file.
 
-### 🛠️ Improvements & Bug Fixes
-- **ESLint Clean Slate** — Fixed all linting warnings (unused imports, missing dependencies).
-- **Database Branch Isolation** — Backend now auto-detects git branch and loads `.env.dev` on `dev` branch, ensuring it never touches the production database (`dashboard_db`).
-- **Network Access Sync** — Frontend now correctly hits backend port `5002` when running on `dev` branch, allowing full access via network IP (`192.168.3.4`).
-- **Cleanup & Declutter** — Removed ~10MB of redundant files, old build folders, and unused CRA boilerplate.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.6.2] — March 11, 2026
+## [1.0.1] - 2026-03-12
 
-### 🛠️ Improvements & Bug Fixes
-- **Date Handling Fix** — Restored timezone-safe date parsing/formatting to prevent "shift +1 day" bugs.
-- **Universal Search Enhancement** — Search now includes product names within invoices.
-- **Improved UI for Paid Status** — Payment date now appears contextually when status is "Paid".
-- **Dynamic Rekap Table** — Rekap per distributor now shows all known distributors even with 0 invoices for the month.
-- **Visual Polish** — Added unique color dots per distributor and improved sorting logic.
+### Added
+- **Dashboard UI Overhaul**: New modern layout with quick stats cards ("Akses Cepat").
+- **Release History Modal**: Interactive popup showing changelog and roadmap history.
+- **Cache Busting**: Version subtext updated to `v1.0.1` to force browser cache refresh of environment variables.
 
-## [v0.6.1] — March 11, 2026
+### Fixed
+- **Database Connectivity**: Resolved "Login Failed" timeout issue by aligning frontend API ports with backend `dev` branch ports (5001 -> 5002).
+- **React Environment Stubbornness**: Explicitly hardcoded fallback port in `api.js` to prevent stale caching of old server ports.
 
-### 🛠️ Improvements & Bug Fixes
-- **Audit Log (Riwayat Perubahan)** — Added vertical timeline to track Create, Update, Delete, and Restore actions.
-- **Disc COD Distribution** — COD discounts are now distributed proportionally across all items in an invoice.
-- **Refined Sorting & Pagination** — Added table headers sorting and 5/10/25/50 per page pagination.
-- **Responsive Navigation** — Improved sidebar functionality for smaller screens.
-
-## [v0.5.2] — March 11, 2026
-
-### 🐛 Root Cause Fix: Data Berantakan di Invoice 1260300020
-Masalah yang dilaporkan: input 2x nomor yang sama → data lama tertimpa diam-diam, item_count salah, angka HNA/PPN/HPP tidak konsisten.
-
-**Penyebab:**
-- Backend langsung `DELETE invoice_items + INSERT` saat nomor duplikat, tanpa konfirmasi ke user
-- Frontend tidak cek apakah nomor sudah ada sebelum submit
-- User mengira "Add Invoice" akan merge/menambah produk, padahal replace semua
-
-**Fix yang diterapkan:**
-- Frontend cek duplikat *sebelum* kirim ke backend (bandingkan dengan state `invoices`)
-- Jika duplikat terdeteksi → tampilkan dialog konfirmasi 3 opsi (tidak langsung simpan)
-- Backend tetap bisa handle upsert tapi sekarang hanya dipanggil setelah user memilih
-
-### ✨ New Features
-- **Duplicate Invoice Dialog** — saat nomor faktur sudah ada, muncul dialog dengan 3 pilihan:
-  1. **✏️ Buka & Edit Invoice yang Ada** — load existing + semua produknya, user bisa tambah/ubah (ini opsi yang paling sering dipakai)
-  2. **🔄 Timpa dengan Data Sekarang** — ganti seluruh invoice dengan yang baru diisi
-  3. **Batal** — kembali ke form, ganti nomor faktur
-- **Draft Autosave on Change** — draft sekarang save 1.5 detik setelah *setiap* perubahan input (bukan setiap 30 detik). Pakai debounce agar tidak spam request.
-
-### 📊 Analisis Data Invoice 1260300020
-Berdasarkan data yang diberikan, seharusnya:
-
-**Produk 1 — TS SWEET DIABTX IND 10-2028**
-- QTY: 320, HNA: Rp 86.000
-- HNA×QTY: Rp 27.520.000
-- Disc 15%: Rp 4.128.000
-- HNA Baru: Rp 23.392.000
-- PPN (11%): Rp 2.573.120
-- HNA+PPN: Rp 25.965.120
-- HPP/item: Rp 81.141
-
-**Produk 2 — TS NFDM 1000GR / 10-2027**
-- QTY: 1, HNA: Rp 184.000
-- HNA×QTY: Rp 184.000
-- Disc 15%: Rp 27.600
-- HNA Baru: Rp 156.400
-- PPN (11%): Rp 17.204
-- HNA+PPN: Rp 173.604
-- HPP/item: Rp 173.604
-
-**Total seharusnya (2 produk, 321 qty):**
-- HNA×QTY: Rp 27.704.000
-- DISC: Rp 4.155.600
-- HNA Baru: Rp 23.548.400
-- HNA Final: Rp 23.548.400 (tanpa Disc COD)
-- PPN: Rp 2.590.324
-- HNA+PPN: Rp 26.138.724
-- HPP/item: Rp 26.138.724 ÷ 321 = Rp 81.430
+### Changed
+- **Security Enhancements**: Removed 1-click "Direktur" and "Admin" demo login buttons from production/release UI.
+- **Session Timeout**: JWT expiration shortened to `15m` for better session security and data collision prevention.
 
 ---
 
-## [v0.5.1] — March 11, 2026
-- Universal search + collapsible filters
-- Due date reminder + badge warna + alert counter
-- Trash/soft-delete + restore
-- Draft autosave setiap 30 detik
-- HNA per Item
-- Fix duplicate invoice number error → auto-upsert
+## [1.0.0] - 2026-03-12
 
-## [v0.5.0] — March 11, 2026
-- MasterSelect component (search, create inline, delete)
-- Products master database
+### Added
+- **Inventory Module**: Full FEFO (First Expired First Out) logic, stock opname, and low-stock alerts.
+- **Purchase Order (SP)**: CRUD for purchase orders with automated PO numbers and inventory receive integration.
+- **Online Store Integration**: CSV importers for Shopee and TikTok orders with profit calculation.
+- **General Ledger (Buku Besar)**: Financial journaling with debit/credit and monthly category summaries.
+- **Universal Search**: Sidebar search across modules.
 
-## [v0.4.0] — March 11, 2026
-- Form faktur lengkap + kalkulasi otomatis real-time
-- PPN formula, Disc COD, HPP per produk
+---
 
-## [v0.3.1] — March 11, 2026
-- Fix add distributor tidak tersimpan ke DB
-
-## [v0.3.0] — March 11, 2026
-- Invoice Management System (CRUD)
-
-## [v0.2.x] — March 11, 2026
-- Apple HIG design, sidebar toggle
-
-## [v0.1.0] — March 10, 2026
-- MVP release
+## [0.6.3] - 2026-03-11
+- ESLint fixes, code decluttering, and DB branch isolation.

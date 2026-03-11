@@ -1,104 +1,51 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Info, X, Activity, ShoppingCart, Users, Package } from 'lucide-react';
 
 const changelog = [
   {
-    version: 'v0.6.3', date: '11 Mar 2026', status: 'latest',
+    version: 'v1.0.1', date: '12 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'Perbaikan Database Connection: Timeout saat login telah diperbaiki dengan auto-fallback jaringan lokal' },
+      { type: 'fix', text: 'Keamanan Sesi: Auto-logout JWT 15 menit diterapkan untuk menghindari bentrok data antar user' },
+      { type: 'fix', text: 'Tombol quick-login dihapus dari production untuk alasan keamanan' },
+      { type: 'new', text: 'UI Dashboard baru dengan Modal Popup Release History & Upcoming Features' },
+    ]
+  },
+  {
+    version: 'v1.0.0', date: '12 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'new', text: 'Toko Online: Import CSV Shopee & TikTok, Kalkulasi profit' },
+      { type: 'new', text: 'Buku Besar: Sistem Jurnal Keuangan Khusus Direktur' },
+      { type: 'new', text: 'Surat Pesanan: Auto-PO, tracking receive langsung masuk Inventory' },
+      { type: 'new', text: 'Inventory: FEFO tracking otomatis' },
+    ]
+  },
+  {
+    version: 'v0.6.3', date: '11 Mar 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'ESLint warnings bersih: unused imports & missing dependencies diperbaiki' },
       { type: 'fix', text: 'Database branch isolation: otomatis deteksi branch git & load .env.dev di dev branch' },
-      { type: 'fix', text: 'Stabilitas koneksi: network access via IP 192.168.3.4 & port 5002 sinkron' },
       { type: 'new', text: 'Clean Repo: hapus ~10MB file sampah, build lama, dan CRA boilerplate' },
     ]
   },
   {
     version: 'v0.6.2', date: '11 Mar 2026', status: 'stable',
     changes: [
-      { type: 'fix', text: 'Bug tanggal: restore parseLocalDate/formatLocalDate + TO_CHAR di backend — tidak lagi shift +1 hari' },
-      { type: 'fix', text: 'Tombol rename distributor & produk di dropdown (pencil icon) yang hilang di v0.6.1' },
-      { type: 'fix', text: 'Rekap per distributor selalu tampil semua, 0 faktur / Rp 0 kalau kosong di bulan tsb' },
-      { type: 'fix', text: 'Universal search sekarang include nama produk' },
-      { type: 'fix', text: 'Tanggal dibayar muncul di row kolom Status kalau sudah Paid' },
-      { type: 'fix', text: 'Field tanggal bayar disabled kalau Belum Bayar, max hari ini, otomatis clear kalau status diubah' },
-      { type: 'fix', text: 'Jatuh tempo dipindah ke bawah kolom Status — lebih rapi dan kontekstual' },
-      { type: 'new', text: 'Warna unik per distributor di rekap stack & row tabel — mudah dibaca sekilas' },
-      { type: 'new', text: 'Urutan kolom tabel: Tgl Faktur → No Faktur → Distributor → dst' },
-      { type: 'new', text: 'Badge Jatuh Tempo sejajar toolbar Add Invoice & Trash — "Semua OK" kalau tidak ada masalah' },
-      { type: 'new', text: 'Riwayat Perubahan: timeline vertikal, tabel before/after hanya field yang berubah' },
-      { type: 'new', text: 'Disc COD didistribusikan per produk proporsional — tampil di modal & expanded row' },
+      { type: 'fix', text: 'Bug tanggal: restore parseLocalDate/formatLocalDate + TO_CHAR di backend' },
+      { type: 'new', text: 'Warna unik per distributor di rekap stack & row tabel' },
     ]
-  },
-  {
-    version: 'v0.6.1', date: '11 Mar 2026', status: 'stable',
-    changes: [
-      { type: 'fix', text: 'Disc COD sekarang bisa input % atau nominal langsung — hasil langsung muncul sebagai nominal' },
-      { type: 'fix', text: 'Validasi form: minimal 1 produk, QTY & HNA harus > 0, jatuh tempo tidak boleh sebelum tgl faktur' },
-      { type: 'fix', text: 'Popup sukses (toast hijau) muncul setelah simpan/update/delete/restore faktur' },
-      { type: 'new', text: 'Sorting kolom tabel: klik header No Faktur, Distributor, Tgl, HNA, Status, dll' },
-      { type: 'new', text: 'Pagination dengan filter 5 / 10 / 25 / 50 per halaman' },
-      { type: 'new', text: 'Rekap per Distributor tampil otomatis di bawah summary cards' },
-      { type: 'new', text: 'Riwayat perubahan faktur (audit log): CREATE, UPDATE, DELETE, RESTORE' },
-      { type: 'removed', text: 'Import Excel dihapus sementara (belum stabil untuk migrasi data)' },
-      { type: 'removed', text: 'Dashboard diganti menjadi halaman Changelog & Upcoming ini' },
-    ]
-  },
-  {
-    version: 'v0.5.2', date: '11 Mar 2026', status: 'stable',
-    changes: [
-      { type: 'fix', text: 'Fix root cause data invoice tertimpa diam-diam saat nomor duplikat' },
-      { type: 'new', text: 'Dialog konfirmasi duplikat: Edit existing, Timpa, atau Batal ganti nomor' },
-      { type: 'new', text: 'Draft autosave debounce — save 1.5 detik setelah setiap perubahan input' },
-    ]
-  },
-  {
-    version: 'v0.5.1', date: '11 Mar 2026', status: 'stable',
-    changes: [
-      { type: 'new', text: 'Universal search bar + collapsible advanced filters dengan indikator aktif' },
-      { type: 'new', text: 'Due date / jatuh tempo: badge merah/orange/kuning, alert counter di header, auto-sort' },
-      { type: 'new', text: 'Trash & soft-delete: faktur ke trash dulu, bisa restore atau hapus permanen' },
-      { type: 'new', text: 'HNA per Item di form dan expanded view' },
-      { type: 'new', text: 'HPP/item tampil di list faktur' },
-    ]
-  },
-  {
-    version: 'v0.5.0', date: '11 Mar 2026', status: 'stable',
-    changes: [
-      { type: 'new', text: 'MasterSelect: dropdown custom dengan search, tambah inline, delete double-confirm' },
-      { type: 'new', text: 'Products master database (products_master table)' },
-      { type: 'new', text: 'Delete distributor dari dropdown' },
-    ]
-  },
-  {
-    version: 'v0.4.0', date: '11 Mar 2026', status: 'stable',
-    changes: [
-      { type: 'new', text: 'Form faktur didesain ulang: per-item HNA, QTY, Disc%, HNA Baru — semua auto-kalkulasi' },
-      { type: 'new', text: 'PPN Masukan = HNA Final × 11%, PPN Pembulatan = INT(PPN), HPP per produk' },
-      { type: 'new', text: 'Disc COD dengan toggle Ada/Tidak Ada' },
-      { type: 'new', text: 'Expired Date per produk' },
-    ]
-  },
-  {
-    version: 'v0.3.0', date: '11 Mar 2026', status: 'stable',
-    changes: [
-      { type: 'new', text: 'Invoice Management System (CRUD lengkap)' },
-      { type: 'new', text: 'Distributor dropdown + tambah inline' },
-      { type: 'new', text: 'Rupiah currency input formatter' },
-      { type: 'new', text: 'Filter faktur: bulan, distributor, status, date range' },
-    ]
-  },
+  }
 ];
 
 const upcoming = [
   { priority: 'high', title: 'Export PDF / Excel', desc: 'Export faktur individual atau rekap bulanan ke PDF & Excel untuk laporan dan arsip' },
-  { priority: 'high', title: 'Rekap Keuangan Bulanan', desc: 'Summary total pengeluaran per bulan, per distributor, trend grafik' },
-  { priority: 'medium', title: 'Password Hashing', desc: 'Keamanan login dengan bcrypt — saat ini masih plaintext (aman karena in-house)' },
-  { priority: 'medium', title: 'Halaman Orders & Products', desc: 'Manajemen pesanan dan stok produk yang terintegrasi dengan data invoice' },
-  { priority: 'medium', title: 'Halaman Finance', desc: 'Laporan keuangan: hutang, piutang, rekap PPN' },
-  { priority: 'low', title: 'Notifikasi Jatuh Tempo', desc: 'Reminder otomatis via WhatsApp/email saat faktur mendekati jatuh tempo' },
-  { priority: 'low', title: 'Multi-user & Role', desc: 'Tambah user dengan role berbeda: admin, finance, viewer' },
-  { priority: 'low', title: 'Barcode / QR Scanner', desc: 'Scan produk saat input faktur menggunakan kamera atau scanner' },
+  { priority: 'high', title: 'Halaman Finance & Karyawan', desc: 'Modul lanjutan untuk penggajian dan manajemen hutang/piutang' },
+  { priority: 'medium', title: 'Password Hashing', desc: 'Keamanan login dengan bcrypt' },
 ];
 
 export default function Dashboard({ isDarkMode, isSidebarOpen }) {
+  const [showModal, setShowModal] = useState(false);
+
   const bg = isDarkMode ? '#000' : '#F5F5F7';
   const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
@@ -115,80 +62,151 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
     medium: { label: 'Sedang',           color: '#FF9500', bg: '#FF950018' },
     low:    { label: 'Nanti',            color: '#86868B', bg: '#86868B18' },
   };
-  const statusConfig = {
-    latest: { label: 'Latest',  color: '#34C759', bg: '#34C75918' },
-    stable: { label: 'Stable',  color: '#007AFF', bg: '#007AFF18' },
-  };
 
   return (
-    <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
-
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: '0 0 4px', color: text }}>📋 Changelog & Roadmap</h1>
-        <p style={{ margin: 0, fontSize: '14px', color: sub }}>Riwayat pembaruan dan fitur yang akan datang — CV Habil Dashboard</p>
+    <div className="font-sans min-h-screen transition-all duration-300" style={{ padding: '2.5rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg }}>
+      
+      {/* Header Section */}
+      <div className="flex justify-between items-center mb-10">
+        <div>
+          <h1 className="text-3xl font-bold mb-2 tracking-tight" style={{ color: text }}>Dashboard</h1>
+          <p className="text-sm font-medium" style={{ color: sub }}>Welcome back to CV Habil Business Module.</p>
+        </div>
+        
+        {/* Version Badge & Changelog Trigger */}
+        <button 
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-full border transition-colors hover:shadow-sm"
+          style={{ backgroundColor: cardBg, borderColor: border, color: text }}
+        >
+          <Info size={16} className="text-blue-500" />
+          <span className="text-sm font-semibold">Version 1.0.1</span>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium ml-2">Release Notes</span>
+        </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+      {/* Quick Stats Placeholder Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        {[
+          { label: 'Total Penjualan bln ini', value: 'Rp 45.2M', icon: <Activity size={24} className="text-green-500"/> },
+          { label: 'Surat Pesanan Aktif', value: '12', icon: <ShoppingCart size={24} className="text-blue-500"/> },
+          { label: 'Stok Low/Expired', value: '3', icon: <Package size={24} className="text-orange-500"/> },
+          { label: 'Total Customer', value: '124', icon: <Users size={24} className="text-indigo-500"/> },
+        ].map((stat, i) => (
+          <div key={i} className="rounded-2xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+            <div className="flex justify-between items-start mb-4">
+              <div className="p-3 bg-gray-50 rounded-xl dark:bg-gray-800">{stat.icon}</div>
+            </div>
+            <h3 className="text-3xl font-bold mb-1" style={{ color: text }}>{stat.value}</h3>
+            <p className="text-sm font-medium" style={{ color: sub }}>{stat.label}</p>
+          </div>
+        ))}
+      </div>
 
-        {/* Changelog */}
-        <div>
-          <h2 style={{ fontSize: '16px', fontWeight: '700', margin: '0 0 1rem', color: text, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            🕐 Release History
-          </h2>
-          {changelog.map((release, ri) => (
-            <div key={ri} style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '16px 18px', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '16px', fontWeight: '700', color: text }}>{release.version}</span>
-                  <span style={{ fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '6px',
-                    backgroundColor: statusConfig[release.status].bg, color: statusConfig[release.status].color }}>
-                    {statusConfig[release.status].label}
-                  </span>
-                </div>
-                <span style={{ fontSize: '12px', color: sub }}>{release.date}</span>
+      {/* Quick Links Section */}
+      <div className="rounded-3xl p-8 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+        <h2 className="text-xl font-bold mb-6" style={{ color: text }}>Akses Cepat</h2>
+        <div className="flex flex-wrap gap-4">
+          <a href="/sales" className="px-5 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors">Buat Nota Penjualan</a>
+          <a href="/orders" className="px-5 py-3 rounded-xl border font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800" style={{ borderColor: border, color: text }}>Tambah Surat Pesanan</a>
+          <a href="/online-store" className="px-5 py-3 rounded-xl border font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800" style={{ borderColor: border, color: text }}>Import CSV Toko Online</a>
+        </div>
+      </div>
+
+      {/* Changelog & Upcoming Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity">
+          <div 
+            className="w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col"
+            style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
+          >
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
+              <div>
+                <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
+                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.0.1 - Terakhir diupdate 12 Mar 2026</p>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {release.changes.map((c, ci) => {
-                  const cfg = typeConfig[c.type];
-                  return (
-                    <div key={ci} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px', backgroundColor: cfg.bg, color: cfg.color, flexShrink: 0, marginTop: '1px' }}>
-                        {cfg.label}
-                      </span>
-                      <span style={{ fontSize: '13px', color: isDarkMode ? '#EBEBF0' : '#3A3A3C', lineHeight: '1.4' }}>{c.text}</span>
+              <button onClick={() => setShowModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <X size={20} style={{ color: sub }} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto" style={{ backgroundColor: bg }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Release History */}
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider mb-4 flex items-center gap-2" style={{ color: sub }}>
+                    🕐 Release History
+                  </h3>
+                  {changelog.map((release, ri) => (
+                    <div key={ri} className="rounded-2xl p-5 mb-4 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg font-bold" style={{ color: text }}>{release.version}</span>
+                          <span className="text-xs font-bold px-2.5 py-1 rounded-md" style={{ backgroundColor: release.status === 'latest' ? '#34C75918' : '#007AFF18', color: release.status === 'latest' ? '#34C759' : '#007AFF' }}>
+                            {release.status === 'latest' ? 'LATEST' : 'STABLE'}
+                          </span>
+                        </div>
+                        <span className="text-xs font-medium" style={{ color: sub }}>{release.date}</span>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        {release.changes.map((c, ci) => {
+                          const cfg = typeConfig[c.type];
+                          return (
+                            <div key={ci} className="flex gap-3 items-start">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase mt-0.5 shrink-0" style={{ backgroundColor: cfg.bg, color: cfg.color }}>
+                                {cfg.label}
+                              </span>
+                              <span className="text-sm leading-relaxed" style={{ color: isDarkMode ? '#EBEBF0' : '#3A3A3C' }}>{c.text}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+
+                {/* Upcoming */}
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider mb-4 flex items-center gap-2" style={{ color: sub }}>
+                    🌟 Upcoming Features
+                  </h3>
+                  {upcoming.map((item, i) => {
+                    const cfg = priorityConfig[item.priority];
+                    return (
+                      <div key={i} className="rounded-2xl p-5 mb-3 border flex gap-4 items-start shadow-sm transition-transform hover:-translate-y-0.5" style={{ backgroundColor: cardBg, borderColor: border }}>
+                        <div className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: cfg.color, boxShadow: `0 0 8px ${cfg.color}80` }} />
+                        <div className="flex-1">
+                          <div className="flex justify-between items-center mb-1.5">
+                            <span className="font-semibold" style={{ color: text }}>{item.title}</span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase" style={{ backgroundColor: cfg.bg, color: cfg.color }}>
+                              {cfg.label}
+                            </span>
+                          </div>
+                          <p className="text-xs leading-relaxed" style={{ color: sub }}>{item.desc}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
               </div>
             </div>
-          ))}
+            
+            {/* Modal Footer */}
+            <div className="p-4 border-t flex justify-end" style={{ borderColor: border, backgroundColor: cardBg }}>
+              <button 
+                onClick={() => setShowModal(false)}
+                className="px-6 py-2 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
         </div>
-
-        {/* Upcoming */}
-        <div>
-          <h2 style={{ fontSize: '16px', fontWeight: '700', margin: '0 0 1rem', color: text, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            🚀 Upcoming Features
-          </h2>
-          {upcoming.map((item, i) => {
-            const cfg = priorityConfig[item.priority];
-            return (
-              <div key={i} style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '14px 18px', marginBottom: '10px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: cfg.color, marginTop: '6px', flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: '600', color: text }}>{item.title}</span>
-                    <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 7px', borderRadius: '6px', backgroundColor: cfg.bg, color: cfg.color }}>
-                      {cfg.label}
-                    </span>
-                  </div>
-                  <p style={{ margin: 0, fontSize: '12px', color: sub, lineHeight: '1.5' }}>{item.desc}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-      </div>
+      )}
     </div>
   );
 }
