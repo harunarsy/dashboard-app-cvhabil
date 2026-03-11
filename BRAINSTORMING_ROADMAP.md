@@ -2,6 +2,26 @@
 
 This document outlines potential improvements and architectural upgrades for the CV Habil Dashboard to be discussed with AI collaborators and stakeholders.
 
+## ✅ Recent Accomplishments (v0.6.3 → v1.0.1)
+
+The leap from v0.6.3 to v1.0.1 represented a major development cycle focused on completing the core business logic and fixing critical connectivity/security issues.
+
+### 💼 Business Logic & Modules
+- **Full Inventory Lifecycle**: Implemented FEFO (First Expired First Out) logic, batch tracking, and Stock Opname.
+- **Surat Pesanan (SP)**: Created a purchase order system with automated numbering and direct inventory integration upon receiving.
+- **Online Store Module**: Built CSV importers for Shopee/TikTok and a profit dashboard based on withdrawal data.
+- **Buku Besar (Ledger)**: Implemented restricted financial journaling (Direktur only) with monthly category summaries.
+
+### 🛡 Security & Reliability
+- **Login Session Security**: Configured 15-minute JWT auto-logout to protect sensitive sessions.
+- **Production Guardrails**: Removed demo credential buttons and exposed detailed connection/auth error messages.
+- **Infrastructure Fixes**: Resolved IP/Port mismatches that prevented login in development environments by re-aligning `.env` files and forcing cache-busting updates.
+
+### ✨ UI/UX Overhaul
+- **Apple HIG Refresh**: Redesigned the Dashboard and Login screens for a premium, minimal aesthetic.
+- **Real-time Status Display**: Added a Version Badge and an interactive **Release Notes & Roadmap Modal** directly in the Dashboard.
+
+
 ## 🎯 High Priority: Core Strengthening
 
 ### 1. Robust Authentication & Security
