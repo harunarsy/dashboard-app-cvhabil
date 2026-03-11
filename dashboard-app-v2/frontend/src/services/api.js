@@ -7,15 +7,19 @@ const api = axios.create({
   timeout: 10000,
 });
 
+// Add token to requests
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
+// Handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -28,8 +32,10 @@ api.interceptors.response.use(
 );
 
 export const authAPI = {
-  login: (username, password) => api.post('/auth/login', { username, password }),
-  logout: () => api.post('/auth/logout'),
+  login: (username, password) => 
+    api.post('/auth/login', { username, password }),
+  logout: () => 
+    api.post('/auth/logout'),
 };
 
 export const ordersAPI = {
@@ -38,30 +44,19 @@ export const ordersAPI = {
   update: (id, data) => api.put(`/orders/${id}`, data),
 };
 
+// Invoice API
 export const invoicesAPI = {
   getAll: () => api.get('/invoices'),
   getById: (id) => api.get(`/invoices/${id}`),
-  getTrash: () => api.get('/invoices/trash'),
-  getDraft: () => api.get('/invoices/draft'),
-  saveDraft: (data) => api.post('/invoices/draft', { draft_data: data }),
-  clearDraft: () => api.delete('/invoices/draft/clear'),
   create: (data) => api.post('/invoices', data),
   update: (id, data) => api.put(`/invoices/${id}`, data),
-  softDelete: (id) => api.delete(`/invoices/${id}`),
-  restore: (id) => api.put(`/invoices/${id}/restore`),
-  permanentDelete: (id) => api.delete(`/invoices/${id}/permanent`),
+  delete: (id) => api.delete(`/invoices/${id}`)
 };
 
+// Distributors API
 export const distributorsAPI = {
   getAll: () => api.get('/distributors'),
-  add: (name) => api.post('/distributors', { name }),
-  remove: (name) => api.delete('/distributors', { data: { name } }),
-};
-
-export const productsAPI = {
-  getAll: () => api.get('/products'),
-  add: (name) => api.post('/products', { name }),
-  remove: (name) => api.delete('/products', { data: { name } }),
+  add: (name) => api.post('/distributors', { name })
 };
 
 export default api;
