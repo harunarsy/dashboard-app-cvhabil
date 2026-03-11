@@ -44,18 +44,6 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// RENAME distributor
-router.patch('/', auth, async (req, res) => {
-  const { oldName, newName } = req.body;
-  if (!oldName?.trim() || !newName?.trim()) return res.status(400).json({ error: 'oldName and newName required' });
-  try {
-    await pool.query('UPDATE distributors SET name = $1 WHERE name = $2', [newName.trim(), oldName.trim()]);
-    res.json({ name: newName.trim() });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // DELETE distributor by name
 router.delete('/', auth, async (req, res) => {
   const { name } = req.body;

@@ -55,15 +55,18 @@ export const invoicesAPI = {
 export const distributorsAPI = {
   getAll: () => api.get('/distributors'),
   add: (name) => api.post('/distributors', { name }),
-  rename: (oldName, newName) => api.patch('/distributors', { oldName, newName }),
   remove: (name) => api.delete('/distributors', { data: { name } }),
 };
 
 export const productsAPI = {
   getAll: () => api.get('/products'),
   add: (name) => api.post('/products', { name }),
-  rename: (oldName, newName) => api.patch('/products', { oldName, newName }),
   remove: (name) => api.delete('/products', { data: { name } }),
 };
 
 export default api;
+
+// Audit log
+export const auditAPI = {
+  getByInvoice: (id) => api.get(`/invoices/${id}/audit`),
+};
