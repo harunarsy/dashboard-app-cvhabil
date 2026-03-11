@@ -40,6 +40,9 @@ router.get('/', auth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT i.*,
+        TO_CHAR(i.purchase_date, 'YYYY-MM-DD') AS purchase_date,
+        TO_CHAR(i.due_date, 'YYYY-MM-DD') AS due_date,
+        TO_CHAR(i.payment_date, 'YYYY-MM-DD') AS payment_date,
         COUNT(ii.id) AS item_count,
         SUM(ii.quantity) AS total_qty
       FROM invoices i
@@ -58,7 +61,11 @@ router.get('/', auth, async (req, res) => {
 router.get('/trash', auth, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT i.*, COUNT(ii.id) AS item_count
+      SELECT i.*,
+        TO_CHAR(i.purchase_date, 'YYYY-MM-DD') AS purchase_date,
+        TO_CHAR(i.due_date, 'YYYY-MM-DD') AS due_date,
+        TO_CHAR(i.payment_date, 'YYYY-MM-DD') AS payment_date,
+        COUNT(ii.id) AS item_count
       FROM invoices i
       LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
       WHERE i.deleted_at IS NOT NULL
@@ -86,9 +93,17 @@ router.get('/draft', auth, async (req, res) => {
 // ── GET single invoice with items ──
 router.get('/:id', auth, async (req, res) => {
   try {
-    const inv = await pool.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
+    const inv = await pool.query(`
+      SELECT *,
+        TO_CHAR(purchase_date, 'YYYY-MM-DD') AS purchase_date,
+        TO_CHAR(due_date, 'YYYY-MM-DD') AS due_date,
+        TO_CHAR(payment_date, 'YYYY-MM-DD') AS payment_date
+      FROM invoices WHERE id = $1`, [req.params.id]);
     if (!inv.rows.length) return res.status(404).json({ error: 'Not found' });
-    const items = await pool.query('SELECT * FROM invoice_items WHERE invoice_id = $1 ORDER BY id', [req.params.id]);
+    const items = await pool.query(`
+      SELECT *,
+        TO_CHAR(expired_date, 'YYYY-MM-DD') AS expired_date
+      FROM invoice_items WHERE invoice_id = $1 ORDER BY id`, [req.params.id]);
     res.json({ invoice: inv.rows[0], items: items.rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -218,7 +233,7 @@ router.post('/', auth, async (req, res) => {
     // Clear any draft
     await pool.query(`DELETE FROM invoices WHERE is_draft = TRUE`);
 
-    const final = await pool.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
+    const final = await pool.query(`SELECT *, TO_CHAR(purchase_date,'YYYY-MM-DD') AS purchase_date, TO_CHAR(due_date,'YYYY-MM-DD') AS due_date, TO_CHAR(payment_date,'YYYY-MM-DD') AS payment_date FROM invoices WHERE id = $1`, [invoiceId]);
     if (global.io) global.io.emit('invoiceCreated', final.rows[0]);
     res.status(201).json({ invoice: final.rows[0], items: items||[] });
   } catch (err) {
@@ -252,7 +267,11 @@ router.put('/:id', auth, async (req, res) => {
         hna_plus_ppn=$13, harga_per_produk=$14,
         due_date=$15, payment_date=$16, status=$17,
         updated_at=NOW()
-       WHERE id=$18 RETURNING *`,
+       WHERE id=$18
+       RETURNING *,
+         TO_CHAR(purchase_date,'YYYY-MM-DD') AS purchase_date,
+         TO_CHAR(due_date,'YYYY-MM-DD') AS due_date,
+         TO_CHAR(payment_date,'YYYY-MM-DD') AS payment_date`,
       [invoice_number, purchase_date, distributor_name,
        total_hna||null, discount_amount||null, hna_baru||null,
        disc_cod_ada||false, disc_cod_amount||null,
