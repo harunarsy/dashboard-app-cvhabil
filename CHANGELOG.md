@@ -1,102 +1,83 @@
 # Changelog — Dashboard CV Habil
 
-## [v0.5.1] — March 11, 2026
+## [v0.5.2] — March 11, 2026
+
+### 🐛 Root Cause Fix: Data Berantakan di Invoice 1260300020
+Masalah yang dilaporkan: input 2x nomor yang sama → data lama tertimpa diam-diam, item_count salah, angka HNA/PPN/HPP tidak konsisten.
+
+**Penyebab:**
+- Backend langsung `DELETE invoice_items + INSERT` saat nomor duplikat, tanpa konfirmasi ke user
+- Frontend tidak cek apakah nomor sudah ada sebelum submit
+- User mengira "Add Invoice" akan merge/menambah produk, padahal replace semua
+
+**Fix yang diterapkan:**
+- Frontend cek duplikat *sebelum* kirim ke backend (bandingkan dengan state `invoices`)
+- Jika duplikat terdeteksi → tampilkan dialog konfirmasi 3 opsi (tidak langsung simpan)
+- Backend tetap bisa handle upsert tapi sekarang hanya dipanggil setelah user memilih
 
 ### ✨ New Features
-- **Universal Search** — satu search bar di atas untuk cari no. faktur, distributor, status sekaligus
-- **Advanced Filters** — collapsible panel di bawah search, ada indikator "!" kalau filter aktif
-- **Due Date / Jatuh Tempo** — field baru di form & kolom tersembunyi di list, dengan:
-  - Badge merah untuk faktur yang sudah terlambat
-  - Badge orange untuk jatuh tempo ≤ 7 hari
-  - Badge kuning untuk jatuh tempo ≤ 3 hari
-  - Alert counter di header halaman (klik langsung filter)
-  - Auto-sort: faktur terlambat/terdekat muncul paling atas
-- **Filter Jatuh Tempo** — opsi filter "Terlambat" dan "≤ 7 hari" di advanced filter
-- **Trash / Soft Delete** — delete faktur sekarang pindah ke Trash dulu, bisa di-restore kapan saja
-  - Confirm dialog sebelum delete (tidak bisa salah klik)
-  - Panel Trash dengan tombol Restore dan Hapus Permanen
-- **Draft Autosave** — form faktur auto-save ke server setiap 30 detik
-  - Banner "Ada draft tersimpan" saat buka halaman
-  - Klik "Lanjutkan" untuk resume sesi sebelumnya
-  - Draft bersih otomatis setelah invoice berhasil disimpan
-- **HNA per Item** — kolom baru di expanded view dan di form per-produk (HNA Baru ÷ QTY)
-- **HPP per Produk** — ditampilkan di list invoice (warna ungu)
-- **Duplicate Invoice Number** — tidak lagi error; nomor yang sama akan **update** invoice yang sudah ada
+- **Duplicate Invoice Dialog** — saat nomor faktur sudah ada, muncul dialog dengan 3 pilihan:
+  1. **✏️ Buka & Edit Invoice yang Ada** — load existing + semua produknya, user bisa tambah/ubah (ini opsi yang paling sering dipakai)
+  2. **🔄 Timpa dengan Data Sekarang** — ganti seluruh invoice dengan yang baru diisi
+  3. **Batal** — kembali ke form, ganti nomor faktur
+- **Draft Autosave on Change** — draft sekarang save 1.5 detik setelah *setiap* perubahan input (bukan setiap 30 detik). Pakai debounce agar tidak spam request.
 
-### 🐛 Bug Fixes
-- Fixed duplicate invoice number constraint error — sekarang auto-upsert
-- Fixed filter tidak reset saat klik "Hapus Filter"
-- Fixed `getDueStatus` undefined di row expansion
+### 📊 Analisis Data Invoice 1260300020
+Berdasarkan data yang diberikan, seharusnya:
 
-### 🗄️ Database Changes (auto-migrate on start)
-- `invoices`: tambah kolom `due_date`, `deleted_at`, `is_draft`, `draft_data`
-- `invoice_items`: tambah kolom `hna_per_item`
-- New soft-delete endpoints: `DELETE /invoices/:id` → pindah ke trash
-- New restore endpoint: `PUT /invoices/:id/restore`
-- New permanent delete: `DELETE /invoices/:id/permanent`
-- New draft endpoints: `POST /invoices/draft`, `GET /invoices/draft`, `DELETE /invoices/draft/clear`
-- New trash endpoint: `GET /invoices/trash`
+**Produk 1 — TS SWEET DIABTX IND 10-2028**
+- QTY: 320, HNA: Rp 86.000
+- HNA×QTY: Rp 27.520.000
+- Disc 15%: Rp 4.128.000
+- HNA Baru: Rp 23.392.000
+- PPN (11%): Rp 2.573.120
+- HNA+PPN: Rp 25.965.120
+- HPP/item: Rp 81.141
+
+**Produk 2 — TS NFDM 1000GR / 10-2027**
+- QTY: 1, HNA: Rp 184.000
+- HNA×QTY: Rp 184.000
+- Disc 15%: Rp 27.600
+- HNA Baru: Rp 156.400
+- PPN (11%): Rp 17.204
+- HNA+PPN: Rp 173.604
+- HPP/item: Rp 173.604
+
+**Total seharusnya (2 produk, 321 qty):**
+- HNA×QTY: Rp 27.704.000
+- DISC: Rp 4.155.600
+- HNA Baru: Rp 23.548.400
+- HNA Final: Rp 23.548.400 (tanpa Disc COD)
+- PPN: Rp 2.590.324
+- HNA+PPN: Rp 26.138.724
+- HPP/item: Rp 26.138.724 ÷ 321 = Rp 81.430
 
 ---
+
+## [v0.5.1] — March 11, 2026
+- Universal search + collapsible filters
+- Due date reminder + badge warna + alert counter
+- Trash/soft-delete + restore
+- Draft autosave setiap 30 detik
+- HNA per Item
+- Fix duplicate invoice number error → auto-upsert
 
 ## [v0.5.0] — March 11, 2026
-
-### ✨ New Features
-- **MasterSelect component** — dropdown custom dengan search, create inline, delete dengan double-confirm
-- **Products Master Database** — tabel `products_master`, endpoint GET/POST/DELETE `/api/products`
-- **Distributor delete** — endpoint DELETE `/api/distributors`
-- Layout produk per-item diubah ke card style (lebih rapih)
-
----
+- MasterSelect component (search, create inline, delete)
+- Products master database
 
 ## [v0.4.0] — March 11, 2026
-
-### ✨ New Features
-- Form faktur didesain ulang lengkap dengan semua field
-- Per-item: Nama Produk, Expired Date, QTY, HNA, Disc%, HNA×QTY, Disc Nominal, HNA Baru
-- Kalkulasi otomatis real-time untuk semua field finansial
-- PPN Masukan = HNA Final × 11% (dengan 2 desimal, tidak ada bug input)
-- PPN Pembulatan = INT(PPN Masukan)
-- HNA Final, HNA+PPN, HPP per produk — semua auto-kalkulasi
-- Disc COD dengan opsi Ada/Tidak Ada
-- List invoice lebih informatif: HNA×QTY, HNA Final, HNA+PPN, PPN, item count
-- Expand row untuk lihat detail produk per faktur
-
-### 🗄️ Database Changes
-- `invoices`: tambah kolom `hna_baru`, `disc_cod_ada`, `disc_cod_amount`, `hna_final`, `ppn_masukan`, `ppn_pembulatan`, `hna_plus_ppn`, `harga_per_produk`
-- `invoice_items`: tambah kolom `expired_date`, `hna`, `hna_times_qty`, `disc_percent`, `disc_nominal`, `hna_baru`
-
----
+- Form faktur lengkap + kalkulasi otomatis real-time
+- PPN formula, Disc COD, HPP per produk
 
 ## [v0.3.1] — March 11, 2026
-
-### 🐛 Bug Fixes
-- Fixed add distributor tidak tersimpan ke database
-- Backend POST `/distributors` sekarang save ke tabel `distributors`
-- GET `/distributors` gabungkan dari tabel `distributors` + `invoices` (UNION)
-- Frontend: auto-select distributor baru setelah berhasil add
-
-### 🗄️ Database Changes
-- Tabel baru: `distributors` (id, name, created_at)
-
----
+- Fix add distributor tidak tersimpan ke DB
 
 ## [v0.3.0] — March 11, 2026
 - Invoice Management System (CRUD)
-- Distributor dropdown + add inline
-- Rupiah currency input formatter
-- Invoice filters: bulan, distributor, status, date range
-- Excel import untuk bulk upload
-- Invoice metrics: Total HNA, PPN, Margin, Count
 
-## [v0.2.2] — March 11, 2026
-- Final Apple HIG design, bug fixes
-
-## [v0.2.1] — March 11, 2026
-- Sidebar toggle, smooth animations
-
-## [v0.2.0] — March 11, 2026
-- Apple HIG design system
+## [v0.2.x] — March 11, 2026
+- Apple HIG design, sidebar toggle
 
 ## [v0.1.0] — March 10, 2026
-- MVP: auth, dashboard, orders
+- MVP release

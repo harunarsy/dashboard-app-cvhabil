@@ -5,7 +5,6 @@ const auth = require('../middleware/auth');
 
 // Auto-migrate schema
 const ensureSchema = async () => {
-  // New invoice columns
   await pool.query(`
     ALTER TABLE invoices
       ADD COLUMN IF NOT EXISTS hna_baru DECIMAL(15,2),
@@ -21,7 +20,6 @@ const ensureSchema = async () => {
       ADD COLUMN IF NOT EXISTS is_draft BOOLEAN DEFAULT FALSE,
       ADD COLUMN IF NOT EXISTS draft_data JSONB
   `);
-  // New invoice_items columns
   await pool.query(`
     ALTER TABLE invoice_items
       ADD COLUMN IF NOT EXISTS expired_date DATE,
@@ -32,17 +30,39 @@ const ensureSchema = async () => {
       ADD COLUMN IF NOT EXISTS hna_baru DECIMAL(15,2),
       ADD COLUMN IF NOT EXISTS hna_per_item DECIMAL(15,2)
   `);
+  // Audit log table
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS invoice_audit_log (
+      id SERIAL PRIMARY KEY,
+      invoice_id INTEGER NOT NULL,
+      invoice_number VARCHAR(100),
+      action VARCHAR(50) NOT NULL,
+      changed_by VARCHAR(100) DEFAULT 'admin',
+      changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      snapshot JSONB,
+      note TEXT
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_invoice_id ON invoice_audit_log(invoice_id)`);
 };
 ensureSchema().catch(console.error);
 
-// ── GET all invoices (non-deleted) with item count ──
+// Helper: log audit
+const logAudit = async (invoiceId, invoiceNumber, action, snapshot, note = '') => {
+  try {
+    await pool.query(
+      `INSERT INTO invoice_audit_log (invoice_id, invoice_number, action, snapshot, note)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [invoiceId, invoiceNumber, action, JSON.stringify(snapshot), note]
+    );
+  } catch (e) { console.error('Audit log error:', e.message); }
+};
+
+// GET all invoices
 router.get('/', auth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT i.*,
-        TO_CHAR(i.purchase_date, 'YYYY-MM-DD') AS purchase_date,
-        TO_CHAR(i.due_date, 'YYYY-MM-DD') AS due_date,
-        TO_CHAR(i.payment_date, 'YYYY-MM-DD') AS payment_date,
         COUNT(ii.id) AS item_count,
         SUM(ii.quantity) AS total_qty
       FROM invoices i
@@ -52,20 +72,14 @@ router.get('/', auth, async (req, res) => {
       ORDER BY i.purchase_date DESC
     `);
     res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── GET trash (soft-deleted) ──
+// GET trash
 router.get('/trash', auth, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT i.*,
-        TO_CHAR(i.purchase_date, 'YYYY-MM-DD') AS purchase_date,
-        TO_CHAR(i.due_date, 'YYYY-MM-DD') AS due_date,
-        TO_CHAR(i.payment_date, 'YYYY-MM-DD') AS payment_date,
-        COUNT(ii.id) AS item_count
+      SELECT i.*, COUNT(ii.id) AS item_count
       FROM invoices i
       LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
       WHERE i.deleted_at IS NOT NULL
@@ -73,82 +87,69 @@ router.get('/trash', auth, async (req, res) => {
       ORDER BY i.deleted_at DESC
     `);
     res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── GET draft ──
+// GET draft
 router.get('/draft', auth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT * FROM invoices WHERE is_draft = TRUE AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1`
     );
     res.json(result.rows[0] || null);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── GET single invoice with items ──
+// GET audit log for invoice
+router.get('/:id/audit', auth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM invoice_audit_log WHERE invoice_id = $1 ORDER BY changed_at DESC`,
+      [req.params.id]
+    );
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET single invoice with items
 router.get('/:id', auth, async (req, res) => {
   try {
-    const inv = await pool.query(`
-      SELECT *,
-        TO_CHAR(purchase_date, 'YYYY-MM-DD') AS purchase_date,
-        TO_CHAR(due_date, 'YYYY-MM-DD') AS due_date,
-        TO_CHAR(payment_date, 'YYYY-MM-DD') AS payment_date
-      FROM invoices WHERE id = $1`, [req.params.id]);
+    const inv = await pool.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
     if (!inv.rows.length) return res.status(404).json({ error: 'Not found' });
-    const items = await pool.query(`
-      SELECT *,
-        TO_CHAR(expired_date, 'YYYY-MM-DD') AS expired_date
-      FROM invoice_items WHERE invoice_id = $1 ORDER BY id`, [req.params.id]);
+    const items = await pool.query('SELECT * FROM invoice_items WHERE invoice_id = $1 ORDER BY id', [req.params.id]);
     res.json({ invoice: inv.rows[0], items: items.rows });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── SAVE DRAFT ──
+// SAVE DRAFT
 router.post('/draft', auth, async (req, res) => {
   const { draft_data } = req.body;
   try {
-    // Upsert single draft per user (simple: one draft at a time)
-    const existing = await pool.query(
-      `SELECT id FROM invoices WHERE is_draft = TRUE AND deleted_at IS NULL LIMIT 1`
-    );
+    const existing = await pool.query(`SELECT id FROM invoices WHERE is_draft = TRUE AND deleted_at IS NULL LIMIT 1`);
     if (existing.rows.length > 0) {
-      await pool.query(
-        `UPDATE invoices SET draft_data = $1, updated_at = NOW() WHERE id = $2`,
-        [JSON.stringify(draft_data), existing.rows[0].id]
-      );
+      await pool.query(`UPDATE invoices SET draft_data = $1, updated_at = NOW() WHERE id = $2`,
+        [JSON.stringify(draft_data), existing.rows[0].id]);
       res.json({ id: existing.rows[0].id, saved: true });
     } else {
       const r = await pool.query(
         `INSERT INTO invoices (invoice_number, purchase_date, distributor_name, status, is_draft, draft_data)
-         VALUES ('DRAFT-' || extract(epoch from now())::bigint, NOW(), 'DRAFT', 'Pending', TRUE, $1)
-         RETURNING id`,
+         VALUES ('DRAFT-' || extract(epoch from now())::bigint, NOW(), 'DRAFT', 'Pending', TRUE, $1) RETURNING id`,
         [JSON.stringify(draft_data)]
       );
       res.json({ id: r.rows[0].id, saved: true });
     }
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── DELETE DRAFT ──
+// DELETE DRAFT
 router.delete('/draft/clear', auth, async (req, res) => {
   try {
     await pool.query(`DELETE FROM invoices WHERE is_draft = TRUE`);
     res.json({ cleared: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── CREATE invoice ──
+// CREATE invoice
 router.post('/', auth, async (req, res) => {
   const {
     invoice_number, purchase_date, distributor_name,
@@ -163,7 +164,6 @@ router.post('/', auth, async (req, res) => {
   const resolvedPpn = ppn_masukan ?? ppn_input ?? null;
 
   try {
-    // Check for duplicate invoice_number — update instead of error
     const existing = await pool.query(
       'SELECT id FROM invoices WHERE invoice_number = $1 AND deleted_at IS NULL AND (is_draft IS NULL OR is_draft = FALSE)',
       [invoice_number]
@@ -171,25 +171,25 @@ router.post('/', auth, async (req, res) => {
 
     let invoiceId;
     if (existing.rows.length > 0) {
-      // Update existing invoice with same number
       invoiceId = existing.rows[0].id;
+      // snapshot before update
+      const snap = await pool.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
+      await logAudit(invoiceId, invoice_number, 'UPDATE', snap.rows[0], 'Overwrite via POST');
+
       await pool.query(
-        `UPDATE invoices SET
-          purchase_date=$1, distributor_name=$2,
+        `UPDATE invoices SET purchase_date=$1, distributor_name=$2,
           total_hna=$3, discount_amount=$4, hna_baru=$5,
           disc_cod_ada=$6, disc_cod_amount=$7,
           hna_final=$8, ppn_input=$9, ppn_masukan=$10, ppn_pembulatan=$11,
           hna_plus_ppn=$12, harga_per_produk=$13,
-          due_date=$14, payment_date=$15, status=$16,
-          updated_at=NOW()
+          due_date=$14, payment_date=$15, status=$16, updated_at=NOW()
         WHERE id=$17`,
         [purchase_date, distributor_name,
          total_hna||null, discount_amount||null, hna_baru||null,
          disc_cod_ada||false, disc_cod_amount||null,
          resolvedHnaFinal, resolvedPpn, resolvedPpn, ppn_pembulatan||null,
          hna_plus_ppn||null, harga_per_produk||null,
-         due_date||null, payment_date||null, status||'Pending',
-         invoiceId]
+         due_date||null, payment_date||null, status||'Pending', invoiceId]
       );
     } else {
       const r = await pool.query(
@@ -200,8 +200,7 @@ router.post('/', auth, async (req, res) => {
            hna_final, ppn_input, ppn_masukan, ppn_pembulatan,
            hna_plus_ppn, harga_per_produk,
            due_date, payment_date, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-         RETURNING id`,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id`,
         [invoice_number, purchase_date, distributor_name,
          total_hna||null, discount_amount||null, hna_baru||null,
          disc_cod_ada||false, disc_cod_amount||null,
@@ -210,9 +209,9 @@ router.post('/', auth, async (req, res) => {
          due_date||null, payment_date||null, status||'Pending']
       );
       invoiceId = r.rows[0].id;
+      await logAudit(invoiceId, invoice_number, 'CREATE', { invoice_number, distributor_name, status });
     }
 
-    // Replace items
     await pool.query('DELETE FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
     if (items && items.length > 0) {
       for (const item of items) {
@@ -230,10 +229,8 @@ router.post('/', auth, async (req, res) => {
       }
     }
 
-    // Clear any draft
     await pool.query(`DELETE FROM invoices WHERE is_draft = TRUE`);
-
-    const final = await pool.query(`SELECT *, TO_CHAR(purchase_date,'YYYY-MM-DD') AS purchase_date, TO_CHAR(due_date,'YYYY-MM-DD') AS due_date, TO_CHAR(payment_date,'YYYY-MM-DD') AS payment_date FROM invoices WHERE id = $1`, [invoiceId]);
+    const final = await pool.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
     if (global.io) global.io.emit('invoiceCreated', final.rows[0]);
     res.status(201).json({ invoice: final.rows[0], items: items||[] });
   } catch (err) {
@@ -242,7 +239,7 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// ── UPDATE invoice ──
+// UPDATE invoice
 router.put('/:id', auth, async (req, res) => {
   const { id } = req.params;
   const {
@@ -258,6 +255,12 @@ router.put('/:id', auth, async (req, res) => {
   const resolvedPpn = ppn_masukan ?? ppn_input ?? null;
 
   try {
+    // snapshot before
+    const snap = await pool.query('SELECT * FROM invoices WHERE id = $1', [id]);
+    if (snap.rows.length) {
+      await logAudit(id, snap.rows[0].invoice_number, 'UPDATE', snap.rows[0]);
+    }
+
     const result = await pool.query(
       `UPDATE invoices SET
         invoice_number=$1, purchase_date=$2, distributor_name=$3,
@@ -267,11 +270,7 @@ router.put('/:id', auth, async (req, res) => {
         hna_plus_ppn=$13, harga_per_produk=$14,
         due_date=$15, payment_date=$16, status=$17,
         updated_at=NOW()
-       WHERE id=$18
-       RETURNING *,
-         TO_CHAR(purchase_date,'YYYY-MM-DD') AS purchase_date,
-         TO_CHAR(due_date,'YYYY-MM-DD') AS due_date,
-         TO_CHAR(payment_date,'YYYY-MM-DD') AS payment_date`,
+       WHERE id=$18 RETURNING *`,
       [invoice_number, purchase_date, distributor_name,
        total_hna||null, discount_amount||null, hna_baru||null,
        disc_cod_ada||false, disc_cod_amount||null,
@@ -300,49 +299,44 @@ router.put('/:id', auth, async (req, res) => {
 
     if (global.io) global.io.emit('invoiceUpdated', result.rows[0]);
     res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── SOFT DELETE (move to trash) ──
+// SOFT DELETE
 router.delete('/:id', auth, async (req, res) => {
   try {
+    const snap = await pool.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
+    if (snap.rows.length) await logAudit(req.params.id, snap.rows[0].invoice_number, 'DELETE', snap.rows[0]);
     const result = await pool.query(
-      'UPDATE invoices SET deleted_at = NOW() WHERE id = $1 RETURNING *',
-      [req.params.id]
+      'UPDATE invoices SET deleted_at = NOW() WHERE id = $1 RETURNING *', [req.params.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Not found' });
     if (global.io) global.io.emit('invoiceDeleted', { id: req.params.id });
     res.json({ message: 'Moved to trash', invoice: result.rows[0] });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── RESTORE from trash ──
+// RESTORE
 router.put('/:id/restore', auth, async (req, res) => {
   try {
     const result = await pool.query(
-      'UPDATE invoices SET deleted_at = NULL WHERE id = $1 RETURNING *',
-      [req.params.id]
+      'UPDATE invoices SET deleted_at = NULL WHERE id = $1 RETURNING *', [req.params.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Not found' });
+    await logAudit(req.params.id, result.rows[0].invoice_number, 'RESTORE', result.rows[0]);
     res.json({ message: 'Restored', invoice: result.rows[0] });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── PERMANENT DELETE ──
+// PERMANENT DELETE
 router.delete('/:id/permanent', auth, async (req, res) => {
   try {
+    const snap = await pool.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
+    if (snap.rows.length) await logAudit(req.params.id, snap.rows[0].invoice_number, 'PERMANENT_DELETE', snap.rows[0]);
     await pool.query('DELETE FROM invoice_items WHERE invoice_id = $1', [req.params.id]);
     await pool.query('DELETE FROM invoices WHERE id = $1', [req.params.id]);
     res.json({ message: 'Permanently deleted' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 module.exports = router;

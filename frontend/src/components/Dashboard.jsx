@@ -1,198 +1,165 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+const changelog = [
+  {
+    version: 'v0.6.1', date: '11 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'Disc COD sekarang bisa input % atau nominal langsung — hasil langsung muncul sebagai nominal' },
+      { type: 'fix', text: 'Validasi form: minimal 1 produk, QTY & HNA harus > 0, jatuh tempo tidak boleh sebelum tgl faktur' },
+      { type: 'fix', text: 'Popup sukses (toast hijau) muncul setelah simpan/update/delete/restore faktur' },
+      { type: 'new', text: 'Sorting kolom tabel: klik header No Faktur, Distributor, Tgl, HNA, Status, dll' },
+      { type: 'new', text: 'Pagination dengan filter 5 / 10 / 25 / 50 per halaman' },
+      { type: 'new', text: 'Rekap per Distributor tampil otomatis di bawah summary cards' },
+      { type: 'new', text: 'Riwayat perubahan faktur (audit log): CREATE, UPDATE, DELETE, RESTORE' },
+      { type: 'removed', text: 'Import Excel dihapus sementara (belum stabil untuk migrasi data)' },
+      { type: 'removed', text: 'Dashboard diganti menjadi halaman Changelog & Upcoming ini' },
+    ]
+  },
+  {
+    version: 'v0.5.2', date: '11 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'fix', text: 'Fix root cause data invoice tertimpa diam-diam saat nomor duplikat' },
+      { type: 'new', text: 'Dialog konfirmasi duplikat: Edit existing, Timpa, atau Batal ganti nomor' },
+      { type: 'new', text: 'Draft autosave debounce — save 1.5 detik setelah setiap perubahan input' },
+    ]
+  },
+  {
+    version: 'v0.5.1', date: '11 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'new', text: 'Universal search bar + collapsible advanced filters dengan indikator aktif' },
+      { type: 'new', text: 'Due date / jatuh tempo: badge merah/orange/kuning, alert counter di header, auto-sort' },
+      { type: 'new', text: 'Trash & soft-delete: faktur ke trash dulu, bisa restore atau hapus permanen' },
+      { type: 'new', text: 'HNA per Item di form dan expanded view' },
+      { type: 'new', text: 'HPP/item tampil di list faktur' },
+    ]
+  },
+  {
+    version: 'v0.5.0', date: '11 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'new', text: 'MasterSelect: dropdown custom dengan search, tambah inline, delete double-confirm' },
+      { type: 'new', text: 'Products master database (products_master table)' },
+      { type: 'new', text: 'Delete distributor dari dropdown' },
+    ]
+  },
+  {
+    version: 'v0.4.0', date: '11 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'new', text: 'Form faktur didesain ulang: per-item HNA, QTY, Disc%, HNA Baru — semua auto-kalkulasi' },
+      { type: 'new', text: 'PPN Masukan = HNA Final × 11%, PPN Pembulatan = INT(PPN), HPP per produk' },
+      { type: 'new', text: 'Disc COD dengan toggle Ada/Tidak Ada' },
+      { type: 'new', text: 'Expired Date per produk' },
+    ]
+  },
+  {
+    version: 'v0.3.0', date: '11 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'new', text: 'Invoice Management System (CRUD lengkap)' },
+      { type: 'new', text: 'Distributor dropdown + tambah inline' },
+      { type: 'new', text: 'Rupiah currency input formatter' },
+      { type: 'new', text: 'Filter faktur: bulan, distributor, status, date range' },
+    ]
+  },
+];
+
+const upcoming = [
+  { priority: 'high', title: 'Export PDF / Excel', desc: 'Export faktur individual atau rekap bulanan ke PDF & Excel untuk laporan dan arsip' },
+  { priority: 'high', title: 'Rekap Keuangan Bulanan', desc: 'Summary total pengeluaran per bulan, per distributor, trend grafik' },
+  { priority: 'medium', title: 'Password Hashing', desc: 'Keamanan login dengan bcrypt — saat ini masih plaintext (aman karena in-house)' },
+  { priority: 'medium', title: 'Halaman Orders & Products', desc: 'Manajemen pesanan dan stok produk yang terintegrasi dengan data invoice' },
+  { priority: 'medium', title: 'Halaman Finance', desc: 'Laporan keuangan: hutang, piutang, rekap PPN' },
+  { priority: 'low', title: 'Notifikasi Jatuh Tempo', desc: 'Reminder otomatis via WhatsApp/email saat faktur mendekati jatuh tempo' },
+  { priority: 'low', title: 'Multi-user & Role', desc: 'Tambah user dengan role berbeda: admin, finance, viewer' },
+  { priority: 'low', title: 'Barcode / QR Scanner', desc: 'Scan produk saat input faktur menggunakan kamera atau scanner' },
+];
 
 export default function Dashboard({ isDarkMode, isSidebarOpen }) {
-  const data = [
-    { name: 'Jan', orders: 400 },
-    { name: 'Feb', orders: 300 },
-    { name: 'Mar', orders: 200 },
-    { name: 'Apr', orders: 278 },
-  ];
+  const bg = isDarkMode ? '#000' : '#F5F5F7';
+  const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
+  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
+  const text = isDarkMode ? '#FFF' : '#000';
+  const sub = '#86868B';
 
-  const metrics = [
-    { label: 'Total Orders', value: '0', icon: '📦', color: '#30B0C0' },
-    { label: 'Completed', value: '0', icon: '✓', color: '#34C759' },
-    { label: 'Revenue', value: 'Rp 0', icon: '💰', color: '#FF9500' },
-    { label: 'Inventory', value: '0', icon: '📊', color: '#FF3B30' },
-  ];
+  const typeConfig = {
+    new:     { label: 'Baru',    color: '#34C759', bg: '#34C75918' },
+    fix:     { label: 'Fix',     color: '#007AFF', bg: '#007AFF18' },
+    removed: { label: 'Hapus',   color: '#FF3B30', bg: '#FF3B3018' },
+  };
+  const priorityConfig = {
+    high:   { label: 'Prioritas Tinggi', color: '#FF3B30', bg: '#FF3B3018' },
+    medium: { label: 'Sedang',           color: '#FF9500', bg: '#FF950018' },
+    low:    { label: 'Nanti',            color: '#86868B', bg: '#86868B18' },
+  };
+  const statusConfig = {
+    latest: { label: 'Latest',  color: '#34C759', bg: '#34C75918' },
+    stable: { label: 'Stable',  color: '#007AFF', bg: '#007AFF18' },
+  };
 
   return (
-    <div className={`transition-all duration-300 min-h-screen ${
-      isDarkMode ? 'bg-black' : 'bg-white'
-    }`} style={{
-      marginLeft: isSidebarOpen ? '256px' : '80px',
-    }}>
-      
-      {/* Header Section */}
-      <div className={`border-b transition-colors duration-300 ${
-        isDarkMode ? 'border-[#424245] bg-black' : 'border-[#E5E5EA] bg-white'
-      }`}>
-        <div className="px-6 py-8">
-          <h1 className={`text-4xl font-bold tracking-tight mb-2 transition-colors duration-300 ${
-            isDarkMode ? 'text-white' : 'text-black'
-          }`}>
-            Dashboard
-          </h1>
-          <p className={`text-base font-medium transition-colors duration-300 ${
-            isDarkMode ? 'text-[#86868B]' : 'text-[#86868B]'
-          }`}>
-            Welcome back! Here's your business overview.
-          </p>
-        </div>
+    <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+
+      <div style={{ marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: '0 0 4px', color: text }}>📋 Changelog & Roadmap</h1>
+        <p style={{ margin: 0, fontSize: '14px', color: sub }}>Riwayat pembaruan dan fitur yang akan datang — CV Habil Dashboard</p>
       </div>
 
-      {/* Main Content */}
-      <div className="px-6 py-8">
-        
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {metrics.map((metric, index) => (
-            <div
-              key={index}
-              className={`p-6 rounded-2xl transition-all duration-150 ease-in-out border ${
-                isDarkMode
-                  ? 'bg-[#1C1C1E] border-[#424245] hover:border-[#86868B] hover:shadow-lg'
-                  : 'bg-[#F5F5F7] border-[#E5E5EA] hover:border-[#D1D1D6] hover:shadow-md'
-              } cursor-pointer active:scale-95`}
-            >
-              {/* Icon */}
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg mb-4" style={{
-                backgroundColor: `${metric.color}20`,
-              }}>
-                <span className="text-2xl">{metric.icon}</span>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+
+        {/* Changelog */}
+        <div>
+          <h2 style={{ fontSize: '16px', fontWeight: '700', margin: '0 0 1rem', color: text, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🕐 Release History
+          </h2>
+          {changelog.map((release, ri) => (
+            <div key={ri} style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '16px 18px', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '16px', fontWeight: '700', color: text }}>{release.version}</span>
+                  <span style={{ fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '6px',
+                    backgroundColor: statusConfig[release.status].bg, color: statusConfig[release.status].color }}>
+                    {statusConfig[release.status].label}
+                  </span>
+                </div>
+                <span style={{ fontSize: '12px', color: sub }}>{release.date}</span>
               </div>
-              
-              {/* Content */}
-              <p className={`text-sm font-medium mb-2 ${
-                isDarkMode ? 'text-[#86868B]' : 'text-[#86868B]'
-              }`}>
-                {metric.label}
-              </p>
-              <p className={`text-3xl font-bold tracking-tight ${
-                isDarkMode ? 'text-white' : 'text-black'
-              }`}>
-                {metric.value}
-              </p>
-              
-              {/* Accent Line */}
-              <div className="mt-4 h-1 w-8 rounded-full" style={{ backgroundColor: metric.color }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {release.changes.map((c, ci) => {
+                  const cfg = typeConfig[c.type];
+                  return (
+                    <div key={ci} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px', backgroundColor: cfg.bg, color: cfg.color, flexShrink: 0, marginTop: '1px' }}>
+                        {cfg.label}
+                      </span>
+                      <span style={{ fontSize: '13px', color: isDarkMode ? '#EBEBF0' : '#3A3A3C', lineHeight: '1.4' }}>{c.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Chart Section */}
-        <div className={`p-6 rounded-2xl border transition-colors duration-300 mb-8 ${
-          isDarkMode
-            ? 'bg-[#1C1C1E] border-[#424245]'
-            : 'bg-[#F5F5F7] border-[#E5E5EA]'
-        }`}>
-          <div className="mb-6">
-            <h2 className={`text-xl font-bold tracking-tight ${
-              isDarkMode ? 'text-white' : 'text-black'
-            }`}>
-              Orders Trend
-            </h2>
-            <p className={`text-sm font-medium mt-1 ${
-              isDarkMode ? 'text-[#86868B]' : 'text-[#86868B]'
-            }`}>
-              Last 4 months performance
-            </p>
-          </div>
-          
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data}>
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                stroke={isDarkMode ? '#2C2C2E' : '#D1D1D6'}
-                opacity={isDarkMode ? 0.5 : 0.3}
-              />
-              <XAxis 
-                dataKey="name" 
-                stroke={isDarkMode ? '#86868B' : '#86868B'}
-              />
-              <YAxis 
-                stroke={isDarkMode ? '#86868B' : '#86868B'}
-              />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: isDarkMode ? '#1C1C1E' : '#FFFFFF',
-                  border: `1px solid ${isDarkMode ? '#424245' : '#E5E5EA'}`,
-                  borderRadius: '12px',
-                  color: isDarkMode ? '#FFFFFF' : '#000000',
-                  boxShadow: isDarkMode 
-                    ? '0 4px 16px rgba(0, 0, 0, 0.4)'
-                    : '0 4px 16px rgba(0, 0, 0, 0.12)',
-                  padding: '12px 16px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                }}
-                cursor={false}
-              />
-              <Legend 
-                wrapperStyle={{
-                  color: isDarkMode ? '#86868B' : '#86868B',
-                }}
-              />
-              <Bar dataKey="orders" fill="#30B0C0" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Recent Orders Table */}
-        <div className={`p-6 rounded-2xl border transition-colors duration-300 ${
-          isDarkMode
-            ? 'bg-[#1C1C1E] border-[#424245]'
-            : 'bg-[#F5F5F7] border-[#E5E5EA]'
-        }`}>
-          <div className="mb-6">
-            <h2 className={`text-xl font-bold tracking-tight ${
-              isDarkMode ? 'text-white' : 'text-black'
-            }`}>
-              Recent Orders
-            </h2>
-            <p className={`text-sm font-medium mt-1 ${
-              isDarkMode ? 'text-[#86868B]' : 'text-[#86868B]'
-            }`}>
-              Latest transactions from your store
-            </p>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className={`border-b ${
-                  isDarkMode ? 'border-[#424245]' : 'border-[#E5E5EA]'
-                }`}>
-                  <th className={`text-left py-4 px-4 font-semibold ${
-                    isDarkMode ? 'text-[#EBEBF0]' : 'text-[#424245]'
-                  }`}>Order #</th>
-                  <th className={`text-left py-4 px-4 font-semibold ${
-                    isDarkMode ? 'text-[#EBEBF0]' : 'text-[#424245]'
-                  }`}>Customer</th>
-                  <th className={`text-left py-4 px-4 font-semibold ${
-                    isDarkMode ? 'text-[#EBEBF0]' : 'text-[#424245]'
-                  }`}>Amount</th>
-                  <th className={`text-left py-4 px-4 font-semibold ${
-                    isDarkMode ? 'text-[#EBEBF0]' : 'text-[#424245]'
-                  }`}>Status</th>
-                  <th className={`text-left py-4 px-4 font-semibold ${
-                    isDarkMode ? 'text-[#EBEBF0]' : 'text-[#424245]'
-                  }`}>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className={`border-b ${
-                  isDarkMode ? 'border-[#424245]' : 'border-[#E5E5EA]'
-                }`}>
-                  <td colSpan="5" className={`text-center py-12 font-medium ${
-                    isDarkMode ? 'text-[#86868B]' : 'text-[#86868B]'
-                  }`}>
-                    No orders yet
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        {/* Upcoming */}
+        <div>
+          <h2 style={{ fontSize: '16px', fontWeight: '700', margin: '0 0 1rem', color: text, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🚀 Upcoming Features
+          </h2>
+          {upcoming.map((item, i) => {
+            const cfg = priorityConfig[item.priority];
+            return (
+              <div key={i} style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '14px 18px', marginBottom: '10px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: cfg.color, marginTop: '6px', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: text }}>{item.title}</span>
+                    <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 7px', borderRadius: '6px', backgroundColor: cfg.bg, color: cfg.color }}>
+                      {cfg.label}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '12px', color: sub, lineHeight: '1.5' }}>{item.desc}</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
       </div>
