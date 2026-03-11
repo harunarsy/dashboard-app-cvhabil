@@ -57,3 +57,16 @@ router.delete('/', auth, async (req, res) => {
 });
 
 module.exports = router;
+
+// PATCH — rename product
+router.patch('/', auth, async (req, res) => {
+  const { oldName, newName } = req.body;
+  if (!oldName || !newName) return res.status(400).json({ error: 'oldName and newName required' });
+  try {
+    // Update product master list
+    await pool.query(`UPDATE product_master SET name=$1 WHERE name=$2`, [newName, oldName]);
+    // Update all invoice_items referencing old name
+    await pool.query(`UPDATE invoice_items SET product_name=$1 WHERE product_name=$2`, [newName, oldName]);
+    res.json({ success: true, oldName, newName });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});

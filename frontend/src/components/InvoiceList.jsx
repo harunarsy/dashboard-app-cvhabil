@@ -21,9 +21,36 @@ const formatRpInput = (n) => {
   if (isNaN(x) || n === '' || n == null) return '';
   return x.toLocaleString('id-ID');
 };
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return null;
+  const s = typeof dateStr === 'string' ? dateStr.split('T')[0] : dateStr;
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+const formatLocalDate = (dateStr, opts) => {
+  const d = parseLocalDate(dateStr);
+  if (!d) return '';
+  return d.toLocaleDateString('id-ID', opts);
+};
+// Warna per distributor — auto-assign dari palette
+const DIST_COLORS = [
+  { bg: '#007AFF20', border: '#007AFF50', text: '#007AFF', dot: '#007AFF' },
+  { bg: '#34C75920', border: '#34C75950', text: '#34C759', dot: '#34C759' },
+  { bg: '#FF950020', border: '#FF950050', text: '#FF9500', dot: '#FF9500' },
+  { bg: '#AF52DE20', border: '#AF52DE50', text: '#AF52DE', dot: '#AF52DE' },
+  { bg: '#FF375F20', border: '#FF375F50', text: '#FF375F', dot: '#FF375F' },
+  { bg: '#00C7BE20', border: '#00C7BE50', text: '#00C7BE', dot: '#00C7BE' },
+  { bg: '#30B0C720', border: '#30B0C750', text: '#30B0C7', dot: '#30B0C7' },
+  { bg: '#FFCC0020', border: '#FFCC0050', text: '#B8860B', dot: '#FFCC00' },
+];
+const getDistColor = (name, allNames) => {
+  const idx = allNames.indexOf(name);
+  return DIST_COLORS[idx % DIST_COLORS.length];
+};
+
 const daysDiff = (dateStr) => {
   if (!dateStr) return null;
-  const d = new Date(dateStr);
+  const d = parseLocalDate(dateStr);
   const now = new Date(); now.setHours(0,0,0,0);
   return Math.ceil((d - now) / 86400000);
 };
@@ -37,36 +64,44 @@ const blankForm = () => ({
   disc_cod_ada: false, disc_cod_amount: '', disc_cod_percent: '',
   due_date: '', payment_date: '', status: 'Pending',
 });
-const calcItem = (item) => {
+const calcItem = (item, disc_cod_per_item = 0) => {
   const qty = parseNum(item.quantity);
   const hna = parseNum(item.hna);
   const hna_times_qty = hna * qty;
   const disc_percent = parseNum(item.disc_percent);
   const disc_nominal = hna_times_qty * (disc_percent / 100);
   const hna_baru = hna_times_qty - disc_nominal;
+  const hna_after_cod = hna_baru - disc_cod_per_item;
   const hna_per_item = qty > 0 ? hna_baru / qty : 0;
-  return { ...item, hna_times_qty, disc_nominal, hna_baru, hna_per_item };
+  const hpp_inc_ppn = qty > 0 ? (hna_after_cod / qty) * 1.11 : 0;
+  return { ...item, hna_times_qty, disc_nominal, hna_baru, hna_per_item, disc_cod_per_item, hna_after_cod, hpp_inc_ppn };
 };
 const calcTotals = (items, form) => {
   const total_hna = items.reduce((s, i) => s + i.hna_times_qty, 0);
-  const hna_baru = items.reduce((s, i) => s + i.hna_baru, 0);
+  const hna_baru_total = items.reduce((s, i) => s + i.hna_baru, 0);
   // Disc COD: bisa pakai % atau nominal
   let disc_cod_amount = 0;
   if (form.disc_cod_ada) {
     if (form.disc_cod_percent && parseNum(form.disc_cod_percent) > 0) {
-      disc_cod_amount = hna_baru * (parseNum(form.disc_cod_percent) / 100);
+      disc_cod_amount = hna_baru_total * (parseNum(form.disc_cod_percent) / 100);
     } else {
       disc_cod_amount = parseNum(form.disc_cod_amount);
     }
   }
-  const hna_final = hna_baru - disc_cod_amount;
+  // Distribusikan disc COD ke tiap item proporsional berdasarkan hna_baru
+  const items_with_cod = items.map(i => {
+    const ratio = hna_baru_total > 0 ? i.hna_baru / hna_baru_total : 0;
+    const disc_cod_per_item = disc_cod_amount * ratio;
+    return calcItem(i, disc_cod_per_item);
+  });
+  const hna_final = hna_baru_total - disc_cod_amount;
   const ppn_masukan = hna_final * 0.11;
   const ppn_pembulatan = Math.floor(ppn_masukan);
   const hna_plus_ppn = hna_final + ppn_masukan;
   const totalQty = items.reduce((s, i) => s + parseNum(i.quantity), 0);
   const harga_per_produk = totalQty > 0 ? hna_plus_ppn / totalQty : 0;
   const discount_amount = items.reduce((s, i) => s + i.disc_nominal, 0);
-  return { total_hna, discount_amount, hna_baru, disc_cod_amount, hna_final, ppn_masukan, ppn_pembulatan, hna_plus_ppn, harga_per_produk };
+  return { total_hna, discount_amount, hna_baru: hna_baru_total, disc_cod_amount, hna_final, ppn_masukan, ppn_pembulatan, hna_plus_ppn, harga_per_produk, items_with_cod };
 };
 const getDueStatus = (due_date, status) => {
   if (status === 'Paid' || !due_date) return null;
@@ -85,8 +120,8 @@ const sortData = (data, key, dir) => {
     if (['total_hna','hna_final','hna_plus_ppn','ppn_masukan'].includes(key)) {
       va = parseFloat(va) || 0; vb = parseFloat(vb) || 0;
     } else if (['purchase_date','due_date'].includes(key)) {
-      va = va ? new Date(va).getTime() : 0;
-      vb = vb ? new Date(vb).getTime() : 0;
+      va = va ? (parseLocalDate(va)?.getTime() || 0) : 0;
+      vb = vb ? (parseLocalDate(vb)?.getTime() || 0) : 0;
     } else {
       va = String(va||'').toLowerCase(); vb = String(vb||'').toLowerCase();
     }
@@ -188,16 +223,21 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
     let f = invoices;
     if (universalSearch.trim()) {
       const q = universalSearch.toLowerCase();
-      f = f.filter(i => i.invoice_number?.toLowerCase().includes(q) || i.distributor_name?.toLowerCase().includes(q) || i.status?.toLowerCase().includes(q));
+      f = f.filter(i =>
+        i.invoice_number?.toLowerCase().includes(q) ||
+        i.distributor_name?.toLowerCase().includes(q) ||
+        i.status?.toLowerCase().includes(q) ||
+        (i.product_names && i.product_names.toLowerCase().includes(q))
+      );
     }
-    if (selectedMonth !== 'all') f = f.filter(i => new Date(i.purchase_date).toLocaleString('id-ID', { month: 'long', year: 'numeric' }) === selectedMonth);
+    if (selectedMonth !== 'all') f = f.filter(i => parseLocalDate(i.purchase_date)?.toLocaleString('id-ID', { month: 'long', year: 'numeric' }) === selectedMonth);
     if (searchDist) f = f.filter(i => i.distributor_name?.toLowerCase().includes(searchDist.toLowerCase()));
     if (searchInv) f = f.filter(i => i.invoice_number?.toLowerCase().includes(searchInv.toLowerCase()));
     if (filterStatus !== 'all') f = f.filter(i => i.status === filterStatus);
     if (filterDue === 'overdue') f = f.filter(i => { const d = daysDiff(i.due_date); return d !== null && d < 0 && i.status !== 'Paid'; });
     if (filterDue === 'soon') f = f.filter(i => { const d = daysDiff(i.due_date); return d !== null && d >= 0 && d <= 7 && i.status !== 'Paid'; });
-    if (dateFrom) f = f.filter(i => new Date(i.purchase_date) >= new Date(dateFrom));
-    if (dateTo) f = f.filter(i => new Date(i.purchase_date) <= new Date(dateTo));
+    if (dateFrom) f = f.filter(i => parseLocalDate(i.purchase_date) >= parseLocalDate(dateFrom));
+    if (dateTo) f = f.filter(i => parseLocalDate(i.purchase_date) <= parseLocalDate(dateTo));
     // Sort
     if (sortKey) {
       f = sortData(f, sortKey, sortDir);
@@ -219,7 +259,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
 
   const getUniqueMonths = () => {
     const s = new Set();
-    invoices.forEach(i => s.add(new Date(i.purchase_date).toLocaleString('id-ID', { month: 'long', year: 'numeric' })));
+    invoices.forEach(i => s.add(parseLocalDate(i.purchase_date)?.toLocaleString('id-ID', { month: 'long', year: 'numeric' })));
     return Array.from(s).sort();
   };
 
@@ -250,6 +290,19 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
     setProducts(prev => prev.some(p => p.name === saved) ? prev : [...prev, { name: saved }].sort((a,b) => a.name.localeCompare(b.name)));
   };
   const handleRemoveProduct = async (name) => { await productsAPI.remove(name); setProducts(prev => prev.filter(p => p.name !== name)); };
+  const handleRenameDistributor = async (oldName, newName) => {
+    try {
+      await distributorsAPI.rename(oldName, newName);
+      setDistributors(prev => prev.map(d => d.name === oldName ? { ...d, name: newName } : d).sort((a,b) => a.name.localeCompare(b.name)));
+      setInvoices(prev => prev.map(inv => inv.distributor_name === oldName ? { ...inv, distributor_name: newName } : inv));
+    } catch(e) { alert('Gagal rename: ' + (e.response?.data?.error || e.message)); }
+  };
+  const handleRenameProduct = async (oldName, newName) => {
+    try {
+      await productsAPI.rename(oldName, newName);
+      setProducts(prev => prev.map(p => p.name === oldName ? { ...p, name: newName } : p).sort((a,b) => a.name.localeCompare(b.name)));
+    } catch(e) { alert('Gagal rename: ' + (e.response?.data?.error || e.message)); }
+  };
 
   // Validate
   const validateForm = () => {
@@ -268,19 +321,28 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
     return null;
   };
 
-  const buildPayload = () => ({
-    ...form,
-    ...totals,
-    disc_cod_amount: totals.disc_cod_amount,
-    items: items.filter(i => i.product_name.trim()).map(i => ({
-      product_name: i.product_name, expired_date: i.expired_date || null,
-      quantity: parseNum(i.quantity), hna: parseNum(i.hna),
-      unit_price: parseNum(i.hna), hna_times_qty: i.hna_times_qty,
-      total_price: i.hna_times_qty, disc_percent: parseNum(i.disc_percent),
-      disc_nominal: i.disc_nominal, hna_baru: i.hna_baru,
-      hna_per_item: i.hna_per_item, margin: 0,
-    })),
-  });
+  const buildPayload = () => {
+    const itemsWithCod = totals.items_with_cod || items.map(i => ({...i, disc_cod_per_item: 0, hna_after_cod: i.hna_baru, hpp_inc_ppn: i.hna_per_item * 1.11}));
+    return {
+      ...form,
+      ...totals,
+      disc_cod_amount: totals.disc_cod_amount,
+      items: items.filter(i => i.product_name.trim()).map(i => {
+        const withCod = itemsWithCod.find(x => x._id === i._id) || i;
+        return {
+          product_name: i.product_name, expired_date: i.expired_date || null,
+          quantity: parseNum(i.quantity), hna: parseNum(i.hna),
+          unit_price: parseNum(i.hna), hna_times_qty: i.hna_times_qty,
+          total_price: i.hna_times_qty, disc_percent: parseNum(i.disc_percent),
+          disc_nominal: i.disc_nominal, hna_baru: i.hna_baru,
+          hna_per_item: i.hna_per_item, margin: 0,
+          disc_cod_per_item: withCod.disc_cod_per_item || 0,
+          hna_after_cod: withCod.hna_after_cod || i.hna_baru,
+          hpp_inc_ppn: withCod.hpp_inc_ppn || (i.hna_per_item * 1.11),
+        };
+      }),
+    };
+  };
 
   const handleSubmit = async () => {
     const err = validateForm();
@@ -407,19 +469,20 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
   const sumFinal = summaryData.reduce((s, i) => s + parseFloat(i.hna_final||i.final_hna||0), 0);
   const sumPpn = summaryData.reduce((s, i) => s + parseFloat(i.ppn_masukan||i.ppn_input||0), 0);
 
-  // Per-distributor summary — uses all invoices, filtered by rekapMonth only
+  // Per-distributor summary — always show ALL known distributors, 0 if none in period
   const rekapSource = rekapMonth === 'all' ? invoices : invoices.filter(i =>
-    new Date(i.purchase_date).toLocaleString('id-ID', { month: 'long', year: 'numeric' }) === rekapMonth
+    parseLocalDate(i.purchase_date)?.toLocaleString('id-ID', { month: 'long', year: 'numeric' }) === rekapMonth
   );
-  const distSummary = Object.values(
-    rekapSource.reduce((acc, inv) => {
-      const d = inv.distributor_name || 'Unknown';
-      if (!acc[d]) acc[d] = { name: d, count: 0, total: 0 };
-      acc[d].count++;
-      acc[d].total += parseFloat(inv.hna_final||inv.final_hna||0);
-      return acc;
-    }, {})
-  ).sort((a,b) => b.total - a.total);
+  const allKnownDist = [...new Set(invoices.map(i => i.distributor_name).filter(Boolean))];
+  const rekapMap = rekapSource.reduce((acc, inv) => {
+    const d = inv.distributor_name || 'Unknown';
+    if (!acc[d]) acc[d] = { name: d, count: 0, total: 0 };
+    acc[d].count++;
+    acc[d].total += parseFloat(inv.hna_final||inv.final_hna||0);
+    return acc;
+  }, {});
+  allKnownDist.forEach(d => { if (!rekapMap[d]) rekapMap[d] = { name: d, count: 0, total: 0 }; });
+  const distSummary = Object.values(rekapMap).sort((a,b) => b.total - a.total);
 
   const S = {
     card: { backgroundColor: isDarkMode ? '#1C1C1E' : '#FFFFFF', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, borderRadius: '12px' },
@@ -452,20 +515,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
           <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: '0 0 4px 0', color: isDarkMode ? '#FFF' : '#000' }}>📄 Invoice Management</h1>
           <p style={{ margin: 0, fontSize: '14px', color: '#86868B' }}>Faktur Pembelian — CV Habil</p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {overdueCount > 0 && (
-            <div onClick={() => { setFilterDue('overdue'); setShowFilters(true); }} style={{ cursor: 'pointer', padding: '8px 14px', backgroundColor: '#FF3B3018', border: '1px solid #FF3B30', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <AlertTriangle size={14} color="#FF3B30" />
-              <span style={{ fontSize: '13px', fontWeight: '700', color: '#FF3B30' }}>{overdueCount} Terlambat</span>
-            </div>
-          )}
-          {soonCount > 0 && (
-            <div onClick={() => { setFilterDue('soon'); setShowFilters(true); }} style={{ cursor: 'pointer', padding: '8px 14px', backgroundColor: '#FF950018', border: '1px solid #FF9500', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Clock size={14} color="#FF9500" />
-              <span style={{ fontSize: '13px', fontWeight: '700', color: '#FF9500' }}>{soonCount} Jatuh Tempo</span>
-            </div>
-          )}
-        </div>
+
       </div>
 
       {/* Draft Banner */}
@@ -506,7 +556,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
             <select value={rekapMonth} onChange={e => setRekapMonth(e.target.value)}
               style={{ padding: '4px 10px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '8px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: isDarkMode ? '#FFF' : '#000', fontSize: '12px', cursor: 'pointer', outline: 'none' }}>
               <option value="all">Semua Bulan</option>
-              {Array.from(new Set(invoices.map(i => new Date(i.purchase_date).toLocaleString('id-ID', { month: 'long', year: 'numeric' })))).sort().map(m => (
+              {Array.from(new Set(invoices.map(i => parseLocalDate(i.purchase_date)?.toLocaleString('id-ID', { month: 'long', year: 'numeric' })))).sort().map(m => (
                 <option key={m} value={m}>{m}</option>
               ))}
             </select>
@@ -520,12 +570,18 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             {distSummary.map((d, i) => {
               const isActive = searchDist === d.name;
+              const clr = getDistColor(d.name, allKnownDist);
+              const isEmpty = d.count === 0;
               return (
-                <div key={i} onClick={() => setSearchDist(isActive ? '' : d.name)}
-                  style={{ padding: '8px 14px', backgroundColor: isActive ? '#007AFF' : (isDarkMode ? '#2C2C2E' : '#F5F5F7'), borderRadius: '10px', display: 'flex', gap: '10px', alignItems: 'center', cursor: 'pointer', border: isActive ? '1px solid #007AFF' : `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}`, transition: 'all 0.15s' }}>
-                  <span style={{ fontSize: '13px', fontWeight: '600', color: isActive ? '#FFF' : (isDarkMode ? '#FFF' : '#000') }}>{d.name}</span>
-                  <span style={{ fontSize: '12px', color: isActive ? 'rgba(255,255,255,0.75)' : '#86868B' }}>{d.count} faktur</span>
-                  <span style={{ fontSize: '13px', fontWeight: '700', color: isActive ? '#FFF' : '#34C759' }}>{formatRp(d.total)}</span>
+                <div key={i} onClick={() => !isEmpty && setSearchDist(isActive ? '' : d.name)}
+                  style={{ padding: '8px 14px', borderRadius: '10px', display: 'flex', gap: '10px', alignItems: 'center', cursor: isEmpty ? 'default' : 'pointer', transition: 'all 0.15s', opacity: isEmpty ? 0.45 : 1,
+                    backgroundColor: isActive ? clr.dot : (isDarkMode ? '#2C2C2E' : clr.bg),
+                    border: `1.5px solid ${isActive ? clr.dot : clr.border}`,
+                  }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isActive ? '#FFF' : clr.dot, flexShrink: 0 }} />
+                  <span style={{ fontSize: '13px', fontWeight: '700', color: isActive ? '#FFF' : (isDarkMode ? '#FFF' : '#1C1C1E') }}>{d.name}</span>
+                  <span style={{ fontSize: '12px', color: isActive ? 'rgba(255,255,255,0.8)' : '#86868B' }}>{d.count} faktur</span>
+                  <span style={{ fontSize: '13px', fontWeight: '700', color: isActive ? '#FFF' : clr.text }}>{formatRp(d.total)}</span>
                 </div>
               );
             })}
@@ -534,13 +590,38 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
       )}
 
       {/* Action Buttons */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-        <button onClick={() => { resetForm(); setShowModal(true); }} style={{ padding: '10px 20px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Plus size={16} /> Add Invoice
-        </button>
-        <button onClick={() => { setShowTrash(!showTrash); if (!showTrash) fetchTrash(); }} style={{ padding: '10px 16px', backgroundColor: showTrash ? '#FF3B30' : (isDarkMode ? '#2C2C2E' : '#E5E5EA'), color: showTrash ? 'white' : (isDarkMode ? '#FFF' : '#000'), border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Trash2 size={16} /> Trash
-        </button>
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button onClick={() => { resetForm(); setShowModal(true); }} style={{ padding: '10px 20px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Plus size={16} /> Add Invoice
+          </button>
+          <button onClick={() => { setShowTrash(!showTrash); if (!showTrash) fetchTrash(); }} style={{ padding: '10px 16px', backgroundColor: showTrash ? '#FF3B30' : (isDarkMode ? '#2C2C2E' : '#E5E5EA'), color: showTrash ? 'white' : (isDarkMode ? '#FFF' : '#000'), border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Trash2 size={16} /> Trash
+          </button>
+        </div>
+        {/* Jatuh Tempo — di sebelah kanan toolbar */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {overdueCount > 0 && (
+            <div onClick={() => { setFilterDue('overdue'); setShowFilters(true); }}
+              style={{ cursor: 'pointer', padding: '8px 14px', backgroundColor: '#FF3B3015', border: '1.5px solid #FF3B30', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <AlertTriangle size={14} color="#FF3B30" />
+              <span style={{ fontSize: '13px', fontWeight: '700', color: '#FF3B30' }}>{overdueCount} Terlambat</span>
+            </div>
+          )}
+          {soonCount > 0 && (
+            <div onClick={() => { setFilterDue('soon'); setShowFilters(true); }}
+              style={{ cursor: 'pointer', padding: '8px 14px', backgroundColor: '#FF950015', border: '1.5px solid #FF9500', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={14} color="#FF9500" />
+              <span style={{ fontSize: '13px', fontWeight: '700', color: '#FF9500' }}>{soonCount} Jatuh Tempo</span>
+            </div>
+          )}
+          {overdueCount === 0 && soonCount === 0 && invoices.length > 0 && (
+            <div style={{ padding: '8px 14px', backgroundColor: '#34C75915', border: '1.5px solid #34C759', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={14} color="#34C759" />
+              <span style={{ fontSize: '13px', fontWeight: '700', color: '#34C759' }}>Semua Jatuh Tempo OK</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Search + Filter */}
@@ -549,7 +630,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', borderRadius: '10px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}` }}>
             <Search size={16} color="#86868B" />
             <input value={universalSearch} onChange={e => setUniversalSearch(e.target.value)}
-              placeholder="Cari no. faktur, distributor, status..."
+              placeholder="Cari no. faktur, distributor, produk, status..."
               style={{ flex: 1, border: 'none', outline: 'none', backgroundColor: 'transparent', color: isDarkMode ? '#FFF' : '#000', fontSize: '14px' }} />
             {universalSearch && <button onClick={() => setUniversalSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}><X size={14} color="#86868B" /></button>}
           </div>
@@ -606,7 +687,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
                 <div style={{ flex: 1 }}>
                   <span style={{ fontWeight: '700', fontSize: '13px', color: isDarkMode ? '#FFF' : '#000' }}>{inv.invoice_number}</span>
                   <span style={{ fontSize: '12px', color: '#86868B', marginLeft: '10px' }}>{inv.distributor_name}</span>
-                  <span style={{ fontSize: '11px', color: '#FF3B30', marginLeft: '10px' }}>Dihapus: {new Date(inv.deleted_at).toLocaleDateString('id-ID')}</span>
+                  <span style={{ fontSize: '11px', color: '#FF3B30', marginLeft: '10px' }}>Dihapus: {formatLocalDate(inv.deleted_at)}</span>
                 </div>
                 <button onClick={() => handleRestore(inv.id)} style={{ padding: '6px 12px', backgroundColor: '#34C759', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <RotateCcw size={12} /> Restore
@@ -621,11 +702,11 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
       {/* Invoice Table */}
       <div style={{ ...S.card, overflow: 'hidden' }}>
         {/* Table header — sortable */}
-        <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr 110px 130px 130px 150px 120px 100px', padding: '12px 16px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', borderBottom: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}` }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '110px 140px 1fr 130px 130px 150px 120px 100px', padding: '12px 16px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', borderBottom: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}` }}>
           {[
+            { label: 'Tgl Faktur', key: 'purchase_date' },
             { label: 'No Faktur', key: 'invoice_number' },
             { label: 'Distributor', key: 'distributor_name' },
-            { label: 'Tgl Faktur', key: 'purchase_date' },
             { label: 'HNA*QTY', key: 'total_hna' },
             { label: 'HNA Final', key: 'hna_final' },
             { label: 'HNA+PPN', key: 'hna_plus_ppn' },
@@ -649,6 +730,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
               onEdit={() => handleEdit(inv)}
               onDelete={() => handleDeleteRequest(inv)}
               onAudit={() => openAuditLog(inv)}
+              allKnownDist={allKnownDist}
               formatRp={formatRp} />
           ))
         }
@@ -734,42 +816,86 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
       {/* Audit Log Modal */}
       {auditModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
-          <div style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF', borderRadius: '16px', width: '100%', maxWidth: '600px', maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+          <div style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF', borderRadius: '16px', width: '100%', maxWidth: '640px', maxHeight: '82vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, backgroundColor: isDarkMode ? '#000' : '#F5F5F7' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: isDarkMode ? '#FFF' : '#000' }}>📋 Riwayat Perubahan</h3>
-                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#86868B' }}>Faktur {auditModal.invoiceNumber}</p>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: isDarkMode ? '#FFF' : '#000', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <History size={16} color="#007AFF" /> Riwayat Perubahan
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#86868B' }}>Faktur #{auditModal.invoiceNumber} · {auditLog.length} entri</p>
               </div>
-              <button onClick={() => setAuditModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color="#86868B" /></button>
+              <button onClick={() => setAuditModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px' }}><X size={18} color="#86868B" /></button>
             </div>
-            <div style={{ overflowY: 'auto', padding: '16px 22px', flex: 1 }}>
+
+            {/* Timeline */}
+            <div style={{ overflowY: 'auto', padding: '20px 22px', flex: 1 }}>
               {auditLog.length === 0
                 ? <p style={{ color: '#86868B', textAlign: 'center', padding: '2rem' }}>Belum ada riwayat</p>
                 : auditLog.map((log, i) => {
-                  const actionColors = { CREATE: '#34C759', UPDATE: '#007AFF', DELETE: '#FF3B30', RESTORE: '#FF9500', PERMANENT_DELETE: '#FF3B30' };
-                  const color = actionColors[log.action] || '#86868B';
+                  const ACTION_CFG = {
+                    CREATE:           { color: '#34C759', bg: '#34C75918', label: '✅ Dibuat',      icon: '✅' },
+                    UPDATE:           { color: '#007AFF', bg: '#007AFF18', label: '✏️ Diubah',      icon: '✏️' },
+                    DELETE:           { color: '#FF9500', bg: '#FF950018', label: '🗑️ Dihapus',     icon: '🗑️' },
+                    RESTORE:          { color: '#34C759', bg: '#34C75918', label: '♻️ Direstore',   icon: '♻️' },
+                    PERMANENT_DELETE: { color: '#FF3B30', bg: '#FF3B3018', label: '❌ Hapus Perm.', icon: '❌' },
+                  };
+                  const cfg = ACTION_CFG[log.action] || { color: '#86868B', bg: '#86868B18', label: log.action, icon: '•' };
+
+                  let snap = null;
+                  try { snap = log.snapshot ? (typeof log.snapshot === 'string' ? JSON.parse(log.snapshot) : log.snapshot) : null; } catch(e) {}
+
+                  const isLast = i === auditLog.length - 1;
                   return (
-                    <div key={i} style={{ display: 'flex', gap: '12px', marginBottom: '16px', paddingBottom: '16px', borderBottom: i < auditLog.length-1 ? `1px solid ${isDarkMode ? '#2C2C2E' : '#F0F0F0'}` : 'none' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: color, marginTop: '6px', flexShrink: 0 }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: '700', color, padding: '2px 8px', backgroundColor: color + '18', borderRadius: '6px' }}>{log.action}</span>
-                          <span style={{ fontSize: '12px', color: '#86868B' }}>{new Date(log.changed_at).toLocaleString('id-ID')}</span>
-                          {log.changed_by && <span style={{ fontSize: '12px', color: '#86868B' }}>oleh {log.changed_by}</span>}
+                    <div key={i} style={{ display: 'flex', gap: '14px', marginBottom: isLast ? 0 : '4px' }}>
+                      {/* Timeline line */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: cfg.bg, border: `2px solid ${cfg.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>
+                          {cfg.icon}
                         </div>
-                        {log.note && <p style={{ margin: '0', fontSize: '12px', color: isDarkMode ? '#EBEBF0' : '#3A3A3C' }}>{log.note}</p>}
-                        {log.snapshot && (() => {
-                          try {
-                            const snap = typeof log.snapshot === 'string' ? JSON.parse(log.snapshot) : log.snapshot;
-                            return (
-                              <div style={{ marginTop: '6px', fontSize: '11px', color: '#86868B' }}>
-                                {snap.distributor_name && <span style={{ marginRight: '12px' }}>Distributor: {snap.distributor_name}</span>}
-                                {snap.status && <span style={{ marginRight: '12px' }}>Status: {snap.status}</span>}
-                                {snap.hna_final && <span>HNA Final: {formatRp(snap.hna_final)}</span>}
+                        {!isLast && <div style={{ width: '2px', flex: 1, backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA', margin: '4px 0' }} />}
+                      </div>
+
+                      {/* Content */}
+                      <div style={{ flex: 1, paddingBottom: isLast ? 0 : '16px' }}>
+                        {/* Action + time */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: cfg.color, padding: '3px 10px', backgroundColor: cfg.bg, borderRadius: '20px' }}>{cfg.label}</span>
+                          <span style={{ fontSize: '12px', color: '#86868B' }}>
+                            {new Date(log.changed_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          {log.changed_by && (
+                            <span style={{ fontSize: '11px', color: '#86868B', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', padding: '2px 8px', borderRadius: '6px' }}>
+                              👤 {log.changed_by}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Snapshot — before/after style */}
+                        {snap && (
+                          <div style={{ backgroundColor: isDarkMode ? '#2C2C2E' : '#F9F9FB', borderRadius: '10px', padding: '10px 14px', fontSize: '12px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}` }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                              {[
+                                { label: 'Distributor', val: snap.distributor_name },
+                                { label: 'Status', val: snap.status },
+                                { label: 'HNA Final', val: snap.hna_final ? formatRp(snap.hna_final) : null },
+                                { label: 'HNA+PPN', val: snap.hna_plus_ppn ? formatRp(snap.hna_plus_ppn) : null },
+                                { label: 'No Faktur', val: snap.invoice_number },
+                                { label: 'Tgl Faktur', val: snap.purchase_date ? formatLocalDate(snap.purchase_date, { day: '2-digit', month: 'short', year: 'numeric' }) : null },
+                              ].filter(r => r.val).map(row => (
+                                <div key={row.label}>
+                                  <span style={{ color: '#86868B', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{row.label}</span>
+                                  <div style={{ color: isDarkMode ? '#FFF' : '#1C1C1E', fontWeight: '600', marginTop: '2px' }}>{row.val}</div>
+                                </div>
+                              ))}
+                            </div>
+                            {log.note && (
+                              <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}`, color: '#86868B', fontSize: '11px' }}>
+                                📝 {log.note}
                               </div>
-                            );
-                          } catch(e) { return null; }
-                        })()}
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -785,8 +911,8 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
         <InvoiceModal
           isDarkMode={isDarkMode} form={form} items={items} totals={totals} editingId={editingId}
           distributors={distributors} products={products}
-          onAddDistributor={handleAddDistributor} onRemoveDistributor={handleRemoveDistributor}
-          onAddProduct={handleAddProduct} onRemoveProduct={handleRemoveProduct}
+          onAddDistributor={handleAddDistributor} onRemoveDistributor={handleRemoveDistributor} onRenameDistributor={handleRenameDistributor}
+          onAddProduct={handleAddProduct} onRemoveProduct={handleRemoveProduct} onRenameProduct={handleRenameProduct}
           onFormChange={handleFormChange} updateItem={updateItem} addItem={addItem} removeItem={removeItem}
           onSubmit={handleSubmit} onClose={() => { setShowModal(false); resetForm(); }}
           S={S} formatRpInput={formatRpInput} parseNum={parseNum} formatRp={formatRp}
@@ -797,64 +923,87 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
 }
 
 // ─── Invoice Row ──────────────────────────────────────────────────────────────
-function InvoiceRow({ inv, isDarkMode, expanded, onToggleExpand, onEdit, onDelete, onAudit, formatRp }) {
+function InvoiceRow({ inv, isDarkMode, expanded, onToggleExpand, onEdit, onDelete, onAudit, allKnownDist = [], formatRp }) {
   const [hovered, setHovered] = useState(false);
   const isPaid = inv.status === 'Paid';
   const sc = isPaid ? { bg: '#D1FAE5', text: '#065F46' } : { bg: isDarkMode ? '#3A2800' : '#FEF3C7', text: isDarkMode ? '#FFCC00' : '#92400E' };
   const statusLabel = isPaid ? 'SUDAH DIBAYAR' : 'BELUM BAYAR';
   const dueStatus = getDueStatus(inv.due_date, inv.status);
+  const clr = getDistColor(inv.distributor_name, allKnownDist);
   return (
     <>
-      {/* Main row — click anywhere to expand */}
+      {/* Main row */}
       <div
         onClick={onToggleExpand}
         onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-        style={{ display: 'grid', gridTemplateColumns: '150px 1fr 110px 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: hovered ? (isDarkMode ? '#2C2C2E' : '#F5F5F7') : (isDarkMode ? '#1C1C1E' : '#FFF'), transition: 'background 0.15s', cursor: 'pointer' }}>
+        style={{ display: 'grid', gridTemplateColumns: '110px 140px 1fr 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: hovered ? (isDarkMode ? '#2C2C2E' : '#F5F5F7') : (isDarkMode ? '#1C1C1E' : '#FFF'), transition: 'background 0.15s', cursor: 'pointer' }}>
+        {/* Tgl Faktur */}
+        <div style={{ fontSize: '13px', color: isDarkMode ? '#EBEBF0' : '#3A3A3C', fontWeight: '500' }}>
+          {formatLocalDate(inv.purchase_date, { day: '2-digit', month: 'short', year: 'numeric' })}
+        </div>
+        {/* No Faktur */}
         <div>
           <div style={{ fontWeight: '700', fontSize: '13px', color: '#007AFF' }}>{inv.invoice_number}</div>
           {inv.item_count > 0 && <div style={{ fontSize: '11px', color: '#86868B', marginTop: '2px' }}>{inv.item_count} produk · {inv.total_qty||0} qty</div>}
-          {dueStatus && <div style={{ marginTop: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '8px', backgroundColor: dueStatus.bg }}><span style={{ fontSize: '10px', fontWeight: '700', color: dueStatus.color }}>{dueStatus.label}</span></div>}
+
         </div>
+        {/* Distributor — dengan warna */}
         <div>
-          <div style={{ fontWeight: '600', fontSize: '13px', color: isDarkMode ? '#FFF' : '#000' }}>{inv.distributor_name}</div>
-          {inv.due_date && !isPaid && <div style={{ fontSize: '11px', color: '#86868B', marginTop: '2px' }}>Jatuh tempo: {new Date(inv.due_date).toLocaleDateString('id-ID')}</div>}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px 3px 8px', borderRadius: '8px', backgroundColor: isDarkMode ? clr.bg.replace('20','15') : clr.bg, border: `1px solid ${clr.border}` }}>
+            <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: clr.dot, flexShrink: 0 }} />
+            <span style={{ fontWeight: '600', fontSize: '13px', color: isDarkMode ? clr.text : '#1C1C1E' }}>{inv.distributor_name}</span>
+          </div>
         </div>
-        <div style={{ fontSize: '13px', color: isDarkMode ? '#EBEBF0' : '#3A3A3C' }}>{new Date(inv.purchase_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+        {/* HNA*QTY */}
         <div>
           <div style={{ fontSize: '13px', fontWeight: '600', color: isDarkMode ? '#FFF' : '#000' }}>{formatRp(inv.total_hna)}</div>
           {inv.discount_amount > 0 && <div style={{ fontSize: '11px', color: '#FF3B30' }}>Disc: {formatRp(inv.discount_amount)}</div>}
         </div>
+        {/* HNA Final */}
         <div style={{ fontSize: '13px', fontWeight: '600', color: '#34C759' }}>{formatRp(inv.hna_final||inv.final_hna)}</div>
+        {/* HNA+PPN */}
         <div>
           <div style={{ fontSize: '13px', fontWeight: '700', color: '#007AFF' }}>{formatRp(inv.hna_plus_ppn)}</div>
           <div style={{ fontSize: '11px', color: '#86868B' }}>PPN: {formatRp(inv.ppn_masukan||inv.ppn_input, true)}</div>
         </div>
+        {/* Status + jatuh tempo */}
         <div>
           <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: '800', backgroundColor: sc.bg, color: sc.text, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>{statusLabel}</span>
+          {!isPaid && inv.due_date && dueStatus && (
+            <div style={{ marginTop: '5px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '8px', backgroundColor: dueStatus.bg }}>
+              <span style={{ fontSize: '10px', fontWeight: '700', color: dueStatus.color }}>{dueStatus.label}</span>
+            </div>
+          )}
+          {!isPaid && inv.due_date && !dueStatus && (
+            <div style={{ marginTop: '4px', fontSize: '11px', color: '#86868B' }}>JT: {formatLocalDate(inv.due_date)}</div>
+          )}
+          {isPaid && inv.payment_date && (
+            <div style={{ marginTop: '4px', fontSize: '11px', color: '#34C759', fontWeight: '600' }}>✅ {formatLocalDate(inv.payment_date)}</div>
+          )}
           {expanded && <div style={{ marginTop: '4px', fontSize: '10px', color: '#86868B' }}>▲ sembunyikan</div>}
         </div>
-        {/* Action — stop propagation so row click doesn't fire */}
+        {/* Aksi */}
         <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
           <button onClick={onAudit} title="Riwayat" style={{ padding: '6px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><History size={13} color="#86868B" /></button>
           <button onClick={onEdit} style={{ padding: '6px 10px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Edit</button>
           <button onClick={onDelete} style={{ padding: '6px', backgroundColor: '#FF3B30', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 size={13} /></button>
         </div>
       </div>
-      {expanded && <ExpandedItems invoiceId={inv.id} isDarkMode={isDarkMode} formatRp={formatRp} />}
+      {expanded && <ExpandedItems invoiceId={inv.id} isDarkMode={isDarkMode} formatRp={formatRp} distColor={clr} />}
     </>
   );
 }
 
-function ExpandedItems({ invoiceId, isDarkMode, formatRp }) {
+function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
   const [items, setItems] = useState(null);
   useEffect(() => { invoicesAPI.getById(invoiceId).then(r => setItems(r.data.items)).catch(() => setItems([])); }, [invoiceId]);
   if (!items) return <div style={{ padding: '12px 24px', fontSize: '13px', color: '#86868B' }}>Memuat...</div>;
   if (!items.length) return null;
-  const cols = '2fr 80px 100px 100px 80px 110px 100px 110px';
+  const cols = '2fr 60px 90px 100px 70px 100px 100px 90px 100px 100px';
   return (
-    <div style={{ backgroundColor: isDarkMode ? '#111' : '#FAFAFA', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, padding: '8px 24px' }}>
+    <div style={{ backgroundColor: isDarkMode ? '#111' : '#FAFAFA', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, padding: '8px 24px', borderLeft: `3px solid ${distColor?.dot || '#007AFF'}` }}>
       <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '8px', padding: '6px 0', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, marginBottom: '4px' }}>
-        {['Nama Produk','QTY','HNA','HNA*QTY','Disc%','Disc Nominal','HNA Baru','HPP (inc. PPN)'].map(h => (
+        {['Nama Produk','QTY','HNA','HNA*QTY','Disc%','Disc Nom.','HNA Baru','Disc COD','HNA Final','HPP/pcs'].map(h => (
           <div key={h} style={{ fontSize: '10px', fontWeight: '700', color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</div>
         ))}
       </div>
@@ -862,7 +1011,7 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp }) {
         <div key={i} style={{ display: 'grid', gridTemplateColumns: cols, gap: '8px', padding: '6px 0', borderBottom: `1px solid ${isDarkMode ? '#1C1C1E' : '#F0F0F0'}` }}>
           <div>
             <div style={{ fontSize: '13px', fontWeight: '500', color: isDarkMode ? '#FFF' : '#000' }}>{item.product_name}</div>
-            {item.expired_date && <div style={{ fontSize: '11px', color: '#FF9500' }}>Exp: {new Date(item.expired_date).toLocaleDateString('id-ID')}</div>}
+            {item.expired_date && <div style={{ fontSize: '11px', color: '#FF9500' }}>Exp: {formatLocalDate(item.expired_date)}</div>}
           </div>
           <div style={{ fontSize: '13px', color: isDarkMode ? '#FFF' : '#000' }}>{item.quantity}</div>
           <div style={{ fontSize: '13px', color: isDarkMode ? '#FFF' : '#000' }}>{formatRp(item.hna||item.unit_price)}</div>
@@ -870,7 +1019,9 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp }) {
           <div style={{ fontSize: '13px', color: '#FF3B30' }}>{item.disc_percent||0}%</div>
           <div style={{ fontSize: '13px', color: '#FF3B30' }}>{formatRp(item.disc_nominal)}</div>
           <div style={{ fontSize: '13px', fontWeight: '600', color: '#34C759' }}>{formatRp(item.hna_baru)}</div>
-          <div style={{ fontSize: '13px', fontWeight: '700', color: '#AF52DE' }}>{formatRp((item.hna_per_item||0) * 1.11)}</div>
+          <div style={{ fontSize: '13px', color: '#FF9500' }}>{item.disc_cod_per_item > 0 ? formatRp(item.disc_cod_per_item) : <span style={{color:'#C7C7CC'}}>—</span>}</div>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#34C759' }}>{item.hna_after_cod > 0 ? formatRp(item.hna_after_cod) : formatRp(item.hna_baru)}</div>
+          <div style={{ fontSize: '13px', fontWeight: '700', color: '#AF52DE' }}>{formatRp(item.hpp_inc_ppn || (item.hna_per_item||0) * 1.11)}</div>
         </div>
       ))}
     </div>
@@ -880,7 +1031,7 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // MODAL
 // ═══════════════════════════════════════════════════════════════════════════════
-function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors, products, onAddDistributor, onRemoveDistributor, onAddProduct, onRemoveProduct, onFormChange, updateItem, addItem, removeItem, onSubmit, onClose, S, formatRpInput, parseNum, formatRp }) {
+function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors, products, onAddDistributor, onRemoveDistributor, onRenameDistributor, onAddProduct, onRemoveProduct, onRenameProduct, onFormChange, updateItem, addItem, removeItem, onSubmit, onClose, S, formatRpInput, parseNum, formatRp }) {
   const sec = { marginBottom: '1.75rem', paddingBottom: '1.75rem', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}` };
   const secTitle = { fontSize: '11px', fontWeight: '700', marginBottom: '14px', color: isDarkMode ? '#EBEBF0' : '#1C1C1E', letterSpacing: '0.05em', textTransform: 'uppercase' };
   const r2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' };
@@ -906,7 +1057,7 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
               <div><label style={S.label}>Tanggal Belanja / Faktur</label><input type="date" style={S.input} value={form.purchase_date} onChange={e => onFormChange('purchase_date', e.target.value)} /></div>
             </div>
             <div style={{ ...r2, marginTop: '14px' }}>
-              <div><label style={S.label}>Distributor</label><MasterSelect value={form.distributor_name} onChange={v => onFormChange('distributor_name', v)} options={distributors} onAdd={onAddDistributor} onRemove={onRemoveDistributor} placeholder="Pilih atau tambah distributor..." isDarkMode={isDarkMode} /></div>
+              <div><label style={S.label}>Distributor</label><MasterSelect value={form.distributor_name} onChange={v => onFormChange('distributor_name', v)} options={distributors} onAdd={onAddDistributor} onRemove={onRemoveDistributor} onRename={onRenameDistributor} placeholder="Pilih atau tambah distributor..." isDarkMode={isDarkMode} /></div>
               <div><label style={S.label}>Tanggal Jatuh Tempo</label><input type="date" style={S.input} value={form.due_date} onChange={e => onFormChange('due_date', e.target.value)} /></div>
             </div>
           </div>
@@ -925,7 +1076,7 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                   <button type="button" onClick={() => removeItem(idx)} style={{ position: 'absolute', top: '10px', right: '10px', padding: '5px', backgroundColor: '#FF3B30', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}><X size={12} /></button>
                 )}
                 <div style={{ ...r2, marginBottom: '10px' }}>
-                  <div><label style={S.label}>Nama Produk</label><MasterSelect value={item.product_name} onChange={v => updateItem(idx, 'product_name', v)} options={products} onAdd={onAddProduct} onRemove={onRemoveProduct} placeholder="Pilih atau tambah produk..." isDarkMode={isDarkMode} /></div>
+                  <div><label style={S.label}>Nama Produk</label><MasterSelect value={item.product_name} onChange={v => updateItem(idx, 'product_name', v)} options={products} onAdd={onAddProduct} onRemove={onRemoveProduct} onRename={onRenameProduct} placeholder="Pilih atau tambah produk..." isDarkMode={isDarkMode} /></div>
                   <div><label style={S.label}>Expired Date</label><input type="date" style={S.input} value={item.expired_date} onChange={e => updateItem(idx, 'expired_date', e.target.value)} /></div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
@@ -936,12 +1087,28 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                   </div>
                   <div><label style={S.label}>Disc %</label><input style={S.input} type="number" min="0" max="100" step="0.01" value={item.disc_percent} onChange={e => updateItem(idx, 'disc_percent', e.target.value)} placeholder="0" /></div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '8px' }}>
                   <div><label style={{ ...S.label, color: '#86868B' }}>HNA × QTY</label><input style={S.computed} value={formatRpInput(item.hna_times_qty)} readOnly /></div>
                   <div><label style={{ ...S.label, color: '#FF3B30' }}>Disc Nominal</label><input style={{ ...S.inputDis, color: '#FF3B30', fontWeight: '600' }} value={formatRpInput(item.disc_nominal)} readOnly /></div>
                   <div><label style={{ ...S.label, color: isDarkMode ? '#30D158' : '#1C7C2A' }}>HNA Baru</label><input style={S.computed} value={formatRpInput(item.hna_baru)} readOnly /></div>
                   <div><label style={{ ...S.label, color: '#AF52DE' }}>HNA/Item</label><input style={{ ...S.computed, color: '#AF52DE' }} value={formatRpInput(item.hna_per_item)} readOnly /></div>
                 </div>
+                {totals.disc_cod_amount > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', padding: '10px', backgroundColor: isDarkMode ? '#2C1A00' : '#FFF8F0', borderRadius: '10px', border: `1px solid #FF950040` }}>
+                    <div>
+                      <label style={{ ...S.label, color: '#FF9500', fontSize: '10px' }}>Disc COD Bagian</label>
+                      <input style={{ ...S.inputDis, color: '#FF9500', fontWeight: '600' }} value={formatRpInput(totals.items_with_cod?.find(x => x._id === item._id)?.disc_cod_per_item || 0)} readOnly />
+                    </div>
+                    <div>
+                      <label style={{ ...S.label, color: isDarkMode ? '#30D158' : '#1C7C2A', fontSize: '10px' }}>HNA After COD</label>
+                      <input style={S.computed} value={formatRpInput(totals.items_with_cod?.find(x => x._id === item._id)?.hna_after_cod || 0)} readOnly />
+                    </div>
+                    <div>
+                      <label style={{ ...S.label, color: '#AF52DE', fontSize: '10px' }}>HPP inc. PPN</label>
+                      <input style={{ ...S.computed, color: '#AF52DE' }} value={formatRpInput(totals.items_with_cod?.find(x => x._id === item._id)?.hpp_inc_ppn || 0)} readOnly />
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -1009,10 +1176,31 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
           <div style={{ marginBottom: '1.75rem' }}>
             <p style={secTitle}>📅 Pembayaran</p>
             <div style={r2}>
-              <div><label style={S.label}>Tanggal Pembayaran Faktur</label><input type="date" style={S.input} value={form.payment_date} onChange={e => onFormChange('payment_date', e.target.value)} /></div>
-              <div><label style={S.label}>Status</label>
-                <select value={form.status} onChange={e => onFormChange('status', e.target.value)} style={S.input}>
-                  <option value="Pending">Belum Bayar</option><option value="Paid">Sudah Dibayar</option>
+              <div>
+                <label style={S.label}>Tanggal Pembayaran Faktur</label>
+                <input
+                  type="date"
+                  style={form.status === 'Paid' ? S.input : S.inputDis}
+                  value={form.status === 'Paid' ? (form.payment_date || '') : ''}
+                  max={new Date().toISOString().split('T')[0]}
+                  disabled={form.status !== 'Paid'}
+                  onChange={e => onFormChange('payment_date', e.target.value)}
+                />
+                {form.status !== 'Paid' && (
+                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#86868B' }}>
+                    Ubah status ke "Sudah Dibayar" untuk isi tanggal
+                  </p>
+                )}
+              </div>
+              <div>
+                <label style={S.label}>Status</label>
+                <select value={form.status} onChange={e => {
+                  const newStatus = e.target.value;
+                  onFormChange('status', newStatus);
+                  if (newStatus !== 'Paid') onFormChange('payment_date', '');
+                }} style={S.input}>
+                  <option value="Pending">Belum Bayar</option>
+                  <option value="Paid">Sudah Dibayar</option>
                 </select>
               </div>
             </div>
