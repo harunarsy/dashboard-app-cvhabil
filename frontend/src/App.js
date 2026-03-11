@@ -5,6 +5,8 @@ import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
 import InvoiceList from './components/InvoiceList';
 import BugReports from './components/BugReports';
+import SalesOrderList from './components/SalesOrderList';
+import CustomerList from './components/CustomerList';
 import { AuthContext, AuthProvider } from './context/AuthContext';
 import './App.css';
 
@@ -21,24 +23,19 @@ function ProtectedRoute({ children, isDarkMode, setIsDarkMode, isSidebarOpen, se
 
 function AppRoutes({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen }) {
   const { token } = useContext(AuthContext);
+  const wrap = (Component) => (
+    <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}>
+      <Component isDarkMode={isDarkMode} isSidebarOpen={isSidebarOpen} />
+    </ProtectedRoute>
+  );
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={
-        <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}>
-          <Dashboard isDarkMode={isDarkMode} isSidebarOpen={isSidebarOpen} />
-        </ProtectedRoute>
-      } />
-      <Route path="/invoices" element={
-        <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}>
-          <InvoiceList isDarkMode={isDarkMode} isSidebarOpen={isSidebarOpen} />
-        </ProtectedRoute>
-      } />
-      <Route path="/bugs" element={
-        <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}>
-          <BugReports isDarkMode={isDarkMode} isSidebarOpen={isSidebarOpen} />
-        </ProtectedRoute>
-      } />
+      <Route path="/dashboard" element={wrap(Dashboard)} />
+      <Route path="/invoices" element={wrap(InvoiceList)} />
+      <Route path="/sales" element={wrap(SalesOrderList)} />
+      <Route path="/customers" element={wrap(CustomerList)} />
+      <Route path="/bugs" element={wrap(BugReports)} />
       <Route path="/" element={<Navigate to={token ? "/dashboard" : "/login"} />} />
     </Routes>
   );

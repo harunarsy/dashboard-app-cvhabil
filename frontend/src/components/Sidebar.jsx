@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, Package, DollarSign, Users, ChevronLeft, ChevronRight, Sun, LogOut, Bug, X, Moon } from 'lucide-react';
+import { Home, ShoppingCart, Package, DollarSign, Users, ChevronLeft, ChevronRight, Sun, LogOut, Bug, X, Moon, FileText, BarChart3, Briefcase } from 'lucide-react';
 import api from '../services/api';
+import { AuthContext } from '../context/AuthContext';
 
 export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useContext(AuthContext);
   const [showBugModal, setShowBugModal] = useState(false);
   const [bugType, setBugType] = useState('bug'); // 'bug' | 'feature'
   const [bugForm, setBugForm] = useState({ title: '', description: '', steps: '', contact: '' });
@@ -17,13 +19,21 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
     navigate('/login');
   };
 
+  const role = user?.role || 'admin';
+
+  // Role-based menu: admin gets operations, direktur gets everything
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/dashboard', active: true },
-    { icon: ShoppingCart, label: 'Orders', path: '/orders', active: false },
-    { icon: Package, label: 'Products', path: '/products', active: false },
-    { icon: DollarSign, label: 'Finance', path: '/finance', active: false },
-    { icon: Users, label: 'Employees', path: '/employees', active: false },
+    { icon: FileText, label: 'Nota Penjualan', path: '/sales', active: true },
+    { icon: Users, label: 'Customer', path: '/customers', active: true },
     { icon: Package, label: 'Invoices', path: '/invoices', active: true },
+    { icon: ShoppingCart, label: 'Orders', path: '/orders', active: false },
+    { icon: Package, label: 'Inventory', path: '/inventory', active: false },
+    ...(role === 'direktur' ? [
+      { icon: BarChart3, label: 'Buku Besar', path: '/ledger', active: false },
+      { icon: DollarSign, label: 'Finance', path: '/finance', active: false },
+      { icon: Briefcase, label: 'Karyawan', path: '/employees', active: false },
+    ] : []),
   ];
 
   const handleSubmitBug = async () => {
