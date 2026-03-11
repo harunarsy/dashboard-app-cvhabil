@@ -110,3 +110,19 @@ export const purchaseOrdersAPI = {
   remove: (id) => api.delete(`/purchase-orders/${id}`),
   receive: (id, data) => api.post(`/purchase-orders/${id}/receive`, data),
 };
+
+export const onlineStoreAPI = {
+  importCSV: (data) => api.post('/online-store/import', data),
+  getSales: (params) => api.get('/online-store/sales', { params }),
+  getSummary: () => api.get('/online-store/summary'),
+  getWithdrawals: () => api.get('/online-store/withdrawals'),
+  createWithdrawal: (data) => api.post('/online-store/withdrawals', data),
+};
+
+export const ledgerAPI = {
+  getAll: (params) => api.get('/ledger', { params }),
+  getSummary: () => api.get('/ledger/summary'),
+  create: (data) => api.post('/ledger', data),
+  update: (id, data) => api.put(`/ledger/${id}`, data),
+  remove: (id) => api.delete(`/ledger/${id}`),
+};
