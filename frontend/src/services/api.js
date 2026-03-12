@@ -87,6 +87,7 @@ export const salesAPI = {
   create: (data) => api.post('/sales', data),
   update: (id, data) => api.put(`/sales/${id}`, data),
   remove: (id) => api.delete(`/sales/${id}`),
+  updatePdfStatus: (id, pdf_status) => api.patch(`/sales/${id}/pdf-status`, { pdf_status }),
 };
 
 export const inventoryAPI = {
@@ -126,4 +127,9 @@ export const ledgerAPI = {
   create: (data) => api.post('/ledger', data),
   update: (id, data) => api.put(`/ledger/${id}`, data),
   remove: (id) => api.delete(`/ledger/${id}`),
+};
+
+export const printSettingsAPI = {
+  get: () => api.get('/print-settings'),
+  save: (key, value) => api.post('/print-settings', { key, value }),
 };

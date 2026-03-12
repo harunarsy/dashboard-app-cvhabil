@@ -11,6 +11,7 @@ import InventoryDashboard from './components/InventoryDashboard';
 import PurchaseOrderList from './components/PurchaseOrderList';
 import OnlineStoreDashboard from './components/OnlineStoreDashboard';
 import LedgerPage from './components/LedgerPage';
+import PrintSettings from './components/PrintSettings';
 import { AuthContext, AuthProvider } from './context/AuthContext';
 import './App.css';
 
@@ -43,6 +44,7 @@ function AppRoutes({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen 
       <Route path="/orders" element={wrap(PurchaseOrderList)} />
       <Route path="/online-store" element={wrap(OnlineStoreDashboard)} />
       <Route path="/ledger" element={wrap(LedgerPage)} />
+      <Route path="/print-settings" element={wrap(PrintSettings)} />
       <Route path="/bugs" element={wrap(BugReports)} />
       <Route path="/" element={<Navigate to={token ? "/dashboard" : "/login"} />} />
     </Routes>

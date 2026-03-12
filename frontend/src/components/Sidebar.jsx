@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, Package, DollarSign, Users, ChevronLeft, ChevronRight, Sun, LogOut, Bug, X, Moon, FileText, BarChart3, Briefcase } from 'lucide-react';
+import { Home, ShoppingCart, Package, DollarSign, Users, ChevronLeft, ChevronRight, Sun, LogOut, Bug, X, Moon, FileText, BarChart3, Briefcase, Printer } from 'lucide-react';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 
@@ -30,6 +30,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
     { icon: ShoppingCart, label: 'Surat Pesanan', path: '/orders', active: true },
     { icon: Package, label: 'Inventory', path: '/inventory', active: true },
     { icon: ShoppingCart, label: 'Toko Online', path: '/online-store', active: true },
+    { icon: Printer, label: 'Pengaturan Cetak', path: '/print-settings', active: true },
     ...(role === 'direktur' ? [
       { icon: BarChart3, label: 'Buku Besar', path: '/ledger', active: true },
       { icon: DollarSign, label: 'Finance', path: '/finance', active: false },

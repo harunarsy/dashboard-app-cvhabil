@@ -41,84 +41,158 @@
 
 ---
 
-## 3. MODUL YANG SUDAH ADA (v0.6.3)
+## 3. MODUL YANG SUDAH ADA (v1.0.1)
 
-Fitur berikut sudah diimplementasikan dan dianggap **stabil**:
-- ✅ Full CRUD Invoice
-- ✅ Autosave Draft
-- ✅ Audit Log (riwayat perubahan)
+### Business Logic & Modules
+- ✅ Full CRUD Invoice + Autosave Draft + Audit Log + Due Date Otomatis
 - ✅ Pencarian Universal
-- ✅ Manajemen Due Date Otomatis
-- ✅ Pemisahan database main/dev
+- ✅ **Inventory lengkap** — FEFO (First Expired First Out), batch tracking, Stok Opname
+- ✅ **Surat Pesanan (SP)** — penomoran otomatis, integrasi langsung ke stok saat barang diterima
+- ✅ **Toko Online** — CSV importer Shopee & TikTok, profit dashboard berbasis data penarikan
+- ✅ **Buku Besar (Ledger)** — restricted Direktur only, summary kategori per bulan
+
+### Security & Infrastructure
+- ✅ JWT auto-logout 15 menit
+- ✅ Hapus demo credential buttons
+- ✅ Fix IP/Port mismatch antar environment
+- ✅ Pemisahan database main (`dashboard_db`) / dev (`dashboard_dev`)
 - ✅ Akses jaringan lokal multi-device
 
----
-
-## 4. MODUL YANG PERLU DIBANGUN (PRIORITAS URUT)
-
-### PRIORITAS 1 — Nota Penjualan ke Customer
-**Latar belakang:** Data ada di `DATA_CV_2025.xlsx` sheet `NOTA CUSTOMER`, `NOTA RESELLER`, `NOTA DUS 1000`, dll. Selama ini nota dibuat manual di spreadsheet terpisah.
-
-**Yang perlu dibangun:**
-- Form pembuatan nota penjualan baru (nomor otomatis, tanggal, nama customer, produk, qty, harga, total)
-- Referensi produk dari master data produk
-- Cetak nota sebagai PDF → simpan otomatis ke Google Drive
-- Riwayat nota per customer
-- Nota bisa untuk: customer offline, reseller, tender/institusi (RSUD, dll)
-
-**Fields penting berdasarkan data existing:**
-- Nomor Transaksi / Kode / Tahun
-- Nama Customer + Alamat
-- Daftar Produk (nama, qty, harga satuan, total)
-- Tanggal, Tanda Tangan / Cap (untuk PDF)
+### UI/UX
+- ✅ Apple HIG redesign — Dashboard & Login screen
+- ✅ Version Badge + Release Notes & Roadmap Modal di Dashboard
 
 ---
 
-### PRIORITAS 2 — Inventory & Stok Opname
-**Latar belakang:** Stok saat ini dicatat manual di kertas, tanpa tracking expired date. Admin harus crosscheck manual setiap buka/tutup toko.
+## 4. FOKUS PENGEMBANGAN SAAT INI (Prioritas Aktif)
 
-**Yang perlu dibangun:**
-- Master data produk (nama, kode produk, satuan, HPP/HNA, harga jual)
-- Stok masuk otomatis dari faktur pembelian distributor
-- Stok keluar otomatis dari nota penjualan
-- **Tracking Expired Date per batch/lot** — ini KRITIS untuk bisnis farmasi/nutrisi
-- Alert produk mendekati expired (misal: < 3 bulan)
-- Alert stok minimum
-- Fitur stok opname: input stok fisik, sistem tampilkan selisih dengan stok sistem
-- History mutasi stok per produk
+### 🔗 A. Sinkronisasi & Integritas Database
+Ini adalah fondasi sebelum fitur apapun dikerjakan. Semua modul harus saling terhubung dengan benar:
 
-**Data existing yang bisa jadi referensi:**
-- Sheet `INVENTORY` dan `STOK OPNAME` / `STOK OPNAM` di `DATA_CV_2025.xlsx`
-- Sheet `HARGA PRODUK` di `CV_HABIL_2026.xlsx`
+**Flow data yang harus saling terikat:**
+```
+Faktur Pembelian (dari distributor)
+    → otomatis tambah stok di inventory (per batch + expired date)
+
+Nota Penjualan (ke customer)
+    → otomatis kurangi stok inventory (pakai logika FEFO)
+    → otomatis catat di laporan keuangan jika direktur
+
+Surat Pesanan (SP ke distributor)
+    → saat "diterima" → otomatis jadi Faktur Pembelian
+    → otomatis update stok
+
+Stok Opname
+    → input stok fisik → sistem hitung selisih dengan stok sistem
+    → jika ada selisih → catat sebagai adjustment (bukan diam-diam)
+```
+
+**Yang harus dicek/diperbaiki:**
+- Foreign key constraints aktif dan konsisten di semua tabel
+- Tidak ada data orphan (item faktur tanpa faktur, stok tanpa produk, dll)
+- Setiap transaksi yang mengubah stok harus tercatat di tabel `inventory_mutations` (audit trail stok)
+- Rollback: jika nota dibatalkan → stok harus dikembalikan
 
 ---
 
-### PRIORITAS 3 — Surat Pesanan (SP) ke Distributor
-**Latar belakang:** SP ke distributor selama ini dibuat manual di spreadsheet (sheet `SP PARIT P`, `SP APL`, `SP AAM`, `SP ENSEVAL` di `DATA_CV_2025.xlsx`).
+### 🐛 B. Bug yang Diketahui (Harus Fix Dulu)
+1. **Error saat edit distributor** — kemungkinan issue di form validation atau foreign key saat update
+2. **Error saat edit list barang (line items)** — kemungkinan issue di state management React saat edit item di dalam array (tambah/hapus/ubah qty)
 
-**Yang perlu dibangun:**
-- Form pembuatan Surat Pesanan baru
-- Pilih distributor dari master (Parit Padang, APL, AAM, Enseval, AMS, dll)
-- Tambah produk yang dipesan (nama produk, qty, harga)
-- Generate PDF SP → simpan ke Google Drive
-- Riwayat SP per distributor
-- Ketika SP direalisasikan → otomatis masuk sebagai faktur pembelian dan update stok
+**Catatan untuk agent:** Cek apakah kedua bug ini terkait — bisa jadi root cause yang sama (misalnya: component tidak re-render saat data diubah, atau PUT endpoint tidak handle partial update dengan benar).
 
 ---
 
-### PRIORITAS 4 — Faktur Pembelian dari Distributor
-**Latar belakang:** Data faktur masukan ada di `CV_HABIL_2026.xlsx` sheet per bulan (`JANUARI 2026`, `FEBRUARI 2026`, `MARET 2026`). Setiap faktur berisi: tanggal, distributor, nomor faktur, produk, qty, HNA.
+### 🖨️ C. Fitur Print / Save as PDF — Nota Penjualan
+**Request baru:** Setiap nota penjualan harus bisa dicetak atau disimpan sebagai PDF langsung dari sistem.
 
-**Yang perlu dibangun:**
-- Input faktur pembelian (manual atau dari SP yang sudah dibuat)
-- Fields: tanggal, distributor, nomor faktur, produk, qty, HNA, subtotal
-- Saat faktur disimpan → otomatis tambah stok + catat HPP
-- Rekap pembelian per distributor per bulan
-- Referensi ke Google Drive untuk file PDF faktur fisik
+**Spesifikasi:**
+- Tombol "Cetak / Simpan PDF" di halaman detail nota
+- Template PDF nota harus mencantumkan: nama & alamat CV Habil, nomor nota, tanggal, nama customer, tabel produk (nama, qty, harga satuan, subtotal), total, tanda tangan/cap (placeholder)
+- Library yang direkomendasikan: `react-pdf` atau `jspdf` + `html2canvas`
+- PDF ter-generate di frontend → bisa langsung print atau download
+- Opsional: setelah generate PDF → tawarkan upload ke Dropbox
+- Status nota di database terupdate: `pdf_generated: true`, `pdf_generated_at: timestamp`
 
-**Data existing:**
-- `CV_HABIL_2026.xlsx` sheet `REKAP PENJUALAN` dan sheet per bulan
-- Sheet `2026` berisi ringkasan total belanja
+---
+
+### ✨ D. User Experience — Prinsip Utama
+**Filosofi:** Sistem ini dipakai setiap hari oleh owner dan admin. UX yang buruk = tidak dipakai = kembali ke Excel.
+
+**Referensi desain: Apple HIG (sudah diterapkan sejak awal)**
+
+**Prinsip UX yang harus dijaga di setiap fitur baru:**
+
+| Area | Yang Harus Ada |
+|---|---|
+| **Feedback** | Setiap aksi (save, delete, update) harus ada konfirmasi visual — toast notification atau inline status |
+| **Loading states** | Saat fetch data, tampilkan skeleton/spinner — jangan halaman kosong |
+| **Error states** | Pesan error harus dalam Bahasa Indonesia dan actionable ("Stok tidak cukup" bukan "Error 400") |
+| **Empty states** | Jika data kosong, tampilkan ilustrasi/teks yang helpful ("Belum ada nota. Buat nota pertama →") |
+| **Konfirmasi destructive action** | Delete apapun harus ada dialog konfirmasi — tidak boleh langsung hapus |
+| **Form UX** | Autofocus field pertama, Enter untuk pindah field, validasi inline (bukan setelah submit) |
+| **Mobile-friendly** | Bisa dipakai dari HP dalam jaringan lokal — layout harus responsif |
+| **Konsistensi** | Tombol, warna, spacing, font harus konsisten di semua halaman |
+
+**Specific UX untuk modul inventory:**
+- Expired date yang < 3 bulan → highlight kuning
+- Expired date yang sudah lewat → highlight merah + badge "EXPIRED"
+- Stok di bawah minimum → badge merah di daftar produk
+
+---
+
+> Berdasarkan brainstorming roadmap v1.0.1 yang sudah didiskusikan dengan agent Antigravity.
+
+### 🗂️ E. Master Data — React Select dengan Edit & Delete
+**Semua master data harus bisa dikelola langsung dari UI**, mengikuti pola yang sudah ada di list invoice.
+
+**Data yang harus punya UI manage (React Select style):**
+- Produk (nama, HNA, harga jual, satuan)
+- Customer offline (nama, telepon, alamat)
+- Distributor (nama, kode)
+- Toko online (nama toko, platform)
+
+**Behavior yang harus ada di setiap master data:**
+- **Inline select** saat dipakai di form (nota, faktur, SP) — bisa search/filter by nama
+- **Edit** langsung dari list — klik edit → form terbuka inline atau modal → save
+- **Hapus** dengan konfirmasi dialog — jika data masih dipakai di transaksi lain, tampilkan warning dan **jangan hapus** (soft delete saja: `is_active: false`)
+- **Tambah baru** bisa langsung dari dropdown select saat di tengah input form ("+ Tambah customer baru") tanpa harus keluar dari halaman
+- Konsisten dengan gaya list invoice yang sudah ada
+
+---
+
+#### 1. Security: Authentication
+- **Bcrypt password hashing** — migrasi ke `bcryptjs` (saat ini kemungkinan masih plain text / simple encoding)
+- **Refresh Token pattern** — agar user bisa stay logged in secara aman tanpa long-lived access token
+- **RBAC lebih granular** — misalnya "Editor" vs "Viewer" per modul spesifik (bukan hanya Direktur vs Admin)
+
+#### 2. Export & Reporting Engine
+- **Export ke PDF** — invoice, SP, dan laporan Buku Besar yang profesional → gunakan `jspdf` atau `react-pdf`
+- **Export ke Excel (.xlsx)** — laporan penjualan bulanan dan stok untuk keperluan audit eksternal
+- **Data Visualization drill-down** — klik bar chart penjualan → langsung masuk ke detail invoice terkait
+
+---
+
+### 🟡 MEDIUM PRIORITY — Feature Expansion
+
+#### 3. Finance & HR
+- **Employee Management** — absensi, payroll dasar, assignment role karyawan
+- **Expense Tracking** — integrasi ke Buku Besar untuk pengeluaran non-penjualan (listrik, sewa, dll)
+- **Accounts Receivable/Payable** — dashboard khusus tracking hutang & piutang aktif
+
+#### 4. Advanced Inventory
+- **QR / Barcode Integration** — scan produk untuk Stock In/Out dan Stok Opname lebih cepat
+- **Predictive Restocking** — alert otomatis ketika tren penjualan menunjukkan stok akan habis
+- ~~Multi-Warehouse~~ — *tidak relevan, gudang dan toko jadi satu lokasi*
+
+---
+
+### 🟢 LOW PRIORITY — Tech Upgrades
+
+#### 5. Infrastructure
+- **TypeScript Migration** — dari `.js/.jsx` ke `.ts/.tsx` untuk type safety yang lebih baik
+- **Unit & Integration Testing** — Jest/Cypress, khususnya untuk logika kritis seperti FEFO dan perhitungan laba
+- **Containerization (Docker)** — konsistensi environment antara development dan production
 
 ---
 
@@ -280,32 +354,37 @@ audit_logs        → sudah ada
 
 ---
 
-## 12. URUTAN PENGEMBANGAN YANG DISARANKAN
+## 12. URUTAN PENGEMBANGAN SELANJUTNYA (dari v1.0.1)
 
 ```
-Phase 1 (Sekarang):
-  → Modul Nota Penjualan Customer (CRUD + PDF)
-  → Master Produk & Master Customer
+SEKARANG (Active Sprint):
+  → Fix bug: edit distributor
+  → Fix bug: edit list barang (line items)
+  → Sinkronisasi DB — pastikan semua flow saling terikat (stok masuk/keluar/opname)
+  → Fitur Print/Save PDF untuk Nota Penjualan
+  → Master data (produk, customer, distributor, toko online) → React Select + edit + delete
+  → Audit UX menyeluruh — terapkan prinsip Apple HIG di semua halaman
 
-Phase 2:
-  → Inventory dengan expired date tracking
-  → Stok opname & alert
+Phase Berikutnya (High Priority):
+  → Bcrypt password hashing
+  → Refresh token pattern
+  → Export PDF laporan (Buku Besar, rekap bulanan)
+  → Export Excel laporan bulanan
 
-Phase 3:
-  → Surat Pesanan ke Distributor
-  → Faktur Pembelian dari Distributor
-  → Integrasi stok otomatis
+Phase Setelah Itu (Medium):
+  → Employee management & payroll
+  → Expense tracking (non-penjualan)
+  → Dashboard hutang piutang
+  → QR/Barcode untuk stok opname
 
-Phase 4:
-  → Modul Toko Online (import CSV + hitung laba)
-
-Phase 5:
-  → Buku Besar (Direktur only)
-  → Google Drive integration
-  → Dashboard summary & grafik
+Phase Jangka Panjang (Low):
+  → TypeScript migration
+  → Jest/Cypress testing
+  → Docker containerization
+```  → Docker containerization
 ```
 
 ---
 
-*Dokumen ini dibuat berdasarkan analisis file: BUKU_BESAR_HABIL_2025.xlsx, CV_HABIL_2026.xlsx, DATA_CV_2025.xlsx, Laba_TOKO_ONLINE_HABIL.xlsx*  
-*Versi sistem saat ini: v0.6.3 | Stack: React 19 + Express 5.x + PostgreSQL 15*
+*Dokumen ini dibuat berdasarkan analisis file: BUKU_BESAR_HABIL_2025.xlsx, CV_HABIL_2026.xlsx, DATA_CV_2025.xlsx, Laba_TOKO_ONLINE_HABIL.xlsx, BRAINSTORMING_ROADMAP.md*  
+*Versi sistem saat ini: v1.0.1 | Stack: React 19 + Express 5.x + PostgreSQL 15*

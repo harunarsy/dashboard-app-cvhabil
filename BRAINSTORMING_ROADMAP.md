@@ -2,11 +2,13 @@
 
 This document outlines potential improvements and architectural upgrades for the CV Habil Dashboard to be discussed with AI collaborators and stakeholders.
 
-## ✅ Recent Accomplishments (v0.6.3 → v1.0.1)
+## ✅ Recent Accomplishments (v0.6.3 → v1.1.0)
 
-The leap from v0.6.3 to v1.0.1 represented a major development cycle focused on completing the core business logic and fixing critical connectivity/security issues.
+The leap from v0.6.3 to v1.1.0 represented a major development cycle focused on completing the core business logic, fixing critical connectivity/security issues, and migrating legacy data.
 
 ### 💼 Business Logic & Modules
+- **[v1.1.0] Dashboard Integration**: Connected the Dashboard's "Akses Cepat" module (Total Sales, Active POs, Low Stock, Total Customers) to real-time PostgreSQL queries.
+- **[v1.1.0] Data Seeding**: Successfully migrated 76 essential master records (Distributors, Customers, Products) from legacy Excel data using `SEED_MIGRATION_HABIL.sql`.
 - **Full Inventory Lifecycle**: Implemented FEFO (First Expired First Out) logic, batch tracking, and Stock Opname.
 - **Surat Pesanan (SP)**: Created a purchase order system with automated numbering and direct inventory integration upon receiving.
 - **Online Store Module**: Built CSV importers for Shopee/TikTok and a profit dashboard based on withdrawal data.

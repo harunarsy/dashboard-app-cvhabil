@@ -1,9 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Info, X, Activity, ShoppingCart, Users, Package } from 'lucide-react';
+import api from '../services/api';
 
 const changelog = [
   {
-    version: 'v1.0.1', date: '12 Mar 2026', status: 'latest',
+    version: 'v1.1.0', date: '12 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'new', text: 'Dashboard Stats Integrasi: Angka penjualan, pesanan aktif, stok low, dan customer kini real-time dari database' },
+      { type: 'new', text: 'Database Seed Master: Integrasi data existing SP, Customer, dan Distributor ke sistem' }
+    ]
+  },
+  {
+    version: 'v1.0.1', date: '12 Mar 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Perbaikan Database Connection: Timeout saat login telah diperbaiki dengan auto-fallback jaringan lokal' },
       { type: 'fix', text: 'Keamanan Sesi: Auto-logout JWT 15 menit diterapkan untuk menghindari bentrok data antar user' },
@@ -63,6 +71,33 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
     low:    { label: 'Nanti',            color: '#86868B', bg: '#86868B18' },
   };
 
+  const [stats, setStats] = useState({
+    totalPenjualan: 0,
+    suratPesananAktif: 0,
+    stokLowExpired: 0,
+    totalCustomer: 0
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const { data } = await api.get('/dashboard/stats');
+        setStats(data);
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats', error);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const formatRupiah = (number) => {
+    if (number >= 1000000) {
+      return 'Rp ' + (number / 1000000).toFixed(1) + 'M';
+    }
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+  };
+
+
   return (
     <div className="font-sans min-h-screen transition-all duration-300" style={{ padding: '2.5rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg }}>
       
@@ -80,18 +115,18 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
           style={{ backgroundColor: cardBg, borderColor: border, color: text }}
         >
           <Info size={16} className="text-blue-500" />
-          <span className="text-sm font-semibold">Version 1.0.1</span>
+          <span className="text-sm font-semibold">Version 1.1.0</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium ml-2">Release Notes</span>
         </button>
       </div>
 
-      {/* Quick Stats Placeholder Cards */}
+      {/* Quick Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {[
-          { label: 'Total Penjualan bln ini', value: 'Rp 45.2M', icon: <Activity size={24} className="text-green-500"/> },
-          { label: 'Surat Pesanan Aktif', value: '12', icon: <ShoppingCart size={24} className="text-blue-500"/> },
-          { label: 'Stok Low/Expired', value: '3', icon: <Package size={24} className="text-orange-500"/> },
-          { label: 'Total Customer', value: '124', icon: <Users size={24} className="text-indigo-500"/> },
+          { label: 'Total Penjualan bln ini', value: formatRupiah(stats.totalPenjualan), icon: <Activity size={24} className="text-green-500"/> },
+          { label: 'Surat Pesanan Aktif', value: stats.suratPesananAktif.toString(), icon: <ShoppingCart size={24} className="text-blue-500"/> },
+          { label: 'Stok Low/Expired', value: stats.stokLowExpired.toString(), icon: <Package size={24} className="text-orange-500"/> },
+          { label: 'Total Customer', value: stats.totalCustomer.toString(), icon: <Users size={24} className="text-indigo-500"/> },
         ].map((stat, i) => (
           <div key={i} className="rounded-2xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
             <div className="flex justify-between items-start mb-4">
@@ -124,7 +159,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
               <div>
                 <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
-                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.0.1 - Terakhir diupdate 12 Mar 2026</p>
+                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.1.0 - Terakhir diupdate 12 Mar 2026</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />

@@ -169,8 +169,13 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen }) {
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       {p.nearest_expiry ? (
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: isExpiring ? (days < 30 ? '#FF3B30' : '#FF9500') : '#34C759' }}>
-                          {fmtDate(p.nearest_expiry)} {isExpiring && `(${days}d)`}
+                        <span style={{
+                          fontSize: '12px', fontWeight: '600',
+                          color: days !== null && days <= 0 ? '#FF3B30' : isExpiring ? (days < 30 ? '#FF3B30' : '#FF9500') : '#34C759',
+                          padding: '2px 8px', borderRadius: '6px',
+                          backgroundColor: days !== null && days <= 0 ? '#FF3B3018' : isExpiring ? '#FF950018' : 'transparent',
+                        }}>
+                          {fmtDate(p.nearest_expiry)} {days !== null && days <= 0 && '⛔ EXPIRED'}{isExpiring && days > 0 && `(${days}d)`}
                         </span>
                       ) : <span style={{ color: sub }}>-</span>}
                     </td>
