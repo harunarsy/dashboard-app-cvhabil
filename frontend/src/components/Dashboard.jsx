@@ -1,10 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import { Info, X, Activity, ShoppingCart, Users, Package } from 'lucide-react';
 import api from '../services/api';
+import Skeleton from './common/Skeleton';
 
 const changelog = [
   {
-    version: 'v1.1.2', date: '12 Mar 2026', status: 'latest',
+    version: 'v1.1.8', date: '13 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'new', text: 'Documentation Consolidation: Single technical source of truth di CHANGELOG.md' },
+      { type: 'new', text: 'Health Check Automatis: Pre-flight check DB setiap npm run dev' },
+      { type: 'fix', text: 'Performance: Database indexing untuk pencarian produk' }
+    ]
+  },
+  {
+    version: 'v1.1.7', date: '13 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'new', text: 'AI Efficiency Rules: Standarisasi Port 6543 & Dynamic API URL' },
+      { type: 'fix', text: 'Smart API: Deteksi otomatis environment Lokal vs Vercel' }
+    ]
+  },
+  {
+    version: 'v1.1.6', date: '12 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'new', text: 'Data Sync: Auto-restore data produk & customer dari cloud backup' },
+      { type: 'new', text: 'Sync Script: Tool mandiri untuk tarik data terbaru dari Supabase' }
+    ]
+  },
+  {
+    version: 'v1.1.5', date: '12 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'new', text: 'Cloud Bridge: Koneksi langsung ke database Supabase via Cloud URI' },
+      { type: 'fix', text: 'Diagnostic Check: Script verifikasi koneksi database (Lokal/Cloud)' }
+    ]
+  },
+  {
+    version: 'v1.1.4', date: '12 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'fix', text: 'Quality Assurance: Automated tests untuk Skeleton components' },
+      { type: 'fix', text: 'Dashboard Fix: Perbaikan import React yang hilang' }
+    ]
+  },
+  {
+    version: 'v1.1.3', date: '12 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'new', text: 'Premium UX: Implementasi Skeleton Loading (Apple Style)' },
+      { type: 'fix', text: 'Layout Consistency: Pencegahan layout shift saat muat data' }
+    ]
+  },
+  {
+    version: 'v1.1.2', date: '12 Mar 2026', status: 'stable',
     changes: [
       { type: 'new', text: 'Dashboard Notes: Menambahkan bagian catatan/pengumuman penting untuk feedback user' },
       { type: 'fix', text: 'Version Sync: Sinkronisasi versi v1.1.2 di seluruh sistem (Anti-Belang)' },
@@ -66,6 +110,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = '#86868B';
+  const [loading, setLoading] = useState(true);
 
   const typeConfig = {
     new:     { label: 'Baru',    color: '#34C759', bg: '#34C75918' },
@@ -87,11 +132,14 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
 
   useEffect(() => {
     const fetchStats = async () => {
+      setLoading(true);
       try {
         const { data } = await api.get('/dashboard/stats');
         setStats(data);
       } catch (error) {
         console.error('Failed to fetch dashboard stats', error);
+      } finally {
+        setTimeout(() => setLoading(false), 500); // Small delay for smooth transition
       }
     };
     fetchStats();
@@ -122,7 +170,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
           style={{ backgroundColor: cardBg, borderColor: border, color: text }}
         >
           <Info size={16} className="text-blue-500" />
-          <span className="text-sm font-semibold">Version 1.1.2</span>
+          <span className="text-sm font-semibold">Version 1.1.8</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium ml-2">Release Notes</span>
         </button>
       </div>
@@ -130,16 +178,22 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
       {/* Quick Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {[
-          { label: 'Total Penjualan bln ini', value: formatRupiah(stats.totalPenjualan), icon: <Activity size={24} className="text-green-500"/> },
-          { label: 'Surat Pesanan Aktif', value: stats.suratPesananAktif.toString(), icon: <ShoppingCart size={24} className="text-blue-500"/> },
-          { label: 'Stok Low/Expired', value: stats.stokLowExpired.toString(), icon: <Package size={24} className="text-orange-500"/> },
-          { label: 'Total Customer', value: stats.totalCustomer.toString(), icon: <Users size={24} className="text-indigo-500"/> },
+          { label: 'Total Penjualan bln ini', value: stats.totalPenjualan, type: 'currency', icon: <Activity size={24} className="text-green-500"/> },
+          { label: 'Surat Pesanan Aktif', value: stats.suratPesananAktif, type: 'number', icon: <ShoppingCart size={24} className="text-blue-500"/> },
+          { label: 'Stok Low/Expired', value: stats.stokLowExpired, type: 'number', icon: <Package size={24} className="text-orange-500"/> },
+          { label: 'Total Customer', value: stats.totalCustomer, type: 'number', icon: <Users size={24} className="text-indigo-500"/> },
         ].map((stat, i) => (
           <div key={i} className="rounded-2xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
             <div className="flex justify-between items-start mb-4">
               <div className="p-3 bg-gray-50 rounded-xl dark:bg-gray-800">{stat.icon}</div>
             </div>
-            <h3 className="text-3xl font-bold mb-1" style={{ color: text }}>{stat.value}</h3>
+            {loading ? (
+              <Skeleton width="80%" height="36px" className="mb-2" />
+            ) : (
+              <h3 className="text-3xl font-bold mb-1" style={{ color: text }}>
+                {stat.type === 'currency' ? formatRupiah(stat.value) : stat.value.toString()}
+              </h3>
+            )}
             <p className="text-sm font-medium" style={{ color: sub }}>{stat.label}</p>
           </div>
         ))}
@@ -184,7 +238,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
               <div>
                 <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
-                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.1.2 - Terakhir diupdate 12 Mar 2026</p>
+                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.1.8 - Terakhir diupdate 13 Mar 2026</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Edit2, X, CheckCircle } from 'lucide-react';
 import { purchaseOrdersAPI, distributorsAPI, inventoryAPI } from '../services/api';
+import Skeleton from './common/Skeleton';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -22,6 +23,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen }) {
   const [editId, setEditId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const [form, setForm] = useState({ distributor_name: '', distributor_address: '', order_date: new Date().toISOString().split('T')[0], expected_date: '', notes: '' });
   const [items, setItems] = useState([blankItem()]);
@@ -33,7 +35,17 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen }) {
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = '#86868B';
 
-  const fetchOrders = async () => { try { const { data } = await purchaseOrdersAPI.getAll(); setOrders(data); } catch (e) { console.error(e); } };
+  const fetchOrders = async () => { 
+    setLoading(true);
+    try { 
+      const { data } = await purchaseOrdersAPI.getAll(); 
+      setOrders(data); 
+    } catch (e) { 
+      console.error(e); 
+    } finally {
+      setTimeout(() => setLoading(false), 500);
+    }
+  };
   const fetchDistributors = async () => { try { const { data } = await distributorsAPI.getAll(); setDistributors(data); } catch (e) { console.error(e); } };
   const fetchProducts = async () => { try { const { data } = await inventoryAPI.getProducts(); setProducts(data); } catch (e) { console.error(e); } };
 
@@ -129,58 +141,71 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(o => {
-              const sc = statusColors[o.status] || statusColors.draft;
-              return (
-                <React.Fragment key={o.id}>
-                  <tr style={{ borderBottom: `1px solid ${border}`, cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}>
-                    <td style={{ padding: '12px 14px', fontWeight: '600', color: '#5856D6' }}>{o.po_number}</td>
-                    <td style={{ padding: '12px 14px', color: text }}>{fmtDate(o.order_date)}</td>
-                    <td style={{ padding: '12px 14px', color: text }}>{o.distributor_name}</td>
-                    <td style={{ padding: '12px 14px', fontWeight: '600', color: text }}>{fmtRp(o.total)}</td>
-                    <td style={{ padding: '12px 14px' }}>
-                      <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
-                    </td>
-                    <td style={{ padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', gap: '4px' }} onClick={e => e.stopPropagation()}>
-                        {o.status !== 'received' && <button onClick={() => openReceive(o)} title="Terima Barang" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><CheckCircle size={15} color="#34C759" /></button>}
-                        <button onClick={() => openEdit(o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="#007AFF" /></button>
-                        <button onClick={() => handleDelete(o.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="#FF3B30" /></button>
-                      </div>
-                    </td>
-                  </tr>
-                  {expandedId === o.id && o.items?.length > 0 && (
-                    <tr>
-                      <td colSpan={6} style={{ padding: '0 14px 14px', backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', fontSize: '12px' }}>
-                          <thead><tr>
-                            {['Produk', 'Qty', 'Satuan', 'Harga', 'Subtotal', 'Diterima'].map(h => (
-                              <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: '600', color: sub, borderBottom: `1px solid ${border}` }}>{h}</th>
-                            ))}
-                          </tr></thead>
-                          <tbody>
-                            {o.items.map((it, idx) => (
-                              <tr key={idx}>
-                                <td style={{ padding: '6px 10px', color: text }}>{it.product_name}</td>
-                                <td style={{ padding: '6px 10px', color: text }}>{it.qty}</td>
-                                <td style={{ padding: '6px 10px', color: sub }}>{it.unit}</td>
-                                <td style={{ padding: '6px 10px', color: text }}>{fmtRp(it.unit_price)}</td>
-                                <td style={{ padding: '6px 10px', fontWeight: '600', color: text }}>{fmtRp(it.subtotal)}</td>
-                                <td style={{ padding: '6px 10px', fontWeight: '600', color: (it.received_qty || 0) >= it.qty ? '#34C759' : '#FF9500' }}>
-                                  {it.received_qty || 0}/{it.qty}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                        {o.notes && <p style={{ margin: '8px 0 0', fontSize: '12px', color: sub }}>📝 {o.notes}</p>}
+            {loading ? (
+              [...Array(5)].map((_, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${border}` }}>
+                  <td style={{ padding: '12px 14px' }}><Skeleton width="80px" height="14px" /></td>
+                  <td style={{ padding: '12px 14px' }}><Skeleton width="90px" height="14px" /></td>
+                  <td style={{ padding: '12px 14px' }}><Skeleton width="150px" height="14px" /></td>
+                  <td style={{ padding: '12px 14px' }}><Skeleton width="70px" height="14px" /></td>
+                  <td style={{ padding: '12px 14px' }}><Skeleton width="60px" height="18px" /></td>
+                  <td style={{ padding: '12px 14px' }}><Skeleton width="80px" height="20px" /></td>
+                </tr>
+              ))
+            ) : (
+              filtered.map(o => {
+                const sc = statusColors[o.status] || statusColors.draft;
+                return (
+                  <React.Fragment key={o.id}>
+                    <tr style={{ borderBottom: `1px solid ${border}`, cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}>
+                      <td style={{ padding: '12px 14px', fontWeight: '600', color: '#5856D6' }}>{o.po_number}</td>
+                      <td style={{ padding: '12px 14px', color: text }}>{fmtDate(o.order_date)}</td>
+                      <td style={{ padding: '12px 14px', color: text }}>{o.distributor_name}</td>
+                      <td style={{ padding: '12px 14px', fontWeight: '600', color: text }}>{fmtRp(o.total)}</td>
+                      <td style={{ padding: '12px 14px' }}>
+                        <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
+                      </td>
+                      <td style={{ padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', gap: '4px' }} onClick={e => e.stopPropagation()}>
+                          {o.status !== 'received' && <button onClick={() => openReceive(o)} title="Terima Barang" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><CheckCircle size={15} color="#34C759" /></button>}
+                          <button onClick={() => openEdit(o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="#007AFF" /></button>
+                          <button onClick={() => handleDelete(o.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="#FF3B30" /></button>
+                        </div>
                       </td>
                     </tr>
-                  )}
-                </React.Fragment>
-              );
-            })}
-            {!filtered.length && <tr><td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: sub }}>Belum ada Surat Pesanan.</td></tr>}
+                    {expandedId === o.id && o.items?.length > 0 && (
+                      <tr>
+                        <td colSpan={6} style={{ padding: '0 14px 14px', backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', fontSize: '12px' }}>
+                            <thead><tr>
+                              {['Produk', 'Qty', 'Satuan', 'Harga', 'Subtotal', 'Diterima'].map(h => (
+                                <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: '600', color: sub, borderBottom: `1px solid ${border}` }}>{h}</th>
+                              ))}
+                            </tr></thead>
+                            <tbody>
+                              {o.items.map((it, idx) => (
+                                <tr key={idx}>
+                                  <td style={{ padding: '6px 10px', color: text }}>{it.product_name}</td>
+                                  <td style={{ padding: '6px 10px', color: text }}>{it.qty}</td>
+                                  <td style={{ padding: '6px 10px', color: sub }}>{it.unit}</td>
+                                  <td style={{ padding: '6px 10px', color: text }}>{fmtRp(it.unit_price)}</td>
+                                  <td style={{ padding: '6px 10px', fontWeight: '600', color: text }}>{fmtRp(it.subtotal)}</td>
+                                  <td style={{ padding: '6px 10px', fontWeight: '600', color: (it.received_qty || 0) >= it.qty ? '#34C759' : '#FF9500' }}>
+                                    {it.received_qty || 0}/{it.qty}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {o.notes && <p style={{ margin: '8px 0 0', fontSize: '12px', color: sub }}>📝 {o.notes}</p>}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
+            )}
+            {!loading && !filtered.length && <tr><td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: sub }}>Belum ada Surat Pesanan.</td></tr>}
           </tbody>
         </table>
       </div>

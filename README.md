@@ -95,9 +95,13 @@ npm run dev
 
 ## Release History
 
-| v1.1.2 | Mar 12, 2026 | **v1.1.2 Release**: Singapore Region migration, Dashboard Notes/Feedback, Version Synchronization |
-| v1.1.1 | Mar 12, 2026 | **v1.1.1 Update**: Vercel/Supabase initial migration, CORS fixes, A5/A6 Landscape PDF layouts |
-| v1.1.0 | Mar 12, 2026 | **v1.1.0 Integration**: Dashboard Stats (real-time SQL), Master Data Seeding (76 records) |
+| Version | Date | Highlights |
+|---|---|---|
+| v1.1.8 | Mar 13, 2026 | **v1.1.8 Cleanup**: Logic "Smart API" masking, Automated DB Health Check, Performance Indexing |
+| v1.1.7 | Mar 13, 2026 | **v1.1.7 Optimization**: Port 6543 standardization, Dynamic URL detection, Efficiency Rules |
+| v1.1.6 | Mar 12, 2026 | **v1.1.6 Data Sync**: Auto-restore from backup, local data cloning from Supabase |
+| v1.1.3 | Mar 12, 2026 | **v1.1.3 UX**: Skeleton Loading (visual feedback) across all major modules |
+| v1.1.2 | Mar 12, 2026 | **v1.1.2 Infrastructure**: Singapore Region migration, Dashboard Notes/Feedback system |
 | v1.0.1 | Mar 12, 2026 | **v1.0.1 Hotfix**: Login port alignment, Dashboard UI overhaul, Auto-logout logic, Release History Modal |
 | v1.0.0 | Mar 12, 2026 | **v1.0 Official Release**: Inventory (FEFO), Surat Pesanan, Toko Online (Shopee/TikTok), Buku Besar |
 | v0.6.3 | Mar 11, 2026 | ESLint fixes, declutter, DB branch isolation |

@@ -57,7 +57,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="transition-colors duration-300" style={{ backgroundColor: isDarkMode ? '#000000' : '#FFFFFF' }}>
+        <div className={`transition-colors duration-300 ${isDarkMode ? 'dark' : ''}`} style={{ backgroundColor: isDarkMode ? '#000000' : '#FFFFFF' }}>
           <AppRoutes isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
         </div>
       </Router>

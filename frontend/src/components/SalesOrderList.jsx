@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Edit2, X, FileText } from 'lucide-react';
 import { salesAPI, customersAPI, productsAPI, printSettingsAPI } from '../services/api';
 import { generateNotaPDF } from '../utils/generateNotaPDF';
+import Skeleton from './common/Skeleton';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -22,6 +23,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
   const [editId, setEditId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState('');
+  const [loading, setLoading] = useState(true);
 
   // Filters
   const [filterMonth, setFilterMonth] = useState('all');
@@ -46,7 +48,15 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
   const labelStyle = { display: 'block', fontSize: '12px', fontWeight: '700', color: sub, marginBottom: '8px', textTransform: 'uppercase' };
 
   const fetchOrders = async () => {
-    try { const { data } = await salesAPI.getAll(); setOrders(data); } catch (e) { console.error(e); }
+    setLoading(true);
+    try { 
+      const { data } = await salesAPI.getAll(); 
+      setOrders(data); 
+    } catch (e) { 
+      console.error(e); 
+    } finally {
+      setTimeout(() => setLoading(false), 500);
+    }
   };
   const fetchCustomers = async () => {
     try { const { data } = await customersAPI.getAll(); setCustomers(data); } catch (e) { console.error(e); }
@@ -210,59 +220,73 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(o => (
-              <React.Fragment key={o.id}>
-                <tr style={{ borderBottom: `1px solid ${border}`, cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}>
-                  <td style={{ padding: '12px 14px', fontWeight: '600', color: '#007AFF' }}>{o.order_number}</td>
-                  <td style={{ padding: '12px 14px', color: text }}>{fmtDate(o.sale_date)}</td>
-                  <td style={{ padding: '12px 14px', color: text }}>{o.customer_name}</td>
-                  <td style={{ padding: '12px 14px', fontWeight: '600', color: text }}>{fmtRp(o.total)}</td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <span style={{ fontSize: '11px', color: (o.payment_method === 'Tunai' ? '#34C759' : '#007AFF'), fontWeight: '600' }}>{o.payment_method}</span>
-                  </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px',
-                      backgroundColor: o.status === 'final' ? '#34C75918' : '#FF950018',
-                      color: o.status === 'final' ? '#34C759' : '#FF9500' }}>
-                      {o.status === 'final' ? 'Final' : 'Draft'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                      <button onClick={(e) => { e.stopPropagation(); openPrintOptions(o); }} title="Cetak PDF" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><FileText size={15} color="#34C759" /></button>
-                      <button onClick={(e) => { e.stopPropagation(); openEdit(o); }} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="#007AFF" /></button>
-                      <button onClick={(e) => { e.stopPropagation(); handleDelete(o.id); }} title="Hapus" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="#FF3B30" /></button>
-                    </div>
-                  </td>
+            {loading ? (
+              [...Array(5)].map((_, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${border}` }}>
+                  <td style={{ padding: '12px 14px' }}><Skeleton width="80px" height="16px" /></td>
+                  <td style={{ padding: '12px 14px' }}><Skeleton width="90px" height="16px" /></td>
+                  <td style={{ padding: '12px 14px' }}><Skeleton width="120px" height="16px" /></td>
+                  <td style={{ padding: '12px 14px' }}><Skeleton width="70px" height="16px" /></td>
+                  <td style={{ padding: '12px 14px' }}><Skeleton width="50px" height="16px" /></td>
+                  <td style={{ padding: '12px 14px' }}><Skeleton width="60px" height="20px" /></td>
+                  <td style={{ padding: '12px 14px' }}><Skeleton width="80px" height="16px" /></td>
                 </tr>
-                {expandedId === o.id && o.items?.length > 0 && (
-                  <tr>
-                    <td colSpan={6} style={{ padding: '0 14px 14px', backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', fontSize: '12px' }}>
-                        <thead><tr>
-                          {['Produk', 'Qty', 'Satuan', 'Harga', 'Subtotal'].map(h => (
-                            <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: '600', color: sub, borderBottom: `1px solid ${border}` }}>{h}</th>
-                          ))}
-                        </tr></thead>
-                        <tbody>
-                          {o.items.map((it, idx) => (
-                            <tr key={idx}>
-                              <td style={{ padding: '6px 10px', color: text }}>{it.product_name}</td>
-                              <td style={{ padding: '6px 10px', color: text }}>{it.qty}</td>
-                              <td style={{ padding: '6px 10px', color: sub }}>{it.unit}</td>
-                              <td style={{ padding: '6px 10px', color: text }}>{fmtRp(it.unit_price)}</td>
-                              <td style={{ padding: '6px 10px', fontWeight: '600', color: text }}>{fmtRp(it.subtotal)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {o.notes && <p style={{ margin: '8px 0 0', fontSize: '12px', color: sub }}>📝 {o.notes}</p>}
+              ))
+            ) : (
+              filtered.map(o => (
+                <React.Fragment key={o.id}>
+                  <tr style={{ borderBottom: `1px solid ${border}`, cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}>
+                    <td style={{ padding: '12px 14px', fontWeight: '600', color: '#007AFF' }}>{o.order_number}</td>
+                    <td style={{ padding: '12px 14px', color: text }}>{fmtDate(o.sale_date)}</td>
+                    <td style={{ padding: '12px 14px', color: text }}>{o.customer_name}</td>
+                    <td style={{ padding: '12px 14px', fontWeight: '600', color: text }}>{fmtRp(o.total)}</td>
+                    <td style={{ padding: '12px 14px' }}>
+                      <span style={{ fontSize: '11px', color: (o.payment_method === 'Tunai' ? '#34C759' : '#007AFF'), fontWeight: '600' }}>{o.payment_method}</span>
+                    </td>
+                    <td style={{ padding: '12px 14px' }}>
+                      <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px',
+                        backgroundColor: o.status === 'final' ? '#34C75918' : '#FF950018',
+                        color: o.status === 'final' ? '#34C759' : '#FF9500' }}>
+                        {o.status === 'final' ? 'Final' : 'Draft'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <button onClick={(e) => { e.stopPropagation(); openPrintOptions(o); }} title="Cetak PDF" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><FileText size={15} color="#34C759" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); openEdit(o); }} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="#007AFF" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(o.id); }} title="Hapus" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="#FF3B30" /></button>
+                      </div>
                     </td>
                   </tr>
-                )}
-              </React.Fragment>
-            ))}
-            {!filtered.length && (
+                  {expandedId === o.id && o.items?.length > 0 && (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '0 14px 14px', backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', fontSize: '12px' }}>
+                          <thead><tr>
+                            {['Produk', 'Qty', 'Satuan', 'Harga', 'Subtotal'].map(h => (
+                              <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: '600', color: sub, borderBottom: `1px solid ${border}` }}>{h}</th>
+                            ))}
+                          </tr></thead>
+                          <tbody>
+                            {o.items.map((it, idx) => (
+                              <tr key={idx}>
+                                <td style={{ padding: '6px 10px', color: text }}>{it.product_name}</td>
+                                <td style={{ padding: '6px 10px', color: text }}>{it.qty}</td>
+                                <td style={{ padding: '6px 10px', color: sub }}>{it.unit}</td>
+                                <td style={{ padding: '6px 10px', color: text }}>{fmtRp(it.unit_price)}</td>
+                                <td style={{ padding: '6px 10px', fontWeight: '600', color: text }}>{fmtRp(it.subtotal)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {o.notes && <p style={{ margin: '8px 0 0', fontSize: '12px', color: sub }}>📝 {o.notes}</p>}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))
+            )}
+            {!loading && !filtered.length && (
               <tr><td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: sub }}>Belum ada nota penjualan.</td></tr>
             )}
           </tbody>
