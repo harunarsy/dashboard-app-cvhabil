@@ -6,7 +6,7 @@
 ## 1. RINGKASAN SISTEM
 
 **Nama Sistem:** Dashboard CV Habil  
-**Versi Terakhir:** v0.6.3  
+**Versi Terakhir:** v1.1.3  
 **Tujuan:** Sistem manajemen bisnis terpadu — invoice, pesanan, stok, keuangan, dan laporan toko online  
 **Desain:** Apple Human Interface Guidelines (HIG) — premium, bersih, minimalis
 
@@ -61,6 +61,7 @@
 ### UI/UX
 - ✅ Apple HIG redesign — Dashboard & Login screen
 - ✅ Version Badge + Release Notes & Roadmap Modal di Dashboard
+- ✅ **Skeleton Loading** — visual feedback saat data sedang dimuat (stats, tabel, list)
 
 ---
 
@@ -387,4 +388,4 @@ Phase Jangka Panjang (Low):
 ---
 
 *Dokumen ini dibuat berdasarkan analisis file: BUKU_BESAR_HABIL_2025.xlsx, CV_HABIL_2026.xlsx, DATA_CV_2025.xlsx, Laba_TOKO_ONLINE_HABIL.xlsx, BRAINSTORMING_ROADMAP.md*  
-*Versi sistem saat ini: v1.0.1 | Stack: React 19 + Express 5.x + PostgreSQL 15*
+*Versi sistem saat ini: v1.1.3 | Stack: React 19 + Express 5.x + PostgreSQL 15*

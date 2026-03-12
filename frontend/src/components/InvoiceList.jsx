@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { invoicesAPI, distributorsAPI, productsAPI, auditAPI } from '../services/api';
 import { Plus, X, Trash2, RotateCcw, Search, AlertTriangle, Clock, FileText, ChevronLeft, ChevronRight, History } from 'lucide-react';
 import MasterSelect from './MasterSelect';
+import Skeleton from './common/Skeleton';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const parseNum = (v) => {
@@ -492,7 +493,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
     computed: { width: '100%', padding: '10px 12px', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#1C1C1E' : '#E5E5EA', color: isDarkMode ? '#30D158' : '#1C7C2A', fontWeight: '600', cursor: 'not-allowed', fontSize: '14px', boxSizing: 'border-box' },
   };
 
-  if (loading) return <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px' }}>Loading...</div>;
+  // if (loading) return <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px' }}>Loading...</div>; (Removed early return to use skeletons)
 
   const SortIcon = ({ k }) => {
     if (sortKey !== k) return <span style={{ color: '#C7C7CC', marginLeft: '4px' }}>↕</span>;
@@ -542,7 +543,11 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
           <div key={i} style={{ ...S.card, padding: '1.25rem' }}>
             <div style={{ fontSize: '1.5rem', marginBottom: '6px' }}>{m.icon}</div>
             <p style={{ margin: '0 0 4px', fontSize: '11px', fontWeight: '700', color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.label}</p>
-            <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: m.color }}>{m.value}</p>
+            {loading ? (
+              <Skeleton width="100px" height="24px" />
+            ) : (
+              <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: m.color }}>{m.value}</p>
+            )}
           </div>
         ))}
       </div>
@@ -721,7 +726,20 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
           ))}
         </div>
 
-        {paginatedInvoices.length === 0
+        {loading ? (
+          [...Array(pageSize)].map((_, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '110px 140px 1fr 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF' }}>
+              <Skeleton width="80px" height="14px" />
+              <Skeleton width="100px" height="14px" />
+              <Skeleton width="150px" height="24px" borderRadius="8px" />
+              <Skeleton width="90px" height="14px" />
+              <Skeleton width="90px" height="14px" />
+              <Skeleton width="110px" height="14px" />
+              <Skeleton width="80px" height="20px" borderRadius="20px" />
+              <Skeleton width="70px" height="24px" borderRadius="8px" />
+            </div>
+          ))
+        ) : paginatedInvoices.length === 0
           ? <div style={{ padding: '3rem', textAlign: 'center', color: '#86868B' }}>{invoices.length === 0 ? 'Belum ada faktur' : 'Tidak ada yang cocok'}</div>
           : paginatedInvoices.map(inv => (
             <InvoiceRow key={inv.id} inv={inv} isDarkMode={isDarkMode}

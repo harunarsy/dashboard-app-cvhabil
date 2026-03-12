@@ -91,6 +91,8 @@ npm run dev
 
 | Version | Date | Highlights |
 |---|---|---|
+| v1.1.3 | Mar 12, 2026 | **Skeleton Loading**: Visual feedback across all modules for professional loading experience. |
+| v1.1.2 | Mar 12, 2026 | **Singapore Region**: Infrastructure migration (Vercel & Supabase) for instant data access. Dashboard Notes for bug reporting. |
 | v1.0.1 | Mar 12, 2026 | **v1.0.1 Hotfix**: Login port alignment, Dashboard UI overhaul, Auto-logout logic, Release History Modal |
 | v1.0.0 | Mar 12, 2026 | **v1.0 Official Release**: Inventory (FEFO), Surat Pesanan, Toko Online (Shopee/TikTok), Buku Besar |
 | v0.6.3 | Mar 11, 2026 | ESLint fixes, declutter, DB branch isolation |
