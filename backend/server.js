@@ -29,6 +29,7 @@ if (fs.existsSync(path.join(__dirname, envFile))) {
 // Build allowed origins: localhost + all local network IPs + Production URL
 const allowedOrigins = new Set([
   'http://localhost:3000',
+  'https://habil-dashboard.vercel.app', // Explicitly allow production frontend
   process.env.FRONTEND_URL,
 ].filter(Boolean));
 // Auto-detect local network IPs and add them
