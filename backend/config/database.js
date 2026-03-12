@@ -13,9 +13,19 @@ const pool = new Pool(
       }
 );
 
+// Connection logic logging
+const isRemote = !!process.env.DATABASE_URL;
+console.log(`[DB] Attempting to connect to ${isRemote ? 'Cloud (Supabase)' : 'Local Host'}...`);
+
+pool.on('connect', () => {
+  console.log(`[DB] ✅ Connected to ${isRemote ? 'Cloud' : 'Local'} database successfully.`);
+});
+
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
+  console.error('[DB] ❌ Unexpected error on idle client:', err.message);
+  if (!isRemote && err.code === 'ECONNREFUSED') {
+    console.error('[DB] TIP: No local database found. Try adding DATABASE_URL to your .env to use Supabase.');
+  }
 });
 
 module.exports = pool;
