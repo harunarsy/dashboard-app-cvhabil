@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, DollarSign, TrendingUp, X } from 'lucide-react';
 import { onlineStoreAPI } from '../services/api';
+import Skeleton from './common/Skeleton';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 
@@ -13,6 +14,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen }) {
   const [importForm, setImportForm] = useState({ platform: 'shopee', csv_text: '' });
   const [wdForm, setWdForm] = useState({ platform: 'shopee', amount: 0, withdrawal_date: new Date().toISOString().split('T')[0], notes: '' });
   const [toast, setToast] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
   const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
@@ -24,8 +26,25 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen }) {
   const inputStyle = { width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, fontSize: '14px', outline: 'none', boxSizing: 'border-box' };
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' };
 
-  const fetchSummary = async () => { try { const { data } = await onlineStoreAPI.getSummary(); setSummary(data); } catch (e) { console.error(e); } };
-  const fetchSales = async () => { try { const { data } = await onlineStoreAPI.getSales({ limit: 50 }); setSales(data.data || []); } catch (e) { console.error(e); } };
+  const fetchSummary = async () => { 
+    try { 
+      const { data } = await onlineStoreAPI.getSummary(); 
+      setSummary(data); 
+    } catch (e) { 
+      console.error(e); 
+    } 
+  };
+  const fetchSales = async () => { 
+    setLoading(true);
+    try { 
+      const { data } = await onlineStoreAPI.getSales({ limit: 50 }); 
+      setSales(data.data || []); 
+    } catch (e) { 
+      console.error(e); 
+    } finally {
+      setTimeout(() => setLoading(false), 500);
+    }
+  };
 
   useEffect(() => { fetchSummary(); fetchSales(); }, []);
 
@@ -83,15 +102,15 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
             <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
               <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Total Revenue</p>
-              <p style={{ margin: '6px 0 0', fontSize: '24px', fontWeight: '800', color: '#34C759' }}>{fmtRp(totalGross)}</p>
+              {loading ? <Skeleton width="120px" height="28px" marginTop="6px" /> : <p style={{ margin: '6px 0 0', fontSize: '24px', fontWeight: '800', color: '#34C759' }}>{fmtRp(totalGross)}</p>}
             </div>
             <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
               <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Net Profit</p>
-              <p style={{ margin: '6px 0 0', fontSize: '24px', fontWeight: '800', color: '#007AFF' }}>{fmtRp(totalNet)}</p>
+              {loading ? <Skeleton width="120px" height="28px" marginTop="6px" /> : <p style={{ margin: '6px 0 0', fontSize: '24px', fontWeight: '800', color: '#007AFF' }}>{fmtRp(totalNet)}</p>}
             </div>
             <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
               <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Total Orders</p>
-              <p style={{ margin: '6px 0 0', fontSize: '24px', fontWeight: '800', color: text }}>{totalOrders}</p>
+              {loading ? <Skeleton width="60px" height="28px" marginTop="6px" /> : <p style={{ margin: '6px 0 0', fontSize: '24px', fontWeight: '800', color: text }}>{totalOrders}</p>}
             </div>
           </div>
 
@@ -136,21 +155,36 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen }) {
               </tr>
             </thead>
             <tbody>
-              {sales.map(s => (
-                <tr key={s.id} style={{ borderBottom: `1px solid ${border}` }}>
-                  <td style={{ padding: '10px 12px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px', backgroundColor: s.platform === 'shopee' ? '#EE4D2D18' : '#00000018', color: s.platform === 'shopee' ? '#EE4D2D' : (isDarkMode ? '#FFF' : '#000'), textTransform: 'capitalize' }}>{s.platform}</span>
-                  </td>
-                  <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: '11px', color: sub }}>{s.order_id}</td>
-                  <td style={{ padding: '10px 12px', color: text }}>{s.order_date ? new Date(s.order_date).toLocaleDateString('id-ID') : '-'}</td>
-                  <td style={{ padding: '10px 12px', fontWeight: '600', color: text, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.product_name}</td>
-                  <td style={{ padding: '10px 12px', color: text }}>{s.qty}</td>
-                  <td style={{ padding: '10px 12px', color: text }}>{fmtRp(s.sell_price)}</td>
-                  <td style={{ padding: '10px 12px', color: '#FF3B30' }}>-{fmtRp(s.platform_fee)}</td>
-                  <td style={{ padding: '10px 12px', fontWeight: '600', color: '#34C759' }}>{fmtRp(s.net_amount)}</td>
-                </tr>
-              ))}
-              {!sales.length && <tr><td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: sub }}>Belum ada transaksi. Import CSV untuk memulai.</td></tr>}
+              {loading ? (
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${border}` }}>
+                    <td style={{ padding: '10px 12px' }}><Skeleton width="60px" height="12px" /></td>
+                    <td style={{ padding: '10px 12px' }}><Skeleton width="80px" height="10px" /></td>
+                    <td style={{ padding: '10px 12px' }}><Skeleton width="70px" height="12px" /></td>
+                    <td style={{ padding: '10px 12px' }}><Skeleton width="150px" height="14px" /></td>
+                    <td style={{ padding: '10px 12px' }}><Skeleton width="30px" height="12px" /></td>
+                    <td style={{ padding: '10px 12px' }}><Skeleton width="80px" height="12px" /></td>
+                    <td style={{ padding: '10px 12px' }}><Skeleton width="80px" height="12px" /></td>
+                    <td style={{ padding: '10px 12px' }}><Skeleton width="80px" height="12px" /></td>
+                  </tr>
+                ))
+              ) : (
+                sales.map(s => (
+                  <tr key={s.id} style={{ borderBottom: `1px solid ${border}` }}>
+                    <td style={{ padding: '10px 12px' }}>
+                      <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px', backgroundColor: s.platform === 'shopee' ? '#EE4D2D18' : '#00000018', color: s.platform === 'shopee' ? '#EE4D2D' : (isDarkMode ? '#FFF' : '#000'), textTransform: 'capitalize' }}>{s.platform}</span>
+                    </td>
+                    <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: '11px', color: sub }}>{s.order_id}</td>
+                    <td style={{ padding: '10px 12px', color: text }}>{s.order_date ? new Date(s.order_date).toLocaleDateString('id-ID') : '-'}</td>
+                    <td style={{ padding: '10px 12px', fontWeight: '600', color: text, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.product_name}</td>
+                    <td style={{ padding: '10px 12px', color: text }}>{s.qty}</td>
+                    <td style={{ padding: '10px 12px', color: text }}>{fmtRp(s.sell_price)}</td>
+                    <td style={{ padding: '10px 12px', color: '#FF3B30' }}>-{fmtRp(s.platform_fee)}</td>
+                    <td style={{ padding: '10px 12px', fontWeight: '600', color: '#34C759' }}>{fmtRp(s.net_amount)}</td>
+                  </tr>
+                ))
+              )}
+              {!loading && !sales.length && <tr><td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: sub }}>Belum ada transaksi. Import CSV untuk memulai.</td></tr>}
             </tbody>
           </table>
         </div>

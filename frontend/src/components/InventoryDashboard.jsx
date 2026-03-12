@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, AlertTriangle, Clock, Trash2, Edit2, X, ArrowDownCircle, ArrowUpCircle, ClipboardCheck } from 'lucide-react';
 import { inventoryAPI } from '../services/api';
+import Skeleton from './common/Skeleton';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -14,6 +15,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen }) {
   const [showModal, setShowModal] = useState(null); // null | 'product' | 'stockIn' | 'stockOut' | 'opname'
   const [editId, setEditId] = useState(null);
   const [toast, setToast] = useState('');
+  const [loading, setLoading] = useState(true);
 
   // Product form
   const [pForm, setPForm] = useState({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5 });
@@ -31,7 +33,15 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen }) {
   const sub = '#86868B';
 
   const fetchProducts = useCallback(async () => {
-    try { const { data } = await inventoryAPI.getProducts(); setProducts(data); } catch (e) { console.error(e); }
+    setLoading(true);
+    try { 
+      const { data } = await inventoryAPI.getProducts(); 
+      setProducts(data); 
+    } catch (e) { 
+      console.error(e); 
+    } finally {
+      setTimeout(() => setLoading(false), 500);
+    }
   }, []);
   const fetchAlerts = useCallback(async () => {
     try { const { data } = await inventoryAPI.getAlerts(); setAlerts(data); } catch (e) { console.error(e); }
@@ -152,45 +162,60 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(p => {
-                const days = daysUntil(p.nearest_expiry);
-                const isLowStock = parseInt(p.total_stock) < p.min_stock;
-                const isExpiring = days !== null && days < 90;
-                return (
-                  <tr key={p.id} style={{ borderBottom: `1px solid ${border}` }}>
-                    <td style={{ padding: '12px 14px', color: sub, fontFamily: 'monospace', fontSize: '12px' }}>{p.code || '-'}</td>
-                    <td style={{ padding: '12px 14px', fontWeight: '600', color: text }}>{p.name}</td>
-                    <td style={{ padding: '12px 14px', color: sub }}>{p.unit}</td>
-                    <td style={{ padding: '12px 14px', color: text }}>{fmtRp(p.hna)}</td>
-                    <td style={{ padding: '12px 14px', color: text }}>{fmtRp(p.sell_price)}</td>
-                    <td style={{ padding: '12px 14px' }}>
-                      <span style={{ fontWeight: '700', color: isLowStock ? '#FF3B30' : '#34C759' }}>{p.total_stock}</span>
-                      {isLowStock && <span style={{ fontSize: '10px', color: '#FF3B30', marginLeft: '4px' }}>⚠ Low</span>}
-                    </td>
-                    <td style={{ padding: '12px 14px' }}>
-                      {p.nearest_expiry ? (
-                        <span style={{
-                          fontSize: '12px', fontWeight: '600',
-                          color: days !== null && days <= 0 ? '#FF3B30' : isExpiring ? (days < 30 ? '#FF3B30' : '#FF9500') : '#34C759',
-                          padding: '2px 8px', borderRadius: '6px',
-                          backgroundColor: days !== null && days <= 0 ? '#FF3B3018' : isExpiring ? '#FF950018' : 'transparent',
-                        }}>
-                          {fmtDate(p.nearest_expiry)} {days !== null && days <= 0 && '⛔ EXPIRED'}{isExpiring && days > 0 && `(${days}d)`}
-                        </span>
-                      ) : <span style={{ color: sub }}>-</span>}
-                    </td>
-                    <td style={{ padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <button onClick={() => openStockIn(p)} title="Stok Masuk" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ArrowDownCircle size={15} color="#34C759" /></button>
-                        <button onClick={() => openStockOut(p)} title="Stok Keluar" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ArrowUpCircle size={15} color="#FF9500" /></button>
-                        <button onClick={() => openEditProduct(p)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="#007AFF" /></button>
-                        <button onClick={() => deleteProduct(p.id)} title="Hapus" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="#FF3B30" /></button>
-                      </div>
-                    </td>
+              {loading ? (
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${border}` }}>
+                    <td style={{ padding: '12px 14px' }}><Skeleton width="60px" height="14px" /></td>
+                    <td style={{ padding: '12px 14px' }}><Skeleton width="150px" height="14px" /></td>
+                    <td style={{ padding: '12px 14px' }}><Skeleton width="40px" height="14px" /></td>
+                    <td style={{ padding: '12px 14px' }}><Skeleton width="80px" height="14px" /></td>
+                    <td style={{ padding: '12px 14px' }}><Skeleton width="80px" height="14px" /></td>
+                    <td style={{ padding: '12px 14px' }}><Skeleton width="40px" height="14px" /></td>
+                    <td style={{ padding: '12px 14px' }}><Skeleton width="100px" height="18px" /></td>
+                    <td style={{ padding: '12px 14px' }}><Skeleton width="80px" height="20px" /></td>
                   </tr>
-                );
-              })}
-              {!filtered.length && <tr><td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: sub }}>Belum ada produk. Klik "Produk" untuk menambahkan.</td></tr>}
+                ))
+              ) : (
+                filtered.map(p => {
+                  const days = daysUntil(p.nearest_expiry);
+                  const isLowStock = parseInt(p.total_stock) < p.min_stock;
+                  const isExpiring = days !== null && days < 90;
+                  return (
+                    <tr key={p.id} style={{ borderBottom: `1px solid ${border}` }}>
+                      <td style={{ padding: '12px 14px', color: sub, fontFamily: 'monospace', fontSize: '12px' }}>{p.code || '-'}</td>
+                      <td style={{ padding: '12px 14px', fontWeight: '600', color: text }}>{p.name}</td>
+                      <td style={{ padding: '12px 14px', color: sub }}>{p.unit}</td>
+                      <td style={{ padding: '12px 14px', color: text }}>{fmtRp(p.hna)}</td>
+                      <td style={{ padding: '12px 14px', color: text }}>{fmtRp(p.sell_price)}</td>
+                      <td style={{ padding: '12px 14px' }}>
+                        <span style={{ fontWeight: '700', color: isLowStock ? '#FF3B30' : '#34C759' }}>{p.total_stock}</span>
+                        {isLowStock && <span style={{ fontSize: '10px', color: '#FF3B30', marginLeft: '4px' }}>⚠ Low</span>}
+                      </td>
+                      <td style={{ padding: '12px 14px' }}>
+                        {p.nearest_expiry ? (
+                          <span style={{
+                            fontSize: '12px', fontWeight: '600',
+                            color: days !== null && days <= 0 ? '#FF3B30' : isExpiring ? (days < 30 ? '#FF3B30' : '#FF9500') : '#34C759',
+                            padding: '2px 8px', borderRadius: '6px',
+                            backgroundColor: days !== null && days <= 0 ? '#FF3B3018' : isExpiring ? '#FF950018' : 'transparent',
+                          }}>
+                            {fmtDate(p.nearest_expiry)} {days !== null && days <= 0 && '⛔ EXPIRED'}{isExpiring && days > 0 && `(${days}d)`}
+                          </span>
+                        ) : <span style={{ color: sub }}>-</span>}
+                      </td>
+                      <td style={{ padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button onClick={() => openStockIn(p)} title="Stok Masuk" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ArrowDownCircle size={15} color="#34C759" /></button>
+                          <button onClick={() => openStockOut(p)} title="Stok Keluar" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ArrowUpCircle size={15} color="#FF9500" /></button>
+                          <button onClick={() => openEditProduct(p)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="#007AFF" /></button>
+                          <button onClick={() => deleteProduct(p.id)} title="Hapus" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="#FF3B30" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+              {!loading && !filtered.length && <tr><td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: sub }}>Belum ada produk. Klik "Produk" untuk menambahkan.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -225,7 +250,14 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen }) {
             <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: '700', color: '#FF3B30', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AlertTriangle size={18} /> Stok Rendah ({alerts.lowStock.length})
             </h3>
-            {alerts.lowStock.length ? alerts.lowStock.map((p, i) => (
+            {loading ? (
+              [...Array(3)].map((_, i) => (
+                <div key={i} style={{ padding: '12px 0', borderBottom: i < 2 ? `1px solid ${border}` : 'none' }}>
+                  <Skeleton width="40%" height="14px" className="mb-2" />
+                  <Skeleton width="60%" height="12px" />
+                </div>
+              ))
+            ) : alerts.lowStock.length ? alerts.lowStock.map((p, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < alerts.lowStock.length - 1 ? `1px solid ${border}` : 'none' }}>
                 <span style={{ fontWeight: '600', color: text }}>{p.name}</span>
                 <span style={{ fontSize: '12px', color: '#FF3B30', fontWeight: '600' }}>{p.total_stock} / min {p.min_stock}</span>

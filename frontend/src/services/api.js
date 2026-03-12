@@ -1,12 +1,21 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
+const isLocal = window.location.hostname === 'localhost';
+const API_BASE_URL = isLocal 
+  ? 'http://localhost:5002/api' 
+  : (process.env.REACT_APP_API_URL || '/api');
 // Cache bust v2
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
 });
+
+if (isLocal) {
+  console.log(`[API] Initialized with static local endpoint: ${API_BASE_URL}`);
+} else {
+  console.log(`[API] Initialized with dynamic production endpoint.`);
+}
 
 api.interceptors.request.use(
   (config) => {
