@@ -11,7 +11,7 @@ const changelog = [
     ]
   },
   {
-    version: 'v1.0.1', date: '12 Mar 2026', status: 'stable',
+    version: 'v1.1.1', date: '12 Mar 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Perbaikan Database Connection: Timeout saat login telah diperbaiki dengan auto-fallback jaringan lokal' },
       { type: 'fix', text: 'Keamanan Sesi: Auto-logout JWT 15 menit diterapkan untuk menghindari bentrok data antar user' },
