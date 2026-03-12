@@ -4,19 +4,26 @@ import api from '../services/api';
 
 const changelog = [
   {
-    version: 'v1.1.0', date: '12 Mar 2026', status: 'latest',
+    version: 'v1.1.2', date: '12 Mar 2026', status: 'latest',
     changes: [
-      { type: 'new', text: 'Dashboard Stats Integrasi: Angka penjualan, pesanan aktif, stok low, dan customer kini real-time dari database' },
-      { type: 'new', text: 'Database Seed Master: Integrasi data existing SP, Customer, dan Distributor ke sistem' }
+      { type: 'new', text: 'Dashboard Notes: Menambahkan bagian catatan/pengumuman penting untuk feedback user' },
+      { type: 'fix', text: 'Version Sync: Sinkronisasi versi v1.1.2 di seluruh sistem (Anti-Belang)' },
+      { type: 'fix', text: 'UI Fix: Perbaikan minor di halaman Print Settings' }
     ]
   },
   {
     version: 'v1.1.1', date: '12 Mar 2026', status: 'stable',
     changes: [
-      { type: 'fix', text: 'Perbaikan Database Connection: Timeout saat login telah diperbaiki dengan auto-fallback jaringan lokal' },
-      { type: 'fix', text: 'Keamanan Sesi: Auto-logout JWT 15 menit diterapkan untuk menghindari bentrok data antar user' },
-      { type: 'fix', text: 'Tombol quick-login dihapus dari production untuk alasan keamanan' },
-      { type: 'new', text: 'UI Dashboard baru dengan Modal Popup Release History & Upcoming Features' },
+      { type: 'new', text: 'Cloud Migration: Integrasi penuh dengan Vercel & Supabase (Singapore Region)' },
+      { type: 'fix', text: 'CORS Fix: Perbaikan akses antar domain di lingkungan produksi' },
+      { type: 'new', text: 'Nota PDF Builder: Layout landscape untuk A5 & A6' }
+    ]
+  },
+  {
+    version: 'v1.1.0', date: '12 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'new', text: 'Dashboard Stats Integrasi: Angka penjualan, pesanan aktif, stok low, dan customer kini real-time dari database' },
+      { type: 'new', text: 'Database Seed Master: Integrasi data existing SP, Customer, dan Distributor ke sistem' }
     ]
   },
   {
@@ -115,7 +122,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
           style={{ backgroundColor: cardBg, borderColor: border, color: text }}
         >
           <Info size={16} className="text-blue-500" />
-          <span className="text-sm font-semibold">Version 1.1.0</span>
+          <span className="text-sm font-semibold">Version 1.1.2</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium ml-2">Release Notes</span>
         </button>
       </div>
@@ -138,13 +145,31 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
         ))}
       </div>
 
-      {/* Quick Links Section */}
-      <div className="rounded-3xl p-8 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
-        <h2 className="text-xl font-bold mb-6" style={{ color: text }}>Akses Cepat</h2>
-        <div className="flex flex-wrap gap-4">
-          <a href="/sales" className="px-5 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors">Buat Nota Penjualan</a>
-          <a href="/orders" className="px-5 py-3 rounded-xl border font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800" style={{ borderColor: border, color: text }}>Tambah Surat Pesanan</a>
-          <a href="/online-store" className="px-5 py-3 rounded-xl border font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800" style={{ borderColor: border, color: text }}>Import CSV Toko Online</a>
+      {/* Quick Links & Notes Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+        <div className="lg:col-span-2 rounded-3xl p-8 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+          <h2 className="text-xl font-bold mb-6" style={{ color: text }}>Akses Cepat</h2>
+          <div className="flex flex-wrap gap-4">
+            <a href="/sales" className="px-5 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors">Buat Nota Penjualan</a>
+            <a href="/orders" className="px-5 py-3 rounded-xl border font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800" style={{ borderColor: border, color: text }}>Tambah Surat Pesanan</a>
+            <a href="/online-store" className="px-5 py-3 rounded-xl border font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800" style={{ borderColor: border, color: text }}>Import CSV Toko Online</a>
+          </div>
+        </div>
+
+        <div className="rounded-3xl p-8 border shadow-sm border-l-4 border-l-blue-500" style={{ backgroundColor: cardBg, borderColor: border }}>
+          <div className="flex items-center gap-3 mb-4 text-blue-500">
+            <Info size={20} />
+            <h2 className="text-lg font-bold">Catatan Developer</h2>
+          </div>
+          <p className="text-sm leading-relaxed mb-4" style={{ color: sub }}>
+            Mungkin ada beberapa fitur yang belum work atau "ganjel" dalam penggunaannya, bisa dilaporkan via 
+            <span className="font-bold text-blue-500 mx-1">Bug / Saran Fitur</span> 
+            di sidebar agar segera diperbaiki oleh tim pengembang.
+          </p>
+          <div className="p-3 rounded-xl bg-blue-50 text-[11px] font-medium text-blue-600 flex gap-2 items-start">
+             <Activity size={14} className="mt-0.5 shrink-0" />
+             Ekspektasi Performa: Latency antar pulau (Singapore) ~500ms - 1s (Normal).
+          </div>
         </div>
       </div>
 
@@ -159,7 +184,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
               <div>
                 <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
-                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.1.0 - Terakhir diupdate 12 Mar 2026</p>
+                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.1.2 - Terakhir diupdate 12 Mar 2026</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />
