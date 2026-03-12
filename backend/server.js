@@ -8,25 +8,29 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// ─── Branch-aware .env loading ──────────────────────────────────────────────
-// Auto-detect git branch → if on 'dev' branch, load .env.dev instead of .env
-let currentBranch = 'main';
-try {
-  currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
-} catch (e) { /* not in a git repo, default to main */ }
+// ─── Environment Loading ──────────────────────────────────────────────
+let envFile = '.env';
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
+    if (currentBranch === 'dev' && fs.existsSync(path.join(__dirname, '.env.dev'))) {
+      envFile = '.env.dev';
+    }
+  } catch (e) { /* Fallback to default .env if git not available */ }
+}
 
-const envFile = currentBranch === 'dev' && fs.existsSync(path.join(__dirname, '.env.dev'))
-  ? '.env.dev'
-  : '.env';
+if (fs.existsSync(path.join(__dirname, envFile))) {
+  require('dotenv').config({ path: path.join(__dirname, envFile) });
+  console.log(`[Env] Loaded from ${envFile} → DB: ${process.env.DB_NAME || 'DATABASE_URL used'}`);
+} else {
+  console.log('[Env] No .env file found, using system environment variables');
+}
 
-require('dotenv').config({ path: path.join(__dirname, envFile) });
-console.log(`[Branch: ${currentBranch}] Loaded env from: ${envFile} → DB: ${process.env.DB_NAME}`);
-
-// Build allowed origins: localhost + all local network IPs
+// Build allowed origins: localhost + all local network IPs + Production URL
 const allowedOrigins = new Set([
   'http://localhost:3000',
-  process.env.FRONTEND_URL || 'http://localhost:3000',
-]);
+  process.env.FRONTEND_URL,
+].filter(Boolean));
 // Auto-detect local network IPs and add them
 const nets = os.networkInterfaces();
 for (const name of Object.keys(nets)) {
