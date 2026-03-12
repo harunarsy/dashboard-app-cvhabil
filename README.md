@@ -4,11 +4,11 @@ A real-time business dashboard for managing invoices, orders, inventory, and fin
 
 ## Tech Stack
 
-- **Backend:** Node.js + Express 5.x
-- **Frontend:** React 19 + Tailwind CSS
-- **Database:** PostgreSQL 15
+- **Frontend:** React 19 (Deployed on Vercel)
+- **Backend:** Node.js + Express 5.x (Deployed on Vercel)
+- **Database:** PostgreSQL 15 (Supabase - Singapore Region)
 - **Real-time:** Socket.io
-- **Auth:** JWT
+- **Auth:** JWT (15m Session)
 
 ## Quick Start
 
@@ -17,8 +17,14 @@ A real-time business dashboard for managing invoices, orders, inventory, and fin
 - PostgreSQL 15+
 - npm or yarn
 
-### 1. Clone & Setup
+### 1. Cloud-First Deployment
+The application is optimized for cloud deployment using Vercel (Frontend/Backend) and Supabase (Database).
 
+**Production URLs:**
+- **Frontend:** [https://habil-dashboard.vercel.app](https://habil-dashboard.vercel.app)
+- **Backend:** [https://habil-backend.vercel.app/api](https://habil-backend.vercel.app/api)
+
+### 2. Local Development (Optional)
 ```bash
 git clone https://github.com/harunarsy/dashboard-app-cvhabil.git
 cd dashboard-app-cvhabil
@@ -89,8 +95,9 @@ npm run dev
 
 ## Release History
 
-| Version | Date | Highlights |
-|---|---|---|
+| v1.1.2 | Mar 12, 2026 | **v1.1.2 Release**: Singapore Region migration, Dashboard Notes/Feedback, Version Synchronization |
+| v1.1.1 | Mar 12, 2026 | **v1.1.1 Update**: Vercel/Supabase initial migration, CORS fixes, A5/A6 Landscape PDF layouts |
+| v1.1.0 | Mar 12, 2026 | **v1.1.0 Integration**: Dashboard Stats (real-time SQL), Master Data Seeding (76 records) |
 | v1.0.1 | Mar 12, 2026 | **v1.0.1 Hotfix**: Login port alignment, Dashboard UI overhaul, Auto-logout logic, Release History Modal |
 | v1.0.0 | Mar 12, 2026 | **v1.0 Official Release**: Inventory (FEFO), Surat Pesanan, Toko Online (Shopee/TikTok), Buku Besar |
 | v0.6.3 | Mar 11, 2026 | ESLint fixes, declutter, DB branch isolation |

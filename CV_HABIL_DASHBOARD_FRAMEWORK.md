@@ -6,18 +6,18 @@
 ## 1. RINGKASAN SISTEM
 
 **Nama Sistem:** Dashboard CV Habil  
-**Versi Terakhir:** v0.6.3  
+**Versi Terakhir:** v1.1.2  
 **Tujuan:** Sistem manajemen bisnis terpadu — invoice, pesanan, stok, keuangan, dan laporan toko online  
 **Desain:** Apple Human Interface Guidelines (HIG) — premium, bersih, minimalis
 
 ### Tech Stack
 | Layer | Teknologi |
 |---|---|
-| Frontend | React 19 |
-| Backend | Node.js + Express 5.x |
-| Database | PostgreSQL 15 |
-| Jaringan | Local network (multi-device access) |
-| Penyimpanan Dokumen | Google Drive (PDF) |
+| Frontend | React 19 (Vercel) |
+| Backend | Node.js + Express 5.x (Vercel) |
+| Database | PostgreSQL 15 (Supabase - Singapore) |
+| Jaringan | Public Cloud (Vercel/Supabase) |
+| Penyimpanan Dokumen | Local DB Source of Truth |
 
 ### Database
 - Branch `main` → database: `dashboard_db`
@@ -46,17 +46,16 @@
 ### Business Logic & Modules
 - ✅ Full CRUD Invoice + Autosave Draft + Audit Log + Due Date Otomatis
 - ✅ Pencarian Universal
-- ✅ **Inventory lengkap** — FEFO (First Expired First Out), batch tracking, Stok Opname
-- ✅ **Surat Pesanan (SP)** — penomoran otomatis, integrasi langsung ke stok saat barang diterima
-- ✅ **Toko Online** — CSV importer Shopee & TikTok, profit dashboard berbasis data penarikan
-- ✅ **Buku Besar (Ledger)** — restricted Direktur only, summary kategori per bulan
+- ✅ **Inventory lengkap** — FEFO Batch tracking & Stok Opname
+- ✅ **Surat Pesanan (SP)** — penomoran otomatis & integrasi stok
+- ✅ **Toko Online** — CSV importer Shopee & TikTok + Profit Dashboard
+- ✅ **Buku Besar (Ledger)** — restricted Direktur only
+- ✅ **Dashboard Notes (v1.1.2)** — Feedback loop & pengumuman developer
 
-### Security & Infrastructure
-- ✅ JWT auto-logout 15 menit
-- ✅ Hapus demo credential buttons
-- ✅ Fix IP/Port mismatch antar environment
-- ✅ Pemisahan database main (`dashboard_db`) / dev (`dashboard_dev`)
-- ✅ Akses jaringan lokal multi-device
+### Technical & Infrastructure
+- ✅ **Cloud Migration** — Full Vercel + Supabase (Singapore Region - Lowest Latency)
+- ✅ **CORS & Security** — Production-ready CORS whitelist & JWT auto-logout
+- ✅ **PDF Layout Fixes** — A5 & A6 Landscape mode support
 
 ### UI/UX
 - ✅ Apple HIG redesign — Dashboard & Login screen
@@ -357,30 +356,24 @@ audit_logs        → sudah ada
 ## 12. URUTAN PENGEMBANGAN SELANJUTNYA (dari v1.0.1)
 
 ```
-SEKARANG (Active Sprint):
-  → Fix bug: edit distributor
-  → Fix bug: edit list barang (line items)
-  → Sinkronisasi DB — pastikan semua flow saling terikat (stok masuk/keluar/opname)
-  → Fitur Print/Save PDF untuk Nota Penjualan
-  → Master data (produk, customer, distributor, toko online) → React Select + edit + delete
-  → Audit UX menyeluruh — terapkan prinsip Apple HIG di semua halaman
+DONE (Cloud & UI Revamp):
+  [x] Cloud Migration (Vercel + Supabase Singapore)
+  [x] Fix CORS & Production Connectivity
+  [x] Print PDF Layout (Landscape A5/A6)
+  [x] Dashboard Notes & Feedback Section
+  [x] Sinkronisasi DB Master (Distributors, Customers, Products)
 
-Phase Berikutnya (High Priority):
-  → Bcrypt password hashing
+PHASE BERIKUTNYA (High Priority):
+  → Bcrypt password hashing (Keamanan Login)
   → Refresh token pattern
-  → Export PDF laporan (Buku Besar, rekap bulanan)
   → Export Excel laporan bulanan
+  → Master data management UI (Inline Edit/Delete)
 
-Phase Setelah Itu (Medium):
+PHASE SETELAH ITU (Medium):
   → Employee management & payroll
   → Expense tracking (non-penjualan)
   → Dashboard hutang piutang
   → QR/Barcode untuk stok opname
-
-Phase Jangka Panjang (Low):
-  → TypeScript migration
-  → Jest/Cypress testing
-  → Docker containerization
 ```  → Docker containerization
 ```
 
