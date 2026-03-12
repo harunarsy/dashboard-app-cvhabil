@@ -2,13 +2,20 @@
 
 This document outlines potential improvements and architectural upgrades for the CV Habil Dashboard to be discussed with AI collaborators and stakeholders.
 
-## ✅ Recent Accomplishments (v0.6.3 → v1.1.0)
+## ✅ Recent Accomplishments (v0.6.3 → v1.1.2)
 
-The leap from v0.6.3 to v1.1.0 represented a major development cycle focused on completing the core business logic, fixing critical connectivity/security issues, and migrating legacy data.
+The leap from v0.6.3 to v1.1.2 represented a major development cycle focused on cloud readiness, regional optimization, and feature stability.
 
-### 💼 Business Logic & Modules
-- **[v1.1.0] Dashboard Integration**: Connected the Dashboard's "Akses Cepat" module (Total Sales, Active POs, Low Stock, Total Customers) to real-time PostgreSQL queries.
-- **[v1.1.0] Data Seeding**: Successfully migrated 76 essential master records (Distributors, Customers, Products) from legacy Excel data using `SEED_MIGRATION_HABIL.sql`.
+### 🌍 Cloud & Infrastructure (v1.1.1 - v1.1.2)
+- **Singapore Region Optimization**: Migrated Vercel & Supabase to Singapore for sub-second latency in Indonesia.
+- **CORS & Connectivity**: Hardened backend security to allow only trusted frontend origins in production.
+- **Auto-Deployment**: Integrated GitHub branches (`dev` & `main`) with Vercel for automated CI/CD.
+
+### 💼 Business Logic & Modules (v1.1.0 - v1.1.2)
+- **Dashboard Notes**: Added a developer feedback loop module on the main dashboard screen.
+- **Version Synchronization**: Unified version string (v1.1.2) across Login, Dashboard, and internal registries.
+- **Landscape PDF Engine**: Redesigned A5 and A6 PDF layouts for landscape printing (including Tanda Terima).
+- **Dashboard Stats Integration**: Connected "Akses Cepat" module to real-time SQL queries.
 - **Full Inventory Lifecycle**: Implemented FEFO (First Expired First Out) logic, batch tracking, and Stock Opname.
 - **Surat Pesanan (SP)**: Created a purchase order system with automated numbering and direct inventory integration upon receiving.
 - **Online Store Module**: Built CSV importers for Shopee/TikTok and a profit dashboard based on withdrawal data.
