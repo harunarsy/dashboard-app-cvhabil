@@ -49,7 +49,7 @@ const corsOptions = {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   credentials: true,
 };
 
@@ -77,7 +77,9 @@ app.use('/api/sales', require('./routes/sales'));
 app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/purchase-orders', require('./routes/purchaseOrders'));
 app.use('/api/online-store', require('./routes/onlineStore'));
+app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/ledger', require('./routes/ledger'));
+app.use('/api/print-settings', require('./routes/printSettings'));
 
 io.on('connection', (socket) => {
   console.log(`[${new Date().toISOString()}] User connected: ${socket.id}`);

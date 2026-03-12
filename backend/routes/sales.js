@@ -14,6 +14,8 @@ const ensureSchema = async () => {
       customer_address TEXT,
       sale_date DATE NOT NULL DEFAULT CURRENT_DATE,
       total DECIMAL(15,2) DEFAULT 0,
+      payment_method VARCHAR(20) DEFAULT 'Tunai',
+      payment_details TEXT,
       status VARCHAR(20) DEFAULT 'draft',
       pdf_status VARCHAR(20) DEFAULT 'belum_dicetak',
       notes TEXT,
@@ -91,7 +93,7 @@ router.post('/', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { customer_id, customer_name, customer_address, sale_date, notes, items } = req.body;
+    const { customer_id, customer_name, customer_address, sale_date, notes, items, payment_method, payment_details } = req.body;
     if (!customer_name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
     if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
 
@@ -100,9 +102,9 @@ router.post('/', auth, async (req, res) => {
     items.forEach(it => { total += (it.qty || 1) * (it.unit_price || 0); });
 
     const { rows } = await client.query(
-      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, sale_date, total, notes, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', sale_date || new Date(), total, notes || '', req.user?.id || null]
+      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, sale_date, total, notes, payment_method, payment_details, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', sale_date || new Date(), total, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null]
     );
     const order = rows[0];
 
@@ -116,6 +118,36 @@ router.post('/', auth, async (req, res) => {
     }
 
     await client.query('COMMIT');
+
+    // ─── Auto Stock-Out (FEFO): Nota Penjualan → Inventory ──────────────
+    // Only deduct stock when order is created (draft orders don't deduct)
+    for (const it of items) {
+      // Find product in product_master by name
+      const { rows: [product] } = await pool.query(
+        'SELECT id FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
+        [it.product_name]
+      );
+      if (product && (it.qty || 0) > 0) {
+        // FEFO: deduct from batches ordered by expired_date ASC
+        const { rows: batches } = await pool.query(
+          `SELECT * FROM inventory_batches WHERE product_id = $1 AND qty_current > 0
+           ORDER BY expired_date ASC NULLS LAST`, [product.id]
+        );
+        let remaining = it.qty || 0;
+        for (const batch of batches) {
+          if (remaining <= 0) break;
+          const deduct = Math.min(batch.qty_current, remaining);
+          await pool.query('UPDATE inventory_batches SET qty_current = qty_current - $1 WHERE id = $2', [deduct, batch.id]);
+          await pool.query(
+            `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes)
+             VALUES ($1, $2, 'out', $3, 'nota', $4, $5)`,
+            [product.id, batch.id, deduct, order.id, `Stok keluar FEFO dari nota ${orderNumber}`]
+          );
+          remaining -= deduct;
+        }
+      }
+    }
+
     // Return the full order with items
     const result = await pool.query(
       `SELECT s.*, COALESCE(json_agg(i ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
@@ -136,7 +168,7 @@ router.put('/:id', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { customer_id, customer_name, customer_address, sale_date, notes, items, status } = req.body;
+    const { customer_id, customer_name, customer_address, sale_date, notes, items, status, payment_method, payment_details } = req.body;
     if (!customer_name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
     if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
 
@@ -144,9 +176,9 @@ router.put('/:id', auth, async (req, res) => {
     items.forEach(it => { total += (it.qty || 1) * (it.unit_price || 0); });
 
     const { rowCount } = await client.query(
-      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, sale_date=$4, total=$5, notes=$6, status=$7, updated_at=NOW()
-       WHERE id=$8 AND is_deleted=FALSE`,
-      [customer_id || null, customer_name.trim(), customer_address || '', sale_date || new Date(), total, notes || '', status || 'draft', req.params.id]
+      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, sale_date=$4, total=$5, notes=$6, status=$7, payment_method=$8, payment_details=$9, updated_at=NOW()
+       WHERE id=$10 AND is_deleted=FALSE`,
+      [customer_id || null, customer_name.trim(), customer_address || '', sale_date || new Date(), total, notes || '', status || 'draft', payment_method || 'Tunai', payment_details || '', req.params.id]
     );
     if (!rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
 
@@ -187,6 +219,20 @@ router.delete('/:id', auth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// PATCH pdf status
+router.patch('/:id/pdf-status', auth, async (req, res) => {
+  const { pdf_status } = req.body;
+  if (!pdf_status) return res.status(400).json({ error: 'pdf_status required' });
+  try {
+    const { rowCount } = await pool.query(
+      'UPDATE sales_orders SET pdf_status = $1, updated_at = NOW() WHERE id = $2 AND is_deleted = FALSE',
+      [pdf_status, req.params.id]
+    );
+    if (!rowCount) return res.status(404).json({ error: 'Nota not found' });
+    res.json({ message: 'Status PDF diperbarui' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 module.exports = router;

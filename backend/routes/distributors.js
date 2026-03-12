@@ -49,6 +49,16 @@ router.delete('/', auth, async (req, res) => {
   const { name } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
   try {
+    // Check if distributor is used in invoices or purchase orders
+    const { rowCount: invoiceCount } = await pool.query(
+      'SELECT 1 FROM invoices WHERE distributor_name = $1 AND deleted_at IS NULL LIMIT 1', [name.trim()]
+    );
+    const { rowCount: poCount } = await pool.query(
+      'SELECT 1 FROM purchase_orders WHERE distributor_name = $1 AND is_deleted = FALSE LIMIT 1', [name.trim()]
+    );
+    if (invoiceCount > 0 || poCount > 0) {
+      return res.status(400).json({ error: `Distributor "${name}" masih dipakai di transaksi. Tidak bisa dihapus.` });
+    }
     await pool.query('DELETE FROM distributors WHERE name = $1', [name.trim()]);
     res.json({ message: 'Deleted' });
   } catch (err) {
@@ -56,17 +66,25 @@ router.delete('/', auth, async (req, res) => {
   }
 });
 
-module.exports = router;
-
 // PATCH — rename distributor
 router.patch('/', auth, async (req, res) => {
   const { oldName, newName } = req.body;
-  if (!oldName || !newName) return res.status(400).json({ error: 'oldName and newName required' });
+  if (!oldName?.trim() || !newName?.trim()) return res.status(400).json({ error: 'oldName dan newName wajib diisi' });
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     // Update distributor master list
-    await pool.query(`UPDATE distributor_master SET name=$1 WHERE name=$2`, [newName, oldName]);
-    // Update all invoices referencing old name
-    await pool.query(`UPDATE invoices SET distributor_name=$1 WHERE distributor_name=$2`, [newName, oldName]);
-    res.json({ success: true, oldName, newName });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    await client.query('UPDATE distributors SET name = $1 WHERE name = $2', [newName.trim(), oldName.trim()]);
+    // Cascade: update all invoices referencing old name
+    await client.query('UPDATE invoices SET distributor_name = $1 WHERE distributor_name = $2', [newName.trim(), oldName.trim()]);
+    // Cascade: update all purchase orders referencing old name
+    await client.query('UPDATE purchase_orders SET distributor_name = $1 WHERE distributor_name = $2', [newName.trim(), oldName.trim()]);
+    await client.query('COMMIT');
+    res.json({ success: true, oldName: oldName.trim(), newName: newName.trim() });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally { client.release(); }
 });
+
+module.exports = router;

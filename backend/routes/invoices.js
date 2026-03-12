@@ -44,6 +44,13 @@ const ensureSchema = async () => {
     )
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_invoice_id ON invoice_audit_log(invoice_id)`);
+  // Ensure newer columns exist in invoice_items
+  await pool.query(`
+    ALTER TABLE invoice_items
+      ADD COLUMN IF NOT EXISTS disc_cod_per_item DECIMAL(15,2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS hna_after_cod DECIMAL(15,2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS hpp_inc_ppn DECIMAL(15,2) DEFAULT 0
+  `);
 };
 ensureSchema().catch(console.error);
 
@@ -233,6 +240,33 @@ router.post('/', auth, async (req, res) => {
     }
 
     await pool.query(`DELETE FROM invoices WHERE is_draft = TRUE`);
+
+    // ─── Auto Stock-In: Faktur → Inventory ──────────────────────────────
+    // Each invoice item gets added to inventory_batches + inventory_mutations
+    if (items && items.length > 0) {
+      for (const item of items) {
+        // Find product in product_master by name
+        const { rows: [product] } = await pool.query(
+          'SELECT id FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
+          [item.product_name]
+        );
+        if (product && (item.quantity || 0) > 0) {
+          // Create inventory batch
+          const { rows: [batch] } = await pool.query(
+            `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, source_type, source_ref)
+             VALUES ($1, $2, $3, $4, 'faktur', $5) RETURNING id`,
+            [product.id, invoice_number, item.expired_date || null, item.quantity, `invoice-${invoiceId}`]
+          );
+          // Record mutation
+          await pool.query(
+            `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes)
+             VALUES ($1, $2, 'in', $3, 'faktur', $4, $5)`,
+            [product.id, batch.id, item.quantity, invoiceId, `Stok masuk dari faktur ${invoice_number}`]
+          );
+        }
+      }
+    }
+
     const final = await pool.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
     if (global.io) global.io.emit('invoiceCreated', final.rows[0]);
     res.status(201).json({ invoice: final.rows[0], items: items||[] });
@@ -285,7 +319,7 @@ router.put('/:id', auth, async (req, res) => {
       const TRACK = ['invoice_number','purchase_date','distributor_name','status','hna_final','hna_plus_ppn','disc_cod_amount','due_date','payment_date'];
       const before = {}; const after = {};
       TRACK.forEach(k => { if (String(beforeSnap[k]||'') !== String(afterSnap[k]||'')) { before[k] = beforeSnap[k]; after[k] = afterSnap[k]; } });
-      if (Object.keys(before).length > 0) await logAudit(id, afterSnap.invoice_number, 'UPDATE', before, after);
+      if (Object.keys(before).length > 0) await logAudit(id, afterSnap.invoice_number, 'UPDATE', { before, after }, 'Field(s) changed: ' + Object.keys(before).join(', '));
     }
 
     if (items !== undefined) {
