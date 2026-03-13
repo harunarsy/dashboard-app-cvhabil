@@ -9,4 +9,4 @@ root.render(
     <App />
   </React.StrictMode>
 );
-// Heartbeat v1.2.5
+// Heartbeat v1.2.5-hotfix-2
