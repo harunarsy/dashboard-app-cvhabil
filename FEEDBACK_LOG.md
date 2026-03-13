@@ -19,6 +19,16 @@ Dokumen ini berisi catatan evaluasi performa AI selama proses development, digun
 - **Protokol Seharusnya:** Sadar bahwa di environment testing *dev branch*, fokusnya adalah integrasi UI/komponen dan validasi alur frontend. Jika ingin memvalidasi simpan data nyata, itu melanggar *safety net* dari database utama.
 - **Tindakan Perbaikan (Self-Correction):** AI akan mencatat bahwa di *Dev Branch*, semua pengujian fungsional yang menyentuh tabel inti harus dimatikan ekspektasinya, cukup memvalidasi bahwa UI bereaksi dengan benar atau menangkap _error_ dengan baik tanpa ekspektasi *commit* database yang sukses.
 
+### [Incident #7] - Vercel Build Failure (v1.2.8 deployment)
+- **Problem**: Build Vercel gagal karena ESLint warning `unused-vars` dianggap error di environment CI.
+- **Cause**: Variable `loading` di `TasksKanban.jsx` didefinisikan tapi tidak digunakan.
+- **Solution**: Hapus unused variables dan jalankan `export CI=true && npm run build` secara lokal sebelum push.
+
+### [Incident #8] - Filter Inconsistency (v1.3.0)
+- **Problem**: Panel Rekap Distributor menampilkan data bulan Februari, tapi tabel di bawah menampilkan data bulan lain.
+- **Cause**: State `rekapMonth` dan `selectedMonth` terpisah (decoupled).
+- **Solution**: Unifikasi state menjadi satu filter bulan tunggal (`selectedMonth`) yang mengontrol seluruh UI.
+
 ### 3. Incident v1.2.1: Deployment Blocked by Lint Error (no-undef)
 - **Deskripsi:** Vercel gagal melakukan deploy frontend pada rilis v1.2.1 karena terdapat lint error (`closeReleaseModal` is not defined) di `Dashboard.jsx`.
 - **Dampak:** Perubahan fitur v1.2.1 tidak muncul di production (`main`) meskipun commit sudah berhasil, sehingga membingungkan user.
@@ -52,7 +62,7 @@ Dokumen ini berisi catatan evaluasi performa AI selama proses development, digun
 - **Dampak:** Kredensial bocor ke history Git/GitHub, berisiko tinggi terhadap keamanan data.
 - **Penyebab:** Pengabaian variabel lingkungan (`process.env`) demi kecepatan debugging/migrasi.
 - **Tindakan Perbaikan & Pencegahan:**
-    1. **Sanitasi Kode**: Semua URI dipindahkan ke Variable Env.
-    2. **Rotasi Password**: User merotasi password di Supabase.
-    3. **History Cleanup**: Rekomendasi penggunaan `git-filter-repo` untuk menghapus rahasia dari riwayat commit.
-    4. **Audit Wajib**: Setiap script baru yang menyentuh koneksi wajib diaudit Agent 3.
+    1. **Otomasi Penomoran**: Sinkronisasi database untuk nomor urut otomatis (SP #63, Nota #235).
+    2. **Koneksi Supabase Port 6543**: Mitigasi isu IPv4/DNS dengan pooler port khusus.
+    3. **Optimasi Kanban & Layout**: Reordering Dashboard dan implementasi fitur Pro (Trash, history).
+    4. **HPP Robustness & Filter Sync**: Unifikasi logika perhitungan HPP dan sinkronisasi filter bulan global.
