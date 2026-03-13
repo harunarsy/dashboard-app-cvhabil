@@ -962,8 +962,12 @@ function InvoiceRow({ inv, isDarkMode, expanded, onToggleExpand, onEdit, onDelet
         {/* No Faktur */}
         <div>
           <div style={{ fontWeight: '700', fontSize: '13px', color: '#007AFF' }}>{inv.invoice_number}</div>
-          {inv.item_count > 0 && <div style={{ fontSize: '11px', color: '#86868B', marginTop: '2px' }}>{inv.item_count} produk · {inv.total_qty||0} qty</div>}
-
+          <div style={{ fontSize: '11px', color: '#86868B', marginTop: '2px' }}>
+            {inv.item_count > 0 ? `${inv.item_count} produk · ${inv.total_qty||0} qty` : '0 produk'}
+          </div>
+          <div style={{ fontSize: '10px', color: '#AF52DE', marginTop: '2px', fontWeight: '500' }}>
+            📥 Input: {new Date(inv.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+          </div>
         </div>
         {/* Distributor — dengan warna */}
         <div>
@@ -1038,8 +1042,10 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
           <div style={{ fontSize: '13px', color: '#FF3B30' }}>{formatRp(item.disc_nominal)}</div>
           <div style={{ fontSize: '13px', fontWeight: '600', color: '#34C759' }}>{formatRp(item.hna_baru)}</div>
           <div style={{ fontSize: '13px', color: '#FF9500' }}>{item.disc_cod_per_item > 0 ? formatRp(item.disc_cod_per_item) : <span style={{color:'#C7C7CC'}}>—</span>}</div>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: '#34C759' }}>{item.hna_after_cod > 0 ? formatRp(item.hna_after_cod) : formatRp(item.hna_baru)}</div>
-          <div style={{ fontSize: '13px', fontWeight: '700', color: '#AF52DE' }}>{formatRp(item.hpp_inc_ppn || (item.hna_per_item||0) * 1.11)}</div>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#34C759' }}>{item.hna_after_cod > 0 ? formatRp(item.hna_after_cod) : (item.hna_baru > 0 ? formatRp(item.hna_baru) : formatRp(item.total_price))}</div>
+          <div style={{ fontSize: '13px', fontWeight: '700', color: '#AF52DE' }}>
+            {formatRp(item.hpp_inc_ppn > 0 ? item.hpp_inc_ppn : ((item.hna_per_item > 0 ? item.hna_per_item : (parseNum(item.hna||item.unit_price))) * 1.11))}
+          </div>
         </div>
       ))}
     </div>

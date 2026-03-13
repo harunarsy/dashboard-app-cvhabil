@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.3.0-standard] - 2026-03-14
+
+### Added
+- **Invoice Metadata Transparency**: Sekarang setiap faktur menampilkan informasi waktu input asli (timestamp database) untuk audit operasional yang lebih baik.
+- **Robust HPP Engine**: Perbaikan bug HPP "0" melalui logika fallback yang lebih cerdas dan skrip migrasi data otomatis untuk record lama.
+
 ## [1.2.9-standard] - 2026-03-14
 
 ### Fixed
