@@ -56,4 +56,18 @@ router.get('/:id/history', async (req, res) => {
   }
 });
 
+// Temporary Migration Endpoint
+router.get('/migrate-pic', async (req, res) => {
+  try {
+    await pool.query('ALTER TABLE tasks ADD COLUMN pic VARCHAR(100);');
+    res.json({ success: true, message: 'Column pic added successfully.' });
+  } catch (err) {
+    if (err.code === '42701') {
+      res.json({ success: true, message: 'Column pic already exists.' });
+    } else {
+      res.status(500).json({ error: err.message, code: err.code });
+    }
+  }
+});
+
 module.exports = router;
