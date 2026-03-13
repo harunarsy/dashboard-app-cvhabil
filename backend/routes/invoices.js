@@ -46,10 +46,16 @@ const ensureSchema = async () => {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_invoice_id ON invoice_audit_log(invoice_id)`);
   // Ensure newer columns exist in invoice_items
   await pool.query(`
-    ALTER TABLE invoice_items
-      ADD COLUMN IF NOT EXISTS disc_cod_per_item DECIMAL(15,2) DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS hna_after_cod DECIMAL(15,2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS hpp_inc_ppn DECIMAL(15,2) DEFAULT 0
+  `);
+
+  // Data Migration: Populate missing hpp_inc_ppn and hna_per_item for old records
+  await pool.query(`
+    UPDATE invoice_items 
+    SET 
+      hna_per_item = CASE WHEN quantity > 0 AND hna_baru > 0 THEN hna_baru / quantity ELSE hna_per_item END,
+      hpp_inc_ppn = CASE WHEN quantity > 0 AND hna_baru > 0 THEN (hna_baru / quantity) * 1.11 ELSE hpp_inc_ppn END
+    WHERE (hpp_inc_ppn = 0 OR hna_per_item = 0) AND quantity > 0 AND hna_baru > 0
   `);
 };
 ensureSchema().catch(console.error);
