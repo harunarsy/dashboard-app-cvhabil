@@ -66,3 +66,11 @@ Dokumen ini berisi catatan evaluasi performa AI selama proses development, digun
     2. **Koneksi Supabase Port 6543**: Mitigasi isu IPv4/DNS dengan pooler port khusus.
     3. **Optimasi Kanban & Layout**: Reordering Dashboard dan implementasi fitur Pro (Trash, history).
     4. **HPP Robustness & Filter Sync**: Unifikasi logika perhitungan HPP dan sinkronisasi filter bulan global.
+
+### 10. Insiden Database Schema Mismatch (Production) vs Local (v1.3.6)
+- **Deskripsi:** Pada saat memigrasi fitur PIC untuk Kanban, modifikasi kolom atau inisiasi DDL schema hanya dilakukan/terupdate di branch logic lokal namun luput dieksekusi di production DB environment Supabase cloud.
+- **Dampak:** Proses simpan task pada Kanban memicu Error 500 di Vercel/Production mode karena kolom/relasi tidak ditemukan.
+- **Penyebab:** Tidak adanya sinkronisasi otomatis/CI pipeline yang solid terkait state production database, serta gagalnya remote migrasi default via Supabase pooler DNS.
+- **Tindakan Perbaikan & Pencegahan:**
+    1. Membuat iterasi API temporer di sisi server yang terdeploy untuk melakukan force schema migration dari dalam, mengatasi restriksi pooler/firewall.
+    2. SOP baru: Selalu sediakan audit DB table mapping bila terjadi Error API 500 saat eksekusi query CREATE/UPDATE.

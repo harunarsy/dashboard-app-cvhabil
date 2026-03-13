@@ -55,8 +55,8 @@
 
 ### ⚠️ Top 3 Recent Critical Incidents
 
-1. **Database Reliability**: Konsolidasi connection pool ke *shared config* untuk mengatasi "MaxClients reached" (v1.3.3).
-2. **Otomasi Penomoran**: Sinkronisasi database untuk nomor urut otomatis (SP #63, Nota #235).
+1. **Database Schema Mismatch (Production)**: Kegagalan simpan tugas (Error 500) karena tertinggalnya script migrasi tabel `tasks`. Diselesaikan dengan iterasi eksekusi DDL via endpoint Vercel sementara (v1.3.6).
+2. **Database Reliability**: Konsolidasi connection pool ke *shared config* untuk mengatasi "MaxClients reached" (v1.3.3).
 3. **Optimasi Kanban & Layout**: Implementasi fitur Pro (PIC Assignment, Trash, edit, history).
 
 ---
@@ -89,4 +89,4 @@
 
 ---
 *Dokumen Master Brain ini menggantikan README, Master Framework, dan Roadmap lama.*
-*Terakhir diupdate berdasarkan prosedur Auto-Versioning v1.3.6-stable*
+*Terakhir diupdate berdasarkan prosedur Auto-Versioning v1.3.7-stable*
