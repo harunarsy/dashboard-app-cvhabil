@@ -4,8 +4,8 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [1.2.0] - 2026-03-13
+### Fixed
+- **Lint & Build Fix**: Memperbaiki fungsi `closeReleaseModal` yang tidak terdefinisi di `Dashboard.jsx`, yang sebelumnya mencegah build produksi di Vercel.
 
 ### Added
 - **SP Module Mastery**: Enhanced `distributors` table with `short_code`, `salesman_name`, and `salesman_phone`. Added a Many-to-Many pivot table `product_distributors`.
