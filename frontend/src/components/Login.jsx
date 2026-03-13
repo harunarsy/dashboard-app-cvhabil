@@ -42,7 +42,7 @@ export default function Login() {
             <Building2 size={32} />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">HABIL SUPERAPP</h1>
-          <p className="text-gray-500 mt-2">Business Management System v1.1.8</p>
+          <p className="text-gray-500 mt-2">Business Management System v1.2.2</p>
         </div>
 
         {/* Login Card */}

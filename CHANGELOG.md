@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.2.2] - 2026-03-13
+
+### Fixed
+- **Database Schema**: Memperbaiki error `relation document_counters does not exist` di Supabase Production Singapore.
+- **Counters Sync**: Melakukan inisialisasi data counter awal sesuai standar spreadsheet: SP (#63), Nota (#235), TT (#235).
+- **Migration Script**: Menambahkan runner script `run_production_migration.js` untuk pemeliharaan database di masa depan.
 ## [1.2.1] - 2026-03-13
 
 ### Fixed
