@@ -6,7 +6,14 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.3.6-stable', date: '14 Mar 2026', status: 'latest',
+    version: 'v1.3.7-stable', date: '14 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'docs', text: 'SOP Maintenance: Penutupan sesi, auto-journaling insiden schema Vercel.' },
+      { type: 'fix', text: 'Global Audit: Verifikasi stabilitas database API dan sistem log v1.3.7.' }
+    ]
+  },
+  {
+    version: 'v1.3.6-stable', date: '14 Mar 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Database: Migrasi skema "pic" pada tabel tasks untuk mencegah error 500 saat Simpan Tugas.' },
       { type: 'feat', text: 'Stability: Inisialisasi ulang seluruh skema Kanban pada database cloud.' }
@@ -175,7 +182,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
   const [loading, setLoading] = useState(true);
   // Show release modal only once per session
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    return !sessionStorage.getItem('habil_release_seen_v133');
+    return !sessionStorage.getItem('habil_release_seen_v137');
   });
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
@@ -219,7 +226,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    sessionStorage.setItem('habil_release_seen_v133', 'true');
+    sessionStorage.setItem('habil_release_seen_v137', 'true');
   };
 
   const formatRupiah = (number) => {
@@ -316,7 +323,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
                 <span className="text-3xl">🚀</span>
               </div>
               <h2 className="text-2xl font-extrabold text-white tracking-tight">APA YANG BARU?</h2>
-              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.3.4-standard telah mengudara!</p>
+              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.3.7-stable telah mengudara!</p>
             </div>
 
             {/* Content Highlights */}
@@ -379,7 +386,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
               <div>
                 <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
-                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.3.4-standard - Terakhir diupdate 14 Mar 2026</p>
+                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.3.7-stable - Terakhir diupdate 14 Mar 2026</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />
