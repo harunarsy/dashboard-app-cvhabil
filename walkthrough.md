@@ -1,35 +1,44 @@
-# Log Capaian Bisnis HABIL SUPERAPP (v1.2.5-hotfix-2)
+# Log Capaian Bisnis HABIL SUPERAPP (v1.2.7-standard)
 
-Dokumen ini mencatat pencapaian utama dan status operasional sistem yang siap digunakan.
-
----
-
-### 1. Sinkronisasi Tampilan Profesional (v1.2.5-hotfix-2)
-- **Goal**: Memperbaiki label versi agar konsisten di seluruh aplikasi (Halaman Masuk, Dashboard, dan Pengumuman).
-- **Status**: ✅ **Selesai**. Seluruh label versi kini seragam menggunakan format v1.2.5-hotfix-2.
-- **Hasil**: Menghilangkan kebingungan angka versi yang tidak sinkron dan memberikan tampilan yang lebih rapi.
-
-### 2. Otomasi Penomoran Dokumen
-- **Goal**: Menghilangkan input manual nomor urut untuk Surat Pesanan (SP), Nota, dan Tanda Terima.
-- **Status**: ✅ **Selesai**. Sistem sekarang otomatis memberikan nomor urut berdasarkan data terakhir.
-- **Hasil**: Mempercepat proses admin dan mengurangi risiko nomor ganda.
-
-### 3. Pembersihan Sistem & Keamanan
-- **Goal**: Merapikan dokumen panduan dan mengamankan akses data.
-- **Status**: ✅ **Selesai**. Dokumen lama sudah diarsipkan dan akses data hanya untuk pengguna yang sah (Admin/Direktur).
-- **Hasil**: Sistem lebih ringan, terorganisir, dan aman.
-
-### 4. Update Branding "HABIL SUPERAPP"
-- **Goal**: Menstandarisasi identitas aplikasi di seluruh halaman.
-- **Status**: ✅ **Selesai**. Nama aplikasi kini konsisten menjadi HABIL SUPERAPP.
-- **Hasil**: Identitas bisnis yang lebih kuat dan profesional.
+Dokumen ini mencatat peluncuran modul Manajemen Tugas (Kanban) dan standardisasi protokol engineering terbaru.
 
 ---
 
-### Tips Operasional Dasar
-1. **Cek Kesehatan Sistem**: Setiap kali aplikasi dijalankan, sistem akan memverifikasi koneksi database secara otomatis.
-2. **Pencatatan Baru**: Gunakan Menu di Sidebar untuk memasukkan penjualan, pesanan, atau mutasi stok.
-3. **Menu Pengumuman**: Klik tombol "Release Notes" di Dashboard untuk melihat riwayat perubahan terbaru jika diperlukan.
+## 1. Modul Manajemen Tugas (Kanban) 📋
+
+- **Fitur**: Papan Kanban interaktif untuk memantau tugas operasional (Backlog, To Do, Doing, Done).
+- **Desain**: Menggunakan Apple Human Interface Guidelines (Glassmorphism, backdrop-blur, rounded-2xl) untuk tampilan premium.
+- **Fungsionalitas**:
+  - Penambahan tugas baru dengan judul, deskripsi, prioritas (Low, Medium, High), dan deadline.
+  - Pergerakan tugas antar kolom (Drag-and-drop placeholder).
+  - Integrasi API yang sudah mendukung koneksi lokal (non-SSL) dan cloud (SSL).
+
+## 2. Standardisasi Engineering (IDE Audit) 🛠️
+
+- **IDE Extensions**: Pemasangan ESLint, markdownlint, Git History, dan SQLTools sebagai standar wajib (Protocol #5).
+- **Sanitasi Kode**: Pembersihan skrip migrasi sementara dan perbaikan bug data type pada kolom tanggal (`due_date`).
+- **Dokumentasi**: Pembersihan 'Shadow Metadata' dan sinkronisasi format `SUPERAPP_BRAIN.md`.
+
+## 3. Keamanan & Stabilitas 🔒
+
+- **Secret Leak Protection**: Audit global koneksi database dan pengalihan seluruh kredensial ke variabel lingkungan (Environment Variables).
+- **SSL Flexibility**: Backend sekarang secara otomatis mendeteksi lingkungan (Local vs Vercel) untuk mode koneksi database yang tepat.
 
 ---
-*Pesan Akhir: Sistem telah disiapkan untuk mendukung kelancaran operasional harian CV Habil dengan fokus pada kecepatan dan akurasi data.*
+
+## 📸 Bukti Hasil (Verification)
+
+- **Akses Cepat**: Layout baru satu baris yang ringkas di Dashboard.
+- **Catatan Developer**: Dipindahkan ke *popup modal* dengan efek blur yang diperhalus (transparian).
+- **Kanban Board**: Muncul otomatis di Dashboard utama dengan dukungan *drag-and-drop*.
+
+![Refined Dashboard Recording](file:///Users/harunalrasyid/.gemini/antigravity/brain/cf4549cf-c7c0-4e03-8824-ccbe87b98d86/dashboard_ui_refinement_verify_1773424122717.webp)
+*Dokumentasi visual UI Dashboard yang telah diperhalus dan fitur Kanban.*
+
+---
+
+## Status Terakhir
+
+- **Versi**: `v1.2.7-standard`
+- **Environment**: Dev Branch (Siap Merge ke Main)
+- **Database**: `tasks` table live di local dev.

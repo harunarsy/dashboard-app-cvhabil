@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Info, X, Activity, ShoppingCart, Users, Package } from 'lucide-react';
 import api from '../services/api';
+import TasksKanban from './TasksKanban';
 import Skeleton from './common/Skeleton';
 
 const changelog = [
   {
-    version: 'v1.2.5-hotfix-2', date: '13 Mar 2026', status: 'latest',
+    version: 'v1.2.7-standard', date: '13 Mar 2026', status: 'latest',
     changes: [
-      { type: 'fix', text: 'Universal Sync: Sinkronisasi total label versi ke format v1.2.5-hotfix-2.' },
+      { type: 'fix', text: 'Universal Sync: Sinkronisasi total label versi ke format v1.2.7-standard.' },
       { type: 'new', text: 'UI Audit: Pembersihan sisa-sisa label versi lama di seluruh tampilan.' }
     ]
   },
@@ -146,9 +147,12 @@ const upcoming = [
 
 export default function Dashboard({ isDarkMode, isSidebarOpen }) {
   const [showModal, setShowModal] = useState(false);
+  const [showDevNotes, setShowDevNotes] = useState(false);
   const [loading, setLoading] = useState(true);
-  // Show release modal on every mount (login or manual refresh) since accounts are shared
-  const [showReleaseModal, setShowReleaseModal] = useState(true);
+  // Show release modal only once per session
+  const [showReleaseModal, setShowReleaseModal] = useState(() => {
+    return !sessionStorage.getItem('habil_release_seen_v126');
+  });
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
   const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
@@ -191,6 +195,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
+    sessionStorage.setItem('habil_release_seen_v126', 'true');
   };
 
   const formatRupiah = (number) => {
@@ -218,9 +223,14 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
           style={{ backgroundColor: cardBg, borderColor: border, color: text }}
         >
           <Info size={16} className="text-blue-500" />
-          <span className="text-sm font-semibold">Version 1.2.5-hotfix-2</span>
+          <span className="text-sm font-semibold">Version 1.2.6-standard</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium ml-2">Release Notes</span>
         </button>
+      </div>
+
+      {/* Kanban Tasks Section - MOVED TO TOP */}
+      <div className="mb-10 rounded-3xl p-8 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+        <TasksKanban />
       </div>
 
       {/* Quick Stats Cards */}
@@ -247,37 +257,31 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
         ))}
       </div>
 
-      {/* Quick Links & Notes Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-        <div className="lg:col-span-2 rounded-3xl p-8 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
-          <h2 className="text-xl font-bold mb-6" style={{ color: text }}>Akses Cepat</h2>
-          <div className="flex flex-wrap gap-4">
-            <a href="/sales" className="px-5 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium transition-colors">Buat Nota Penjualan</a>
-            <a href="/orders" className="px-5 py-3 rounded-xl border font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800" style={{ borderColor: border, color: text }}>Tambah Surat Pesanan</a>
-            <a href="/online-store" className="px-5 py-3 rounded-xl border font-medium transition-colors hover:bg-gray-50 dark:hover:bg-gray-800" style={{ borderColor: border, color: text }}>Import CSV Toko Online</a>
+      {/* Quick Access Section - Compacted Row */}
+      <div className="flex flex-col md:flex-row gap-6 mb-10">
+        <div className="flex-1 rounded-3xl p-6 border shadow-sm flex items-center justify-between" style={{ backgroundColor: cardBg, borderColor: border }}>
+          <div className="flex items-center gap-6">
+            <h2 className="text-lg font-bold" style={{ color: text }}>Akses Cepat</h2>
+            <div className="flex flex-wrap gap-3">
+              <a href="/sales" className="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold transition-all shadow-sm hover:shadow-md">Buat Nota</a>
+              <a href="/orders" className="px-4 py-2 rounded-xl border text-xs font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800" style={{ borderColor: border, color: text }}>Tambah SP</a>
+              <a href="/online-store" className="px-4 py-2 rounded-xl border text-xs font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800" style={{ borderColor: border, color: text }}>CSV Online</a>
+            </div>
           </div>
-        </div>
-
-        <div className="rounded-3xl p-8 border shadow-sm border-l-4 border-l-blue-500" style={{ backgroundColor: cardBg, borderColor: border }}>
-          <div className="flex items-center gap-3 mb-4 text-blue-500">
-            <Info size={20} />
-            <h2 className="text-lg font-bold">Catatan Developer</h2>
-          </div>
-          <p className="text-sm leading-relaxed mb-4" style={{ color: sub }}>
-            Mungkin ada beberapa fitur yang belum work atau "ganjel" dalam penggunaannya, bisa dilaporkan via 
-            <span className="font-bold text-blue-500 mx-1">Bug / Saran Fitur</span> 
-            di sidebar agar segera diperbaiki oleh tim pengembang.
-          </p>
-          <div className="p-3 rounded-xl bg-blue-50 text-[11px] font-medium text-blue-600 flex gap-2 items-start">
-             <Activity size={14} className="mt-0.5 shrink-0" />
-             Ekspektasi Performa: Latency antar pulau (Singapore) ~500ms - 1s (Normal).
-          </div>
+          
+          <button 
+            onClick={() => setShowDevNotes(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-100 bg-blue-50/30 text-blue-600 hover:bg-blue-50 transition-colors"
+          >
+            <Info size={14} />
+            <span className="text-xs font-bold">Catatan Developer</span>
+          </button>
         </div>
       </div>
 
       {/* Auto-Release Popup v1.2.1 */}
       {showReleaseModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-opacity">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
           <div 
             className="w-full max-w-lg overflow-hidden rounded-3xl shadow-2xl flex flex-col transform transition-all scale-100"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
@@ -288,7 +292,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
                 <span className="text-3xl">🚀</span>
               </div>
               <h2 className="text-2xl font-extrabold text-white tracking-tight">APA YANG BARU?</h2>
-              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.2.5-hotfix-2 telah mengudara!</p>
+              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.2.7-standard telah mengudara!</p>
             </div>
 
             {/* Content Highlights */}
@@ -342,7 +346,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
 
       {/* Changelog & Upcoming Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
           <div 
             className="w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
@@ -351,7 +355,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
               <div>
                 <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
-                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.2.5-hotfix-2 - Terakhir diupdate 13 Mar 2026</p>
+                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.2.7-standard - Terakhir diupdate 13 Mar 2026</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />
@@ -429,6 +433,44 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
                 className="px-6 py-2 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors"
               >
                 Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Developer Notes Modal */}
+      {showDevNotes && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
+          <div 
+            className="w-full max-w-md overflow-hidden rounded-3xl shadow-2xl flex flex-col"
+            style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
+          >
+            <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
+              <div className="flex items-center gap-3 text-blue-500">
+                <Info size={20} />
+                <h2 className="text-lg font-bold">Catatan Developer</h2>
+              </div>
+              <button onClick={() => setShowDevNotes(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <X size={20} style={{ color: sub }} />
+              </button>
+            </div>
+            <div className="p-8">
+              <p className="text-sm leading-relaxed mb-6" style={{ color: sub }}>
+                Mungkin ada beberapa fitur yang belum work atau "ganjel" dalam penggunaannya, bisa dilaporkan via 
+                <span className="font-bold text-blue-500 mx-1">Bug / Saran Fitur</span> 
+                di sidebar agar segera diperbaiki oleh tim pengembang.
+              </p>
+              <div className="p-4 rounded-2xl bg-blue-50 text-xs font-medium text-blue-600 flex gap-3 items-start border border-blue-100">
+                 <Activity size={16} className="mt-0.5 shrink-0" />
+                 <span>Ekspektasi Performa: Latency antar pulau (Singapore) ~500ms - 1s (Normal).</span>
+              </div>
+            </div>
+            <div className="p-4 border-t flex justify-center" style={{ borderColor: border, backgroundColor: bg }}>
+              <button 
+                onClick={() => setShowDevNotes(false)}
+                className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all"
+              >
+                Tutup Catatan
               </button>
             </div>
           </div>

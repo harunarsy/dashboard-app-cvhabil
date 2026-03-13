@@ -15,7 +15,7 @@ if (!connectionString) {
   process.exit(1);
 }
 
-console.log('🚀 Starting Production Migration (v1.2.5-hotfix-2)...');
+console.log('🚀 Starting Production Migration (v1.2.7-standard)...');
 console.log(`📡 Connecting to: ${connectionString.split('@')[1]}`);
 
 const pool = new Pool({

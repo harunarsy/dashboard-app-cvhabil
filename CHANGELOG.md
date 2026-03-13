@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.2.7-standard] - 2026-03-14
+
+### Added
+- **Advanced Kanban Features**: Implementasi modal **Detail Tugas**, fitur **History Log** per tugas, dan area **Trash (Soft-Delete)**.
+- **Improved Task UX**: Scroll internal di setiap kolom Kanban (max 3 kartu terlihat) untuk menjaga kerapian Dashboard.
+
+### Changed
+- **Dashboard Priority Layout**: Memindahkan modul **Manajemen Tugas** ke posisi paling atas Dashboard sebagai prioritas utama.
+- **Popup Logic Optimization**: "Release Notes" sekarang hanya muncul sekali per sesi (session-based) melalui `sessionStorage`.
+- **UI Refinement**: Compact "Akses Cepat" dan pengurangan label versi redundan.
+- **Global Audit**: Penyelarasan versi v1.2.7-standard di seluruh sistem.
+
+## [1.2.6-standard] - 2026-03-13
+
+### Changed
+- **Kanban Board Integration**: Penyatuan modul tugas langsung ke dalam Dashboard utama.
+- **UI Refresh**: Catatan Developer dipindah ke popup dan pembersihan sidebar dari link `/tasks`.
+
 
 ## [1.2.5-hotfix-2] - 2026-03-13
 
