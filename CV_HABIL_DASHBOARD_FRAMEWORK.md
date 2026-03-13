@@ -6,7 +6,7 @@
 ## 1. RINGKASAN SISTEM
 
 **Nama Sistem:** Dashboard CV Habil  
-**Versi Terakhir:** v1.2.1  
+**Versi Terakhir:** v1.2.2  
 **Tujuan:** Sistem manajemen bisnis terpadu — invoice, pesanan, stok, keuangan, dan laporan toko online  
 **Desain:** Apple Human Interface Guidelines (HIG) — premium, bersih, minimalis
 
@@ -404,7 +404,12 @@ Setiap merge ke `main` harus bersih dari lint errors.
 - **Incident v1.2.1**: Deployment sempat terblokir karena _broken handle_ (undefined function) di `Dashboard.jsx`.
 - **SOP**: Agent harus memastikan semua fungsi handler yang dipanggil di JSX terdefinisi dan bebas dari `no-undef` warnings sebelum push ke `main`.
 
+### 🔍 D. Protokol Audit Versi & Error [NEW v1.2.2]
+- **Version Audit**: Setiap kenaikan versi, Agent **wajib** melakukan `grep` global (misal: "v1.2.1") untuk memastikan tidak ada label versi tertinggal di `Login.jsx`, `Dashboard.jsx`, dan `index.js`.
+- **Automated Error Logging**: Jika menemukan error kritikal (misal: Relation missing), Agent **wajib** mencatat temuan ke `feedback_log.md` secara otomatis sebelum melakukan perbaikan.
+- **Token Efficiency**: Jika tebakan kredensial/host gagal > 2x, segera minta input USER atau cek branch `main` daripada melakukan trial-error yang tidak efisien.
+
 ---
 
 *Dokumen ini dibuat berdasarkan analisis file: BUKU_BESAR_HABIL_2025.xlsx, CV_HABIL_2026.xlsx, DATA_CV_2025.xlsx, Laba_TOKO_ONLINE_HABIL.xlsx, BRAINSTORMING_ROADMAP.md*  
-*Versi sistem saat ini: v1.2.1 | Stack: React 19 + Express 5.x + PostgreSQL 15*
+*Versi sistem saat ini: v1.2.2 | Stack: React 19 + Express 5.x + PostgreSQL 15*
