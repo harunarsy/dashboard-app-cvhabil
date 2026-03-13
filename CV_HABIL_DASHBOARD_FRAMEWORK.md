@@ -6,7 +6,7 @@
 ## 1. RINGKASAN SISTEM
 
 **Nama Sistem:** Dashboard CV Habil  
-**Versi Terakhir:** v1.1.8  
+**Versi Terakhir:** v1.2.1  
 **Tujuan:** Sistem manajemen bisnis terpadu — invoice, pesanan, stok, keuangan, dan laporan toko online  
 **Desain:** Apple Human Interface Guidelines (HIG) — premium, bersih, minimalis
 
@@ -61,6 +61,9 @@
 - ✅ Apple HIG redesign — Dashboard & Login screen
 - ✅ Version Badge + Release Notes & Roadmap Modal di Dashboard
 - ✅ **Skeleton Loading** — visual feedback saat data sedang dimuat (stats, tabel, list)
+- ✅ **Surat Pesanan (SP) Module Mastery** — Enhanced distributor & salesman tracking
+- ✅ **Document Counters** — Migrasi dari manual spreadsheet ke sistem database numbering otomatis
+- ✅ **Live Dashboard Popups (What's New)** — Komunikasi update fitur ke seluruh staf
 
 ---
 
@@ -363,6 +366,9 @@ DONE (Cloud & UI Revamp):
   [x] Print PDF Layout (Landscape A5/A6)
   [x] Dashboard Notes & Feedback Section
   [x] Sinkronisasi DB Master (Distributors, Customers, Products)
+  [x] Document Counters (SP/Nota/TT) v1.1.9
+  [x] Surat Pesanan Mastery (A6 Blue Spec) v1.2.0
+  [x] Auto-Release Popup (Modal v1.2.1)
 
 PHASE BERIKUTNYA (High Priority):
   → Bcrypt password hashing (Keamanan Login)
@@ -380,5 +386,25 @@ PHASE SETELAH ITU (Medium):
 
 ---
 
+## 13. PROTOKOL KONTINUITAS MULTI-AI & OPERASIONAL
+
+### 🧠 A. Protokol Kontinuitas (Multiple AI Agents)
+Karena sistem ini dikerjakan oleh berbagai model AI (Gemini, Claude, GPT), setiap agent **WAJIB** mengikuti langkah berikut:
+1. **Initial Research**: Baca folder `.gemini/antigravity/brain/` (atau folder `brain/` di appData) sebagai memori persisten sistem.
+2. **Essential Reading**: Baca `task.md` untuk status checklist dan `walkthrough.md` untuk riwayat eksekusi teknis terakhir.
+3. **Cross-Model Sync**: Jika berganti agent/model, berikan ringkasan teknis yang mencakup: branch aktif, status build Vercel, dan perubahan skema database terakhir.
+
+### 👥 B. Protokol Shared-Account UX
+Akun login (misalnya `admin`) sering dipakai bersama oleh beberapa operator (Shared Accounts).
+- **UI Trigger**: Popup informasi (seperti "Apa yang Baru") tidak boleh menggunakan `localStorage` permanen untuk satu sesi browser. Gunakan trigger yang memastikan **setiap operator** yang login di waktu berbeda tetap melihat informasi tersebut (Trigger on Mount/Login).
+- **Account Privacy**: Jangan asumsikan satu user = satu orang. Jaga state UI agar tidak membingungkan operator lain.
+
+### 🛡️ C. Protokol Deployment (Vercel)
+Setiap merge ke `main` harus bersih dari lint errors.
+- **Incident v1.2.1**: Deployment sempat terblokir karena _broken handle_ (undefined function) di `Dashboard.jsx`.
+- **SOP**: Agent harus memastikan semua fungsi handler yang dipanggil di JSX terdefinisi dan bebas dari `no-undef` warnings sebelum push ke `main`.
+
+---
+
 *Dokumen ini dibuat berdasarkan analisis file: BUKU_BESAR_HABIL_2025.xlsx, CV_HABIL_2026.xlsx, DATA_CV_2025.xlsx, Laba_TOKO_ONLINE_HABIL.xlsx, BRAINSTORMING_ROADMAP.md*  
-*Versi sistem saat ini: v1.1.3 | Stack: React 19 + Express 5.x + PostgreSQL 15*
+*Versi sistem saat ini: v1.2.1 | Stack: React 19 + Express 5.x + PostgreSQL 15*
