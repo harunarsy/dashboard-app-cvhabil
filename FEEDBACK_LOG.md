@@ -36,3 +36,13 @@ Dokumen ini berisi catatan evaluasi performa AI selama proses development, digun
     1. Dilakukan pencarian menyeluruh dan pemusatan label versi.
     2. Hotfix diterapkan langsung ke `main` tanpa menaikkan versi lagi untuk menjaga konsistensi state.
     3. Di masa depan, pertimbangkan variabel global `APP_VERSION` untuk seluruh frontend.
+
+### 7. Shadow Metadata IDE (v1.1.2)
+- **Deskripsi:** Ditemukan sisa-sisa label `v1.1.2` di dalam file riwayat `Dashboard.jsx` dan dokumentasi arsip yang bisa memicu kebingungan Agent.
+- **Dampak:** Ketidakjelasan "Source of Truth" bagi Agent AI yang baru masuk ke sesi.
+- **Tindakan Perbaikan:** Pembersihan menyeluruh `v1.1.2` dari semua file aktif dan penguatan prosedur "Kill Shadow Metadata".
+
+### 8. Kesalahan Format Versi (Spasi vs Hubung)
+- **Deskripsi:** Penggunaan format `v1.2.5 hotfix` (dengan spasi) menyebabkan inkonsistensi pencarian grep.
+- **Protokol Baru:** Wajib menggunakan tanda hubung (hyphen) tanpa spasi untuk semua label hotfix (Contoh: `v1.2.5-hotfix-2`).
+- **Tindakan Perbaikan:** Sinkronisasi total ke format `-hotfix-2`.
