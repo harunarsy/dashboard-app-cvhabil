@@ -173,7 +173,6 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   // Rekap per distributor filters (independent)
-  const [rekapMonth, setRekapMonth] = useState('all');
 
   // Form
   const [form, setForm] = useState(blankForm());
@@ -471,8 +470,8 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
   const sumPpn = summaryData.reduce((s, i) => s + parseFloat(i.ppn_masukan||i.ppn_input||0), 0);
 
   // Per-distributor summary — always show ALL known distributors, 0 if none in period
-  const rekapSource = rekapMonth === 'all' ? invoices : invoices.filter(i =>
-    parseLocalDate(i.purchase_date)?.toLocaleString('id-ID', { month: 'long', year: 'numeric' }) === rekapMonth
+  const rekapSource = selectedMonth === 'all' ? invoices : invoices.filter(i =>
+    parseLocalDate(i.purchase_date)?.toLocaleString('id-ID', { month: 'long', year: 'numeric' }) === selectedMonth
   );
   const allKnownDist = [...new Set(invoices.map(i => i.distributor_name).filter(Boolean))];
   const rekapMap = rekapSource.reduce((acc, inv) => {
@@ -558,15 +557,15 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px', flexWrap: 'wrap' }}>
             <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>📦 Rekap per Distributor</p>
             {/* Month filter for rekap */}
-            <select value={rekapMonth} onChange={e => setRekapMonth(e.target.value)}
+            <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
               style={{ padding: '4px 10px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '8px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: isDarkMode ? '#FFF' : '#000', fontSize: '12px', cursor: 'pointer', outline: 'none' }}>
               <option value="all">Semua Bulan</option>
               {Array.from(new Set(invoices.map(i => parseLocalDate(i.purchase_date)?.toLocaleString('id-ID', { month: 'long', year: 'numeric' })))).sort().map(m => (
                 <option key={m} value={m}>{m}</option>
               ))}
             </select>
-            {searchDist && (
-              <button onClick={() => setSearchDist('')}
+            {(searchDist || selectedMonth !== 'all') && (
+              <button onClick={() => { setSearchDist(''); setSelectedMonth('all'); }}
                 style={{ padding: '4px 12px', backgroundColor: '#FF3B30', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <X size={11} /> Reset Filter
               </button>

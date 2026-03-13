@@ -1,4 +1,4 @@
-# Log Capaian Bisnis HABIL SUPERAPP (v1.3.0-standard)
+# Log Capaian Bisnis HABIL SUPERAPP (v1.3.1-standard)
 
 Dokumen ini mencatat peluncuran modul Manajemen Tugas (Kanban) dan standardisasi protokol engineering terbaru.
 
@@ -41,7 +41,19 @@ Dokumen ini mencatat peluncuran modul Manajemen Tugas (Kanban) dan standardisasi
 
 ## Status Terakhir
 
-- **Versi**:### v1.3.0-standard · 2026-03-14
+- **Versi**:### v1.3.1-standard · 2026-03-14
+- **Status**: Stable
+- **Fix**: Month Filter Synchronization
+- **Log**: Unified `rekapMonth` and `selectedMonth` to ensure UI consistency.
+
+### v1.3.0-standard · 2026-03-14
 - **Status**: Stable
 - **Refinement**: Invoice HPP & Audit Metadata
 - **Log**: HPP Robustness, "Input Date" Visibility, Back-Population Migration.
+
+#### Verifikasi Visual
+![Invoice Metadata & HPP Verify](/Users/harunalrasyid/.gemini/antigravity/brain/cf4549cf-c7c0-4e03-8824-ccbe87b98d86/invoice_hpp_metadata_verification_1773426576827.png)
+
+````carousel
+![Video Rekaman Verifikasi UI](/Users/harunalrasyid/.gemini/antigravity/brain/cf4549cf-c7c0-4e03-8824-ccbe87b98d86/invoice_v130_verify_1773426451775.webp)
+````
