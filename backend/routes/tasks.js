@@ -72,7 +72,9 @@ router.get('/migrate-pic', async (req, res) => {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
-      
+    `);
+    
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS task_history (
           id SERIAL PRIMARY KEY,
           task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
@@ -82,6 +84,11 @@ router.get('/migrate-pic', async (req, res) => {
           changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    
+    // Add columns explicitly in case table existed but columns didn't
+    try { await pool.query('ALTER TABLE tasks ADD COLUMN pic VARCHAR(100);'); } catch(e){}
+    try { await pool.query('ALTER TABLE tasks ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;'); } catch(e){}
+
     res.json({ success: true, message: 'Schema built successfully.' });
   } catch (err) {
     res.status(500).json({ error: err.message, code: err.code });
