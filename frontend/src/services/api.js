@@ -142,3 +142,8 @@ export const printSettingsAPI = {
   get: () => api.get('/print-settings'),
   save: (key, value) => api.post('/print-settings', { key, value }),
 };
+
+export const countersAPI = {
+  getAll: () => api.get('/settings/counters'),
+  update: (doc_type, data) => api.put(`/settings/counters/${doc_type}`, data),
+};

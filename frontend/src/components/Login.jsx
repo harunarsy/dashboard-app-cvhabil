@@ -41,7 +41,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 text-white shadow-lg mb-4">
             <Building2 size={32} />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">CV Habil</h1>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">HABIL SUPERAPP</h1>
           <p className="text-gray-500 mt-2">Business Management System v1.1.8</p>
         </div>
 
@@ -105,7 +105,7 @@ export default function Login() {
         </div>
         
         <p className="text-center text-xs text-gray-400 mt-8">
-          &copy; 2026 CV Habil. All rights reserved.
+          &copy; 2026 HABIL SUPERAPP. All rights reserved.
         </p>
       </div>
     </div>

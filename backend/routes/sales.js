@@ -41,17 +41,17 @@ const ensureSchema = async () => {
 };
 ensureSchema().catch(e => console.error('sales ensureSchema:', e));
 
-// ─── Helper: generate next order number ─────────────────────────────────────
-const generateOrderNumber = async () => {
-  const today = new Date();
-  const prefix = `NT${String(today.getFullYear()).slice(-2)}${String(today.getMonth() + 1).padStart(2, '0')}`;
-  const { rows } = await pool.query(
-    `SELECT order_number FROM sales_orders WHERE order_number LIKE $1 ORDER BY order_number DESC LIMIT 1`,
-    [`${prefix}%`]
+const generateOrderNumber = async (client) => {
+  const { rows } = await client.query(
+    "UPDATE document_counters SET last_number = last_number + 1 WHERE doc_type = 'NOTA' RETURNING prefix, last_number"
   );
-  if (!rows.length) return `${prefix}0001`;
-  const last = parseInt(rows[0].order_number.replace(prefix, ''), 10);
-  return `${prefix}${String(last + 1).padStart(4, '0')}`;
+  if (!rows.length) {
+    // Fallback if counter missing
+    const today = new Date();
+    const prefix = `NT${String(today.getFullYear()).slice(-2)}${String(today.getMonth() + 1).padStart(2, '0')}`;
+    return `${prefix}0001`;
+  }
+  return `${rows[0].prefix}${rows[0].last_number.toString().padStart(4, '0')}`;
 };
 
 // GET all (excluding soft-deleted)
@@ -93,11 +93,11 @@ router.post('/', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { customer_id, customer_name, customer_address, sale_date, notes, items, payment_method, payment_details } = req.body;
+    const { customer_id, customer_name, customer_address, sale_date, notes, items, payment_method, payment_details, order_number: manualOrderNumber } = req.body;
     if (!customer_name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
     if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
 
-    const orderNumber = await generateOrderNumber();
+    const orderNumber = manualOrderNumber ? manualOrderNumber : await generateOrderNumber(client);
     let total = 0;
     items.forEach(it => { total += (it.qty || 1) * (it.unit_price || 0); });
 
