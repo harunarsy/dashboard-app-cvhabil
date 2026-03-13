@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-03-13
+
+### Added
+- **SP Module Mastery**: Enhanced `distributors` table with `short_code`, `salesman_name`, and `salesman_phone`. Added a Many-to-Many pivot table `product_distributors`.
+- **Master Distributor UI**: Added an inline edit modal inside the Purchase Orders form to update salesman details directly.
+- **SP Editor Enhancements**: Added a PIC Dropdown for "Harun Al Rasyid" and "Fivin Soehaeni". Salesman contacts are dynamically displayed based on the selected Distributor.
+- **A6 Print Layout for SP**: Developed a custom "Blue Area" PDF generation module (`generateSPPDF.js`) specifically sized for A6 format, featuring a centered header, tabular item list, and designated stamp/signature footer.
+
+## [1.1.9] - 2026-03-13
+
+### Changed
+- **Branding & Identity**: Updated app-wide text references from "CV Habil Business System" to **"HABIL SUPERAPP"**. Implemented dynamic tab titles and replaced the favicon.
+
+### Added
+- **Document Counters Engine**: Introduced `document_counters` database table for SP, Nota, and TT to deprecate spreadsheet-based numbering.
+- **Migration Protocol UI**: Added a System Controls section in Print Settings to Lock/Unlock automated document numbering, allowing manual input during the transition phase.
+
 ## [1.1.8] - 2026-03-13
 
 ### Optimized

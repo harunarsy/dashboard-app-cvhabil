@@ -13,6 +13,7 @@ import OnlineStoreDashboard from './components/OnlineStoreDashboard';
 import LedgerPage from './components/LedgerPage';
 import PrintSettings from './components/PrintSettings';
 import { AuthContext, AuthProvider } from './context/AuthContext';
+import { useDocumentTitle } from './hooks/useDocumentTitle';
 import './App.css';
 
 function ProtectedRoute({ children, isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen }) {
@@ -26,26 +27,33 @@ function ProtectedRoute({ children, isDarkMode, setIsDarkMode, isSidebarOpen, se
   );
 }
 
+function PageTitleWrapper({ title, children }) {
+  useDocumentTitle(title);
+  return children;
+}
+
 function AppRoutes({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen }) {
   const { token } = useContext(AuthContext);
-  const wrap = (Component) => (
+  const wrap = (Component, title) => (
     <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}>
-      <Component isDarkMode={isDarkMode} isSidebarOpen={isSidebarOpen} />
+      <PageTitleWrapper title={title}>
+        <Component isDarkMode={isDarkMode} isSidebarOpen={isSidebarOpen} />
+      </PageTitleWrapper>
     </ProtectedRoute>
   );
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={wrap(Dashboard)} />
-      <Route path="/invoices" element={wrap(InvoiceList)} />
-      <Route path="/sales" element={wrap(SalesOrderList)} />
-      <Route path="/customers" element={wrap(CustomerList)} />
-      <Route path="/inventory" element={wrap(InventoryDashboard)} />
-      <Route path="/orders" element={wrap(PurchaseOrderList)} />
-      <Route path="/online-store" element={wrap(OnlineStoreDashboard)} />
-      <Route path="/ledger" element={wrap(LedgerPage)} />
-      <Route path="/print-settings" element={wrap(PrintSettings)} />
-      <Route path="/bugs" element={wrap(BugReports)} />
+      <Route path="/login" element={<PageTitleWrapper title="Login"><Login /></PageTitleWrapper>} />
+      <Route path="/dashboard" element={wrap(Dashboard, 'Dashboard')} />
+      <Route path="/invoices" element={wrap(InvoiceList, 'Nota Penjualan')} />
+      <Route path="/sales" element={wrap(SalesOrderList, 'Nota Penjualan')} />
+      <Route path="/customers" element={wrap(CustomerList, 'Customers')} />
+      <Route path="/inventory" element={wrap(InventoryDashboard, 'Inventory')} />
+      <Route path="/orders" element={wrap(PurchaseOrderList, 'Surat Pesanan')} />
+      <Route path="/online-store" element={wrap(OnlineStoreDashboard, 'Toko Online')} />
+      <Route path="/ledger" element={wrap(LedgerPage, 'Buku Besar')} />
+      <Route path="/print-settings" element={wrap(PrintSettings, 'Settings')} />
+      <Route path="/bugs" element={wrap(BugReports, 'Bug Reports')} />
       <Route path="/" element={<Navigate to={token ? "/dashboard" : "/login"} />} />
     </Routes>
   );

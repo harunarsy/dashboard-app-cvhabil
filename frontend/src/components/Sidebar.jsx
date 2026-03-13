@@ -80,7 +80,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
           {isSidebarOpen && (
             <div>
               <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0 0 0.25rem 0', color: txt }}>Dashboard</h1>
-              <p style={{ fontSize: '0.875rem', color: sub, margin: 0 }}>CV Habil</p>
+              <p style={{ fontSize: '0.875rem', color: sub, margin: 0 }}>HABIL SUPERAPP</p>
             </div>
           )}
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', color: txt }}>

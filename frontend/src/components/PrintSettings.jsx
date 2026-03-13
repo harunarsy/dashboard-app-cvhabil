@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, Layout, Type } from 'lucide-react';
-import { printSettingsAPI } from '../services/api';
+import { Save, RefreshCw, Layout, Type, AlignCenter, Database, Lock, Unlock } from 'lucide-react';
+import { printSettingsAPI, countersAPI } from '../services/api';
 
 export default function PrintSettings({ isDarkMode }) {
   const [settings, setSettings] = useState({
@@ -9,6 +9,7 @@ export default function PrintSettings({ isDarkMode }) {
     footer_text: '',
     show_logo: false
   });
+  const [counters, setCounters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -16,8 +17,12 @@ export default function PrintSettings({ isDarkMode }) {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const { data } = await printSettingsAPI.get();
-      if (data.nota_layout) setSettings(data.nota_layout);
+      const [resSettings, resCounters] = await Promise.all([
+        printSettingsAPI.get(),
+        countersAPI.getAll()
+      ]);
+      if (resSettings.data.nota_layout) setSettings(resSettings.data.nota_layout);
+      setCounters(resCounters.data);
     } catch (e) {
       console.error(e);
     } finally {
@@ -31,6 +36,15 @@ export default function PrintSettings({ isDarkMode }) {
     setSaving(true);
     try {
       await printSettingsAPI.save('nota_layout', settings);
+      
+      // Save counter settings sequentially to avoid complex error handling for now
+      for (const counter of counters) {
+        await countersAPI.update(counter.doc_type, {
+          last_number: parseInt(counter.last_number) || 0,
+          is_locked: counter.is_locked
+        });
+      }
+
       setMessage('✅ Pengaturan disimpan');
       setTimeout(() => setMessage(''), 3000);
     } catch (e) {
@@ -38,6 +52,12 @@ export default function PrintSettings({ isDarkMode }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleCounterChange = (index, field, value) => {
+    const newCounters = [...counters];
+    newCounters[index] = { ...newCounters[index], [field]: value };
+    setCounters(newCounters);
   };
 
   const bg = isDarkMode ? '#1C1C1E' : '#FFF';
@@ -118,6 +138,67 @@ export default function PrintSettings({ isDarkMode }) {
             <div style={{ fontSize: '8px', color: '#9CA3AF', marginTop: 'auto' }}>{settings.footer_text || 'Footer text...'}</div>
           </div>
         </div>
+
+        {/* Counter Settings Section */}
+        <div style={{ backgroundColor: bg, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`, gridColumn: '1 / -1' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: text, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Database size={18} color="#FF9500" /> System Controls / Migration
+          </h3>
+          <p style={{ fontSize: '13px', color: sub, marginBottom: '24px' }}>
+            Atur nomor urut dokumen terakhir saat migrasi dari spreadsheet. Matikan (Unlock) Auto-Numbering jika kamu ingin menginput nomor manual di form pembuatan.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {counters.map((counter, idx) => (
+              <div key={counter.id} style={{ padding: '16px', backgroundColor: cardBg, borderRadius: '12px', border: `1px solid ${border}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div style={{ fontWeight: '700', color: text, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '4px', backgroundColor: counter.is_locked ? '#34C759' : '#FF3B30' }}></div>
+                    {counter.doc_type}
+                  </div>
+                  <button 
+                    onClick={() => handleCounterChange(idx, 'is_locked', !counter.is_locked)}
+                    style={{ 
+                      padding: '4px 12px', 
+                      borderRadius: '8px', 
+                      fontSize: '11px', 
+                      fontWeight: '700', 
+                      border: 'none', 
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      backgroundColor: counter.is_locked ? '#34C75920' : '#FF3B3020',
+                      color: counter.is_locked ? '#34C759' : '#FF3B30'
+                    }}
+                  >
+                    {counter.is_locked ? <><Lock size={12}/> Auto (Locked)</> : <><Unlock size={12}/> Manual (Unlocked)</>}
+                  </button>
+                </div>
+                
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, marginBottom: '6px' }}>Prefix Dokumen</label>
+                  <input 
+                    value={counter.prefix} 
+                    disabled
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, backgroundColor: '#F3F4F6', color: '#6B7280', fontSize: '13px', outline: 'none', opacity: 0.7 }} 
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, marginBottom: '6px' }}>Nomor Terakhir (Angka)</label>
+                  <input 
+                    type="number"
+                    value={counter.last_number} 
+                    onChange={e => handleCounterChange(idx, 'last_number', e.target.value)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, backgroundColor: bg, color: text, fontSize: '13px', outline: 'none' }} 
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
     </div>
   );

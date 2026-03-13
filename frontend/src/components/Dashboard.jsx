@@ -5,7 +5,29 @@ import Skeleton from './common/Skeleton';
 
 const changelog = [
   {
-    version: 'v1.1.8', date: '13 Mar 2026', status: 'latest',
+    version: 'v1.2.1', date: '13 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'new', text: 'Auto-Release Popup: Menampilkan ringkasan update HANYA SEKALI setelah login.' },
+      { type: 'fix', text: 'Pre-Deployment Audit: Koneksi production dipastikan stabil.' }
+    ]
+  },
+  {
+    version: 'v1.2.0', date: '13 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'new', text: 'Master Distributor: Penambahan short_code, nama salesman, dan nomor HP.' },
+      { type: 'new', text: 'Surat Pesanan (SP): UI PIC Dropdown (Harun/Fivin) & Info Salesman Otomatis.' },
+      { type: 'new', text: 'Print SP A6: Layout "Blue Area" khusus kertas A6 tersentral.' }
+    ]
+  },
+  {
+    version: 'v1.1.9', date: '13 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'new', text: 'Branding: App kini resmi bernama HABIL SUPERAPP.' },
+      { type: 'new', text: 'Migrasi Counter: Sistem Auto-Numbering untuk SP, Nota, TT (Lock/Unlock feature).' }
+    ]
+  },
+  {
+    version: 'v1.1.8', date: '13 Mar 2026', status: 'stable',
     changes: [
       { type: 'new', text: 'Documentation Consolidation: Single technical source of truth di CHANGELOG.md' },
       { type: 'new', text: 'Health Check Automatis: Pre-flight check DB setiap npm run dev' },
@@ -104,13 +126,15 @@ const upcoming = [
 
 export default function Dashboard({ isDarkMode, isSidebarOpen }) {
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  // Show release modal on every mount (login or manual refresh) since accounts are shared
+  const [showReleaseModal, setShowReleaseModal] = useState(true);
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
   const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = '#86868B';
-  const [loading, setLoading] = useState(true);
 
   const typeConfig = {
     new:     { label: 'Baru',    color: '#34C759', bg: '#34C75918' },
@@ -160,7 +184,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
       <div className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-3xl font-bold mb-2 tracking-tight" style={{ color: text }}>Dashboard</h1>
-          <p className="text-sm font-medium" style={{ color: sub }}>Welcome back to CV Habil Business Module.</p>
+          <p className="text-sm font-medium" style={{ color: sub }}>Welcome back to HABIL SUPERAPP.</p>
         </div>
         
         {/* Version Badge & Changelog Trigger */}
@@ -226,6 +250,71 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
           </div>
         </div>
       </div>
+
+      {/* Auto-Release Popup v1.2.1 */}
+      {showReleaseModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-opacity">
+          <div 
+            className="w-full max-w-lg overflow-hidden rounded-3xl shadow-2xl flex flex-col transform transition-all scale-100"
+            style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
+          >
+            {/* Spotlight Header */}
+            <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
+              <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4 shadow-inner backdrop-blur-sm">
+                <span className="text-3xl">🚀</span>
+              </div>
+              <h2 className="text-2xl font-extrabold text-white tracking-tight">APA YANG BARU?</h2>
+              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.2.1 telah mengudara!</p>
+            </div>
+
+            {/* Content Highlights */}
+            <div className="p-6 pb-2" style={{ backgroundColor: bg }}>
+              <div className="flex flex-col gap-4">
+                <div className="flex gap-4 items-start p-4 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+                  <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                    <Activity size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">Branding SuperApp</h3>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-relaxed">Sistem resmi berganti nama menjadi HABIL SUPERAPP dengan identitas yang lebih segar.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 items-start p-4 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+                  <div className="p-2 rounded-xl bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                    <Package size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">Modul SP A6 & Master Distributor</h3>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-relaxed">Buat Surat Pesanan super cepat, pilih PIC, dan cetak langsung dengan format A6 (Blue Area Layout).</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 items-start p-4 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+                  <div className="p-2 rounded-xl bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
+                    <Info size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">Otomasi Nomor Dokumen</h3>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-relaxed">Selamat tinggal input manual! Nomor SP & Nota kini digenerate otomatis, dengan opsi edit masa transisi.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* CTA Button */}
+            <div className="p-6 pt-4 flex justify-center" style={{ backgroundColor: bg }}>
+              <button 
+                onClick={closeReleaseModal}
+                className="w-full py-3.5 rounded-xl text-white font-bold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all outline-none focus:ring-4 focus:ring-blue-500/50"
+                style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}
+              >
+                Siap, Gas!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Changelog & Upcoming Modal */}
       {showModal && (
