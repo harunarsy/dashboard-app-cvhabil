@@ -1,20 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Pool } = require('pg');
-require('dotenv').config();
-
-const poolConfig = process.env.DATABASE_URL 
-  ? { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
-  : {
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      database: process.env.DB_NAME ?? process.env.DB_DATABASE,
-      ssl: false
-    };
-
-const pool = new Pool(poolConfig);
+const pool = require('../config/database');
 
 // GET all tasks
 router.get('/', async (req, res) => {
@@ -28,11 +14,11 @@ router.get('/', async (req, res) => {
 
 // POST new task
 router.post('/', async (req, res) => {
-  const { title, description, status, priority, due_date } = req.body;
+  const { title, description, status, priority, due_date, pic } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO tasks (title, description, status, priority, due_date) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [title, description, status || 'todo', priority || 'medium', due_date]
+      'INSERT INTO tasks (title, description, status, priority, due_date, pic) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [title, description, status || 'todo', priority || 'medium', due_date, pic]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -43,25 +29,14 @@ router.post('/', async (req, res) => {
 // PUT update task (status, priority, etc)
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { title, description, status, priority, due_date } = req.body;
+  const { title, description, status, priority, due_date, pic } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE tasks SET title = $1, description = $2, status = $3, priority = $4, due_date = $5 WHERE id = $6 RETURNING *',
-      [title, description, status, priority, due_date, id]
+      'UPDATE tasks SET title = $1, description = $2, status = $3, priority = $4, due_date = $5, pic = $6 WHERE id = $7 RETURNING *',
+      [title, description, status, priority, due_date, pic, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
     res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Soft DELETE task (move to trash)
-router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    await pool.query('UPDATE tasks SET is_deleted = true WHERE id = $1', [id]);
-    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

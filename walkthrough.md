@@ -1,10 +1,17 @@
-# Log Capaian Bisnis HABIL SUPERAPP (v1.3.2-standard)
+# Log Capaian Bisnis HABIL SUPERAPP (v1.3.4-standard)
 
-Dokumen ini mencatat peluncuran modul Manajemen Tugas (Kanban) dan standardisasi protokol engineering terbaru.
+Dokumen ini mencatat peluncuran fitur PIC pada Tugas, optimasi pool database, dan sinkronisasi versi global.
 
 ---
 
-## 1. Modul Manajemen Tugas (Kanban) 📋
+## 1. Optimalisasi & Penugasan Tugas (v1.3.3) 🚀
+
+- **Database Pool Consolidation**: Penyelesaian isu "MaxClients reached" dengan menyatukan seluruh koneksi database ke pool terpusat.
+- **PIC Assignment**: Setiap tugas sekarang dapat ditautkan ke penanggung jawab (PIC: Harun/Fivin/Admin) menggunakan dropdown `react-select`.
+- **UI Consistency**: Sinkronisasi total label versi global dan pembersihan sisa-sisa string v1.2.6 yang tertinggal.
+- **Sidebar Universal**: Nama menu "Pengaturan Cetak" diperpendek menjadi "Pengaturan" untuk kemudahan navigasi.
+
+## 2. Papan Kanban Pro (v1.3.2) 📋
 
 - **Fitur**: Papan Kanban interaktif untuk memantau tugas operasional (Backlog, To Do, Doing, Done).
 - **Desain**: Menggunakan Apple Human Interface Guidelines (Glassmorphism, backdrop-blur, rounded-2xl) untuk tampilan premium.
@@ -41,7 +48,12 @@ Dokumen ini mencatat peluncuran modul Manajemen Tugas (Kanban) dan standardisasi
 
 ## Status Terakhir
 
-- **Versi**:### v1.3.2-standard · 2026-03-14
+- **Versi**:### v1.3.3-standard · 2026-03-14
+- **Status**: Stable
+- **Feat**: Database Connection Pool & Kanban PIC
+- **Log**: Consolidated DB pools to fix "MaxClients" error. Added PIC field to tasks. Global version sync.
+
+### v1.3.2-standard · 2026-03-14
 - **Status**: Stable
 - **Fix**: Month Filter Synchronization
 - **Log**: Unified `rekapMonth` and `selectedMonth` to ensure UI consistency.
