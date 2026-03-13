@@ -11,6 +11,7 @@ const ensureSchema = async () => {
       po_number VARCHAR(50) UNIQUE NOT NULL,
       distributor_name VARCHAR(255) NOT NULL,
       distributor_address TEXT,
+      pic_name VARCHAR(150),
       order_date DATE DEFAULT CURRENT_DATE,
       expected_date DATE,
       status VARCHAR(20) DEFAULT 'draft',
@@ -21,6 +22,8 @@ const ensureSchema = async () => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS pic_name VARCHAR(150);
+    
     CREATE TABLE IF NOT EXISTS purchase_order_items (
       id SERIAL PRIMARY KEY,
       po_id INT NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
@@ -38,15 +41,16 @@ const ensureSchema = async () => {
 ensureSchema().catch(e => console.error('purchase_orders ensureSchema:', e));
 
 // ─── Helper: generate PO number (SP2603xxxx) ────────────────────────────────
-const generatePONumber = async () => {
-  const now = new Date();
-  const prefix = `SP${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const { rows } = await pool.query(
-    `SELECT po_number FROM purchase_orders WHERE po_number LIKE $1 ORDER BY po_number DESC LIMIT 1`,
-    [`${prefix}%`]
+const generatePONumber = async (client) => {
+  const { rows } = await client.query(
+    "UPDATE document_counters SET last_number = last_number + 1 WHERE doc_type = 'SP' RETURNING prefix, last_number"
   );
-  const seq = rows.length ? parseInt(rows[0].po_number.slice(6)) + 1 : 1;
-  return `${prefix}${String(seq).padStart(4, '0')}`;
+  if (!rows.length) {
+    const now = new Date();
+    const prefix = `SP${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return `${prefix}0001`;
+  }
+  return `${rows[0].prefix}${rows[0].last_number.toString().padStart(4, '0')}`;
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -85,20 +89,20 @@ router.get('/:id', auth, async (req, res) => {
 
 // CREATE PO (Surat Pesanan)
 router.post('/', auth, async (req, res) => {
-  const { distributor_name, distributor_address, order_date, expected_date, notes, items } = req.body;
+  const { distributor_name, distributor_address, order_date, expected_date, notes, items, po_number: manualPoNumber } = req.body;
   if (!distributor_name?.trim()) return res.status(400).json({ error: 'Nama distributor wajib' });
   if (!items?.length) return res.status(400).json({ error: 'Min 1 item' });
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const poNumber = await generatePONumber();
+    const poNumber = manualPoNumber ? manualPoNumber : await generatePONumber(client);
     const total = items.reduce((s, i) => s + (i.qty || 0) * (i.unit_price || 0), 0);
 
     const { rows: [po] } = await client.query(
-      `INSERT INTO purchase_orders (po_number, distributor_name, distributor_address, order_date, expected_date, notes, total, status, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'draft',$8) RETURNING *`,
-      [poNumber, distributor_name.trim(), distributor_address || '', order_date || new Date(), expected_date || null, notes || '', total, req.user?.id || null]
+      `INSERT INTO purchase_orders (po_number, distributor_name, distributor_address, pic_name, order_date, expected_date, notes, total, status, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'draft',$9) RETURNING *`,
+      [poNumber, distributor_name.trim(), distributor_address || '', req.body.pic_name || null, order_date || new Date(), expected_date || null, notes || '', total, req.user?.id || null]
     );
 
     for (const item of items) {
@@ -125,10 +129,10 @@ router.put('/:id', auth, async (req, res) => {
     const total = items ? items.reduce((s, i) => s + (i.qty || 0) * (i.unit_price || 0), 0) : undefined;
     await client.query(
       `UPDATE purchase_orders SET distributor_name=COALESCE($1, distributor_name), distributor_address=COALESCE($2, distributor_address),
-       order_date=COALESCE($3, order_date), expected_date=COALESCE($4, expected_date),
-       notes=COALESCE($5, notes), status=COALESCE($6, status), total=COALESCE($7, total), updated_at=NOW()
-       WHERE id=$8`,
-      [distributor_name, distributor_address, order_date, expected_date, notes, status, total, req.params.id]
+       pic_name=COALESCE($3, pic_name), order_date=COALESCE($4, order_date), expected_date=COALESCE($5, expected_date),
+       notes=COALESCE($6, notes), status=COALESCE($7, status), total=COALESCE($8, total), updated_at=NOW()
+       WHERE id=$9`,
+      [distributor_name, distributor_address, req.body.pic_name, order_date, expected_date, notes, status, total, req.params.id]
     );
     if (items) {
       await client.query('DELETE FROM purchase_order_items WHERE po_id = $1', [req.params.id]);
