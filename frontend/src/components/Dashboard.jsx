@@ -6,14 +6,15 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.3.4-standard', date: '14 Mar 2026', status: 'latest',
+    version: 'v1.3.5-stable', date: '14 Mar 2026', status: 'latest',
     changes: [
-      { type: 'fix', text: 'Global Audit: Sinkronisasi versi sistem ke v1.3.4-standard.' },
-      { type: 'docs', text: 'Stability: Finalisasi log insiden connection pool di Master Brain.' }
+      { type: 'fix', text: 'Kanban: Resolusi tombol Simpan yang tidak responsif di beberapa skenario.' },
+      { type: 'fix', text: 'Kanban: Penyelarasan opsi prioritas (High/Medium/Low) di modal pembuatan tugas.' },
+      { type: 'fix', text: 'State Management: Perbaikan pembersihan form (state reset) setelah tugas tersimpan.' }
     ]
   },
-  { 
-    version: 'v1.3.3-standard', date: '14 Mar 2026', status: 'stable',
+  {
+    version: 'v1.3.4-standard', date: '14 Mar 2026', status: 'stable',
     changes: [
       { type: 'feat', text: 'Stability: Konsolidasi database connection pool untuk mencegah error MaxClients.' },
       { type: 'feat', text: 'Kanban: Fitur penugasan PIC (Harun/Fivin/Admin) dengan react-select.' },
