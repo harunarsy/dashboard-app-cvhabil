@@ -55,9 +55,9 @@
 
 ### ⚠️ Top 3 Recent Critical Incidents
 
-1. **Otomasi Penomoran**: Sinkronisasi database untuk nomor urut otomatis (SP #63, Nota #235).
-2. **Keseragaman Tampilan**: Pembersihan label versi lama agar dashboard tampil profesional.
-3. **Optimasi Kanban & Layout**: Reordering Dashboard (Kanban di atas) dan implementasi fitur Pro (Trash, edit, history).
+1. **Database Reliability**: Konsolidasi connection pool ke *shared config* untuk mengatasi "MaxClients reached" (v1.3.3).
+2. **Otomasi Penomoran**: Sinkronisasi database untuk nomor urut otomatis (SP #63, Nota #235).
+3. **Optimasi Kanban & Layout**: Implementasi fitur Pro (PIC Assignment, Trash, edit, history).
 
 ---
 
@@ -89,4 +89,4 @@
 
 ---
 *Dokumen Master Brain ini menggantikan README, Master Framework, dan Roadmap lama.*
-*Terakhir diupdate berdasarkan prosedur Auto-Versioning v1.3.2-standard*
+*Terakhir diupdate berdasarkan prosedur Auto-Versioning v1.3.4-standard*

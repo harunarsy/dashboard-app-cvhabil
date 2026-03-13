@@ -30,7 +30,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
     { icon: ShoppingCart, label: 'Surat Pesanan', path: '/orders', active: true },
     { icon: Package, label: 'Inventory', path: '/inventory', active: true },
     { icon: ShoppingCart, label: 'Toko Online', path: '/online-store', active: true },
-    { icon: Printer, label: 'Pengaturan Cetak', path: '/print-settings', active: true },
+    { icon: Printer, label: 'Pengaturan', path: '/print-settings', active: true },
     ...(role === 'direktur' ? [
       { icon: BarChart3, label: 'Buku Besar', path: '/ledger', active: true },
       { icon: DollarSign, label: 'Finance', path: '/finance', active: false },

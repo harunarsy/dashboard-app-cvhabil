@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.3.4-standard] - 2026-03-14
+
+### Changed
+- **Session Shutdown Audit**: Finalisasi audit versi global, sinkronisasi label sistem ke v1.3.4-standard, dan pembaharuan log insiden infrastruktur.
+
+## [1.3.3-standard] - 2026-03-14
+
+### Added
+- **Kanban PIC Assignment**: Menambahkan field Penanggung Jawab (PIC) pada modul Manajemen Tugas menggunakan `react-select`.
+
+### Fixed
+- **Database Connection Optimization**: Konsolidasi seluruh rute API ke *shared connection pool* untuk mencegah error "MaxClientsInSessionMode".
+- **Kanban Functional Fixes**: Perbaikan tombol "Simpan Tugas" yang tidak responsif dan sinkronisasi modal detail.
+
+### Changed
+- **Unified Navigation**: Mengubah label sidebar "Pengaturan Cetak" menjadi "Pengaturan" untuk cakupan fungsi yang lebih luas.
+- **Global Version Sync**: Pembersihan total label versi lama (`v1.2.6`) di Dashboard dan sinkronisasi ke format v1.3.3-standard.
+
 ## [1.3.2-standard] - 2026-03-14
 
 ### Changed

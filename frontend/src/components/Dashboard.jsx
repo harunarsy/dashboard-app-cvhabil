@@ -4,9 +4,25 @@ import api from '../services/api';
 import TasksKanban from './TasksKanban';
 import Skeleton from './common/Skeleton';
 
-const changelog = [
+const RELEASES = [
   {
-    version: 'v1.3.2-standard', date: '13 Mar 2026', status: 'latest',
+    version: 'v1.3.4-standard', date: '14 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'Global Audit: Sinkronisasi versi sistem ke v1.3.4-standard.' },
+      { type: 'docs', text: 'Stability: Finalisasi log insiden connection pool di Master Brain.' }
+    ]
+  },
+  { 
+    version: 'v1.3.3-standard', date: '14 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'feat', text: 'Stability: Konsolidasi database connection pool untuk mencegah error MaxClients.' },
+      { type: 'feat', text: 'Kanban: Fitur penugasan PIC (Harun/Fivin/Admin) dengan react-select.' },
+      { type: 'fix', text: 'Kanban: Perbaikan bug tombol Simpan dan sinkronisasi modal detail.' },
+      { type: 'ui', text: 'Sidebar: Rename "Pengaturan Cetak" menjadi "Pengaturan" yang lebih universal.' }
+    ]
+  },
+  {
+    version: 'v1.3.2-standard', date: '13 Mar 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Universal Sync: Sinkronisasi total label versi ke format v1.3.2-standard.' },
       { type: 'new', text: 'UI Audit: Pembersihan sisa-sisa label versi lama di seluruh tampilan.' }
@@ -151,7 +167,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
   const [loading, setLoading] = useState(true);
   // Show release modal only once per session
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    return !sessionStorage.getItem('habil_release_seen_v126');
+    return !sessionStorage.getItem('habil_release_seen_v133');
   });
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
@@ -195,7 +211,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    sessionStorage.setItem('habil_release_seen_v126', 'true');
+    sessionStorage.setItem('habil_release_seen_v133', 'true');
   };
 
   const formatRupiah = (number) => {
@@ -223,7 +239,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
           style={{ backgroundColor: cardBg, borderColor: border, color: text }}
         >
           <Info size={16} className="text-blue-500" />
-          <span className="text-sm font-semibold">Version 1.2.6-standard</span>
+          <span className="text-sm font-semibold">Version 1.3.4-standard</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium ml-2">Release Notes</span>
         </button>
       </div>
@@ -292,7 +308,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
                 <span className="text-3xl">🚀</span>
               </div>
               <h2 className="text-2xl font-extrabold text-white tracking-tight">APA YANG BARU?</h2>
-              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.3.2-standard telah mengudara!</p>
+              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.3.4-standard telah mengudara!</p>
             </div>
 
             {/* Content Highlights */}
@@ -355,7 +371,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
               <div>
                 <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
-                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.3.2-standard - Terakhir diupdate 13 Mar 2026</p>
+                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.3.4-standard - Terakhir diupdate 14 Mar 2026</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />
@@ -371,19 +387,19 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
                   <h3 className="text-sm font-bold uppercase tracking-wider mb-4 flex items-center gap-2" style={{ color: sub }}>
                     🕐 Release History
                   </h3>
-                  {changelog.map((release, ri) => (
+                  {RELEASES.map((rel, ri) => (
                     <div key={ri} className="rounded-2xl p-5 mb-4 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
                       <div className="flex justify-between items-center mb-4">
                         <div className="flex items-center gap-3">
-                          <span className="text-lg font-bold" style={{ color: text }}>{release.version}</span>
-                          <span className="text-xs font-bold px-2.5 py-1 rounded-md" style={{ backgroundColor: release.status === 'latest' ? '#34C75918' : '#007AFF18', color: release.status === 'latest' ? '#34C759' : '#007AFF' }}>
-                            {release.status === 'latest' ? 'LATEST' : 'STABLE'}
+                          <span className="text-lg font-bold" style={{ color: text }}>{rel.version}</span>
+                          <span className="text-xs font-bold px-2.5 py-1 rounded-md" style={{ backgroundColor: rel.status === 'latest' ? '#34C75918' : '#007AFF18', color: rel.status === 'latest' ? '#34C759' : '#007AFF' }}>
+                            {rel.status === 'latest' ? 'LATEST' : 'STABLE'}
                           </span>
                         </div>
-                        <span className="text-xs font-medium" style={{ color: sub }}>{release.date}</span>
+                        <span className="text-xs font-medium" style={{ color: sub }}>{rel.date}</span>
                       </div>
                       <div className="flex flex-col gap-3">
-                        {release.changes.map((c, ci) => {
+                        {rel.changes.map((c, ci) => {
                           const cfg = typeConfig[c.type];
                           return (
                             <div key={ci} className="flex gap-3 items-start">

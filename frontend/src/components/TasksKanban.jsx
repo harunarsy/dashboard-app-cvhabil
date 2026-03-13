@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Select from 'react-select';
 import { 
   Plus,
   Calendar,
@@ -10,7 +11,8 @@ import {
   Search,
   Trash2,
   History,
-  ChevronDown
+  ChevronDown,
+  User
 } from 'lucide-react';
 
 const API_BASE = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5001/api' : '/api');
@@ -37,7 +39,8 @@ const TasksKanban = () => {
     description: '',
     status: 'todo',
     priority: 'medium',
-    due_date: ''
+    due_date: '',
+    pic: ''
   });
   const [editingTask, setEditingTask] = useState(null);
   const [taskHistory, setTaskHistory] = useState([]);
@@ -229,6 +232,12 @@ const TasksKanban = () => {
                       <span>{new Date(task.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
                     </div>
                   )}
+                  {task.pic && (
+                    <div className="flex items-center gap-1 text-[9px] font-bold text-blue-500 mt-1">
+                      <User size={10} />
+                      <span>PIC: {task.pic}</span>
+                    </div>
+                  )}
                 </div>
               ))}
               
@@ -300,7 +309,6 @@ const TasksKanban = () => {
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
-                    <option value="high">High</option>
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -312,6 +320,32 @@ const TasksKanban = () => {
                     onChange={(e) => setNewTask({...newTask, due_date: e.target.value})}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-[#86868b] tracking-wider ml-1">PENANGGUNG JAWAB (PIC)</label>
+                <Select
+                  options={[
+                    { value: 'Harun', label: 'Harun' },
+                    { value: 'Fivin', label: 'Fivin' },
+                    { value: 'Admin', label: 'Admin' }
+                  ]}
+                  placeholder="Pilih PIC..."
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  onChange={(opt) => setNewTask({...newTask, pic: opt ? opt.value : ''})}
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      backgroundColor: 'rgba(0,0,0,0.05)',
+                      border: 'none',
+                      borderRadius: '16px',
+                      padding: '4px',
+                      boxShadow: 'none'
+                    }),
+                    menu: (base) => ({ ...base, borderRadius: '16px', overflow: 'hidden' })
+                  }}
+                />
               </div>
 
               <div className="pt-4">
@@ -422,6 +456,33 @@ const TasksKanban = () => {
                         onChange={(e) => setEditingTask({...editingTask, due_date: e.target.value})}
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-[#86868b] tracking-wider ml-1">PENANGGUNG JAWAB (PIC)</label>
+                    <Select
+                      options={[
+                        { value: 'Harun', label: 'Harun' },
+                        { value: 'Fivin', label: 'Fivin' },
+                        { value: 'Admin', label: 'Admin' }
+                      ]}
+                      defaultValue={editingTask.pic ? { value: editingTask.pic, label: editingTask.pic } : null}
+                      placeholder="Pilih PIC..."
+                      className="react-select-container"
+                      classNamePrefix="react-select"
+                      onChange={(opt) => setEditingTask({...editingTask, pic: opt ? opt.value : ''})}
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          backgroundColor: 'rgba(0,0,0,0.05)',
+                          border: 'none',
+                          borderRadius: '16px',
+                          padding: '4px',
+                          boxShadow: 'none'
+                        }),
+                        menu: (base) => ({ ...base, borderRadius: '16px', overflow: 'hidden' })
+                      }}
+                    />
                   </div>
 
                   <div className="pt-4 flex gap-3">
