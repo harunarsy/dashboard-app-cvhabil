@@ -5,7 +5,14 @@ import Skeleton from './common/Skeleton';
 
 const changelog = [
   {
-    version: 'v1.2.5', date: '13 Mar 2026', status: 'latest',
+    version: 'v1.2.5-hotfix-2', date: '13 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'Universal Sync: Sinkronisasi total label versi ke format v1.2.5-hotfix-2.' },
+      { type: 'new', text: 'UI Audit: Pembersihan sisa-sisa label versi lama di seluruh tampilan.' }
+    ]
+  },
+  {
+    version: 'v1.2.5', date: '13 Mar 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Global Version Sync: Penyelarasan seluruh label versi di UI & Dokumentasi.' },
       { type: 'new', text: 'Consistency: Sinkronisasi riwayat changelog modal dengan CHANGELOG.md.' }
@@ -211,7 +218,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
           style={{ backgroundColor: cardBg, borderColor: border, color: text }}
         >
           <Info size={16} className="text-blue-500" />
-          <span className="text-sm font-semibold">Version 1.2.5</span>
+          <span className="text-sm font-semibold">Version 1.2.5-hotfix-2</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium ml-2">Release Notes</span>
         </button>
       </div>
@@ -281,7 +288,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
                 <span className="text-3xl">🚀</span>
               </div>
               <h2 className="text-2xl font-extrabold text-white tracking-tight">APA YANG BARU?</h2>
-              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.2.5 telah mengudara!</p>
+              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.2.5-hotfix-2 telah mengudara!</p>
             </div>
 
             {/* Content Highlights */}
@@ -344,7 +351,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
               <div>
                 <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
-                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.2.5 - Terakhir diupdate 13 Mar 2026</p>
+                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.2.5-hotfix-2 - Terakhir diupdate 13 Mar 2026</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />
