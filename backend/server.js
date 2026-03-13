@@ -85,6 +85,7 @@ app.use('/api/purchase-orders', require('./routes/purchaseOrders'));
 app.use('/api/online-store', require('./routes/onlineStore'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/ledger', require('./routes/ledger'));
+app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/print-settings', require('./routes/printSettings'));
 
 io.on('connection', (socket) => {
