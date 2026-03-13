@@ -30,7 +30,6 @@ const PRIORITY_COLORS = {
 
 const TasksKanban = () => {
   const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [newTask, setNewTask] = useState({
@@ -54,8 +53,6 @@ const TasksKanban = () => {
       setTasks(res.data);
     } catch (err) {
       console.error('Error fetching tasks:', err);
-    } finally {
-      setLoading(false);
     }
   };
 

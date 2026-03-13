@@ -1,4 +1,4 @@
-# Log Capaian Bisnis HABIL SUPERAPP (v1.2.8-standard)
+# Log Capaian Bisnis HABIL SUPERAPP (v1.2.9-standard)
 
 Dokumen ini mencatat peluncuran modul Manajemen Tugas (Kanban) dan standardisasi protokol engineering terbaru.
 
@@ -41,6 +41,6 @@ Dokumen ini mencatat peluncuran modul Manajemen Tugas (Kanban) dan standardisasi
 
 ## Status Terakhir
 
-- **Versi**: `v1.2.8-standard`
+- **Versi**: `v1.2.9-standard`
 - **Environment**: Dev Branch (Siap Merge ke Main)
 - **Database**: `tasks` table live di local dev.
