@@ -1,4 +1,4 @@
-# Log Capaian Bisnis HABIL SUPERAPP (v1.2.7-standard)
+# Log Capaian Bisnis HABIL SUPERAPP (v1.2.8-standard)
 
 Dokumen ini mencatat peluncuran modul Manajemen Tugas (Kanban) dan standardisasi protokol engineering terbaru.
 
@@ -8,10 +8,12 @@ Dokumen ini mencatat peluncuran modul Manajemen Tugas (Kanban) dan standardisasi
 
 - **Fitur**: Papan Kanban interaktif untuk memantau tugas operasional (Backlog, To Do, Doing, Done).
 - **Desain**: Menggunakan Apple Human Interface Guidelines (Glassmorphism, backdrop-blur, rounded-2xl) untuk tampilan premium.
-- **Fungsionalitas**:
-  - Penambahan tugas baru dengan judul, deskripsi, prioritas (Low, Medium, High), dan deadline.
-  - Pergerakan tugas antar kolom (Drag-and-drop placeholder).
-  - Integrasi API yang sudah mendukung koneksi lokal (non-SSL) dan cloud (SSL).
+- **Fungsionalitas Pro**:
+  - **Task Edit Modal**: Klik kartu untuk mengubah detail tugas.
+  - **History Log**: Pantau jejak audit (kapan status berubah/tugas dibuat) di dalam modal detail.
+  - **Trash Drop-Zone**: Area "Move to Trash" di bagian bawah untuk menghapus tugas secara aman.
+  - **Scrollable Stacks**: Layout kolom yang rapi (max 3 kartu terlihat) dengan scroll internal.
+  - **Backend Support**: API terintegrasi dengan tabel `task_history` dan fitur soft-delete (`is_deleted`).
 
 ## 2. Standardisasi Engineering (IDE Audit) 🛠️
 
@@ -39,6 +41,6 @@ Dokumen ini mencatat peluncuran modul Manajemen Tugas (Kanban) dan standardisasi
 
 ## Status Terakhir
 
-- **Versi**: `v1.2.7-standard`
+- **Versi**: `v1.2.8-standard`
 - **Environment**: Dev Branch (Siap Merge ke Main)
 - **Database**: `tasks` table live di local dev.
