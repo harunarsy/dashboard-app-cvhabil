@@ -1,5 +1,5 @@
 /**
- * Production Migration Runner (v1.2.3)
+ * Production Migration Runner (v1.2.5)
  * Executes SQL migration on Supabase Production.
  */
 const { Pool } = require('pg');
@@ -11,7 +11,7 @@ require('dotenv').config();
 // Verified from user screenshot: Using aws-1 regional pooler host
 const connectionString = 'postgresql://postgres.bgaatkxqljvibjosliat:habilsejahtera@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres';
 
-console.log('🚀 Starting Production Migration (v1.2.3)...');
+console.log('🚀 Starting Production Migration (v1.2.5)...');
 console.log(`📡 Connecting to: ${connectionString.split('@')[1]}`);
 
 const pool = new Pool({
