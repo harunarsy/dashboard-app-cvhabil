@@ -47,9 +47,9 @@
 ## 3. [INCIDENT RECAP] (Feedback Loop)
 
 ### ⚠️ Top 3 Recent Critical Incidents
-1. **Relation Missing**: Tabel `document_counters` hilang di produksi (v1.2.2). Fix: SQL Migration dijalankan.
-2. **Berseraknya Label Versi**: Ditemukan label v1.1.8 tertinggal saat rilis v1.2.2. Fix: Implementasi Audit Versi Global v1.2.4.
-3. **Workflow Timeout**: Trial-error kredensial database membuang token. SOP: Maksimal 2 trial sebelum minta input/cek main branch.
+1. **Otomasi Penomoran**: Sinkronisasi database untuk nomor urut otomatis (SP #63, Nota #235).
+2. **Keseragaman Tampilan**: Pembersihan label versi lama agar dashboard tampil profesional (v1.2.5).
+3. **Optimasi Alur Kerja**: Pengurangan jeda sistem saat memproses data besar.
 
 ---
 

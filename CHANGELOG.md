@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Session Shutdown**: Menutup sesi pengembangan v1.2.x dengan auditing menyeluruh.
-- **Auto-Versioning Finalization**: Sinkronisasi global versi v1.2.4 di seluruh komponen UI (Login, Dashboard) dan file dokumentasi master.
+- **Auto-Versioning Finalization**: Sinkronisasi global versi v1.2.5 di seluruh komponen UI (Login, Dashboard) dan file dokumentasi master.
 
 ## [1.2.3] - 2026-03-13
 
