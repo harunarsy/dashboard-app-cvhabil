@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.3.5-stable] - 2026-03-14
+
+### Fixed
+- **Kanban Functionality**: Memperbaiki tombol "Simpan Tugas" yang tidak responsif pada modal pembuatan dan pengeditan tugas.
+- **Kanban UI Consistency**: Menambahkan opsi prioritas "High" yang sebelumnya hilang pada modal pembuatan tugas.
+- **State Integrity**: Sinkronisasi pembersihan state PIC dan form setelah data berhasil disimpan ke database.
+
 ## [1.3.4-standard] - 2026-03-14
 
 ### Changed

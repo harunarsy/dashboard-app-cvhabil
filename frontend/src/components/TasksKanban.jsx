@@ -69,9 +69,10 @@ const TasksKanban = () => {
       };
       await axios.post(`${API_BASE}/tasks`, taskData);
       setShowAddModal(false);
-      setNewTask({ title: '', description: '', status: 'todo', priority: 'medium', due_date: '' });
+      setNewTask({ title: '', description: '', status: 'todo', priority: 'medium', due_date: '', pic: '' });
       fetchTasks();
     } catch (err) {
+      alert('Gagal menyimpan tugas. Silakan cek koneksi atau database.');
       console.error('Error adding task:', err);
     }
   };
@@ -124,6 +125,7 @@ const TasksKanban = () => {
       setEditingTask(null);
       fetchTasks();
     } catch (err) {
+      alert('Gagal memperbarui tugas.');
       console.error('Error updating task:', err);
     }
   };
@@ -309,6 +311,7 @@ const TasksKanban = () => {
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
+                    <option value="high">High</option>
                   </select>
                 </div>
                 <div className="space-y-2">
