@@ -1,8 +1,8 @@
 const { Client } = require('pg');
 require('dotenv').config();
 
-// Corrected format for Supabase Pooler
-const connectionString = 'postgresql://postgres.bgaatkxqljvibjosliat:habilsejahtera@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true';
+// Use Environment Variable for security
+const connectionString = process.env.DATABASE_URL;
 
 const probe = async () => {
   const client = new Client({

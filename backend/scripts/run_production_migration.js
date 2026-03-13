@@ -7,11 +7,15 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-// Use Port 6543 for Supabase as per Habil Protocol
-// Verified from user screenshot: Using aws-1 regional pooler host
-const connectionString = 'postgresql://postgres.bgaatkxqljvibjosliat:habilsejahtera@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres';
+// Use DATABASE_URL from environment variables for security
+const connectionString = process.env.DATABASE_URL;
 
-console.log('🚀 Starting Production Migration (v1.2.5)...');
+if (!connectionString) {
+  console.error('❌ Error: DATABASE_URL is not defined in .env');
+  process.exit(1);
+}
+
+console.log('🚀 Starting Production Migration (v1.2.5-hotfix-2)...');
 console.log(`📡 Connecting to: ${connectionString.split('@')[1]}`);
 
 const pool = new Pool({
