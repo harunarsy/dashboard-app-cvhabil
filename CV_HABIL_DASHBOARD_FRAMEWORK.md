@@ -392,7 +392,7 @@ PHASE SETELAH ITU (Medium):
 Karena sistem ini dikerjakan oleh berbagai model AI (Gemini, Claude, GPT), setiap agent **WAJIB** mengikuti langkah berikut:
 1. **Initial Research**: Baca folder `.gemini/antigravity/brain/` (atau folder `brain/` di appData) sebagai memori persisten sistem.
 2. **Essential Reading**: Baca `task.md` untuk status checklist dan `walkthrough.md` untuk riwayat eksekusi teknis terakhir.
-3. **Cross-Model Sync**: Jika berganti agent/model, berikan ringkasan teknis yang mencakup: branch aktif, status build Vercel, dan perubahan skema database terakhir.
+3. **Cross-Model Sync**: Jika berganti agent/model, berikan ringkasan teknis yang mencakup: branch aktif, status build Vercel, dan perubahan skema database terakhir. Referensikan [FEEDBACK_LOG.md](file:///Users/harunalrasyid/Projects/dashboard-app/FEEDBACK_LOG.md) untuk menghindari pengulangan bug.
 
 ### 👥 B. Protokol Shared-Account UX
 Akun login (misalnya `admin`) sering dipakai bersama oleh beberapa operator (Shared Accounts).
