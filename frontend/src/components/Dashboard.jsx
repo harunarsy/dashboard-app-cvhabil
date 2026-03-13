@@ -12,7 +12,7 @@ const changelog = [
     ]
   },
   {
-    version: 'v1.2.4', date: '13 Mar 2026', status: 'stable',
+    version: 'v1.2.5', date: '13 Mar 2026', status: 'stable',
     changes: [
       { type: 'new', text: 'Session Shutdown: Penutupan sesi dan auditing SOP otomatis.' }
     ]
