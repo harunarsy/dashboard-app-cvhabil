@@ -1,4 +1,4 @@
-# Log Capaian Bisnis HABIL SUPERAPP (v1.3.5-stable)
+# Log Capaian Bisnis HABIL SUPERAPP (v1.3.6-stable)
 
 Dokumen ini mencatat peluncuran fitur PIC pada Tugas, optimasi pool database, dan sinkronisasi versi global.
 

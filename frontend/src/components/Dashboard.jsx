@@ -6,7 +6,14 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.3.5-stable', date: '14 Mar 2026', status: 'latest',
+    version: 'v1.3.6-stable', date: '14 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'Database: Migrasi skema "pic" pada tabel tasks untuk mencegah error 500 saat Simpan Tugas.' },
+      { type: 'feat', text: 'Stability: Inisialisasi ulang seluruh skema Kanban pada database cloud.' }
+    ]
+  },
+  {
+    version: 'v1.3.5-stable', date: '14 Mar 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Kanban: Resolusi tombol Simpan yang tidak responsif di beberapa skenario.' },
       { type: 'fix', text: 'Kanban: Penyelarasan opsi prioritas (High/Medium/Low) di modal pembuatan tugas.' },
