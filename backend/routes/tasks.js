@@ -59,14 +59,32 @@ router.get('/:id/history', async (req, res) => {
 // Temporary Migration Endpoint
 router.get('/migrate-pic', async (req, res) => {
   try {
-    await pool.query('ALTER TABLE tasks ADD COLUMN pic VARCHAR(100);');
-    res.json({ success: true, message: 'Column pic added successfully.' });
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS tasks (
+          id SERIAL PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          description TEXT,
+          status VARCHAR(50) DEFAULT 'todo' CHECK (status IN ('backlog', 'todo', 'doing', 'done')),
+          priority VARCHAR(20) DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
+          due_date TIMESTAMP,
+          pic VARCHAR(100),
+          is_deleted BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      
+      CREATE TABLE IF NOT EXISTS task_history (
+          id SERIAL PRIMARY KEY,
+          task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+          action TEXT NOT NULL,
+          old_value JSONB,
+          new_value JSONB,
+          changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    res.json({ success: true, message: 'Schema built successfully.' });
   } catch (err) {
-    if (err.code === '42701') {
-      res.json({ success: true, message: 'Column pic already exists.' });
-    } else {
-      res.status(500).json({ error: err.message, code: err.code });
-    }
+    res.status(500).json({ error: err.message, code: err.code });
   }
 });
 
