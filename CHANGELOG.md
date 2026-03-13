@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-03-13
+
+### Added
+- **Auto-Release Popup**: Menambahkan modal "APA YANG BARU?" yang merangkum fitur v1.1.9 & v1.2.0. Modal ini dikonfigurasi untuk tampil setiap kali user login ke dashboard.
+
+### Optimized
+- **Pre-Deployment Audit**: Memastikan konsistensi routing koneksi API menuju domain Vercel/Supabase Production dan menyesuaikan setup CORS.
+- **Merge & Deployment**: Branch `dev` resmi digabungkan ke `main` dan deploy otomatis ke Vercel production server.
+
 ## [1.2.0] - 2026-03-13
 
 ### Added

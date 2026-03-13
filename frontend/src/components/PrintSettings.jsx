@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, Layout, Type, AlignCenter, Database, Lock, Unlock } from 'lucide-react';
+import { Save, RefreshCw, Layout, Type, Database, Lock, Unlock } from 'lucide-react';
 import { printSettingsAPI, countersAPI } from '../services/api';
 
 export default function PrintSettings({ isDarkMode }) {

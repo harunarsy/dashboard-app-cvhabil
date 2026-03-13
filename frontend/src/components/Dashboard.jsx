@@ -169,6 +169,10 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
     fetchStats();
   }, []);
 
+  const closeReleaseModal = () => {
+    setShowReleaseModal(false);
+  };
+
   const formatRupiah = (number) => {
     if (number >= 1000000) {
       return 'Rp ' + (number / 1000000).toFixed(1) + 'M';
