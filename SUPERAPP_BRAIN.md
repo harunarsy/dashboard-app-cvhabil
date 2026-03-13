@@ -47,9 +47,9 @@
 ## 3. [INCIDENT RECAP] (Feedback Loop)
 
 ### ⚠️ Top 3 Recent Critical Incidents
-1. **Relation Missing**: Tabel `document_counters` hilang di produksi Singapore. Fix: SQL Migration dijalankan untuk inisialisasi counter (SP #63, Nota #235, TT #235).
-2. **Deployment Blocked**: Build Vercel gagal karena `closeReleaseModal` undefined di Dashboard.jsx. SOP: Audit visual & lint sebelum push.
-3. **Versi Belang (Inconsistency)**: UI menampilkan versi usang (v1.1.8) sementara backend v1.2.2. Fix: Implementasi Audit Versi Global.
+1. **Relation Missing**: Tabel `document_counters` hilang di produksi (v1.2.2). Fix: SQL Migration dijalankan.
+2. **Berseraknya Label Versi**: Ditemukan label v1.1.8 tertinggal saat rilis v1.2.2. Fix: Implementasi Audit Versi Global v1.2.4.
+3. **Workflow Timeout**: Trial-error kredensial database membuang token. SOP: Maksimal 2 trial sebelum minta input/cek main branch.
 
 ---
 
