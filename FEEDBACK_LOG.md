@@ -46,3 +46,13 @@ Dokumen ini berisi catatan evaluasi performa AI selama proses development, digun
 - **Deskripsi:** Penggunaan format `v1.2.5 hotfix` (dengan spasi) menyebabkan inkonsistensi pencarian grep.
 - **Protokol Baru:** Wajib menggunakan tanda hubung (hyphen) tanpa spasi untuk semua label hotfix (Contoh: `v1.2.5-hotfix-2`).
 - **Tindakan Perbaikan:** Sinkronisasi total ke format `-hotfix-2`.
+
+### 9. Insiden Keamanan: Secret Leak (v1.2.5)
+- **Deskripsi:** Ditemukan PostgreSQL URI (kredensial database) ter-*hardcode* di dalam file script (`probe_supabase.js` dan `run_production_migration.js`).
+- **Dampak:** Kredensial bocor ke history Git/GitHub, berisiko tinggi terhadap keamanan data.
+- **Penyebab:** Pengabaian variabel lingkungan (`process.env`) demi kecepatan debugging/migrasi.
+- **Tindakan Perbaikan & Pencegahan:**
+    1. **Sanitasi Kode**: Semua URI dipindahkan ke Variable Env.
+    2. **Rotasi Password**: User merotasi password di Supabase.
+    3. **History Cleanup**: Rekomendasi penggunaan `git-filter-repo` untuk menghapus rahasia dari riwayat commit.
+    4. **Audit Wajib**: Setiap script baru yang menyentuh koneksi wajib diaudit Agent 3.
