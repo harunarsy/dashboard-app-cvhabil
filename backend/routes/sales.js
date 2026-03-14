@@ -99,21 +99,25 @@ router.post('/', auth, async (req, res) => {
 
     const orderNumber = manualOrderNumber ? manualOrderNumber : await generateOrderNumber(client);
     let total = 0;
-    items.forEach(it => { total += (it.qty || 1) * (it.unit_price || 0); });
+    let gross_profit = 0;
+    items.forEach(it => { 
+      total += (it.qty || 1) * (it.unit_price || 0);
+      gross_profit += (it.qty || 1) * ((it.unit_price || 0) - (it.unit_hpp || 0));
+    });
 
     const { rows } = await client.query(
-      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, sale_date, total, notes, payment_method, payment_details, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', sale_date || new Date(), total, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null]
+      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null]
     );
     const order = rows[0];
 
     for (const it of items) {
       const subtotal = (it.qty || 1) * (it.unit_price || 0);
       await client.query(
-        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, subtotal)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
-        [order.id, it.product_name, it.qty || 1, it.unit || 'pcs', it.unit_price || 0, subtotal]
+        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, subtotal)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [order.id, it.product_name, it.qty || 1, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, subtotal]
       );
     }
 
@@ -173,12 +177,16 @@ router.put('/:id', auth, async (req, res) => {
     if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
 
     let total = 0;
-    items.forEach(it => { total += (it.qty || 1) * (it.unit_price || 0); });
+    let gross_profit = 0;
+    items.forEach(it => { 
+      total += (it.qty || 1) * (it.unit_price || 0);
+      gross_profit += (it.qty || 1) * ((it.unit_price || 0) - (it.unit_hpp || 0));
+    });
 
     const { rowCount } = await client.query(
-      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, sale_date=$4, total=$5, notes=$6, status=$7, payment_method=$8, payment_details=$9, updated_at=NOW()
-       WHERE id=$10 AND is_deleted=FALSE`,
-      [customer_id || null, customer_name.trim(), customer_address || '', sale_date || new Date(), total, notes || '', status || 'draft', payment_method || 'Tunai', payment_details || '', req.params.id]
+      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, sale_date=$4, total=$5, gross_profit=$6, notes=$7, status=$8, payment_method=$9, payment_details=$10, updated_at=NOW()
+       WHERE id=$11 AND is_deleted=FALSE`,
+      [customer_id || null, customer_name.trim(), customer_address || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'draft', payment_method || 'Tunai', payment_details || '', req.params.id]
     );
     if (!rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
 
@@ -187,9 +195,9 @@ router.put('/:id', auth, async (req, res) => {
     for (const it of items) {
       const subtotal = (it.qty || 1) * (it.unit_price || 0);
       await client.query(
-        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, subtotal)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
-        [req.params.id, it.product_name, it.qty || 1, it.unit || 'pcs', it.unit_price || 0, subtotal]
+        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, subtotal)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [req.params.id, it.product_name, it.qty || 1, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, subtotal]
       );
     }
 
@@ -232,6 +240,23 @@ router.patch('/:id/pdf-status', auth, async (req, res) => {
     );
     if (!rowCount) return res.status(404).json({ error: 'Nota not found' });
     res.json({ message: 'Status PDF diperbarui' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PATCH payment status
+router.patch('/:id/payment-status', auth, async (req, res) => {
+  const { payment_status } = req.body;
+  if (!['unpaid', 'paid'].includes(payment_status)) {
+    return res.status(400).json({ error: 'payment_status must be unpaid or paid' });
+  }
+  try {
+    const paid_at = payment_status === 'paid' ? new Date() : null;
+    const { rowCount } = await pool.query(
+      'UPDATE sales_orders SET payment_status = $1, paid_at = $2, updated_at = NOW() WHERE id = $3 AND is_deleted = FALSE',
+      [payment_status, paid_at, req.params.id]
+    );
+    if (!rowCount) return res.status(404).json({ error: 'Nota not found' });
+    res.json({ message: 'Status pembayaran diperbarui', payment_status, paid_at });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

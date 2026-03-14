@@ -1,8 +1,7 @@
-# 🧠 HABIL SUPERAPP — MASTER BRAIN
-
-> [!IMPORTANT]
-> **DOKUMEN INDUK**: Satu-satunya sumber kebenaran (Source of Truth) untuk pengembangan HABIL SUPERAPP. Gabungan dari README, Framework, Roadmap, dan Feedback Log.
-> **VERSI SISTEM**: v1.3.16-stable
+# 🧠 HABIL SUPERAPP — Source of Truth
+> **Current Version**: `v1.3.18-stable`  
+> **Last Modified**: 2026-03-14
+> **VERSI SISTEM**: v1.3.18-stable
 
 ---
 

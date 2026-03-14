@@ -13,7 +13,18 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen }) {
     setLoading(true);
     try {
       const { data } = await printSettingsAPI.get();
-      setSettings(data);
+      // The backend returns { nota_layout: { ... } }
+      if (data && data.nota_layout) {
+        setSettings({
+          shop_name: data.nota_layout.shop_name || data.nota_layout.company_name || '',
+          address: data.nota_layout.address || '',
+          phone: data.nota_layout.phone || '',
+          footer: data.nota_layout.footer || data.nota_layout.footer_text || ''
+        });
+      } else {
+        // Fallback to empty if no settings found
+        setSettings({ shop_name: '', address: '', phone: '', footer: '' });
+      }
     } catch (e) {
       console.error('Error fetching settings:', e);
     } finally {
@@ -28,7 +39,17 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await printSettingsAPI.update(settings);
+      // The backend expects a flat object of key-value pairs
+      // nota_layout is the key used for print settings
+      const payload = {
+        nota_layout: {
+          shop_name: settings.shop_name,
+          address: settings.address,
+          phone: settings.phone,
+          footer: settings.footer
+        }
+      };
+      await printSettingsAPI.update(payload);
       setToast('Pengaturan berhasil disimpan');
       setTimeout(() => setToast(''), 3000);
     } catch (e) {

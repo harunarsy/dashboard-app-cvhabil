@@ -43,7 +43,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// UPDATE settings
+// UPDATE single setting
 router.post('/', auth, async (req, res) => {
   const { key, value } = req.body;
   if (!key || !value) return res.status(400).json({ error: 'Key and value required' });
@@ -59,6 +59,37 @@ router.post('/', auth, async (req, res) => {
     res.json(rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// BULK UPDATE settings
+router.post('/bulk', auth, async (req, res) => {
+  const settings = req.body;
+  if (!settings || typeof settings !== 'object') return res.status(400).json({ error: 'Settings object required' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    const results = [];
+    for (const [key, value] of Object.entries(settings)) {
+      const { rows } = await client.query(
+        `INSERT INTO print_settings (setting_key, setting_value, updated_at)
+         VALUES ($1, $2, NOW())
+         ON CONFLICT (setting_key) DO UPDATE SET setting_value = $2, updated_at = NOW()
+         RETURNING *`,
+        [key, value]
+      );
+      results.push(rows[0]);
+    }
+    
+    await client.query('COMMIT');
+    res.json({ success: true, count: results.length });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 

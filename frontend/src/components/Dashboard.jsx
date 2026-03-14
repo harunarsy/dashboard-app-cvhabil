@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Info, X, Activity, ShoppingCart, Users, Package } from 'lucide-react';
+import { Info, X, Activity, ShoppingCart, Package } from 'lucide-react';
 import api from '../services/api';
 import TasksKanban from './TasksKanban';
 import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.3.16-stable', date: '14 Mar 2026', status: 'latest',
+    version: 'v1.3.18-stable', date: '14 Mar 2026', status: 'latest',
     changes: [
-      { type: 'ui', text: 'Sidebar: Hamburger menu untuk mobile (<768px) dengan slide-in overlay.' },
-      { type: 'feat', text: 'PDF Nota: Alamat customer kini tercetak di bawah nama customer.' },
-      { type: 'feat', text: 'PDF SP: Alamat distributor kini tampil di bagian "Kepada Yth.".' },
-      { type: 'ui', text: 'Pengaturan: Live preview dokumen tercetak (real-time split layout).' }
+      { type: 'fix', text: 'Pengaturan: Perbaikan error "Gagal menyimpan pengaturan" & sinkronisasi data.' },
+      { type: 'feat', text: 'Nota: Tracking status pembayaran (Lunas/Belum) dengan 1-click toggle.' },
+      { type: 'feat', text: 'Nota: CRUD HPP per item barang dan kalkulasi otomatis Laba Kotor.' }
+    ]
+  },
+  {
+    version: 'v1.3.17-stable', date: '14 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'feat', text: 'Nota: Tracking status pembayaran (Lunas/Belum) dengan 1-click toggle.' },
+      { type: 'feat', text: 'Nota: CRUD HPP per item barang dan kalkulasi otomatis Laba Kotor.' },
+      { type: 'ui', text: 'Dashboard: Card statistik baru untuk total Laba Kotor (Paid Only).' },
+      { type: 'fix', text: 'Inventory: Auto-fill HPP default dari master produk saat pilih barang di Nota.' }
     ]
   },
   {
@@ -198,7 +206,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
   const [loading, setLoading] = useState(true);
   // Show release modal only once per session
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    return !sessionStorage.getItem('habil_release_seen_v1316');
+    return !sessionStorage.getItem('habil_release_seen_v1318');
   });
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
@@ -225,6 +233,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
 
   const [stats, setStats] = useState({
     totalPenjualan: 0,
+    totalLaba: 0,
     suratPesananAktif: 0,
     stokLowExpired: 0,
     totalCustomer: 0
@@ -247,7 +256,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    sessionStorage.setItem('habil_release_seen_v1316', 'true');
+    sessionStorage.setItem('habil_release_seen_v1318', 'true');
   };
 
   const formatRupiah = (number) => {
@@ -275,7 +284,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
           style={{ backgroundColor: cardBg, borderColor: border, color: text }}
         >
           <Info size={16} className="text-blue-500" />
-          <span className="text-sm font-semibold">Version 1.3.16-stable</span>
+          <span className="text-sm font-semibold">Version 1.3.18-stable</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium ml-2">Release Notes</span>
         </button>
       </div>
@@ -289,9 +298,9 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {[
           { label: 'Total Penjualan bln ini', value: stats.totalPenjualan, type: 'currency', icon: <Activity size={24} className="text-green-500"/> },
-          { label: 'Surat Pesanan Aktif', value: stats.suratPesananAktif, type: 'number', icon: <ShoppingCart size={24} className="text-blue-500"/> },
-          { label: 'Stok Low/Expired', value: stats.stokLowExpired, type: 'number', icon: <Package size={24} className="text-orange-500"/> },
-          { label: 'Total Customer', value: stats.totalCustomer, type: 'number', icon: <Users size={24} className="text-indigo-500"/> },
+          { label: 'Laba Kotor bln ini', value: stats.totalLaba, type: 'currency', icon: <Activity size={24} className="text-blue-500"/> },
+          { label: 'Surat Pesanan Aktif', value: stats.suratPesananAktif, type: 'number', icon: <ShoppingCart size={24} className="text-orange-500"/> },
+          { label: 'Stok Low/Expired', value: stats.stokLowExpired, type: 'number', icon: <Package size={24} className="text-red-500"/> },
         ].map((stat, i) => (
           <div key={i} className="rounded-2xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
             <div className="flex justify-between items-start mb-4">
@@ -339,7 +348,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.16-stable — 2026
+            HABIL SUPERAPP v1.3.18-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
@@ -347,7 +356,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
                 <span className="text-3xl">🚀</span>
               </div>
               <h2 className="text-2xl font-extrabold text-white tracking-tight">APA YANG BARU?</h2>
-              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.3.16-stable telah mengudara!</p>
+              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.3.18-stable telah mengudara!</p>
             </div>
 
             {/* Content Highlights */}
@@ -358,8 +367,8 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
                     <Activity size={20} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">Branding SuperApp</h3>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-relaxed">Sistem resmi berganti nama menjadi HABIL SUPERAPP dengan identitas yang lebih segar.</p>
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">Profit Tracking</h3>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-relaxed">Pantau Laba Kotor secara real-time di Dashboard. Hanya nota lunas yang dihitung!</p>
                   </div>
                 </div>
 
@@ -368,14 +377,14 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
                     <Package size={20} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">Modul SP A6 & Master Distributor</h3>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-relaxed">Buat Surat Pesanan super cepat, pilih PIC, dan cetak langsung dengan format A6 (Blue Area Layout).</p>
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">HPP CRUD & Status Bayar</h3>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-relaxed">Input HPP per item nota dan tandai pelunasan nota dengan satu klik saja.</p>
                   </div>
                 </div>
 
                 <div className="flex gap-4 items-start p-4 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
                   <div className="p-2 rounded-xl bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
-                    <Info size={20} />
+                    <Activity size={20} />
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 dark:text-white mb-1">Otomasi Nomor Dokumen</h3>
@@ -410,7 +419,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
               <div>
                 <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
-                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.3.16-stable - Terakhir diupdate 14 Mar 2026</p>
+                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.3.18-stable - Terakhir diupdate 14 Mar 2026</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />

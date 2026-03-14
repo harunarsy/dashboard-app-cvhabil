@@ -15,6 +15,16 @@ router.get('/stats', auth, async (req, res) => {
         AND DATE_TRUNC('month', sale_date) = DATE_TRUNC('month', CURRENT_DATE)
     `);
 
+    // 1b. Laba Kotor bln ini (Paid only)
+    const { rows: [{ total_laba }] } = await pool.query(`
+      SELECT COALESCE(SUM(gross_profit), 0) AS total_laba
+      FROM sales_orders
+      WHERE is_deleted = false
+        AND payment_status = 'paid'
+        AND status = 'final'
+        AND DATE_TRUNC('month', sale_date) = DATE_TRUNC('month', CURRENT_DATE)
+    `);
+
     // 2. Surat Pesanan Aktif
     const { rows: [{ active_po }] } = await pool.query(`
       SELECT COUNT(*) AS active_po 
@@ -52,6 +62,7 @@ router.get('/stats', auth, async (req, res) => {
 
     res.json({
       totalPenjualan: parseFloat(total_penjualan),
+      totalLaba: parseFloat(total_laba),
       suratPesananAktif: parseInt(active_po),
       stokLowExpired: lowExpiredTotal,
       totalCustomer: parseInt(total_customer)
