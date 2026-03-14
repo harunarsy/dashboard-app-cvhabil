@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const isLocal = window.location.hostname === 'localhost';
 const API_BASE_URL = isLocal 
-  ? 'http://localhost:5002/api' 
+  ? 'http://localhost:5006/api' 
   : (process.env.REACT_APP_API_URL || '/api');
 // Cache bust v2
 

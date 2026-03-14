@@ -8,8 +8,8 @@ const ensureSchema = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS print_settings (
         id SERIAL PRIMARY KEY,
-        key VARCHAR(50) UNIQUE NOT NULL,
-        value JSONB NOT NULL,
+        setting_key VARCHAR(50) UNIQUE NOT NULL,
+        setting_value JSONB NOT NULL,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
     )
@@ -17,14 +17,14 @@ const ensureSchema = async () => {
   
   // Default settings
   await pool.query(`
-    INSERT INTO print_settings (key, value)
+    INSERT INTO print_settings (setting_key, setting_value)
     VALUES ('nota_layout', '{
         "company_name": "CV HABIL SEJAHTERA BERSAMA",
         "address": "Surabaya, Jawa Timur — Indonesia",
         "footer_text": "Dokumen ini dicetak secara otomatis oleh Dashboard CV Habil",
         "show_logo": false
     }')
-    ON CONFLICT (key) DO NOTHING
+    ON CONFLICT (setting_key) DO NOTHING
   `);
 };
 ensureSchema().catch(console.error);
@@ -36,7 +36,7 @@ router.get('/', auth, async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM print_settings');
     const settings = {};
-    rows.forEach(r => { settings[r.key] = r.value; });
+    rows.forEach(r => { settings[r.setting_key] = r.setting_value; });
     res.json(settings);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -50,9 +50,9 @@ router.post('/', auth, async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `INSERT INTO print_settings (key, value, updated_at)
+      `INSERT INTO print_settings (setting_key, setting_value, updated_at)
        VALUES ($1, $2, NOW())
-       ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()
+       ON CONFLICT (setting_key) DO UPDATE SET setting_value = $2, updated_at = NOW()
        RETURNING *`,
       [key, value]
     );
