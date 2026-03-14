@@ -57,7 +57,8 @@
 
 1. **Database Migration Connection Error (v1.3.9)**: Gagal koneksi ke Supabase pooler (Error: "Tenant not found"). Diselesaikan dengan identifikasi cluster yang tepat (`aws-1` vs `aws-0`) dan penggunaan port `5432` secara langsung.
 2. **Infrastructure Switch (Supabase -> Neon)**: Migrasi seluruh data operasional ke Neon.tech untuk mengatasi keterbatasan performa Supabase Free Tier (v1.3.9).
-3. **Database Schema Mismatch (Production)**: Kegagalan simpan tugas (Error 500) karena tertinggalnya script migrasi tabel `tasks`. Diselesaikan dengan iterasi eksekusi DDL via endpoint Vercel sementara (v1.3.6).
+3. **Deep Data Parity (v1.3.11)**: Penemuan data kosong pada tabel `employees`, `products`, dan `bug_reports` di Neon setelah migrasi awal. Diselesaikan dengan `deep_migrate.js` yang melakukan iterasi baris demi baris dan audit parity 100%.
+4. **Database Schema Mismatch (Production)**: Kegagalan simpan tugas (Error 500) karena tertinggalnya script migrasi tabel `tasks`. Diselesaikan dengan iterasi eksekusi DDL via endpoint Vercel sementara (v1.3.6).
 4. **Database Reliability**: Konsolidasi connection pool ke *shared config* untuk mengatasi "MaxClients reached" (v1.3.3).
 5. **Optimasi Kanban & Layout**: Implementasi fitur Pro (PIC Assignment, Trash, edit, history).
 
@@ -91,4 +92,4 @@
 
 ---
 *Dokumen Master Brain ini menggantikan README, Master Framework, dan Roadmap lama.*
-*Terakhir diupdate berdasarkan prosedur Auto-Versioning v1.3.11-stable*
+*Terakhir diupdate berdasarkan prosedur Auto-Versioning v1.3.12-stable*

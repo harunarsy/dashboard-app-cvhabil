@@ -1,204 +1,158 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, Layout, Type, Database, Lock, Unlock } from 'lucide-react';
+import { Save, RefreshCw, Printer, Smartphone, Monitor } from 'lucide-react';
+import Skeleton from './common/Skeleton';
 import { printSettingsAPI, countersAPI } from '../services/api';
 
-export default function PrintSettings({ isDarkMode }) {
-  const [settings, setSettings] = useState({
-    company_name: '',
-    address: '',
-    footer_text: '',
-    show_logo: false
-  });
-  const [counters, setCounters] = useState([]);
+export default function PrintSettings({ isDarkMode, isSidebarOpen }) {
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
+  const [toast, setToast] = useState('');
+  const [counters, setCounters] = useState({});
 
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const [resSettings, resCounters] = await Promise.all([
-        printSettingsAPI.get(),
-        countersAPI.getAll()
-      ]);
-      if (resSettings.data.nota_layout) setSettings(resSettings.data.nota_layout);
-      setCounters(resCounters.data);
+      const { data } = await printSettingsAPI.get();
+      setSettings(data);
     } catch (e) {
-      console.error(e);
+      console.error('Error fetching settings:', e);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchSettings(); }, []);
+  const fetchCounters = async () => {
+    try {
+      const { data } = await countersAPI.getAll();
+      const map = {};
+      data.forEach(c => map[c.key] = c.value);
+      setCounters(map);
+    } catch (e) {
+      console.error('Error fetching counters:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+    fetchCounters();
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await printSettingsAPI.save('nota_layout', settings);
-      
-      // Save counter settings sequentially to avoid complex error handling for now
-      for (const counter of counters) {
-        await countersAPI.update(counter.doc_type, {
-          last_number: parseInt(counter.last_number) || 0,
-          is_locked: counter.is_locked
-        });
-      }
-
-      setMessage('✅ Pengaturan disimpan');
-      setTimeout(() => setMessage(''), 3000);
+      await printSettingsAPI.update(settings);
+      setToast('Pengaturan berhasil disimpan');
+      setTimeout(() => setToast(''), 3000);
     } catch (e) {
-      alert('Gagal menyimpan: ' + e.message);
+      console.error('Update error:', e);
+      setToast('Gagal menyimpan pengaturan');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleCounterChange = (index, field, value) => {
-    const newCounters = [...counters];
-    newCounters[index] = { ...newCounters[index], [field]: value };
-    setCounters(newCounters);
-  };
-
-  const bg = isDarkMode ? '#1C1C1E' : '#FFF';
-  const cardBg = isDarkMode ? '#000' : '#F5F5F7';
+  const bg = isDarkMode ? '#000' : '#F5F5F7';
+  const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = isDarkMode ? '#86868B' : '#6B7280';
 
-  if (loading) return <div style={{ padding: '40px', textAlign: 'center', color: sub }}>Memuat pengaturan...</div>;
+  if (loading) return (
+    <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+      <Skeleton width="200px" height="32px" style={{ marginBottom: '24px' }} />
+      <div style={{ backgroundColor: cardBg, borderRadius: '16px', padding: '24px', border: `1px solid ${border}` }}>
+        <Skeleton width="100%" height="20px" style={{ marginBottom: '16px' }} />
+        <Skeleton width="100%" height="20px" style={{ marginBottom: '16px' }} />
+        <Skeleton width="80%" height="20px" style={{ marginBottom: '16px' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '24px' }}>
+          <Skeleton height="100px" borderRadius="12px" />
+          <Skeleton height="100px" borderRadius="12px" />
+        </div>
+      </div>
+    </div>
+  );
+
+  if (!settings) return <div style={{ padding: '40px', textAlign: 'center', color: sub }}>Gagal memuat pengaturan.</div>;
 
   return (
-    <div style={{ padding: '24px', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '28px', fontWeight: '800', margin: '0 0 4px 0', color: text }}>Pengaturan Cetak</h1>
-          <p style={{ fontSize: '14px', color: sub, margin: 0 }}>Kustomisasi layout PDF Nota & Tanda Terima</p>
-        </div>
-        <button onClick={handleSave} disabled={saving}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', opacity: saving ? 0.7 : 1 }}>
-          {saving ? <RefreshCw size={18} className="spin" /> : <Save size={18} />}
-          Simpan Perubahan
-        </button>
-      </div>
-
-      {message && (
-        <div style={{ padding: '12px 16px', backgroundColor: '#34C75915', color: '#34C759', borderRadius: '10px', marginBottom: '20px', fontSize: '14px', fontWeight: '600' }}>
-          {message}
-        </div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-        {/* Form Section */}
-        <div style={{ backgroundColor: bg, padding: '24px', borderRadius: '20px', border: `1px solid ${border}` }}>
-          <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', color: text, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Type size={18} color="#007AFF" /> Header & Footer
-          </h3>
-          
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: sub, marginBottom: '8px', textTransform: 'uppercase' }}>Nama Perusahaan</label>
-            <input value={settings.company_name} onChange={e => setSettings({ ...settings, company_name: e.target.value })}
-              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: `1px solid ${border}`, backgroundColor: cardBg, color: text, fontSize: '14px', outline: 'none' }} />
+    <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <div>
+            <h1 style={{ fontSize: '28px', fontWeight: '700', color: text, margin: 0 }}>Pengaturan Cetak</h1>
+            <p style={{ color: sub, margin: '4px 0 0', fontSize: '14px' }}>Konfigurasi printer dan format dokumen</p>
           </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: sub, marginBottom: '8px', textTransform: 'uppercase' }}>Alamat / Kontak</label>
-            <textarea value={settings.address} onChange={e => setSettings({ ...settings, address: e.target.value })} rows={3}
-              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: `1px solid ${border}`, backgroundColor: cardBg, color: text, fontSize: '14px', outline: 'none', resize: 'none' }} />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: sub, marginBottom: '8px', textTransform: 'uppercase' }}>Teks Footer</label>
-            <textarea value={settings.footer_text} onChange={e => setSettings({ ...settings, footer_text: e.target.value })} rows={2}
-              style={{ width: '100%', padding: '12px', borderRadius: '10px', border: `1px solid ${border}`, backgroundColor: cardBg, color: text, fontSize: '14px', outline: 'none', resize: 'none' }} />
-          </div>
+          <button 
+            onClick={handleSave}
+            disabled={saving}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#007AFF', color: '#FFF', 
+              border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'opacity 0.2s'
+            }}
+          >
+            {saving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
+            {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+          </button>
         </div>
 
-        {/* Preview Section */}
-        <div style={{ backgroundColor: bg, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`, display: 'flex', flexDirection: 'column' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', color: text, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Layout size={18} color="#5856D6" /> Live Preview (Header)
-          </h3>
-          
-          <div style={{ flex: 1, backgroundColor: '#FFF', borderRadius: '12px', padding: '20px', border: '1px solid #E5E5EA', color: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-            <div style={{ fontSize: '18px', fontWeight: '800', marginBottom: '8px', maxWidth: '100%' }}>{settings.company_name || 'NAMA PERUSAHAAN'}</div>
-            <div style={{ fontSize: '10px', color: '#6B7280', whiteSpace: 'pre-wrap' }}>{settings.address || 'Alamat perusahaan akan muncul di sini...'}</div>
-            
-            <div style={{ width: '100%', height: '1px', backgroundColor: '#000', margin: '15px 0' }}></div>
-            
-            <div style={{ fontSize: '12px', fontWeight: '700', letterSpacing: '2px', marginBottom: '30px' }}>NOTA PENJUALAN</div>
-            
-            <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', marginBottom: '40px' }}>
-               <div style={{ height: '8px', width: '40%', backgroundColor: '#F3F4F6', borderRadius: '4px' }}></div>
-               <div style={{ height: '8px', width: '30%', backgroundColor: '#F3F4F6', borderRadius: '4px' }}></div>
-            </div>
-
-            <div style={{ width: '100%', height: '60px', backgroundColor: '#F9FAFB', borderRadius: '8px', marginBottom: '20px', border: '1px solid #F3F4F6' }}></div>
-
-            <div style={{ fontSize: '8px', color: '#9CA3AF', marginTop: 'auto' }}>{settings.footer_text || 'Footer text...'}</div>
-          </div>
-        </div>
-
-        {/* Counter Settings Section */}
-        <div style={{ backgroundColor: bg, padding: '24px', borderRadius: '20px', border: `1px solid ${border}`, gridColumn: '1 / -1' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '8px', color: text, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Database size={18} color="#FF9500" /> System Controls / Migration
-          </h3>
-          <p style={{ fontSize: '13px', color: sub, marginBottom: '24px' }}>
-            Atur nomor urut dokumen terakhir saat migrasi dari spreadsheet. Matikan (Unlock) Auto-Numbering jika kamu ingin menginput nomor manual di form pembuatan.
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {counters.map((counter, idx) => (
-              <div key={counter.id} style={{ padding: '16px', backgroundColor: cardBg, borderRadius: '12px', border: `1px solid ${border}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <div style={{ fontWeight: '700', color: text, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '4px', backgroundColor: counter.is_locked ? '#34C759' : '#FF3B30' }}></div>
-                    {counter.doc_type}
-                  </div>
-                  <button 
-                    onClick={() => handleCounterChange(idx, 'is_locked', !counter.is_locked)}
-                    style={{ 
-                      padding: '4px 12px', 
-                      borderRadius: '8px', 
-                      fontSize: '11px', 
-                      fontWeight: '700', 
-                      border: 'none', 
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      backgroundColor: counter.is_locked ? '#34C75920' : '#FF3B3020',
-                      color: counter.is_locked ? '#34C759' : '#FF3B30'
-                    }}
-                  >
-                    {counter.is_locked ? <><Lock size={12}/> Auto (Locked)</> : <><Unlock size={12}/> Manual (Unlocked)</>}
-                  </button>
-                </div>
-                
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, marginBottom: '6px' }}>Prefix Dokumen</label>
-                  <input 
-                    value={counter.prefix} 
-                    disabled
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, backgroundColor: '#F3F4F6', color: '#6B7280', fontSize: '13px', outline: 'none', opacity: 0.7 }} 
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, marginBottom: '6px' }}>Nomor Terakhir (Angka)</label>
-                  <input 
-                    type="number"
-                    value={counter.last_number} 
-                    onChange={e => handleCounterChange(idx, 'last_number', e.target.value)}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, backgroundColor: bg, color: text, fontSize: '13px', outline: 'none' }} 
-                  />
-                </div>
+        <div style={{ backgroundColor: cardBg, borderRadius: '16px', padding: '24px', border: `1px solid ${border}`, boxShadow: isDarkMode ? 'none' : '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            <section>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: text, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Printer size={18} color="#007AFF" /> Header Invoice
+              </h3>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '12px', color: sub, marginBottom: '8px', fontWeight: '600' }}>NAMA TOKO</label>
+                <input 
+                  type="text" 
+                  value={settings.shop_name} 
+                  onChange={e => setSettings({...settings, shop_name: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text }} 
+                />
               </div>
-            ))}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: sub, marginBottom: '8px', fontWeight: '600' }}>ALAMAT</label>
+                <textarea 
+                  rows={3} 
+                  value={settings.address} 
+                  onChange={e => setSettings({...settings, address: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, resize: 'none' }} 
+                />
+              </div>
+            </section>
+
+            <section>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: text, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Monitor size={18} color="#FF9500" /> Kontak & Info
+              </h3>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '12px', color: sub, marginBottom: '8px', fontWeight: '600' }}>NOMOR TELEPON</label>
+                <input 
+                  type="text" 
+                  value={settings.phone} 
+                  onChange={e => setSettings({...settings, phone: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text }} 
+                />
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '12px', color: sub, marginBottom: '8px', fontWeight: '600' }}>CATATAN KAKI (FOOTER)</label>
+                <input 
+                  type="text" 
+                  value={settings.footer} 
+                  onChange={e => setSettings({...settings, footer: e.target.value})}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text }} 
+                />
+              </div>
+            </section>
           </div>
         </div>
 
+        {toast && (
+          <div style={{ position: 'fixed', bottom: '24px', right: '24px', padding: '12px 24px', backgroundColor: '#1C1C1E', color: '#FFF', borderRadius: '12px', fontSize: '14px', fontWeight: '600', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+            {toast}
+          </div>
+        )}
       </div>
     </div>
   );

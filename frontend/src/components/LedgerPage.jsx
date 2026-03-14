@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, X } from 'lucide-react';
 import { ledgerAPI } from '../services/api';
+import Skeleton from './common/Skeleton';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -15,6 +16,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen }) {
   const [editId, setEditId] = useState(null);
   const [toast, setToast] = useState('');
   const [form, setForm] = useState({ entry_date: new Date().toISOString().split('T')[0], account_name: '', description: '', debit: 0, credit: 0, category: 'Penjualan' });
+  const [loading, setLoading] = useState(true);
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
   const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
@@ -26,7 +28,11 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen }) {
   const inputStyle = { width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, fontSize: '14px', outline: 'none', boxSizing: 'border-box' };
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' };
 
-  const fetchEntries = async () => { try { const { data } = await ledgerAPI.getAll(); setEntries(data); } catch (e) { console.error(e); } };
+  const fetchEntries = async () => { 
+    setLoading(true);
+    try { const { data } = await ledgerAPI.getAll(); setEntries(data); } catch (e) { console.error(e); } 
+    finally { setLoading(false); }
+  };
   const fetchSummary = async () => { try { const { data } = await ledgerAPI.getSummary(); setSummary(data); } catch (e) { console.error(e); } };
 
   useEffect(() => { fetchEntries(); fetchSummary(); }, []);
@@ -95,25 +101,41 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen }) {
               </tr>
             </thead>
             <tbody>
-              {entries.map(e => (
-                <tr key={e.id} style={{ borderBottom: `1px solid ${border}` }}>
-                  <td style={{ padding: '10px 12px', color: text }}>{fmtDate(e.entry_date)}</td>
-                  <td style={{ padding: '10px 12px', fontWeight: '600', color: text }}>{e.account_name}</td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: sub }}>{e.category}</span>
-                  </td>
-                  <td style={{ padding: '10px 12px', color: sub, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description}</td>
-                  <td style={{ padding: '10px 12px', fontWeight: '600', color: parseFloat(e.debit) > 0 ? '#34C759' : sub }}>{fmtRp(e.debit)}</td>
-                  <td style={{ padding: '10px 12px', fontWeight: '600', color: parseFloat(e.credit) > 0 ? '#FF3B30' : sub }}>{fmtRp(e.credit)}</td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <button onClick={() => openEdit(e)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={14} color="#007AFF" /></button>
-                      <button onClick={() => handleDelete(e.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} color="#FF3B30" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {!entries.length && <tr><td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: sub }}>Belum ada entry. Klik "Tambah Entry" untuk memulai.</td></tr>}
+              {loading ? (
+                [1, 2, 3, 4, 5].map(i => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${border}` }}>
+                    <td style={{ padding: '12px' }}><Skeleton width="80px" /></td>
+                    <td style={{ padding: '12px' }}><Skeleton width="120px" /></td>
+                    <td style={{ padding: '12px' }}><Skeleton width="60px" borderRadius="4px" /></td>
+                    <td style={{ padding: '12px' }}><Skeleton width="180px" /></td>
+                    <td style={{ padding: '12px' }}><Skeleton width="90px" /></td>
+                    <td style={{ padding: '12px' }}><Skeleton width="90px" /></td>
+                    <td style={{ padding: '12px' }}><Skeleton width="40px" /></td>
+                  </tr>
+                ))
+              ) : (
+                <>
+                  {entries.map(e => (
+                    <tr key={e.id} style={{ borderBottom: `1px solid ${border}` }}>
+                      <td style={{ padding: '10px 12px', color: text }}>{fmtDate(e.entry_date)}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: '600', color: text }}>{e.account_name}</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 6px', borderRadius: '4px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: sub }}>{e.category}</span>
+                      </td>
+                      <td style={{ padding: '10px 12px', color: sub, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: '600', color: parseFloat(e.debit) > 0 ? '#34C759' : sub }}>{fmtRp(e.debit)}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: '600', color: parseFloat(e.credit) > 0 ? '#FF3B30' : sub }}>{fmtRp(e.credit)}</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button onClick={() => openEdit(e)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={14} color="#007AFF" /></button>
+                          <button onClick={() => handleDelete(e.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} color="#FF3B30" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {!entries.length && <tr><td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: sub }}>Belum ada entry. Klik "Tambah Entry" untuk memulai.</td></tr>}
+                </>
+              )}
             </tbody>
           </table>
         </div>

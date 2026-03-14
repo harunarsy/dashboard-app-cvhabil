@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Phone, MapPin, X } from 'lucide-react';
 import { customersAPI } from '../services/api';
+import Skeleton from './common/Skeleton';
 
 export default function CustomerList({ isDarkMode, isSidebarOpen }) {
 
@@ -10,6 +11,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen }) {
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ name: '', address: '', phone: '', type: 'offline' });
   const [toast, setToast] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
   const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
@@ -18,10 +20,12 @@ export default function CustomerList({ isDarkMode, isSidebarOpen }) {
   const sub = '#86868B';
 
   const fetchCustomers = async () => {
+    setLoading(true);
     try {
       const { data } = await customersAPI.getAll();
       setCustomers(data);
     } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { fetchCustomers(); }, []);
@@ -90,27 +94,43 @@ export default function CustomerList({ isDarkMode, isSidebarOpen }) {
 
       {/* Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '12px' }}>
-        {filtered.map(c => (
-          <div key={c.id} style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '16px 18px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <div style={{ fontSize: '15px', fontWeight: '700', color: text, marginBottom: '6px' }}>{c.name}</div>
-                {c.phone && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: sub, marginBottom: '4px' }}><Phone size={13} /> {c.phone}</div>}
-                {c.address && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: sub }}><MapPin size={13} /> {c.address}</div>}
+        {loading ? (
+          [1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '16px 18px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <Skeleton width="60%" height="20px" />
+                <div style={{ display: 'flex', gap: '4px' }}><Skeleton width="24px" height="24px" /><Skeleton width="24px" height="24px" /></div>
               </div>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <button onClick={() => openEdit(c)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={16} color="#007AFF" /></button>
-                <button onClick={() => handleDelete(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={16} color="#FF3B30" /></button>
+              <Skeleton width="80%" height="14px" style={{ marginBottom: '8px' }} />
+              <Skeleton width="40%" height="14px" style={{ marginBottom: '12px' }} />
+              <Skeleton width="60px" height="18px" borderRadius="4px" />
+            </div>
+          ))
+        ) : (
+          <>
+            {filtered.map(c => (
+              <div key={c.id} style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '16px 18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: '700', color: text, marginBottom: '6px' }}>{c.name}</div>
+                    {c.phone && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: sub, marginBottom: '4px' }}><Phone size={13} /> {c.phone}</div>}
+                    {c.address && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: sub }}><MapPin size={13} /> {c.address}</div>}
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button onClick={() => openEdit(c)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={16} color="#007AFF" /></button>
+                    <button onClick={() => handleDelete(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={16} color="#FF3B30" /></button>
+                  </div>
+                </div>
+                <div style={{ marginTop: '8px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', backgroundColor: c.type === 'reseller' ? '#FF950018' : '#007AFF18', color: c.type === 'reseller' ? '#FF9500' : '#007AFF' }}>
+                    {c.type === 'reseller' ? 'Reseller' : c.type === 'institusi' ? 'Institusi' : 'Offline'}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div style={{ marginTop: '8px' }}>
-              <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', backgroundColor: c.type === 'reseller' ? '#FF950018' : '#007AFF18', color: c.type === 'reseller' ? '#FF9500' : '#007AFF' }}>
-                {c.type === 'reseller' ? 'Reseller' : c.type === 'institusi' ? 'Institusi' : 'Offline'}
-              </span>
-            </div>
-          </div>
-        ))}
-        {!filtered.length && <p style={{ color: sub, fontSize: '14px', gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>Belum ada customer.</p>}
+            ))}
+            {!filtered.length && <p style={{ color: sub, fontSize: '14px', gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>Belum ada customer.</p>}
+          </>
+        )}
       </div>
 
       {/* Modal */}
