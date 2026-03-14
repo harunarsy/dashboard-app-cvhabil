@@ -2,6 +2,10 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.26-stable] - 2026-03-15
+### Fixed
+- **Bug — Alamat & telepon customer tidak muncul di PDF Nota**: API GET /api/sales sekarang JOIN customers untuk customer_phone; kolom customer_phone ditambah di sales_orders. Form Nota punya field Telepon, auto-fill dari customer terpilih. generateNotaPDF render address/phone hanya bila ada data.
+
 ## [v1.3.25-stable] - 2026-03-15
 ### Fixed
 - **Bug — Alamat & telepon CV Habil tampil "-" di PDF Nota**: Normalisasi field mapping (shop_name→company_name, footer→footer_text). Hanya render baris alamat/telepon bila ada data; kosong di DB = baris tidak muncul. Refetch print_settings saat buka modal cetak dan sebelum generate PDF.
