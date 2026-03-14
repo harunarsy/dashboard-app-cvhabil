@@ -113,6 +113,46 @@ const getDueStatus = (due_date, status) => {
   return null;
 };
 
+const buildAuditDiff = (rawSnapshot, action) => {
+  if (!rawSnapshot) return [];
+  let snapshot = rawSnapshot;
+  if (typeof snapshot === 'string') {
+    try { snapshot = JSON.parse(snapshot); } catch (e) { return []; }
+  }
+  if (!snapshot || typeof snapshot !== 'object') return [];
+
+  let before = snapshot.before || null;
+  let after = snapshot.after || null;
+  if (!before && !after) {
+    if (action === 'CREATE' || action === 'RESTORE') {
+      before = {};
+      after = snapshot;
+    } else if (action === 'DELETE') {
+      before = snapshot;
+      after = {};
+    } else {
+      before = snapshot;
+      after = snapshot;
+    }
+  }
+
+  const keys = new Set([...(before ? Object.keys(before) : []), ...(after ? Object.keys(after) : [])]);
+  const preferredOrder = ['invoice_number','distributor_name','status','total_hna','hna_final','hna_plus_ppn','disc_cod_amount','due_date','payment_date'];
+  const sortedKeys = [...preferredOrder.filter(k => keys.has(k)), ...[...keys].filter(k => !preferredOrder.includes(k))];
+
+  const diffs = [];
+  sortedKeys.forEach(key => {
+    const oldVal = before ? before[key] : undefined;
+    const newVal = after ? after[key] : undefined;
+    const oldLabel = (oldVal === null || oldVal === undefined || oldVal === '') ? '—' : String(oldVal);
+    const newLabel = (newVal === null || newVal === undefined || newVal === '') ? '—' : String(newVal);
+    if (oldLabel === newLabel) return;
+    diffs.push({ field: key, before: oldLabel, after: newLabel });
+  });
+
+  return diffs;
+};
+
 // ─── Sort helper ────────────────────────────────────────────────────────────
 const sortData = (data, key, dir) => {
   if (!key) return data;
@@ -891,21 +931,34 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
                         {/* Snapshot — before/after style */}
                         {snap && (
                           <div style={{ backgroundColor: isDarkMode ? '#2C2C2E' : '#F9F9FB', borderRadius: '10px', padding: '10px 14px', fontSize: '12px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}` }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                              {[
-                                { label: 'Distributor', val: snap.distributor_name },
-                                { label: 'Status', val: snap.status },
-                                { label: 'HNA Final', val: snap.hna_final ? formatRp(snap.hna_final) : null },
-                                { label: 'HNA+PPN', val: snap.hna_plus_ppn ? formatRp(snap.hna_plus_ppn) : null },
-                                { label: 'No Faktur', val: snap.invoice_number },
-                                { label: 'Tgl Faktur', val: snap.purchase_date ? formatLocalDate(snap.purchase_date, { day: '2-digit', month: 'short', year: 'numeric' }) : null },
-                              ].filter(r => r.val).map(row => (
-                                <div key={row.label}>
-                                  <span style={{ color: '#86868B', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{row.label}</span>
-                                  <div style={{ color: isDarkMode ? '#FFF' : '#1C1C1E', fontWeight: '600', marginTop: '2px' }}>{row.val}</div>
+                            {buildAuditDiff(log.snapshot, log.action).length > 0 ? (
+                              buildAuditDiff(log.snapshot, log.action).map((row, idx) => (
+                                <div key={`${row.field}-${idx}`} style={{ marginBottom: '6px' }}>
+                                  <span style={{ color: '#86868B', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{row.field.replace(/_/g, ' ')}</span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '3px' }}>
+                                    <span style={{ color: '#FF3B30', textDecoration: 'line-through', fontSize: '12px' }}>{row.before}</span>
+                                    <span style={{ fontSize: '11px', color: '#86868B' }}>→</span>
+                                    <span style={{ color: '#34C759', fontWeight: '700', fontSize: '12px' }}>{row.after}</span>
+                                  </div>
                                 </div>
-                              ))}
-                            </div>
+                              ))
+                            ) : (
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                {[
+                                  { label: 'Distributor', val: snap.distributor_name },
+                                  { label: 'Status', val: snap.status },
+                                  { label: 'HNA Final', val: snap.hna_final ? formatRp(snap.hna_final) : null },
+                                  { label: 'HNA+PPN', val: snap.hna_plus_ppn ? formatRp(snap.hna_plus_ppn) : null },
+                                  { label: 'No Faktur', val: snap.invoice_number },
+                                  { label: 'Tgl Faktur', val: snap.purchase_date ? formatLocalDate(snap.purchase_date, { day: '2-digit', month: 'short', year: 'numeric' }) : null },
+                                ].filter(r => r.val).map(row => (
+                                  <div key={row.label}>
+                                    <span style={{ color: '#86868B', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{row.label}</span>
+                                    <div style={{ color: isDarkMode ? '#FFF' : '#1C1C1E', fontWeight: '600', marginTop: '2px' }}>{row.val}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                             {log.note && (
                               <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}`, color: '#86868B', fontSize: '11px' }}>
                                 📝 {log.note}
