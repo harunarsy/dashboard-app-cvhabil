@@ -2,6 +2,25 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.21-stable] - 2026-03-15
+### Added
+- **Fitur #1 — HNA/HPP per Batch**: Tambahkan field HNA/HPP di form Stok Masuk. Nilai default diambil dari master produk, bisa diubah manual per batch. Saat pilih produk di Nota Penjualan, HPP auto-fill dari batch FEFO (expired date paling dekat).
+  - Kolom `hna` di tabel `inventory_batches` untuk menyimpan HPP per batch
+  - Field HNA di form Stok Masuk dengan auto-fill dari product master
+  - Endpoint `/inventory/fefo-hna/:productId` untuk get HPP dari batch FEFO
+  - Auto-fill HPP di Nota Penjualan saat produk dipilih
+
+- **Fitur #2 — Standarisasi Dropdown ke MasterSelect**: Refactoring semua dropdown master data ke komponen `MasterSelect` yang sama:
+  - Dropdown Produk di Stok Masuk (InventoryDashboard): search + edit + hapus + tambah baru
+  - Dropdown Distributor di Surat Pesanan (PurchaseOrderList): search + edit + hapus + tambah baru
+  - Dropdown Customer di Nota Penjualan (SalesOrderList): sudah menggunakan MasterSelect sejak v1.3.20
+  - Semua edit dan hapus dari dropdown langsung update database
+  - Konsisten menggunakan 1 shared component MasterSelect
+
+### Changed
+- **Database**: Auto-migration menambah kolom `hna` ke `inventory_batches`.
+- **API**: Updated `/inventory/stock-in`, Purchase Order receive, dan Invoice create untuk handle HNA per batch.
+
 ## [v1.3.20-stable] - 2026-03-15
 ### Fixed
 - **Bug #1 — Header PDF**: Tampilkan alamat & nomor telepon CV Habil di bawah nama perusahaan di header kiri PDF Nota Penjualan. Data diambil dari tabel `print_settings`. Jika kosong, tampilkan placeholder "-".
