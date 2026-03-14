@@ -27,7 +27,7 @@ export function generateSPPDF(order, options = {}) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(baseFontSize + 4);
   doc.setTextColor(...accentColor);
-  doc.text(settings.company_name, pageWidth / 2, margin + 5, { align: 'center' });
+  doc.text(String(settings.company_name || 'CV. HABIL SEJAHTERA BERSAMA'), pageWidth / 2, margin + 5, { align: 'center' });
   
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(baseFontSize + 2);
@@ -48,7 +48,7 @@ export function generateSPPDF(order, options = {}) {
   const startYInfo = margin + 22;
   doc.text('Kepada Yth:', margin, startYInfo);
   doc.setFont('helvetica', 'bold');
-  doc.text(order.distributor_name, margin, startYInfo + 5);
+  doc.text(String(order.distributor_name || '-'), margin, startYInfo + 5);
   doc.setFont('helvetica', 'normal');
   
   if (salesmanInfo.salesman_name) {
@@ -60,7 +60,7 @@ export function generateSPPDF(order, options = {}) {
 
   // Kanan: SP Number & Date
   const infoX = pageWidth - margin;
-  doc.text(`No. SP: ${order.po_number}`, infoX, startYInfo, { align: 'right' });
+  doc.text(`No. SP: ${String(order.po_number || '-')}`, infoX, startYInfo, { align: 'right' });
   const dateStr = order.order_date ? new Date(order.order_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
   doc.text(`Tanggal: ${dateStr}`, infoX, startYInfo + 5, { align: 'right' });
   if (order.expected_date) {
@@ -112,7 +112,7 @@ export function generateSPPDF(order, options = {}) {
   if (order.notes) {
     doc.setFontSize(baseFontSize - 1);
     doc.setTextColor(100);
-    doc.text(`Catatan: ${order.notes}`, margin, finalY);
+    doc.text(`Catatan: ${String(order.notes || '')}`, margin, finalY);
     finalY += 8;
   }
 
@@ -132,13 +132,13 @@ export function generateSPPDF(order, options = {}) {
   
   const picName = order.pic_name || 'Harun Al Rasyid';
   doc.setFont('helvetica', 'bold');
-  doc.text(picName, pageWidth - margin - 20, sigY + 24, { align: 'center' });
+  doc.text(String(picName || ''), pageWidth - margin - 20, sigY + 24, { align: 'center' });
 
   // Global Footer
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(isA6 ? 5 : 6);
   doc.setTextColor(180);
-  doc.text(settings.footer_text, pageWidth / 2, pageHeight - 4, { align: 'center' });
+  doc.text(String(settings.footer_text || ''), pageWidth / 2, pageHeight - 4, { align: 'center' });
 
   return doc;
 }

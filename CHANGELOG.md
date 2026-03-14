@@ -1,5 +1,16 @@
 # CHANGELOG - HABIL SUPERAPP
 
+## [v1.3.15-stable] - 2026-03-14
+### Fixed
+- **Bug #1 — PDF Print Error**: Added null-safety guards (`String(val || '')`) to all `jsPDF.text()` calls in `generateNotaPDF.js` and `generateSPPDF.js`. Prevents "Invalid arguments passed to jsPDF.text" crash on A5/A6 format.
+- **Bug #2 — Blank Release Notes Modal**: Expanded `typeConfig` in `Dashboard.jsx` to include `feat`, `ui`, `docs`, `changed`, `stability` types. Added safe fallback so unknown types no longer crash the modal renderer.
+- **Bug #3 — Drag-to-Delete Kanban**: Added `PATCH /api/tasks/:id/soft-delete` backend endpoint. Frontend now calls soft-delete (sets `is_deleted = TRUE`) instead of non-existent DELETE route. Tasks properly disappear from board without data loss.
+
+## [v1.3.14-stable] - 2026-03-14
+### Fixed
+- **Bug Reports Restoration**: Standardized `bug_reports` schema in Neon.tech by renaming `created_at` to `reported_at` and adding missing columns (`steps`, `contact`, `user_agent`). Data parity is now fully restored in the UI.
+- **UI Consistency**: Updated version labels across Dashboard, Login, and Sidebar to `v1.3.14-stable`.
+
 ## [v1.3.13-stable] - 2026-03-14
 ### Fixed
 - **Build Failure Hotfix**: Removed unused variables and imports in `PrintSettings.jsx` that were blocking Vercel deployment (CI=true).

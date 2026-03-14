@@ -57,4 +57,30 @@ router.get('/:id/history', async (req, res) => {
 });
 
 
+// PATCH soft-delete task (is_deleted = true)
+router.patch('/:id/soft-delete', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      'UPDATE tasks SET is_deleted = TRUE WHERE id = $1 RETURNING *',
+      [id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
+    res.json({ success: true, task: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE task (hard delete - fallback)
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('UPDATE tasks SET is_deleted = TRUE WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
