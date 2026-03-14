@@ -34,16 +34,25 @@ export function generateSPPDF(order, options = {}) {
   doc.setTextColor(...accentColor);
   console.log('[generateSPPDF] Header - company_name:', settings.company_name);
   doc.text(String(settings.company_name || 'CV. HABIL SEJAHTERA BERSAMA'), pageWidth / 2, margin + 5, { align: 'center' });
-  
+
+  const companyAddress = settings.address ? String(settings.address) : '-';
+  const companyPhone = settings.phone ? String(settings.phone) : '-';
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(baseFontSize - 1);
+  doc.setTextColor(30);
+  doc.text(companyAddress, pageWidth / 2, margin + 9, { align: 'center' });
+  doc.text(companyPhone, pageWidth / 2, margin + 13, { align: 'center' });
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(baseFontSize + 2);
   doc.setTextColor(0);
-  doc.text('SURAT PESANAN', pageWidth / 2, margin + 12, { align: 'center' });
+  doc.text('SURAT PESANAN', pageWidth / 2, margin + 19, { align: 'center' });
 
   // Blue Line Divider
   doc.setDrawColor(...accentColor);
   doc.setLineWidth(0.5);
-  doc.line(margin, margin + 16, pageWidth - margin, margin + 16);
+  doc.line(margin, margin + 22, pageWidth - margin, margin + 22);
 
   // ─── Metadata & Info ──────────────────────────────────────────────────
   doc.setFont('helvetica', 'normal');
@@ -51,7 +60,7 @@ export function generateSPPDF(order, options = {}) {
   doc.setTextColor(30);
 
   // Kiri: Distributor Info
-  const startYInfo = margin + 22;
+  const startYInfo = margin + 26;
   doc.text('Kepada Yth:', margin, startYInfo);
   doc.setFont('helvetica', 'bold');
   doc.text(String(order.distributor_name || '-'), margin, startYInfo + 5);
