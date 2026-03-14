@@ -25,6 +25,7 @@ const ensureSchema = async () => {
       batch_no VARCHAR(100),
       expired_date DATE,
       qty_current INT DEFAULT 0,
+      hna DECIMAL(15,2) DEFAULT 0,
       source_type VARCHAR(30),
       source_ref VARCHAR(100),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -57,6 +58,11 @@ const ensureSchema = async () => {
     CREATE INDEX IF NOT EXISTS idx_mutations_product ON inventory_mutations(product_id);
     CREATE INDEX IF NOT EXISTS idx_mutations_created ON inventory_mutations(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_opname_date ON stock_opname(opname_date DESC);
+  `);
+  // Add hna column to inventory_batches if not exists
+  await pool.query(`
+    ALTER TABLE inventory_batches
+      ADD COLUMN IF NOT EXISTS hna DECIMAL(15,2) DEFAULT 0;
   `);
 };
 ensureSchema().catch(e => console.error('inventory ensureSchema:', e));
@@ -142,16 +148,24 @@ router.delete('/products/:id', auth, async (req, res) => {
 
 // POST stock in (stok masuk)
 router.post('/stock-in', auth, async (req, res) => {
-  const { product_id, batch_no, expired_date, qty, source_type, source_ref, notes } = req.body;
+  const { product_id, batch_no, expired_date, qty, hna, source_type, source_ref, notes } = req.body;
   if (!product_id || !qty || qty <= 0) return res.status(400).json({ error: 'product_id and qty required' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    
+    // Get product to use its hna as default if not provided
+    let finalHna = hna;
+    if (!finalHna) {
+      const { rows: [product] } = await client.query('SELECT hna FROM product_master WHERE id = $1', [product_id]);
+      finalHna = product?.hna || 0;
+    }
+    
     // Create or update batch
     const { rows: [batch] } = await client.query(
-      `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, source_type, source_ref)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [product_id, batch_no || null, expired_date || null, qty, source_type || 'manual', source_ref || null]
+      `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [product_id, batch_no || null, expired_date || null, qty, finalHna, source_type || 'manual', source_ref || null]
     );
     // Record mutation
     await client.query(
@@ -326,6 +340,27 @@ router.get('/mutations', auth, async (req, res) => {
       LIMIT 100
     `);
     res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET FEFO batch HNA for a product (for auto-fill in sales order)
+router.get('/fefo-hna/:productId', auth, async (req, res) => {
+  try {
+    const { rows: [batch] } = await pool.query(`
+      SELECT hna
+      FROM inventory_batches
+      WHERE product_id = $1 AND qty_current > 0
+      ORDER BY expired_date ASC NULLS LAST
+      LIMIT 1
+    `, [req.params.productId]);
+    
+    if (batch) {
+      res.json({ hna: batch.hna || 0 });
+    } else {
+      // No active batch, return product master HNA
+      const { rows: [product] } = await pool.query('SELECT hna FROM product_master WHERE id = $1', [req.params.productId]);
+      res.json({ hna: product?.hna || 0 });
+    }
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

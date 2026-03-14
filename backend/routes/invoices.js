@@ -254,15 +254,16 @@ router.post('/', auth, async (req, res) => {
       for (const item of items) {
         // Find product in product_master by name
         const { rows: [product] } = await pool.query(
-          'SELECT id FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
+          'SELECT id, hna FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
           [item.product_name]
         );
         if (product && (item.quantity || 0) > 0) {
-          // Create inventory batch
+          // Create inventory batch with HNA from invoice item (or fallback to product HNA)
+          const batchHna = item.hna || product.hna || 0;
           const { rows: [batch] } = await pool.query(
-            `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, source_type, source_ref)
-             VALUES ($1, $2, $3, $4, 'faktur', $5) RETURNING id`,
-            [product.id, invoice_number, item.expired_date || null, item.quantity, `invoice-${invoiceId}`]
+            `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref)
+             VALUES ($1, $2, $3, $4, $5, 'faktur', $6) RETURNING id`,
+            [product.id, invoice_number, item.expired_date || null, item.quantity, batchHna, `invoice-${invoiceId}`]
           );
           // Record mutation
           await pool.query(

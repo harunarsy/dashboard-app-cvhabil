@@ -193,9 +193,9 @@ router.post('/:id/receive', auth, async (req, res) => {
       if (product) {
         // Auto stock-in to inventory
         const { rows: [batch] } = await client.query(
-          `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, source_type, source_ref)
-           VALUES ($1,$2,$3,$4,'purchase',$5) RETURNING *`,
-          [product.id, item.batch_no || null, item.expired_date || null, recvQty, `PO-${req.params.id}`]
+          `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref)
+           VALUES ($1,$2,$3,$4,$5,'purchase',$6) RETURNING *`,
+          [product.id, item.batch_no || null, item.expired_date || null, recvQty, product.hna || 0, `PO-${req.params.id}`]
         );
         // Record mutation
         await client.query(
