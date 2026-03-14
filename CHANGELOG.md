@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.11-stable] - 2026-03-14
+
+### Fixed
+- **Deep Data Migration**: Selesai memigrasikan data tabel `invoices`, `invoice_items`, `purchase_orders`, `purchase_order_items`, dan `bug_reports` dengan data parity 100%.
+- **Database Schema**: Sinkronisasi kolom `disc_cod_per_item` dan `hna_after_cod` pada tabel `invoice_items` di Neon.
+
+### Changed
+- **Versioning**: Global bump ke v1.3.11-stable untuk menandai selesainya migrasi infrastruktur penuh.
+
 ## [1.3.10-stable] - 2026-03-14
 
 ### Changed
