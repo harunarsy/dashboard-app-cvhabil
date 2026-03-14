@@ -38,6 +38,7 @@ const ensureSchema = async () => {
     CREATE INDEX IF NOT EXISTS idx_sales_orders_customer ON sales_orders(customer_name);
     CREATE INDEX IF NOT EXISTS idx_sales_items_order ON sales_items(sales_order_id);
   `);
+    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(30)`);
 };
 ensureSchema().catch(e => console.error('sales ensureSchema:', e));
 
@@ -58,8 +59,10 @@ const generateOrderNumber = async (client) => {
 router.get('/', auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT s.*, COALESCE(json_agg(i ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
+      `SELECT s.*, COALESCE(s.customer_phone, MAX(c.phone)) AS customer_phone,
+        COALESCE(json_agg(i ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
        FROM sales_orders s
+       LEFT JOIN customers c ON s.customer_id = c.id
        LEFT JOIN sales_items i ON i.sales_order_id = s.id
        WHERE s.is_deleted = FALSE
        GROUP BY s.id
@@ -75,8 +78,10 @@ router.get('/', auth, async (req, res) => {
 router.get('/:id', auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT s.*, COALESCE(json_agg(i ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
+      `SELECT s.*, COALESCE(s.customer_phone, MAX(c.phone)) AS customer_phone,
+        COALESCE(json_agg(i ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
        FROM sales_orders s
+       LEFT JOIN customers c ON s.customer_id = c.id
        LEFT JOIN sales_items i ON i.sales_order_id = s.id
        WHERE s.id = $1
        GROUP BY s.id`, [req.params.id]
@@ -93,7 +98,7 @@ router.post('/', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { customer_id, customer_name, customer_address, sale_date, notes, items, payment_method, payment_details, order_number: manualOrderNumber } = req.body;
+    const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, payment_method, payment_details, order_number: manualOrderNumber } = req.body;
     if (!customer_name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
     if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
 
@@ -106,9 +111,9 @@ router.post('/', auth, async (req, res) => {
     });
 
     const { rows } = await client.query(
-      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null]
+      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null]
     );
     const order = rows[0];
 
@@ -154,8 +159,10 @@ router.post('/', auth, async (req, res) => {
 
     // Return the full order with items
     const result = await pool.query(
-      `SELECT s.*, COALESCE(json_agg(i ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
-       FROM sales_orders s LEFT JOIN sales_items i ON i.sales_order_id = s.id
+      `SELECT s.*, COALESCE(s.customer_phone, MAX(c.phone)) AS customer_phone,
+        COALESCE(json_agg(i ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
+       FROM sales_orders s LEFT JOIN customers c ON s.customer_id = c.id
+       LEFT JOIN sales_items i ON i.sales_order_id = s.id
        WHERE s.id = $1 GROUP BY s.id`, [order.id]
     );
     res.status(201).json(result.rows[0]);
@@ -172,7 +179,7 @@ router.put('/:id', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { customer_id, customer_name, customer_address, sale_date, notes, items, status, payment_method, payment_details } = req.body;
+    const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, status, payment_method, payment_details } = req.body;
     if (!customer_name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
     if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
 
@@ -184,9 +191,9 @@ router.put('/:id', auth, async (req, res) => {
     });
 
     const { rowCount } = await client.query(
-      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, sale_date=$4, total=$5, gross_profit=$6, notes=$7, status=$8, payment_method=$9, payment_details=$10, updated_at=NOW()
-       WHERE id=$11 AND is_deleted=FALSE`,
-      [customer_id || null, customer_name.trim(), customer_address || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'draft', payment_method || 'Tunai', payment_details || '', req.params.id]
+      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, updated_at=NOW()
+       WHERE id=$12 AND is_deleted=FALSE`,
+      [customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'draft', payment_method || 'Tunai', payment_details || '', req.params.id]
     );
     if (!rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
 
@@ -203,8 +210,10 @@ router.put('/:id', auth, async (req, res) => {
 
     await client.query('COMMIT');
     const result = await pool.query(
-      `SELECT s.*, COALESCE(json_agg(i ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
-       FROM sales_orders s LEFT JOIN sales_items i ON i.sales_order_id = s.id
+      `SELECT s.*, COALESCE(s.customer_phone, MAX(c.phone)) AS customer_phone,
+        COALESCE(json_agg(i ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
+       FROM sales_orders s LEFT JOIN customers c ON s.customer_id = c.id
+       LEFT JOIN sales_items i ON i.sales_order_id = s.id
        WHERE s.id = $1 GROUP BY s.id`, [req.params.id]
     );
     res.json(result.rows[0]);
