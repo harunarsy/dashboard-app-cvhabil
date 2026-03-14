@@ -227,7 +227,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
 
   const addItem = () => setItems([...items, blankItem()]);
   const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx));
-  const updateItem = (idx, field, value) => {
+  const updateItem = async (idx, field, value) => {
     const newItems = [...items];
     let updated = { ...newItems[idx], [field]: value };
     
@@ -236,8 +236,16 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
       const match = products.find(p => p.name.toLowerCase() === value.toLowerCase());
       if (match) {
         updated.unit_price = parseFloat(match.sell_price) || 0;
-        updated.unit_hpp = parseFloat(match.hna) || 0;
         updated.unit = match.unit || 'pcs';
+        
+        // Fetch FEFO batch HNA (or product master HNA as fallback)
+        try {
+          const { data } = await inventoryAPI.getFefoHna(match.id);
+          updated.unit_hpp = parseFloat(data.hna) || 0;
+        } catch (e) {
+          // Fallback to product master HNA
+          updated.unit_hpp = parseFloat(match.hna) || 0;
+        }
       }
     }
     

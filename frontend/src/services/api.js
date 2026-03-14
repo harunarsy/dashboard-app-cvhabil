@@ -112,6 +112,7 @@ export const inventoryAPI = {
   getMutations: () => api.get('/inventory/mutations'),
   getOpname: () => api.get('/inventory/opname'),
   createOpname: (data) => api.post('/inventory/opname', data),
+  getFefoHna: (productId) => api.get(`/inventory/fefo-hna/${productId}`),
 };
 
 export const purchaseOrdersAPI = {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, AlertTriangle, Clock, Trash2, Edit2, X, ArrowDownCircle, ArrowUpCircle, ClipboardCheck } from 'lucide-react';
 import { inventoryAPI } from '../services/api';
+import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
@@ -20,7 +21,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen }) {
   // Product form
   const [pForm, setPForm] = useState({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5 });
   // Stock in form
-  const [siForm, setSiForm] = useState({ product_id: '', batch_no: '', expired_date: '', qty: 1 });
+  const [siForm, setSiForm] = useState({ product_name: '', batch_no: '', expired_date: '', qty: 1, hna: 0 });
   // Stock out form
   const [soForm, setSoForm] = useState({ product_id: '', qty: 1, notes: '' });
   // Opname
@@ -80,11 +81,42 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen }) {
     try { await inventoryAPI.deleteProduct(id); flash('Produk dinonaktifkan'); fetchProducts(); } catch (e) { alert(e.response?.data?.error || e.message); }
   };
 
+  // MasterSelect handlers for Products
+  const handleAddProduct = async (name) => {
+    await inventoryAPI.createProduct({ name, unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5 });
+    fetchProducts();
+  };
+  
+  const handleRemoveProduct = async (name) => {
+    const prod = products.find(p => p.name === name);
+    if (prod) await inventoryAPI.deleteProduct(prod.id);
+    fetchProducts();
+  };
+
   // ─── Stock In ─────────────────────────────────────────────────────────
-  const openStockIn = (p) => { setSiForm({ product_id: p?.id || '', batch_no: '', expired_date: '', qty: 1 }); setShowModal('stockIn'); };
+  const openStockIn = (p) => { 
+    setSiForm({ 
+      product_name: p?.name || '', 
+      batch_no: '', 
+      expired_date: '', 
+      qty: 1,
+      hna: p?.hna || 0
+    }); 
+    setShowModal('stockIn'); 
+  };
   const saveStockIn = async () => {
-    if (!siForm.product_id || !siForm.qty) return alert('Pilih produk dan qty');
-    try { await inventoryAPI.stockIn(siForm); flash('Stok masuk berhasil'); setShowModal(null); fetchProducts(); fetchAlerts(); }
+    if (!siForm.product_name || !siForm.qty) return alert('Pilih produk dan qty');
+    try {
+      const prod = products.find(p => p.name === siForm.product_name);
+      if (!prod) return alert('Produk tidak ditemukan');
+      const payload = { ...siForm, product_id: prod.id };
+      delete payload.product_name;
+      await inventoryAPI.stockIn(payload);
+      flash('Stok masuk berhasil');
+      setShowModal(null);
+      fetchProducts();
+      fetchAlerts();
+    }
     catch (e) { alert(e.response?.data?.error || e.message); }
   };
 
@@ -307,16 +339,28 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen }) {
             <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label style={labelStyle}>Produk *</label>
-                <select value={siForm.product_id} onChange={e => setSiForm(p => ({ ...p, product_id: parseInt(e.target.value) }))} style={inputStyle}>
-                  <option value="">Pilih produk...</option>
-                  {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                <MasterSelect
+                  value={siForm.product_name}
+                  onChange={v => {
+                    setSiForm(pv => ({ ...pv, product_name: v }));
+                    const prod = products.find(p => p.name === v);
+                    if (prod) setSiForm(pv => ({ ...pv, hna: prod.hna || 0 }));
+                  }}
+                  options={products.map(p => ({ name: p.name }))}
+                  onAdd={handleAddProduct}
+                  onRemove={handleRemoveProduct}
+                  isDarkMode={isDarkMode}
+                  placeholder="Pilih atau tambah produk..."
+                />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div><label style={labelStyle}>No. Batch</label><input value={siForm.batch_no} onChange={e => setSiForm(p => ({ ...p, batch_no: e.target.value }))} placeholder="B2603-01" style={inputStyle} /></div>
                 <div><label style={labelStyle}>Qty</label><input type="number" value={siForm.qty} min="1" onChange={e => setSiForm(p => ({ ...p, qty: parseInt(e.target.value) || 0 }))} style={inputStyle} /></div>
               </div>
-              <div><label style={labelStyle}>Tanggal Expired</label><input type="date" value={siForm.expired_date} onChange={e => setSiForm(p => ({ ...p, expired_date: e.target.value }))} style={inputStyle} /></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div><label style={labelStyle}>HNA / HPP</label><input type="number" step="0.01" value={siForm.hna} onChange={e => setSiForm(p => ({ ...p, hna: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
+                <div><label style={labelStyle}>Tanggal Expired</label><input type="date" value={siForm.expired_date} onChange={e => setSiForm(p => ({ ...p, expired_date: e.target.value }))} style={inputStyle} /></div>
+              </div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
                 <button onClick={saveStockIn} style={{ flex: 1, padding: '13px', backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Simpan</button>
                 <button onClick={() => setShowModal(null)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>

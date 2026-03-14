@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Edit2, X, CheckCircle, FileText } from 'lucide-react';
 import { purchaseOrdersAPI, distributorsAPI, inventoryAPI, countersAPI, printSettingsAPI } from '../services/api';
 import { generateSPPDF } from '../utils/generateSPPDF';
+import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
@@ -120,16 +121,6 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen }) {
     } catch (e) { alert(e.response?.data?.error || e.message); }
   };
 
-  const openEditDistributor = () => {
-    const dist = distributors.find(d => d.name === form.distributor_name);
-    if (dist) {
-      setDistForm({ name: dist.name, short_code: dist.short_code || '', salesman_name: dist.salesman_name || '', salesman_phone: dist.salesman_phone || '' });
-    } else {
-      setDistForm({ name: form.distributor_name || '', short_code: '', salesman_name: '', salesman_phone: '' });
-    }
-    setShowModal('distributor');
-  };
-
   const handleReceive = async () => {
     const toReceive = receiveItems.filter(i => (parseInt(i.received_qty) || 0) > 0);
     if (!toReceive.length) return alert('Masukkan qty yang diterima');
@@ -140,6 +131,23 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen }) {
   };
 
   const handleDelete = async (id) => { if (!window.confirm('Hapus SP ini?')) return; try { await purchaseOrdersAPI.remove(id); flash('SP dihapus'); fetchOrders(); } catch (e) { alert(e.response?.data?.error || e.message); } };
+  
+  // MasterSelect handlers for Distributor
+  const handleAddDistributor = async (name) => {
+    await distributorsAPI.add(name);
+    fetchDistributors();
+  };
+  
+  const handleRemoveDistributor = async (name) => {
+    await distributorsAPI.remove(name);
+    fetchDistributors();
+  };
+  
+  const handleRenameDistributor = async (oldName, newName) => {
+    await distributorsAPI.rename(oldName, newName);
+    fetchDistributors();
+  };
+  
   const addItem = () => setItems([...items, blankItem()]);
   const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx));
   const updateItem = (idx, f, v) => { const n = [...items]; n[idx] = { ...n[idx], [f]: v }; setItems(n); };
@@ -301,13 +309,20 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen }) {
               )}
               <div>
                 <label style={labelStyle}>Distributor *</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input list="dist-list" value={form.distributor_name} onChange={e => setForm(p => ({ ...p, distributor_name: e.target.value }))} placeholder="Pilih atau ketik distributor..." style={{...inputStyle, flex: 1}} />
-                  <button onClick={openEditDistributor} style={{ padding: '0 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: cardBg, color: text, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '600' }}>
-                    <Edit2 size={14} color="#007AFF" /> Edit Data
-                  </button>
-                </div>
-                <datalist id="dist-list">{distributors.map((d, i) => <option key={i} value={d.name} />)}</datalist>
+                <MasterSelect 
+                  value={form.distributor_name}
+                  onChange={v => {
+                    setForm(p => ({ ...p, distributor_name: v }));
+                    const match = distributors.find(d => d.name === v);
+                    if (match) setForm(p => ({ ...p, distributor_address: match.address || '' }));
+                  }}
+                  options={distributors}
+                  onAdd={handleAddDistributor}
+                  onRemove={handleRemoveDistributor}
+                  onRename={handleRenameDistributor}
+                  isDarkMode={isDarkMode}
+                  placeholder="Pilih atau tambah distributor..."
+                />
                 {selectedDistributorInfo && (
                   <div style={{ marginTop: '8px', padding: '10px 12px', backgroundColor: isDarkMode ? '#222' : '#F9F9F9', borderRadius: '8px', border: `1px solid ${border}`, fontSize: '12px', color: sub, display: 'flex', gap: '16px' }}>
                     <div><strong style={{color: text}}>Salesman:</strong> {selectedDistributorInfo.salesman_name || '-'}</div>
