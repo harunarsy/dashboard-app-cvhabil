@@ -1,6 +1,6 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, Package, DollarSign, Users, ChevronLeft, ChevronRight, Sun, LogOut, Bug, X, Moon, FileText, BarChart3, Briefcase, Printer } from 'lucide-react';
+import { Home, ShoppingCart, Package, DollarSign, Users, ChevronLeft, ChevronRight, Sun, LogOut, Bug, X, Moon, FileText, BarChart3, Briefcase, Printer, Menu } from 'lucide-react';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 
@@ -9,10 +9,22 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   const location = useLocation();
   const { user } = useContext(AuthContext);
   const [showBugModal, setShowBugModal] = useState(false);
-  const [bugType, setBugType] = useState('bug'); // 'bug' | 'feature'
+  const [bugType, setBugType] = useState('bug');
   const [bugForm, setBugForm] = useState({ title: '', description: '', steps: '', contact: '' });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  // Mobile state
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Close mobile sidebar on route change
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -73,19 +85,58 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
 
   return (
     <>
-      <div style={{ position: 'fixed', left: 0, top: 0, height: '100vh', width: isSidebarOpen ? '256px' : '80px', backgroundColor: bg, borderRight: `1px solid ${border}`, display: 'flex', flexDirection: 'column', transition: 'width 0.3s ease-in-out', zIndex: 40 }}>
+      {/* Mobile Hamburger Button */}
+      {isMobile && (
+        <button
+          onClick={() => setMobileOpen(o => !o)}
+          style={{
+            position: 'fixed', top: '14px', left: '14px', zIndex: 100,
+            background: bg, border: `1px solid ${border}`, borderRadius: '10px',
+            width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+          }}
+        >
+          {mobileOpen ? <X size={18} color={txt} /> : <Menu size={18} color={txt} />}
+        </button>
+      )}
+
+      {/* Mobile Overlay */}
+      {isMobile && mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 39, backdropFilter: 'blur(2px)' }}
+        />
+      )}
+
+      {/* Sidebar Panel */}
+      <div style={{
+        position: 'fixed', left: 0, top: 0, height: '100vh',
+        width: isMobile ? '256px' : (isSidebarOpen ? '256px' : '80px'),
+        backgroundColor: bg, borderRight: `1px solid ${border}`,
+        display: 'flex', flexDirection: 'column',
+        transition: isMobile ? 'transform 0.3s ease-in-out' : 'width 0.3s ease-in-out',
+        zIndex: 40,
+        transform: isMobile ? (mobileOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
+      }}>
         
         {/* Header */}
-        <div style={{ padding: '1.5rem', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: isSidebarOpen ? 'space-between' : 'center' }}>
-          {isSidebarOpen && (
+        <div style={{ padding: '1.5rem', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: (isMobile ? 'space-between' : (isSidebarOpen ? 'space-between' : 'center')) }}>
+          {(isMobile || isSidebarOpen) && (
             <div>
               <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0 0 0.25rem 0', color: txt }}>Dashboard</h1>
               <p style={{ fontSize: '0.875rem', color: sub, margin: 0 }}>HABIL SUPERAPP</p>
             </div>
           )}
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', color: txt }}>
-            {isSidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-          </button>
+          {!isMobile && (
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', color: txt }}>
+              {isSidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+            </button>
+          )}
+          {isMobile && (
+            <button onClick={() => setMobileOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', color: txt }}>
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         {/* Menu */}
@@ -94,11 +145,12 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
             const Icon = item.icon;
             const isActive = item.active;
             const isCurrent = location.pathname === item.path;
+            const showLabel = isMobile || isSidebarOpen;
             return (
               <button key={index} onClick={() => isActive && navigate(item.path)} title={item.label}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.5rem', border: 'none', cursor: isActive ? 'pointer' : 'not-allowed', backgroundColor: isCurrent ? '#007AFF' : (isActive ? (isDarkMode ? '#1C1C1E' : '#F5F5F7') : 'transparent'), color: isCurrent ? '#FFF' : (isActive ? txt : (isDarkMode ? '#3A3A3C' : '#D1D5DB')), opacity: isActive ? 1 : 0.5, fontSize: '0.875rem', fontWeight: isCurrent ? '700' : '500', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
                 <Icon size={20} style={{ minWidth: '20px' }} />
-                {isSidebarOpen && (
+                {showLabel && (
                   <>
                     <span>{item.label}</span>
                     {!isActive && <span style={{ marginLeft: 'auto', fontSize: '0.7rem' }}>Soon</span>}
@@ -115,21 +167,19 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
           <button onClick={() => setShowBugModal(true)} title="Bug / Saran Fitur"
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? '#2C1A00' : '#FFF9E6', color: '#FF9500', fontSize: '0.875rem', fontWeight: '600' }}>
             <Bug size={20} style={{ minWidth: '20px' }} />
-            {isSidebarOpen && <span>Bug / Saran Fitur</span>}
+            {(isMobile || isSidebarOpen) && <span>Bug / Saran Fitur</span>}
           </button>
 
-          {/* Dark mode */}
           <button onClick={() => setIsDarkMode(!isDarkMode)} title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7', color: txt, fontSize: '0.875rem', fontWeight: '500' }}>
             {isDarkMode ? <Sun size={20} style={{ minWidth: '20px' }} /> : <Moon size={20} style={{ minWidth: '20px' }} />}
-            {isSidebarOpen && <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>}
+            {(isMobile || isSidebarOpen) && <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>}
           </button>
 
-          {/* Logout */}
           <button onClick={handleLogout} title="Logout"
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', backgroundColor: '#FF3B30', color: 'white', fontSize: '0.875rem', fontWeight: '500' }}>
             <LogOut size={20} style={{ minWidth: '20px' }} />
-            {isSidebarOpen && <span>Logout</span>}
+            {(isMobile || isSidebarOpen) && <span>Logout</span>}
           </button>
         </div>
       </div>

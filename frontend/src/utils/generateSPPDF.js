@@ -50,12 +50,25 @@ export function generateSPPDF(order, options = {}) {
   doc.setFont('helvetica', 'bold');
   doc.text(String(order.distributor_name || '-'), margin, startYInfo + 5);
   doc.setFont('helvetica', 'normal');
+
+  // Distributor address (if available)
+  let distY = startYInfo + 5;
+  if (order.distributor_address) {
+    doc.setFontSize(baseFontSize - 1);
+    doc.setTextColor(80, 80, 80);
+    distY += isA6 ? 4 : 5;
+    doc.text(String(order.distributor_address), margin, distY);
+    doc.setTextColor(30);
+    doc.setFontSize(baseFontSize);
+  }
   
   if (salesmanInfo.salesman_name) {
-    doc.text(`Up: ${salesmanInfo.salesman_name}`, margin, startYInfo + 10);
+    distY += isA6 ? 4 : 5;
+    doc.text(`Up: ${salesmanInfo.salesman_name}`, margin, distY);
   }
   if (salesmanInfo.salesman_phone) {
-    doc.text(`Telp: ${salesmanInfo.salesman_phone}`, margin, startYInfo + 14);
+    distY += isA6 ? 4 : 4;
+    doc.text(`Telp: ${salesmanInfo.salesman_phone}`, margin, distY);
   }
 
   // Kanan: SP Number & Date
@@ -83,7 +96,7 @@ export function generateSPPDF(order, options = {}) {
   const tableHead = [['No', 'Nama Barang', 'Qty', 'Satuan', 'Keterangan']];
 
   autoTable(doc, {
-    startY: startYInfo + 18,
+    startY: distY + (isA6 ? 14 : 18),
     head: tableHead,
     body: tableData,
     theme: 'grid',

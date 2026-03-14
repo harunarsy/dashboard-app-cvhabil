@@ -6,15 +6,16 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.3.15-stable', date: '14 Mar 2026', status: 'latest',
+    version: 'v1.3.16-stable', date: '14 Mar 2026', status: 'latest',
     changes: [
-      { type: 'fix', text: 'PDF: Null-safety guards pada semua jsPDF.text() calls. Cetak A5/A6 tidak lagi crash.' },
-      { type: 'fix', text: 'Dashboard: typeConfig diperluas, modal Release Notes tidak lagi blank screen.' },
-      { type: 'fix', text: 'Kanban: Drag-to-delete kini menggunakan soft-delete (is_deleted=TRUE) bukan hard delete.' }
+      { type: 'ui', text: 'Sidebar: Hamburger menu untuk mobile (<768px) dengan slide-in overlay.' },
+      { type: 'feat', text: 'PDF Nota: Alamat customer kini tercetak di bawah nama customer.' },
+      { type: 'feat', text: 'PDF SP: Alamat distributor kini tampil di bagian "Kepada Yth.".' },
+      { type: 'ui', text: 'Pengaturan: Live preview dokumen tercetak (real-time split layout).' }
     ]
   },
   {
-    version: 'v1.3.14-stable', date: '14 Mar 2026', status: 'stable',
+    version: 'v1.3.15-stable', date: '14 Mar 2026', status: 'stable',
     changes: [
       { type: 'feat', text: 'Infrastructure: Migrasi database ke Neon.tech (Postgres Serverless) untuk optimasi kecepatan.' },
       { type: 'fix', text: 'Performance: Penurunan latency query database dan cold-start yang lebih responsif.' }
@@ -197,7 +198,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
   const [loading, setLoading] = useState(true);
   // Show release modal only once per session
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    return !sessionStorage.getItem('habil_release_seen_v1315');
+    return !sessionStorage.getItem('habil_release_seen_v1316');
   });
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
@@ -246,7 +247,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    sessionStorage.setItem('habil_release_seen_v1315', 'true');
+    sessionStorage.setItem('habil_release_seen_v1316', 'true');
   };
 
   const formatRupiah = (number) => {
@@ -274,7 +275,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
           style={{ backgroundColor: cardBg, borderColor: border, color: text }}
         >
           <Info size={16} className="text-blue-500" />
-          <span className="text-sm font-semibold">Version 1.3.15-stable</span>
+          <span className="text-sm font-semibold">Version 1.3.16-stable</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium ml-2">Release Notes</span>
         </button>
       </div>
@@ -338,7 +339,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.15-stable — 2026
+            HABIL SUPERAPP v1.3.16-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
@@ -346,7 +347,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
                 <span className="text-3xl">🚀</span>
               </div>
               <h2 className="text-2xl font-extrabold text-white tracking-tight">APA YANG BARU?</h2>
-              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.3.15-stable telah mengudara!</p>
+              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.3.16-stable telah mengudara!</p>
             </div>
 
             {/* Content Highlights */}
@@ -409,7 +410,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
               <div>
                 <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
-                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.3.15-stable - Terakhir diupdate 14 Mar 2026</p>
+                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.3.16-stable - Terakhir diupdate 14 Mar 2026</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />
