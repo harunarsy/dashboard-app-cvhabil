@@ -42,7 +42,7 @@ export default function Login() {
             <Building2 size={32} />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">HABIL SUPERAPP</h1>
-          <p className="text-gray-500 mt-2">Business Management System v1.3.9-stable</p>
+          <p className="text-gray-500 mt-2">Business Management System v1.3.10-stable</p>
         </div>
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
           <h2 className="text-xl font-semibold text-gray-800 mb-6 text-center">Sign In</h2>

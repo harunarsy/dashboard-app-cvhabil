@@ -74,3 +74,10 @@ Dokumen ini berisi catatan evaluasi performa AI selama proses development, digun
 - **Tindakan Perbaikan & Pencegahan:**
     1. Membuat iterasi API temporer di sisi server yang terdeploy untuk melakukan force schema migration dari dalam, mengatasi restriksi pooler/firewall.
     2. SOP baru: Selalu sediakan audit DB table mapping bila terjadi Error API 500 saat eksekusi query CREATE/UPDATE.
+### 11. Insiden Migrasi Supabase: Cluster Mismatch (v1.3.9)
+- **Deskripsi**: Script migrasi data gagal terhubung ke Supabase dengan error "Tenant or user not found" meskipun kredensial benar.
+- **Penyebab**: Supabase menggunakan multiple regional clusters (`aws-0`, `aws-1`). Project user berada di `aws-1`, sementara script default mencoba ke `aws-0`.
+- **Tindakan Perbaikan & Pencegahan**:
+    1. Melakukan audit Git history untuk mencari hardcoded URL lama yang valid.
+    2. Menemukan referensi `aws-1-ap-southeast-1.pooler.supabase.com`.
+    3. Update SOP: Selalu cek login/koneksi Supabase via project dashboard untuk memastikan host cluster yang aktif sebelum migrasi manual dilakukan.
