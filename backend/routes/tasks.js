@@ -2,10 +2,20 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 
-// GET all tasks
+// GET all active tasks
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM tasks WHERE is_deleted = false ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET trash tasks
+router.get('/trash', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM tasks WHERE is_deleted = true ORDER BY updated_at DESC');
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -72,11 +82,37 @@ router.patch('/:id/soft-delete', async (req, res) => {
   }
 });
 
-// DELETE task (hard delete - fallback)
+// DELETE task (soft delete - fallback)
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    await pool.query('UPDATE tasks SET is_deleted = TRUE WHERE id = $1', [id]);
+    await pool.query('UPDATE tasks SET is_deleted = TRUE, updated_at = NOW() WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH restore task
+router.patch('/:id/restore', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      'UPDATE tasks SET is_deleted = FALSE, updated_at = NOW() WHERE id = $1 RETURNING *',
+      [id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE permanent task
+router.delete('/:id/permanent', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM tasks WHERE id = $1', [id]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

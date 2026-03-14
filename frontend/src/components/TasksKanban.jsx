@@ -12,8 +12,10 @@ import {
   Trash2,
   History,
   ChevronDown,
-  User
+  User,
+  RotateCcw
 } from 'lucide-react';
+import { tasksAPI } from '../services/api';
 import Skeleton from './common/Skeleton';
 
 const API_BASE = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5001/api' : '/api');
@@ -47,6 +49,9 @@ const TasksKanban = () => {
   const [taskHistory, setTaskHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showTrashModal, setShowTrashModal] = useState(false);
+  const [trashTasks, setTrashTasks] = useState([]);
+  const [trashLoading, setTrashLoading] = useState(false);
 
   useEffect(() => {
     fetchTasks();
@@ -55,12 +60,24 @@ const TasksKanban = () => {
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}/tasks`);
+      const res = await tasksAPI.getAll();
       setTasks(res.data);
     } catch (err) {
       console.error('Error fetching tasks:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTrash = async () => {
+    setTrashLoading(true);
+    try {
+      const res = await tasksAPI.getTrash();
+      setTrashTasks(res.data);
+    } catch (err) {
+      console.error('Error fetching trash:', err);
+    } finally {
+      setTrashLoading(false);
     }
   };
 
@@ -72,7 +89,7 @@ const TasksKanban = () => {
         ...newTask,
         due_date: newTask.due_date === '' ? null : newTask.due_date
       };
-      await axios.post(`${API_BASE}/tasks`, taskData);
+      await tasksAPI.create(taskData);
       setShowAddModal(false);
       setNewTask({ title: '', description: '', status: 'todo', priority: 'medium', due_date: '', pic: '' });
       fetchTasks();
@@ -86,7 +103,7 @@ const TasksKanban = () => {
     try {
       const task = tasks.find(t => t.id === taskId);
       if (task.status === newStatus) return;
-      await axios.put(`${API_BASE}/tasks/${taskId}`, { ...task, status: newStatus });
+      await tasksAPI.update(taskId, { ...task, status: newStatus });
       fetchTasks();
     } catch (err) {
       console.error('Error updating task status:', err);
@@ -112,17 +129,30 @@ const TasksKanban = () => {
 
   const handleDeleteTask = async (taskId) => {
     try {
-      // Soft-delete: sets is_deleted = TRUE in DB, task disappears from board
-      await axios.patch(`${API_BASE}/tasks/${taskId}/soft-delete`);
+      await tasksAPI.softDelete(taskId);
       fetchTasks();
     } catch (err) {
-      // Fallback: try standard delete if soft-delete fails
-      try {
-        await axios.delete(`${API_BASE}/tasks/${taskId}`);
-        fetchTasks();
-      } catch (err2) {
-        console.error('Error deleting task:', err2);
-      }
+      console.error('Error deleting task:', err);
+    }
+  };
+
+  const handleRestoreTask = async (taskId) => {
+    try {
+      await tasksAPI.restore(taskId);
+      fetchTrash();
+      fetchTasks();
+    } catch (err) {
+      console.error('Error restoring task:', err);
+    }
+  };
+
+  const handlePermanentDelete = async (taskId) => {
+    if (!window.confirm('Yakin ingin menghapus tugas ini secara permanen? Data tidak dapat dikembalikan.')) return;
+    try {
+      await tasksAPI.permanentDelete(taskId);
+      fetchTrash();
+    } catch (err) {
+      console.error('Error permanent delete:', err);
     }
   };
 
@@ -133,7 +163,7 @@ const TasksKanban = () => {
         ...editingTask,
         due_date: editingTask.due_date === '' ? null : editingTask.due_date
       };
-      await axios.put(`${API_BASE}/tasks/${editingTask.id}`, taskData);
+      await tasksAPI.update(editingTask.id, taskData);
       setEditingTask(null);
       fetchTasks();
     } catch (err) {
@@ -144,8 +174,12 @@ const TasksKanban = () => {
 
   const fetchHistory = async (taskId) => {
     try {
-      const res = await axios.get(`${API_BASE}/tasks/${taskId}/history`);
-      setTaskHistory(res.data);
+      // Need dedicated method in ledger or tasks? History is in tasks.js
+      await tasksAPI.getAll(); // Actually, need to fetch history specifically
+      // Let's keep direct call if not in tasksAPI or update tasksAPI
+      // Actually, history is already in task_history table
+      const historyRes = await axios.get(`${API_BASE}/tasks/${taskId}/history`);
+      setTaskHistory(historyRes.data);
       setShowHistory(true);
     } catch (err) {
       console.error('Error fetching history:', err);
@@ -177,7 +211,7 @@ const TasksKanban = () => {
       </div>
 
       {/* Toolbar - Simplified */}
-      <div className="flex gap-4 mb-4">
+      <div className="flex gap-4 mb-4 items-center">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b]" size={14} />
           <input 
@@ -188,7 +222,106 @@ const TasksKanban = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        
+        <button 
+          onClick={() => {
+            fetchTrash();
+            setShowTrashModal(true);
+          }}
+          className="flex items-center gap-2 bg-white border border-black/5 hover:bg-black/5 text-[#d93025] px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm"
+          title="Tempat Sampah"
+        >
+          <Trash2 size={14} />
+          <span>Sampah</span>
+        </button>
       </div>
+
+      {/* Trash Modal */}
+      {showTrashModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowTrashModal(false)} />
+          <div className="relative bg-white w-full max-w-3xl max-h-[80vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-black/5 flex justify-between items-center bg-[#fbfbfd]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#fee2e2] rounded-2xl flex items-center justify-center text-[#ef4444]">
+                  <Trash2 size={20} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-[#1d1d1f]">Tempat Sampah</h3>
+                  <p className="text-xs text-[#86868b]">Task yang dihapus dapat dikembalikan atau dihapus permanen</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowTrashModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+              {trashLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="animate-pulse bg-black/5 h-20 rounded-2xl" />
+                  ))}
+                </div>
+              ) : trashTasks.length === 0 ? (
+                <div className="h-64 flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 bg-black/5 rounded-full flex items-center justify-center text-[#86868b] mb-4">
+                    <Trash2 size={32} />
+                  </div>
+                  <h4 className="font-bold text-[#1d1d1f]">Sampah Kosong</h4>
+                  <p className="text-xs text-[#86868b] max-w-[200px] mt-1">Tidak ada task yang dihapus baru-baru ini.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3">
+                  {trashTasks.map(task => (
+                    <div key={task.id} className="bg-[#fbfbfd] border border-black/5 p-4 rounded-2xl flex items-center justify-between group hover:border-[#0071e3]/30 transition-all">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-bold uppercase text-[#86868b]">{task.priority}</span>
+                          <span className="w-1 h-1 rounded-full bg-black/10" />
+                          <span className="text-[10px] font-bold text-[#86868b]">{task.status}</span>
+                        </div>
+                        <h4 className="font-bold text-[#1d1d1f] text-sm truncate">{task.title}</h4>
+                        {task.description && (
+                          <p className="text-xs text-[#86868b] line-clamp-1 mt-0.5">{task.description}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 ml-4">
+                        <button 
+                          onClick={() => handleRestoreTask(task.id)}
+                          className="flex items-center gap-1.5 bg-white border border-black/5 hover:bg-[#0071e3]/5 hover:text-[#0071e3] text-[#1d1d1f] px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all"
+                        >
+                          <RotateCcw size={14} />
+                          <span>Pulihkan</span>
+                        </button>
+                        <button 
+                          onClick={() => handlePermanentDelete(task.id)}
+                          className="flex items-center justify-center w-8 h-8 rounded-xl bg-white border border-black/5 hover:bg-[#fee2e2] hover:text-[#ef4444] text-[#86868b] transition-all"
+                          title="Hapus Permanen"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-black/5 bg-[#fbfbfd] flex justify-end">
+              <button 
+                onClick={() => setShowTrashModal(false)}
+                className="bg-[#1d1d1f] text-white px-6 py-2 rounded-full text-xs font-bold hover:opacity-90 transition-opacity"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Board Content */}
       <div className="flex-1 flex gap-4 overflow-x-auto pb-2 custom-scrollbar p-1">

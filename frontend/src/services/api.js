@@ -131,6 +131,16 @@ export const onlineStoreAPI = {
   createWithdrawal: (data) => api.post('/online-store/withdrawals', data),
 };
 
+export const tasksAPI = {
+  getAll: () => api.get('/tasks'),
+  getTrash: () => api.get('/tasks/trash'),
+  create: (data) => api.post('/tasks', data),
+  update: (id, data) => api.put(`/tasks/${id}`, data),
+  softDelete: (id) => api.patch(`/tasks/${id}/soft-delete`),
+  restore: (id) => api.patch(`/tasks/${id}/restore`),
+  permanentDelete: (id) => api.delete(`/tasks/${id}/permanent`),
+};
+
 export const ledgerAPI = {
   getAll: (params) => api.get('/ledger', { params }),
   getSummary: () => api.get('/ledger/summary'),
