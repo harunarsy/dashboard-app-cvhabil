@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.8-stable] - 2026-03-14
+
+### Changed
+- **Infrastructure**: Migrasi database utama dari Supabase ke Neon.tech untuk performa yang lebih tinggi.
+- **Backend**: Update konfigurasi database untuk mendukung koneksi Neon serverless.
+
+## [1.3.7-stable] - 2026-03-14
+
+### Changed
+- **SOP Maintenance**: Evaluasi insiden missing DB schema di FEEDBACK_LOG dan penutupan log.
+
+
 ## [1.3.6-stable] - 2026-03-14
 
 ### Fixed

@@ -56,17 +56,17 @@ async function check() {
     if (err.code === 'ECONNREFUSED') {
       console.error('\nPOSSIBLE CAUSES:');
       console.error('1. Your local PostgreSQL server is not running.');
-      console.error('2. You are trying to connect locally but intended to use Supabase.');
+      console.error('2. You are trying to connect locally but intended to use a Cloud DB.');
       console.error('   -> ACTION: Add DATABASE_URL to your .env file.');
     } else if (err.message.includes('self signed certificate')) {
       console.error('\nPOSSIBLE CAUSE: SSL setup mismatch.');
       console.error('   -> ACTION: Ensure ssl: { rejectUnauthorized: false } is set in config.');
     } else if (err.code === 'ENOTFOUND' || err.message.includes('Tenant or user not found')) {
       console.error('\nPOSSIBLE CAUSES:');
-      console.error('1. DNS resolution failed (Common on IPv4 networks).');
-      console.error('2. Supabase Pooler URI is incorrect.');
+      console.error('1. DNS resolution failed (Check your internet).');
+      console.error('2. Cloud Database URI is incorrect.');
       console.error('   -> ACTION: Check your internet connection/VPN.');
-      console.error('   -> ACTION: Make sure to use the Session Pooler (Port 6543) if you see "Not IPv4 compatible" in Supabase.');
+      console.error('   -> ACTION: Verify the DATABASE_URL string.');
     }
   } finally {
     await pool.end();

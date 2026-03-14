@@ -46,6 +46,7 @@ const ensureSchema = async () => {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_invoice_id ON invoice_audit_log(invoice_id)`);
   // Ensure newer columns exist in invoice_items
   await pool.query(`
+    ALTER TABLE invoice_items
       ADD COLUMN IF NOT EXISTS hpp_inc_ppn DECIMAL(15,2) DEFAULT 0
   `);
 

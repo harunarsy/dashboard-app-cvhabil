@@ -15,7 +15,7 @@ const pool = new Pool(
 
 // Connection logic logging
 const isRemote = !!process.env.DATABASE_URL;
-console.log(`[DB] Attempting to connect to ${isRemote ? 'Cloud (Supabase)' : 'Local Host'}...`);
+console.log(`[DB] Attempting to connect to ${isRemote ? 'Cloud' : 'Local Host'}...`);
 
 pool.on('connect', () => {
   console.log(`[DB] ✅ Connected to ${isRemote ? 'Cloud' : 'Local'} database successfully.`);
