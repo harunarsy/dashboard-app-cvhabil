@@ -1,5 +1,14 @@
 # CHANGELOG - HABIL SUPERAPP
 
+## [v1.3.16-stable] - 2026-03-14
+
+### Added
+- **Prompt 2 — UI/UX Standardization**:
+  - **PDF Nota**: Customer address now shown below customer name in Nota Penjualan PDF.
+  - **PDF SP**: Distributor address now shown in "Kepada Yth." block of Surat Pesanan PDF.
+  - **Pengaturan**: Settings page restored with live split-panel document preview (real-time).
+  - **Mobile Sidebar**: Hamburger menu + slide-in sidebar with backdrop overlay for screens <768px.
+
 ## [v1.3.15-stable] - 2026-03-14
 ### Fixed
 - **Bug #1 — PDF Print Error**: Added null-safety guards (`String(val || '')`) to all `jsPDF.text()` calls in `generateNotaPDF.js` and `generateSPPDF.js`. Prevents "Invalid arguments passed to jsPDF.text" crash on A5/A6 format.
