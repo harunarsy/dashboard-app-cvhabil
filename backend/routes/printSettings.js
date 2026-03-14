@@ -31,12 +31,18 @@ ensureSchema().catch(console.error);
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
-// GET all settings
+// GET all settings — normalize setting_value (handle string from DB/driver)
 router.get('/', auth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM print_settings');
+    const { rows } = await pool.query('SELECT setting_key, setting_value FROM print_settings');
     const settings = {};
-    rows.forEach(r => { settings[r.setting_key] = r.setting_value; });
+    rows.forEach(r => {
+      let val = r.setting_value;
+      if (typeof val === 'string') {
+        try { val = JSON.parse(val); } catch (_) { /* keep string */ }
+      }
+      settings[r.setting_key] = val;
+    });
     res.json(settings);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -73,12 +79,13 @@ router.post('/bulk', auth, async (req, res) => {
     
     const results = [];
     for (const [key, value] of Object.entries(settings)) {
+      const jsonVal = typeof value === 'string' ? value : JSON.stringify(value);
       const { rows } = await client.query(
         `INSERT INTO print_settings (setting_key, setting_value, updated_at)
-         VALUES ($1, $2, NOW())
-         ON CONFLICT (setting_key) DO UPDATE SET setting_value = $2, updated_at = NOW()
+         VALUES ($1, $2::jsonb, NOW())
+         ON CONFLICT (setting_key) DO UPDATE SET setting_value = $2::jsonb, updated_at = NOW()
          RETURNING *`,
-        [key, value]
+        [key, jsonVal]
       );
       results.push(rows[0]);
     }
