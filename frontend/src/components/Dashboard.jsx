@@ -6,7 +6,13 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
    {
-    version: 'v1.3.24-stable', date: '15 Mar 2026', status: 'latest',
+    version: 'v1.3.25-stable', date: '15 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'Nota PDF: Alamat & telepon CV Habil tampil benar di header; kosong di DB = baris tidak muncul.' }
+    ]
+  },
+   {
+    version: 'v1.3.24-stable', date: '15 Mar 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Pengaturan: Data Nama Toko, Alamat, Telepon, Footer kini persisten setelah refresh & login ulang.' }
     ]
@@ -236,7 +242,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.3.24-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.25-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -290,7 +296,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.3.24-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.25-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -384,7 +390,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.24-stable — 2026
+            HABIL SUPERAPP v1.3.25-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
