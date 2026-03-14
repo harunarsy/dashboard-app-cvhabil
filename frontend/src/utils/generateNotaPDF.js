@@ -19,22 +19,27 @@ function angkaKeTerbilang(n) {
 }
 
 export function generateNotaPDF(order, options = {}) {
-  const {
-    format = 'A4',
-    type = 'nota',
-    settings = {
-      company_name: 'CV HABIL SEJAHTERA BERSAMA',
-      address: 'Surabaya, Jawa Timur — Indonesia',
-      footer_text: 'Dokumen ini dicetak secara otomatis oleh Dashboard CV Habil'
-    }
-  } = options;
+  try {
+    console.log('[generateNotaPDF] Starting with order:', order);
+    const {
+      format = 'A4',
+      type = 'nota',
+      settings = {
+        company_name: 'CV HABIL SEJAHTERA BERSAMA',
+        address: 'Surabaya, Jawa Timur — Indonesia',
+        footer_text: 'Dokumen ini dicetak secara otomatis oleh Dashboard CV Habil'
+      }
+    } = options;
 
-  // Enforce Landscape for A5 and A6
-  const isA4 = format.toUpperCase() === 'A4';
-  const orientation = isA4 ? 'p' : 'l';
-  const doc = new jsPDF(orientation, 'mm', format.toLowerCase());
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
+    console.log('[generateNotaPDF] Format:', format, 'Type:', type);
+
+    // Enforce Landscape for A5 and A6
+    const isA4 = format.toUpperCase() === 'A4';
+    const orientation = isA4 ? 'p' : 'l';
+    const doc = new jsPDF(orientation, 'mm', format.toLowerCase());
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    console.log('[generateNotaPDF] Page dimensions - Width:', pageWidth, 'Height:', pageHeight);
 
   const isA6 = format.toUpperCase() === 'A6';
   const isA5 = format.toUpperCase() === 'A5';
@@ -48,12 +53,18 @@ export function generateNotaPDF(order, options = {}) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(baseFontSize + 4);
   doc.setTextColor(...accentColor);
+  console.log('[generateNotaPDF] Header - company_name:', settings.company_name, 'coordinates:', margin, margin + 5);
   doc.text(String(settings.company_name || 'CV HABIL SEJAHTERA BERSAMA'), margin, margin + 5);
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize - 1);
   doc.setTextColor(80, 80, 80);
-  doc.text(String(settings.address || ''), margin, margin + 11);
+  console.log('[generateNotaPDF] Address:', settings.address, 'coordinates:', margin, margin + 11);
+  doc.text(String(settings.address || '-'), margin, margin + 11);
+  
+  // Phone number (if available)
+  console.log('[generateNotaPDF] Phone:', settings.phone, 'coordinates:', margin, margin + 15);
+  doc.text(String(settings.phone || '-'), margin, margin + 15);
 
   // Doc Info (Top Right)
   const infoX = pageWidth - margin;
@@ -64,11 +75,13 @@ export function generateNotaPDF(order, options = {}) {
   doc.setTextColor(0);
   // Pushing title slightly higher or on its own line if it's small paper
   const titleY = isA6 ? margin + 4 : margin + 5;
+  console.log('[generateNotaPDF] Title - docTitle:', docTitle, 'infoX:', infoX, 'titleY:', titleY);
   doc.text(docTitle, infoX, titleY, { align: 'right' });
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize - 1.5); // Smaller info text
   doc.setTextColor(60, 60, 60);
+  console.log('[generateNotaPDF] Order number:', order.order_number, 'coordinates:', infoX, titleY + 5);
   doc.text(`No: ${String(order.order_number || '-')}`, infoX, titleY + 5, { align: 'right' });
   const saleDateStr = order.sale_date 
     ? new Date(order.sale_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) 
@@ -78,18 +91,18 @@ export function generateNotaPDF(order, options = {}) {
   // Blue Line Divider
   doc.setDrawColor(...accentColor);
   doc.setLineWidth(0.4);
-  doc.line(margin, margin + 18, pageWidth - margin, margin + 18);
+  doc.line(margin, margin + 22, pageWidth - margin, margin + 22);
 
   // ─── Customer & Payment ───────────────────────────────────────────────
   doc.setFontSize(baseFontSize);
   doc.setTextColor(0);
   doc.setFont('helvetica', 'normal');
-  doc.text('Kepada Yth:', margin, margin + 25);
+  doc.text('Kepada Yth:', margin, margin + 29);
   doc.setFont('helvetica', 'bold');
-  doc.text(String(order.customer_name || '-'), margin + (isA6 ? 18 : 22), margin + 25);
+  doc.text(String(order.customer_name || '-'), margin + (isA6 ? 18 : 22), margin + 29);
 
   // Customer address (if available)
-  let addressY = margin + 25;
+  let addressY = margin + 29;
   if (order.customer_address) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(baseFontSize - 2);
@@ -156,13 +169,16 @@ export function generateNotaPDF(order, options = {}) {
   });
 
   // ─── Summary ──────────────────────────────────────────────────────────
-  let finalY = doc.lastAutoTable.finalY + 5;
+  console.log('[generateNotaPDF] Summary section - lastAutoTable:', doc.lastAutoTable);
+  let finalY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 5 : pageHeight - 80;
+  console.log('[generateNotaPDF] Final Y position:', finalY);
   const isNearBottom = finalY > pageHeight - 40;
   if (isNearBottom) { doc.addPage(); finalY = margin + 10; }
 
   if (type !== 'terima') {
     doc.setFontSize(baseFontSize);
     doc.setFont('helvetica', 'bold');
+    console.log('[generateNotaPDF] Grand total - value:', order.total, 'coordinates:', pageWidth - margin, finalY);
     doc.text(`GRAND TOTAL: ${fmtRp(order.total || 0)}`, pageWidth - margin, finalY, { align: 'right' });
     
     // Terbilang
@@ -171,6 +187,7 @@ export function generateNotaPDF(order, options = {}) {
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100);
     const words = (angkaKeTerbilang(order.total || 0) + " Rupiah").trim();
+    console.log('[generateNotaPDF] Terbilang text:', words);
     doc.text(`Terbilang: ${words}`, margin, finalY);
     finalY += (isA6 ? 4 : 6);
   }
@@ -178,6 +195,7 @@ export function generateNotaPDF(order, options = {}) {
   if (order.notes) {
     doc.setFontSize(baseFontSize - 2);
     doc.setTextColor(120);
+    console.log('[generateNotaPDF] Notes:', order.notes);
     doc.text(`Catatan: ${String(order.notes || '')}`, margin, finalY);
   }
 
@@ -202,5 +220,10 @@ export function generateNotaPDF(order, options = {}) {
   doc.setTextColor(180);
   doc.text(String(settings.footer_text || ''), pageWidth / 2, pageHeight - 4, { align: 'center' });
 
-  return doc;
+    console.log('[generateNotaPDF] PDF generated successfully');
+    return doc;
+  } catch (error) {
+    console.error('[generateNotaPDF] ERROR:', error.message, error.stack);
+    throw error;
+  }
 }

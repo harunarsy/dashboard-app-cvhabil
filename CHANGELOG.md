@@ -2,6 +2,19 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.20-stable] - 2026-03-15
+### Fixed
+- **Bug #1 — Header PDF**: Tampilkan alamat & nomor telepon CV Habil di bawah nama perusahaan di header kiri PDF Nota Penjualan. Data diambil dari tabel `print_settings`. Jika kosong, tampilkan placeholder "-".
+- **Bug #2 — Label HPP**: Tambahkan label kolom "HPP" yang jelas di form Edit Nota. Perbarui placeholder dari "HPP" menjadi "0" untuk konsistensi dengan field lain.
+
+### Added
+- **Fitur #3 — Standarisasi Dropdown Customer**: Refactoring dropdown Customer di form Nota Penjualan menggunakan komponen `MasterSelect` (sama seperti dropdown Produk). Fitur baru:
+  - 🔍 Search real-time dengan keyword filtering
+  - ✏️ Edit customer inline
+  - 🗑️ Delete customer langsung dari dropdown
+  - ➕ Tombol "+ Tambah Baru" untuk menambah customer tanpa meninggalkan form
+  - Semua perubahan langsung update database via API
+
 ## [v1.3.19-stable] - 2026-03-14
 ### Perubahan
 - **Fitur**: Tempat Sampah (Trash) untuk Task Management.
