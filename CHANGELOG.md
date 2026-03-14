@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.19-stable] - 2026-03-14
+### Perubahan
+- **Fitur**: Tempat Sampah (Trash) untuk Task Management.
+- **Backend**: API `/trash`, `/restore`, dan `/permanent` delete untuk tasks.
+- **UI/UX**: Modal interaktif Tempat Sampah di papan Kanban.
+- **API**: Centralized `tasksAPI` di layanan frontend.
+
 ## [v1.3.18-stable] — 2026-03-14
 
 ### Fixed

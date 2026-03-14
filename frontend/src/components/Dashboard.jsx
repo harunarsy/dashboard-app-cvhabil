@@ -5,8 +5,16 @@ import TasksKanban from './TasksKanban';
 import Skeleton from './common/Skeleton';
 
 const RELEASES = [
+   {
+    version: 'v1.3.19-stable', date: '14 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'feat', text: 'Tasks: Fitur Tempat Sampah (Trash) untuk melihat & restore task yang dihapus.' },
+      { type: 'feat', text: 'Tasks: Support penghapusan permanen dari database via Trash.' },
+      { type: 'ui', text: 'Tasks: Modal interaktif Trash yang elegan dan user-friendly.' }
+    ]
+  },
   {
-    version: 'v1.3.18-stable', date: '14 Mar 2026', status: 'latest',
+    version: 'v1.3.18-stable', date: '14 Mar 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Pengaturan: Perbaikan error "Gagal menyimpan pengaturan" & sinkronisasi data.' },
       { type: 'feat', text: 'Nota: Tracking status pembayaran (Lunas/Belum) dengan 1-click toggle.' },
