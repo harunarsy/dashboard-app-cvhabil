@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.23-stable] - 2026-03-15
+### Fixed
+- **Bug #1 — Header PDF SP**: Tampilkan `settings.address` dan `settings.phone` di bawah nama perusahaan, menggunakan `-` saat kosong.
+- **Bug #2 — Audit log Invoice**: Render per-field diff `field: lama → baru` dengan visual `lama` merah strikethrough, `baru` hijau bold; fallback aman jika `snapshot` null/undefined.
+
 ## [v1.3.22-stable] - 2026-03-15
 ### Fixed
 - **Bug #1 — Login Version Text**: Perbaiki kontras teks versi di halaman Login dari `text-white/40` menjadi `text-gray-700` agar terbaca jelas tanpa di-highlight.
