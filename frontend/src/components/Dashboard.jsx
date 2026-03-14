@@ -325,7 +325,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.12-stable — 2026
+            HABIL SUPERAPP v1.3.13-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
@@ -333,7 +333,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
                 <span className="text-3xl">🚀</span>
               </div>
               <h2 className="text-2xl font-extrabold text-white tracking-tight">APA YANG BARU?</h2>
-              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.3.12-stable telah mengudara!</p>
+              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.3.13-stable telah mengudara!</p>
             </div>
 
             {/* Content Highlights */}
