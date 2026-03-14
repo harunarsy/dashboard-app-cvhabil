@@ -104,20 +104,21 @@ export function generateNotaPDF(order, options = {}) {
   doc.setFont('helvetica', 'bold');
   doc.text(String(order.customer_name || '-'), margin + (isA6 ? 18 : 22), customerY);
 
-  // Customer address (if available)
+  // Customer address & phone (only if non-empty)
   let addressY = customerY;
-  if (order.customer_address) {
+  if (order.customer_address && String(order.customer_address).trim()) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(baseFontSize - 2);
     doc.setTextColor(80, 80, 80);
-    const addrOffset = isA6 ? 4 : 5;
-    addressY += addrOffset;
-    doc.text(String(order.customer_address), margin + (isA6 ? 18 : 22), addressY);
-  }
-  if (order.customer_phone) {
-    doc.setFontSize(baseFontSize - 2);
     addressY += isA6 ? 4 : 5;
-    doc.text(`Telp: ${String(order.customer_phone)}`, margin + (isA6 ? 18 : 22), addressY);
+    doc.text(String(order.customer_address).trim(), margin + (isA6 ? 18 : 22), addressY);
+  }
+  if (order.customer_phone && String(order.customer_phone).trim()) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(baseFontSize - 2);
+    doc.setTextColor(80, 80, 80);
+    addressY += isA6 ? 4 : 5;
+    doc.text(`Telp: ${String(order.customer_phone).trim()}`, margin + (isA6 ? 18 : 22), addressY);
   }
 
   // Payment Method info

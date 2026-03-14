@@ -34,8 +34,10 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
   const [notaCounter, setNotaCounter] = useState({ is_locked: true, prefix: 'NT', last_number: 0 });
   const [form, setForm] = useState({ 
     order_number: '',
+    customer_id: null,
     customer_name: '', 
     customer_address: '', 
+    customer_phone: '',
     sale_date: new Date().toISOString().split('T')[0], 
     notes: '',
     payment_method: 'Tunai',
@@ -139,8 +141,10 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
     setEditId(null);
     setForm({ 
       order_number: '',
+      customer_id: null,
       customer_name: '', 
       customer_address: '', 
+      customer_phone: '',
       sale_date: new Date().toISOString().split('T')[0], 
       notes: '',
       payment_method: 'Tunai',
@@ -154,8 +158,10 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
     setEditId(order.id);
     setForm({
       order_number: order.order_number,
+      customer_id: order.customer_id || null,
       customer_name: order.customer_name,
       customer_address: order.customer_address || '',
+      customer_phone: order.customer_phone || '',
       sale_date: order.sale_date ? order.sale_date.split('T')[0] : '',
       notes: order.notes || '',
       payment_method: order.payment_method || 'Tunai',
@@ -446,9 +452,14 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
                 <MasterSelect 
                   value={form.customer_name} 
                   onChange={v => {
-                    setForm(p => ({ ...p, customer_name: v }));
                     const match = customers.find(c => c.name === v);
-                    if (match) setForm(p => ({ ...p, customer_address: match.address || '' }));
+                    setForm(p => ({
+                      ...p,
+                      customer_name: v,
+                      customer_id: match?.id || null,
+                      customer_address: match?.address || p.customer_address,
+                      customer_phone: match?.phone || ''
+                    }));
                   }} 
                   options={customers}
                   onAdd={handleAddCustomer}
@@ -463,6 +474,11 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
               <div>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Alamat</label>
                 <input value={form.customer_address} onChange={e => setForm(p => ({ ...p, customer_address: e.target.value }))} placeholder="Alamat" style={inputStyle} />
+              </div>
+              {/* Phone */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Telepon</label>
+                <input value={form.customer_phone} onChange={e => setForm(p => ({ ...p, customer_phone: e.target.value }))} placeholder="08xx-xxxx-xxxx" style={inputStyle} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
