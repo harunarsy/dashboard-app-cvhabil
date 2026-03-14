@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.22-stable] - 2026-03-15
+### Fixed
+- **Bug #1 — Login Version Text**: Perbaiki kontras teks versi di halaman Login dari `text-white/40` menjadi `text-gray-700` agar terbaca jelas tanpa di-highlight.
+- **Bug #2 — Release Modal Session**: Modal "Apa yang Baru" kini muncul otomatis setiap login baru menggunakan sessionStorage berbasis versi terbaru. Gunakan `habil_release_seen_v${version}` key untuk memastikan modal muncul ketika ada versi upgrade.
+
+### Added
+- **PROTOKOL A — Auto-Versioning**: Dokumentasi yang wajib dicek sebelum commit — include grep-command untuk memastikan versi file sinkron di seluruh frontend.
+- **PROTOKOL B — Token Efficiency**: SOP untuk efisiensi token, baca file per range 100 baris, jangan dump seluruh file, dan progress ringkas.
+
 ## [v1.3.21-stable] - 2026-03-15
 ### Added
 - **Fitur #1 — HNA/HPP per Batch**: Tambahkan field HNA/HPP di form Stok Masuk. Nilai default diambil dari master produk, bisa diubah manual per batch. Saat pilih produk di Nota Penjualan, HPP auto-fill dari batch FEFO (expired date paling dekat).
