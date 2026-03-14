@@ -6,7 +6,15 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
    {
-    version: 'v1.3.21-stable', date: '15 Mar 2026', status: 'latest',
+    version: 'v1.3.22-stable', date: '15 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'Login: Perbaiki kontras teks versi agar terbaca jelas tanpa di-highlight.' },
+      { type: 'fix', text: 'Modal: "Apa yang Baru" kini muncul otomatis setiap login baru dengan sessionStorage per versi.' },
+      { type: 'new', text: 'PROTOKOL A & B: Tambahkan standar Auto-Versioning dan Token Efficiency ke SUPERAPP_BRAIN.md.' }
+    ]
+  },
+   {
+    version: 'v1.3.21-stable', date: '15 Mar 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Nota: Header PDF kini menampilkan alamat & nomor telepon CV Habil dari pengaturan.' },
       { type: 'fix', text: 'Nota: Field HPP di form sekarang punya label yang jelas (sebelumnya hanya placeholder).' },
@@ -220,9 +228,11 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
   const [showModal, setShowModal] = useState(false);
   const [showDevNotes, setShowDevNotes] = useState(false);
   const [loading, setLoading] = useState(true);
-  // Show release modal only once per session
+  // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    return !sessionStorage.getItem('habil_release_seen_v1318');
+    const latestVersion = RELEASES[0]?.version || 'v1.3.22-stable';
+    const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
+    return !sessionStorage.getItem(storageKey);
   });
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
@@ -274,7 +284,9 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    sessionStorage.setItem('habil_release_seen_v1318', 'true');
+    const latestVersion = RELEASES[0]?.version || 'v1.3.22-stable';
+    const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
+    sessionStorage.setItem(storageKey, 'true');
   };
 
   const formatRupiah = (number) => {
@@ -302,7 +314,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
           style={{ backgroundColor: cardBg, borderColor: border, color: text }}
         >
           <Info size={16} className="text-blue-500" />
-          <span className="text-sm font-semibold">Version 1.3.18-stable</span>
+          <span className="text-sm font-semibold">Version {RELEASES[0]?.version}</span>
           <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium ml-2">Release Notes</span>
         </button>
       </div>
@@ -366,7 +378,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.21-stable — 2026
+            HABIL SUPERAPP v1.3.22-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
@@ -374,7 +386,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
                 <span className="text-3xl">🚀</span>
               </div>
               <h2 className="text-2xl font-extrabold text-white tracking-tight">APA YANG BARU?</h2>
-              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.3.21-stable telah mengudara!</p>
+              <p className="text-white/80 font-medium mt-1">Habil SuperApp {RELEASES[0]?.version} telah mengudara!</p>
             </div>
 
             {/* Content Highlights */}
@@ -437,7 +449,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
               <div>
                 <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
-                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.3.21-stable - Terakhir diupdate 15 Mar 2026</p>
+                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: {RELEASES[0]?.version} - Terakhir diupdate 15 Mar 2026</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />

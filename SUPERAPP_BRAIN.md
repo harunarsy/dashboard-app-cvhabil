@@ -1,8 +1,8 @@
 # 🧠 HABIL SUPERAPP — Source of Truth
-> **Current Version: v1.3.20-stable
-System Version: v1.3.20-stable
+> **Current Version: v1.3.22-stable
+System Version: v1.3.22-stable
 Status: PROD-STABLE
-> **VERSI SISTEM**: v1.3.20-stable
+> **VERSI SISTEM**: v1.3.22-stable
 
 ---
 
@@ -36,6 +36,48 @@ Status: PROD-STABLE
 3. **Audit Versi Global**: Setiap rilis, lakukan `grep` global untuk memastikan label versi di seluruh komponen (Login, Dashboard, Footer) sinkron dengan CHANGELOG.md.
 4. **Automated Error Logging**: Jika menemukan error kritikal (misal: "Relation missing"), Agent **wajib** mencatat temuan ke `FEEDBACK_LOG.md` sebelum melakukan perbaikan.
 5. **Mandatory IDE Extensions**: Untuk auditability & stabilitas, pastikan ekstensi **ESLint**, **markdownlint**, **Git History**, dan **SQLTools (PostgreSQL)** aktif di lingkungan development.
+
+### [PROTOKOL A — AUTO-VERSIONING (v1.3.22+)]
+
+**Tujuan:** Memastikan label versi di seluruh file sinkron dengan CHANGELOG.md sebelum commit.
+
+1. **Mandatory Grep Check sebelum commit:**
+   ```bash
+   grep -r "v1\.3\.[0-9]*-" frontend/src \
+   --include="*.jsx" --include="*.js"
+   ```
+   Jika ada 1 file saja yang versinya berbeda, **JANGAN commit**. Fix semua terlebih dahulu agar semua file menunjukkan versi yang sama.
+
+2. **File Wajib Dicek setiap Shutdown (Versi Harus Konsisten):**
+   - `frontend/src/components/Login.jsx` (teks versi)
+   - `frontend/src/components/Dashboard.jsx` (version badge + modal version)
+   - `frontend/src/index.js` (if versioning exists)
+   - `CHANGELOG.md` (latest version entry)
+   - `SUPERAPP_BRAIN.md` (Current Version header)
+
+3. **Release Modal Wajib Pakai sessionStorage, BUKAN localStorage:**
+   - Key format: `habil_release_seen_${VERSION.replace(/\./g, '_')}`
+   - Contoh: `habil_release_seen_v1_3_22_stable`
+   - **Alasan:** User berbagi 1 akun (Harun, Fivin, Ferry), perlu popup muncul setiap login baru tetapi tidak loop saat navigasi antar halaman.
+
+### [PROTOKOL B — TOKEN EFFICIENCY (max 160k/session)]
+
+**Tujuan:** Mengoptimalkan penggunaan token context window untuk efisiensi maksimal.
+
+1. **File Reading Strategy:**
+   - Baca file per range 100 baris, jangan dump seluruh file langsung.
+   - Gunakan parallel reads untuk context gathering (baca berbagai file sekaligus).
+   - Query dengan semantic_search untuk finding logic / patterns, bukan full file reads.
+
+2. **Chat Output Rules:**
+   - **Jangan** tampilkan isi file lengkap di chat kecuali diminta eksplisit.
+   - **Jangan** ulangi isi prompt/permintaan user di jawaban.
+   - Progress update cukup max 1 kalimat: "✅ #1 done — [1-2 kata summary]"
+
+3. **Execution Rules:**
+   - Langsung kerja tanpa jelaskan rencana panjang dulu. Explain = waste.
+   - Batch independent operations: multi_replace_string_in_file untuk multiple edits.
+   - Langsung edit file jangan use terminal commands kecuali diminta.
 
 ### [AUTO-VERSIONING SOP]
 
