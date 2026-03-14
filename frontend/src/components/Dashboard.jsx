@@ -6,7 +6,7 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.3.10-stable', date: '14 Mar 2026', status: 'latest',
+    version: 'v1.3.11-stable', date: '14 Mar 2026', status: 'latest',
     changes: [
       { type: 'feat', text: 'Infrastructure: Migrasi database ke Neon.tech (Postgres Serverless) untuk optimasi kecepatan.' },
       { type: 'fix', text: 'Performance: Penurunan latency query database dan cold-start yang lebih responsif.' }
@@ -330,7 +330,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
                 <span className="text-3xl">🚀</span>
               </div>
               <h2 className="text-2xl font-extrabold text-white tracking-tight">APA YANG BARU?</h2>
-              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.3.10-stable telah mengudara!</p>
+              <p className="text-white/80 font-medium mt-1">Habil SuperApp v1.3.11-stable telah mengudara!</p>
             </div>
 
             {/* Content Highlights */}
@@ -393,7 +393,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
               <div>
                 <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
-                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.3.10-stable - Terakhir diupdate 14 Mar 2026</p>
+                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: v1.3.11-stable - Terakhir diupdate 14 Mar 2026</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />

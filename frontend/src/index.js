@@ -6,7 +6,10 @@ import App from './App';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <>
+      <App />
+      <p className="text-gray-500 mt-2">Business Management System v1.3.11-stable</p>
+    </>
   </React.StrictMode>
 );
-// Habil SuperApp v1.3.10-stable
+// Habil SuperApp v1.3.11-stable
