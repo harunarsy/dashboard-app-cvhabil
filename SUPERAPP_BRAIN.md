@@ -16,7 +16,7 @@
 
 - **Frontend:** React 19 (Vercel)
 - **Backend:** Node.js + Express 5.x (Vercel)
-- **Database:** PostgreSQL 15 (Supabase - Singapore Region)
+- **Database:** PostgreSQL 17 (Neon.tech - Singapore Region)
 - **Real-time:** Socket.io
 - **Auth:** JWT (15m Session)
 

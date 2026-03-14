@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.9-stable] - 2026-03-14
+
+### Fixed
+
+- **Database Migration**: Full data migration completion from Supabase to Neon.tech. All tables (Users, Invoices, Products, etc.) are now successfully transferred.
+- **Data Consistency**: Resolved schema mismatches between old Supabase data and new Neon table structures.
+
+### Changed
+
+- **Infrastructure**: Officially switched to Neon.tech serverless PostgreSQL as the primary database for improved performance.
+
 ## [1.3.8-stable] - 2026-03-14
 
 ### Changed
