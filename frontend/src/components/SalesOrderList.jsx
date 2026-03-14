@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Edit2, X, FileText } from 'lucide-react';
 import { salesAPI, customersAPI, inventoryAPI, printSettingsAPI, countersAPI } from '../services/api';
 import { generateNotaPDF } from '../utils/generateNotaPDF';
+import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
@@ -83,6 +84,37 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
       await salesAPI.updatePaymentStatus(order.id, next);
       flash(`Nota ${next === 'paid' ? 'Dilunasi' : 'Belum Dibayar'}`);
       fetchOrders();
+    } catch (e) { alert(e.response?.data?.error || e.message); }
+  };
+
+  // Customer CRUD Handlers
+  const handleAddCustomer = async (name) => {
+    try {
+      await customersAPI.create({ name, address: '' });
+      flash('Customer ditambahkan');
+      fetchCustomers();
+    } catch (e) { alert(e.response?.data?.error || e.message); }
+  };
+
+  const handleRemoveCustomer = async (name) => {
+    try {
+      const customer = customers.find(c => c.name === name);
+      if (customer) {
+        await customersAPI.remove(customer.id);
+        flash('Customer dihapus');
+        fetchCustomers();
+      }
+    } catch (e) { alert(e.response?.data?.error || e.message); }
+  };
+
+  const handleRenameCustomer = async (oldName, newName) => {
+    try {
+      const customer = customers.find(c => c.name === oldName);
+      if (customer) {
+        await customersAPI.update(customer.id, { name: newName, address: customer.address || '' });
+        flash('Customer diubah');
+        fetchCustomers();
+      }
     } catch (e) { alert(e.response?.data?.error || e.message); }
   };
 
@@ -398,15 +430,20 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
               {/* Customer */}
               <div>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Customer *</label>
-                <input list="customer-list" value={form.customer_name} onChange={e => {
-                  const val = e.target.value;
-                  setForm(p => ({ ...p, customer_name: val }));
-                  const match = customers.find(c => c.name === val);
-                  if (match) setForm(p => ({ ...p, customer_name: match.name, customer_address: match.address || '' }));
-                }} placeholder="Ketik atau pilih customer..." style={inputStyle} />
-                <datalist id="customer-list">
-                  {customers.map(c => <option key={c.id} value={c.name} />)}
-                </datalist>
+                <MasterSelect 
+                  value={form.customer_name} 
+                  onChange={v => {
+                    setForm(p => ({ ...p, customer_name: v }));
+                    const match = customers.find(c => c.name === v);
+                    if (match) setForm(p => ({ ...p, customer_address: match.address || '' }));
+                  }} 
+                  options={customers}
+                  onAdd={handleAddCustomer}
+                  onRemove={handleRemoveCustomer}
+                  onRename={handleRenameCustomer}
+                  placeholder="Pilih atau tambah customer..."
+                  isDarkMode={isDarkMode}
+                />
               </div>
 
               {/* Address */}
@@ -433,13 +470,24 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
               {/* Items */}
               <div>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Produk</label>
+                
+                {/* Column Headers */}
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 60px 45px 80px 100px 30px', gap: '6px', marginBottom: '8px', alignItems: 'center' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: sub }}>Nama</div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: sub, textAlign: 'center' }}>Qty</div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: sub, textAlign: 'center' }}>Unit</div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: sub, textAlign: 'center' }}>HPP</div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: sub, textAlign: 'center' }}>Harga</div>
+                  <div></div>
+                </div>
+                
                 {items.map((it, idx) => (
                   <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 60px 45px 80px 100px 30px', gap: '6px', marginBottom: '6px', alignItems: 'center' }}>
                     <input list="product-list" value={it.product_name} onChange={e => updateItem(idx, 'product_name', e.target.value)} placeholder="Nama produk" style={{ ...inputStyle, fontSize: '13px', padding: '8px 10px' }} />
                     <input type="number" value={it.qty} onChange={e => updateItem(idx, 'qty', parseInt(e.target.value) || 0)} min="1" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
                     <input value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} placeholder="pcs" style={{ ...inputStyle, fontSize: '13px', padding: '8px 4px', textAlign: 'center' }} />
-                    <input type="number" value={it.unit_hpp} onChange={e => updateItem(idx, 'unit_hpp', parseFloat(e.target.value) || 0)} min="0" placeholder="HPP" style={{ ...inputStyle, fontSize: '12px', padding: '8px 6px', backgroundColor: isDarkMode ? '#1C1C1E' : '#EBEBEB', border: `1px dashed ${border}` }} />
-                    <input type="number" value={it.unit_price} onChange={e => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} min="0" placeholder="Harga" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px' }} />
+                    <input type="number" value={it.unit_hpp} onChange={e => updateItem(idx, 'unit_hpp', parseFloat(e.target.value) || 0)} min="0" placeholder="0" style={{ ...inputStyle, fontSize: '12px', padding: '8px 6px', backgroundColor: isDarkMode ? '#1C1C1E' : '#EBEBEB', border: `1px dashed ${border}`, textAlign: 'center' }} />
+                    <input type="number" value={it.unit_price} onChange={e => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} min="0" placeholder="0" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
                     {items.length > 1 && (
                       <button onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>
                     )}

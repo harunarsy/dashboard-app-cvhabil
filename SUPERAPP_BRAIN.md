@@ -1,8 +1,8 @@
 # 🧠 HABIL SUPERAPP — Source of Truth
-> **Current Version: v1.3.19-stable
-System Version: v1.3.19-stable
+> **Current Version: v1.3.20-stable
+System Version: v1.3.20-stable
 Status: PROD-STABLE
-> **VERSI SISTEM**: v1.3.18-stable
+> **VERSI SISTEM**: v1.3.20-stable
 
 ---
 

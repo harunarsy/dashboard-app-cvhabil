@@ -6,7 +6,15 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
    {
-    version: 'v1.3.19-stable', date: '14 Mar 2026', status: 'latest',
+    version: 'v1.3.20-stable', date: '15 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'Nota: Header PDF kini menampilkan alamat & nomor telepon CV Habil dari pengaturan.' },
+      { type: 'fix', text: 'Nota: Field HPP di form sekarang punya label yang jelas (sebelumnya hanya placeholder).' },
+      { type: 'feat', text: 'Nota: Customer dropdown diupgrade ke MasterSelect dengan search, edit, delete, & tambah baru.' }
+    ]
+  },
+   {
+    version: 'v1.3.19-stable', date: '14 Mar 2026', status: 'stable',
     changes: [
       { type: 'feat', text: 'Tasks: Fitur Tempat Sampah (Trash) untuk melihat & restore task yang dihapus.' },
       { type: 'feat', text: 'Tasks: Support penghapusan permanen dari database via Trash.' },
@@ -233,6 +241,8 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
     stability: { label: 'Stabil',   color: '#34C759', bg: '#34C75918' },
     removed:   { label: 'Hapus',    color: '#FF3B30', bg: '#FF3B3018' },
   };
+  console.log('[Dashboard] typeConfig available types:', Object.keys(typeConfig));
+  console.log('[Dashboard] RELEASES count:', RELEASES.length);
   const priorityConfig = {
     high:   { label: 'Prioritas Tinggi', color: '#FF3B30', bg: '#FF3B3018' },
     medium: { label: 'Sedang',           color: '#FF9500', bg: '#FF950018' },
@@ -455,17 +465,27 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
                         <span className="text-xs font-medium" style={{ color: sub }}>{rel.date}</span>
                       </div>
                       <div className="flex flex-col gap-3">
-                        {rel.changes.map((c, ci) => {
-                          const cfg = typeConfig[c.type] || typeConfig.fix;
-                          return (
-                            <div key={ci} className="flex gap-3 items-start">
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase mt-0.5 shrink-0" style={{ backgroundColor: cfg.bg, color: cfg.color }}>
-                                {cfg.label}
-                              </span>
-                              <span className="text-sm leading-relaxed" style={{ color: isDarkMode ? '#EBEBF0' : '#3A3A3C' }}>{c.text}</span>
-                            </div>
-                          );
-                        })}
+                        {rel.changes && rel.changes.length > 0 ? (
+                          rel.changes.map((c, ci) => {
+                            try {
+                              const cfg = typeConfig[c.type] || typeConfig.fix;
+                              console.log(`[Dashboard] Release ${rel.version} Change ${ci}: type=${c.type}, config=${JSON.stringify(cfg)}`);
+                              return (
+                                <div key={ci} className="flex gap-3 items-start">
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase mt-0.5 shrink-0" style={{ backgroundColor: cfg.bg, color: cfg.color }}>
+                                    {cfg.label}
+                                  </span>
+                                  <span className="text-sm leading-relaxed" style={{ color: isDarkMode ? '#EBEBF0' : '#3A3A3C' }}>{c.text}</span>
+                                </div>
+                              );
+                            } catch (err) {
+                              console.error(`[Dashboard] Error rendering change at index ${ci}:`, err);
+                              return <div key={ci} style={{ color: 'red' }}>Error rendering change</div>;
+                            }
+                          })
+                        ) : (
+                          <div style={{ color: 'orange' }}>No changes recorded</div>
+                        )}
                       </div>
                     </div>
                   ))}

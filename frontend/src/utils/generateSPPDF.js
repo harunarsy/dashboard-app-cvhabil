@@ -2,20 +2,25 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export function generateSPPDF(order, options = {}) {
-  const {
-    format = 'A6',
-    salesmanInfo = {},
-    settings = {
-      company_name: 'CV. HABIL SEJAHTERA BERSAMA',
-      footer_text: 'Dokumen dicetak otomatis oleh Habil SuperApp'
-    }
-  } = options;
+  try {
+    console.log('[generateSPPDF] Starting with order:', order);
+    const {
+      format = 'A6',
+      salesmanInfo = {},
+      settings = {
+        company_name: 'CV. HABIL SEJAHTERA BERSAMA',
+        footer_text: 'Dokumen dicetak otomatis oleh Habil SuperApp'
+      }
+    } = options;
 
-  // A6 by default, standard is Portrait for Blue Area SP? Actually Landscape is wider for tables.
-  // We'll use landscape for A6 to fit the table better
-  const doc = new jsPDF('p', 'mm', format.toLowerCase());
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
+    console.log('[generateSPPDF] Format:', format, 'SalesmanInfo:', salesmanInfo);
+
+    // A6 by default, standard is Portrait for Blue Area SP? Actually Landscape is wider for tables.
+    // We'll use landscape for A6 to fit the table better
+    const doc = new jsPDF('p', 'mm', format.toLowerCase());
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    console.log('[generateSPPDF] Page dimensions - Width:', pageWidth, 'Height:', pageHeight);
 
   const isA6 = format.toUpperCase() === 'A6';
   
@@ -27,6 +32,7 @@ export function generateSPPDF(order, options = {}) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(baseFontSize + 4);
   doc.setTextColor(...accentColor);
+  console.log('[generateSPPDF] Header - company_name:', settings.company_name);
   doc.text(String(settings.company_name || 'CV. HABIL SEJAHTERA BERSAMA'), pageWidth / 2, margin + 5, { align: 'center' });
   
   doc.setFont('helvetica', 'bold');
@@ -120,11 +126,14 @@ export function generateSPPDF(order, options = {}) {
   });
 
   // ─── Footer & Signatures ──────────────────────────────────────────────
-  let finalY = doc.lastAutoTable.finalY + 8;
+  console.log('[generateSPPDF] Footer section - lastAutoTable:', doc.lastAutoTable);
+  let finalY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 8 : pageHeight - 80;
+  console.log('[generateSPPDF] Final Y position:', finalY);
   
   if (order.notes) {
     doc.setFontSize(baseFontSize - 1);
     doc.setTextColor(100);
+    console.log('[generateSPPDF] Notes:', order.notes);
     doc.text(`Catatan: ${String(order.notes || '')}`, margin, finalY);
     finalY += 8;
   }
@@ -133,6 +142,7 @@ export function generateSPPDF(order, options = {}) {
   const sigY = Math.max(finalY + 10, pageHeight - 35);
   doc.setFontSize(baseFontSize);
   doc.setTextColor(0);
+  console.log('[generateSPPDF] Signature Y:', sigY);
   doc.text('Hormat Kami,', pageWidth - margin - 20, sigY, { align: 'center' });
   
   // Stamp Space
@@ -145,13 +155,20 @@ export function generateSPPDF(order, options = {}) {
   
   const picName = order.pic_name || 'Harun Al Rasyid';
   doc.setFont('helvetica', 'bold');
+  console.log('[generateSPPDF] PIC name:', picName);
   doc.text(String(picName || ''), pageWidth - margin - 20, sigY + 24, { align: 'center' });
 
   // Global Footer
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(isA6 ? 5 : 6);
   doc.setTextColor(180);
+  console.log('[generateSPPDF] Footer text:', settings.footer_text);
   doc.text(String(settings.footer_text || ''), pageWidth / 2, pageHeight - 4, { align: 'center' });
 
-  return doc;
+    console.log('[generateSPPDF] PDF generated successfully');
+    return doc;
+  } catch (error) {
+    console.error('[generateSPPDF] ERROR:', error.message, error.stack);
+    throw error;
+  }
 }
