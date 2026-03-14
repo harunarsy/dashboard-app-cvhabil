@@ -137,6 +137,7 @@ export default function BugReports({ isDarkMode, isSidebarOpen }) {
   const bg = isDarkMode ? '#000' : '#F5F5F7';
   const txt = isDarkMode ? '#FFF' : '#000';
   const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
+  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
 
   return (
     <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
@@ -196,6 +197,12 @@ export default function BugReports({ isDarkMode, isSidebarOpen }) {
               </div>
             </div>
           ))}
+        </div>
+      ) : bugs.length === 0 ? (
+        <div style={{ padding: '60px 20px', textAlign: 'center', backgroundColor: cardBg, borderRadius: '16px', border: `1px dashed ${border}` }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>✨</div>
+          <p style={{ fontSize: '16px', fontWeight: '700', color: txt, margin: '0 0 8px' }}>Belum Ada Laporan</p>
+          <p style={{ fontSize: '14px', color: '#86868B', margin: 0 }}>Semua sistem berjalan lancar. Tidak ada bug atau saran yang terdaftar.</p>
         </div>
       ) : (
         <>

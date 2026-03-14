@@ -112,10 +112,17 @@ const TasksKanban = () => {
 
   const handleDeleteTask = async (taskId) => {
     try {
-      await axios.delete(`${API_BASE}/tasks/${taskId}`);
+      // Soft-delete: sets is_deleted = TRUE in DB, task disappears from board
+      await axios.patch(`${API_BASE}/tasks/${taskId}/soft-delete`);
       fetchTasks();
     } catch (err) {
-      console.error('Error deleting task:', err);
+      // Fallback: try standard delete if soft-delete fails
+      try {
+        await axios.delete(`${API_BASE}/tasks/${taskId}`);
+        fetchTasks();
+      } catch (err2) {
+        console.error('Error deleting task:', err2);
+      }
     }
   };
 

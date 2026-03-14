@@ -48,12 +48,12 @@ export function generateNotaPDF(order, options = {}) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(baseFontSize + 4);
   doc.setTextColor(...accentColor);
-  doc.text(settings.company_name, margin, margin + 5);
+  doc.text(String(settings.company_name || 'CV HABIL SEJAHTERA BERSAMA'), margin, margin + 5);
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize - 1);
   doc.setTextColor(80, 80, 80);
-  doc.text(settings.address, margin, margin + 11);
+  doc.text(String(settings.address || ''), margin, margin + 11);
 
   // Doc Info (Top Right)
   const infoX = pageWidth - margin;
@@ -69,8 +69,11 @@ export function generateNotaPDF(order, options = {}) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize - 1.5); // Smaller info text
   doc.setTextColor(60, 60, 60);
-  doc.text(`No: ${order.order_number}`, infoX, titleY + 5, { align: 'right' });
-  doc.text(`${order.sale_date ? new Date(order.sale_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}`, infoX, titleY + 9, { align: 'right' });
+  doc.text(`No: ${String(order.order_number || '-')}`, infoX, titleY + 5, { align: 'right' });
+  const saleDateStr = order.sale_date 
+    ? new Date(order.sale_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) 
+    : '-';
+  doc.text(saleDateStr, infoX, titleY + 9, { align: 'right' });
 
   // Blue Line Divider
   doc.setDrawColor(...accentColor);
@@ -83,12 +86,12 @@ export function generateNotaPDF(order, options = {}) {
   doc.setFont('helvetica', 'normal');
   doc.text('Kepada Yth:', margin, margin + 25);
   doc.setFont('helvetica', 'bold');
-  doc.text(order.customer_name, margin + (isA6 ? 18 : 22), margin + 25);
+  doc.text(String(order.customer_name || '-'), margin + (isA6 ? 18 : 22), margin + 25);
 
   // Payment Method info
   if (type !== 'terima') {
     doc.setFont('helvetica', 'normal');
-    doc.text(`Metode: ${order.payment_method || 'Tunai'}`, infoX, margin + 25, { align: 'right' });
+    doc.text(`Metode: ${String(order.payment_method || 'Tunai')}`, infoX, margin + 25, { align: 'right' });
   }
 
   // ─── Table ────────────────────────────────────────────────────────────
@@ -143,14 +146,14 @@ export function generateNotaPDF(order, options = {}) {
   if (type !== 'terima') {
     doc.setFontSize(baseFontSize);
     doc.setFont('helvetica', 'bold');
-    doc.text(`GRAND TOTAL: ${fmtRp(order.total)}`, pageWidth - margin, finalY, { align: 'right' });
+    doc.text(`GRAND TOTAL: ${fmtRp(order.total || 0)}`, pageWidth - margin, finalY, { align: 'right' });
     
     // Terbilang
     finalY += 5;
     doc.setFontSize(baseFontSize - 2);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100);
-    const words = angkaKeTerbilang(order.total) + " Rupiah";
+    const words = (angkaKeTerbilang(order.total || 0) + " Rupiah").trim();
     doc.text(`Terbilang: ${words}`, margin, finalY);
     finalY += (isA6 ? 4 : 6);
   }
@@ -158,7 +161,7 @@ export function generateNotaPDF(order, options = {}) {
   if (order.notes) {
     doc.setFontSize(baseFontSize - 2);
     doc.setTextColor(120);
-    doc.text(`Catatan: ${order.notes}`, margin, finalY);
+    doc.text(`Catatan: ${String(order.notes || '')}`, margin, finalY);
   }
 
   // ─── Signatures ───────────────────────────────────────────────────────
@@ -175,12 +178,12 @@ export function generateNotaPDF(order, options = {}) {
   // Right: Company
   const rightSigX = pageWidth - margin - (isA6 ? 15 : 20);
   doc.line(pageWidth - margin - (isA6 ? 30 : 45), sigY + (isA6 ? 10 : 15), pageWidth - margin, sigY + (isA6 ? 10 : 15));
-  doc.text(settings.company_name, rightSigX, sigY + (isA6 ? 15 : 20), { align: 'center' });
+  doc.text(String(settings.company_name || ''), rightSigX, sigY + (isA6 ? 15 : 20), { align: 'center' });
 
   // ─── Footer ───────────────────────────────────────────────────────────
   doc.setFontSize(isA6 ? 5 : 6);
   doc.setTextColor(180);
-  doc.text(settings.footer_text, pageWidth / 2, pageHeight - 4, { align: 'center' });
+  doc.text(String(settings.footer_text || ''), pageWidth / 2, pageHeight - 4, { align: 'center' });
 
   return doc;
 }
