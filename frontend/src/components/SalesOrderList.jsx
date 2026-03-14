@@ -208,9 +208,13 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
   const handlePrintPDF = async () => {
     if (!printOrder) return;
     try {
+      let s = layoutSettings;
+      if (!s) {
+        try { const { data } = await printSettingsAPI.get(); s = data?.nota_layout; } catch (_) {}
+      }
       const doc = generateNotaPDF(printOrder, { 
         ...printOptions, 
-        settings: layoutSettings 
+        settings: s 
       });
       doc.save(`${printOptions.type === 'terima' ? 'TT' : 'Nota'}_${printOrder.order_number}.pdf`);
       await salesAPI.updatePdfStatus(printOrder.id, 'sudah_dicetak');
@@ -223,6 +227,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
   const openPrintOptions = (order) => {
     setPrintOrder(order);
     setShowPrintModal(true);
+    fetchSettings(); // refetch to ensure latest print_settings for PDF
   };
 
   const addItem = () => setItems([...items, blankItem()]);
