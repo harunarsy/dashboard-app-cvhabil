@@ -6,7 +6,7 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
    {
-    version: 'v1.3.22-stable', date: '15 Mar 2026', status: 'latest',
+    version: 'v1.3.23-stable', date: '15 Mar 2026', status: 'latest',
     changes: [
       { type: 'fix', text: 'Login: Perbaiki kontras teks versi agar terbaca jelas tanpa di-highlight.' },
       { type: 'fix', text: 'Modal: "Apa yang Baru" kini muncul otomatis setiap login baru dengan sessionStorage per versi.' },
