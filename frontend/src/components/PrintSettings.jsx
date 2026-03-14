@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, Printer, Smartphone, Monitor } from 'lucide-react';
+import { Save, RefreshCw, Printer, Monitor } from 'lucide-react';
 import Skeleton from './common/Skeleton';
-import { printSettingsAPI, countersAPI } from '../services/api';
+import { printSettingsAPI } from '../services/api';
 
 export default function PrintSettings({ isDarkMode, isSidebarOpen }) {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
-  const [counters, setCounters] = useState({});
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -22,20 +21,9 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen }) {
     }
   };
 
-  const fetchCounters = async () => {
-    try {
-      const { data } = await countersAPI.getAll();
-      const map = {};
-      data.forEach(c => map[c.key] = c.value);
-      setCounters(map);
-    } catch (e) {
-      console.error('Error fetching counters:', e);
-    }
-  };
 
   useEffect(() => {
     fetchSettings();
-    fetchCounters();
   }, []);
 
   const handleSave = async () => {

@@ -2,7 +2,7 @@
 
 > [!IMPORTANT]
 > **DOKUMEN INDUK**: Satu-satunya sumber kebenaran (Source of Truth) untuk pengembangan HABIL SUPERAPP. Gabungan dari README, Framework, Roadmap, dan Feedback Log.
-> **VERSI SISTEM**: Gunakan versi terbaru yang tercatat di [CHANGELOG.md](file:///Users/harunalrasyid/Projects/dashboard-app/CHANGELOG.md).
+> **VERSI SISTEM**: v1.3.13-stable
 
 ---
 
@@ -92,4 +92,4 @@
 
 ---
 *Dokumen Master Brain ini menggantikan README, Master Framework, dan Roadmap lama.*
-*Terakhir diupdate berdasarkan prosedur Auto-Versioning v1.3.12-stable*
+*Terakhir diupdate berdasarkan prosedur Auto-Versioning v1.3.13-stable*

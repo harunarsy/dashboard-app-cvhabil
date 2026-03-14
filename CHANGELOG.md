@@ -1,5 +1,9 @@
 # CHANGELOG - HABIL SUPERAPP
 
+## [v1.3.13-stable] - 2026-03-14
+### Fixed
+- **Build Failure Hotfix**: Removed unused variables and imports in `PrintSettings.jsx` that were blocking Vercel deployment (CI=true).
+
 ## [v1.3.12-stable] - 2026-03-14
 ### Added
 - **Final Parity Audit**: Confirmed 100% data integrity across all migrated tables.
@@ -30,8 +34,7 @@
 ## [1.3.10-stable] - 2026-03-14
 
 ### Changed
-- **Session Shutdown**: Final audit versi global dan sinkronisasi seluruh komponen UI
-- **Version**: `v1.3.11-stable`
+- **Session Shutdown**: Final audit versi global dan sin*Terakhir diupdate berdasarkan prosedur Auto-Versioning v1.3.13-stable*
 - **Primary Database**: Neon.tech (PostgreSQL 17)
 - **Status**: Stable & Migrated
 - **Documentation**: Update [SUPERAPP_BRAIN.md](SUPERAPP_BRAIN.md) dan [FEEDBACK_LOG.md](FEEDBACK_LOG.md) dengan recap migrasi database.
