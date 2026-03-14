@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Trash2, Edit2, X, FileText } from 'lucide-react';
-import { salesAPI, customersAPI, productsAPI, printSettingsAPI, countersAPI } from '../services/api';
+import { salesAPI, customersAPI, inventoryAPI, printSettingsAPI, countersAPI } from '../services/api';
 import { generateNotaPDF } from '../utils/generateNotaPDF';
 import Skeleton from './common/Skeleton';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 
-const blankItem = () => ({ product_name: '', qty: 1, unit: 'pcs', unit_price: 0 });
+const blankItem = () => ({ product_name: '', qty: 1, unit: 'pcs', unit_price: 0, unit_hpp: 0 });
 
 export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
 
@@ -64,7 +64,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
     try { const { data } = await customersAPI.getAll(); setCustomers(data); } catch (e) { console.error(e); }
   };
   const fetchProducts = async () => {
-    try { const { data } = await productsAPI.getAll(); setProducts(data); } catch (e) { console.error(e); }
+    try { const { data } = await inventoryAPI.getProducts(); setProducts(data); } catch (e) { console.error(e); }
   };
   const fetchSettings = async () => {
     try { const { data } = await printSettingsAPI.get(); setLayoutSettings(data.nota_layout); } catch (e) { console.error(e); }
@@ -77,7 +77,19 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
     } catch (e) { console.error(e); }
   };
 
+  const togglePayment = async (order) => {
+    const next = order.payment_status === 'paid' ? 'unpaid' : 'paid';
+    try {
+      await salesAPI.updatePaymentStatus(order.id, next);
+      flash(`Nota ${next === 'paid' ? 'Dilunasi' : 'Belum Dibayar'}`);
+      fetchOrders();
+    } catch (e) { alert(e.response?.data?.error || e.message); }
+  };
+
   useEffect(() => { fetchOrders(); fetchCustomers(); fetchProducts(); fetchSettings(); fetchCounters(); }, []);
+
+  // Filters
+  const [filterStatus, setFilterStatus] = useState('all');
 
   const filtered = orders.filter(o => {
     const orderDate = new Date(o.sale_date);
@@ -87,7 +99,8 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
     const isAllYear = String(filterYear) === 'all';
     const matchesMonth = isAllMonth || (orderDate.getMonth() + 1) === parseInt(filterMonth, 10);
     const matchesYear = isAllYear || orderDate.getFullYear() === parseInt(filterYear, 10);
-    return matchesSearch && matchesMonth && matchesYear;
+    const matchesStatus = filterStatus === 'all' || o.payment_status === filterStatus;
+    return matchesSearch && matchesMonth && matchesYear && matchesStatus;
   });
 
   const openAdd = () => {
@@ -116,7 +129,15 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
       payment_method: order.payment_method || 'Tunai',
       payment_details: order.payment_details || '',
     });
-    setItems(order.items?.length ? order.items.map(i => ({ product_name: i.product_name, qty: i.qty, unit: i.unit || 'pcs', unit_price: parseFloat(i.unit_price) || 0 })) : [blankItem()]);
+    setItems(order.items?.length 
+      ? order.items.map(i => ({ 
+          product_name: i.product_name, 
+          qty: i.qty, 
+          unit: i.unit || 'pcs', 
+          unit_price: parseFloat(i.unit_price) || 0,
+          unit_hpp: parseFloat(i.unit_hpp) || 0
+        })) 
+      : [blankItem()]);
     setShowModal(true);
   };
 
@@ -176,7 +197,19 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
   const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx));
   const updateItem = (idx, field, value) => {
     const newItems = [...items];
-    newItems[idx] = { ...newItems[idx], [field]: value };
+    let updated = { ...newItems[idx], [field]: value };
+    
+    // Auto-fill HPP and Price when product changes
+    if (field === 'product_name') {
+      const match = products.find(p => p.name.toLowerCase() === value.toLowerCase());
+      if (match) {
+        updated.unit_price = parseFloat(match.sell_price) || 0;
+        updated.unit_hpp = parseFloat(match.hna) || 0;
+        updated.unit = match.unit || 'pcs';
+      }
+    }
+    
+    newItems[idx] = updated;
     setItems(newItems);
   };
 
@@ -221,6 +254,12 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
           <option value="all">Semua Tahun</option>
           {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
         </select>
+
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, width: '140px' }}>
+          <option value="all">Semua Status</option>
+          <option value="unpaid">Belum Bayar</option>
+          <option value="paid">Sudah Lunas</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -228,7 +267,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             <tr style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}>
-              {['No. Nota', 'Tanggal', 'Customer', 'Total', 'Metode', 'Status', 'Aksi'].map(h => (
+              {['No. Nota', 'Tanggal', 'Customer', 'Total', 'Bayar', 'Status Doc', 'Aksi'].map(h => (
                 <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontWeight: '700', color: sub, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${border}` }}>{h}</th>
               ))}
             </tr>
@@ -255,12 +294,23 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
                     <td style={{ padding: '12px 14px', color: text }}>{o.customer_name}</td>
                     <td style={{ padding: '12px 14px', fontWeight: '600', color: text }}>{fmtRp(o.total)}</td>
                     <td style={{ padding: '12px 14px' }}>
-                      <span style={{ fontSize: '11px', color: (o.payment_method === 'Tunai' ? '#34C759' : '#007AFF'), fontWeight: '600' }}>{o.payment_method}</span>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); togglePayment(o); }}
+                        style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
+                      >
+                        <span style={{ fontSize: '10px', fontWeight: '800', padding: '4px 10px', borderRadius: '6px',
+                          backgroundColor: o.payment_status === 'paid' ? '#34C75925' : '#FF3B3015',
+                          color: o.payment_status === 'paid' ? '#34C759' : '#FF3B30',
+                          border: `1px solid ${o.payment_status === 'paid' ? '#34C75930' : '#FF3B3020'}` }}>
+                          {o.payment_status === 'paid' ? 'LUNAS' : 'BELUM BAYAR'}
+                        </span>
+                      </button>
+                      {o.paid_at && <p style={{ margin: '4px 0 0', fontSize: '9px', color: sub }}>{fmtDate(o.paid_at)}</p>}
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px',
-                        backgroundColor: o.status === 'final' ? '#34C75918' : '#FF950018',
-                        color: o.status === 'final' ? '#34C759' : '#FF9500' }}>
+                        backgroundColor: o.status === 'final' ? '#007AFF18' : '#8E8E9318',
+                        color: o.status === 'final' ? '#007AFF' : '#8E8E93' }}>
                         {o.status === 'final' ? 'Final' : 'Draft'}
                       </span>
                     </td>
@@ -277,7 +327,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
                       <td colSpan={6} style={{ padding: '0 14px 14px', backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', fontSize: '12px' }}>
                           <thead><tr>
-                            {['Produk', 'Qty', 'Satuan', 'Harga', 'Subtotal'].map(h => (
+                            {['Produk', 'Qty', 'Satuan', 'HPP', 'Harga', 'Subtotal'].map(h => (
                               <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: '600', color: sub, borderBottom: `1px solid ${border}` }}>{h}</th>
                             ))}
                           </tr></thead>
@@ -287,6 +337,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
                                 <td style={{ padding: '6px 10px', color: text }}>{it.product_name}</td>
                                 <td style={{ padding: '6px 10px', color: text }}>{it.qty}</td>
                                 <td style={{ padding: '6px 10px', color: sub }}>{it.unit}</td>
+                                <td style={{ padding: '6px 10px', color: sub }}>{fmtRp(it.unit_hpp)}</td>
                                 <td style={{ padding: '6px 10px', color: text }}>{fmtRp(it.unit_price)}</td>
                                 <td style={{ padding: '6px 10px', fontWeight: '600', color: text }}>{fmtRp(it.subtotal)}</td>
                               </tr>
@@ -383,10 +434,11 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
               <div>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Produk</label>
                 {items.map((it, idx) => (
-                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 60px 70px 1fr 30px', gap: '6px', marginBottom: '6px', alignItems: 'center' }}>
+                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 60px 45px 80px 100px 30px', gap: '6px', marginBottom: '6px', alignItems: 'center' }}>
                     <input list="product-list" value={it.product_name} onChange={e => updateItem(idx, 'product_name', e.target.value)} placeholder="Nama produk" style={{ ...inputStyle, fontSize: '13px', padding: '8px 10px' }} />
                     <input type="number" value={it.qty} onChange={e => updateItem(idx, 'qty', parseInt(e.target.value) || 0)} min="1" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
-                    <input value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} placeholder="pcs" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px' }} />
+                    <input value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} placeholder="pcs" style={{ ...inputStyle, fontSize: '13px', padding: '8px 4px', textAlign: 'center' }} />
+                    <input type="number" value={it.unit_hpp} onChange={e => updateItem(idx, 'unit_hpp', parseFloat(e.target.value) || 0)} min="0" placeholder="HPP" style={{ ...inputStyle, fontSize: '12px', padding: '8px 6px', backgroundColor: isDarkMode ? '#1C1C1E' : '#EBEBEB', border: `1px dashed ${border}` }} />
                     <input type="number" value={it.unit_price} onChange={e => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} min="0" placeholder="Harga" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px' }} />
                     {items.length > 1 && (
                       <button onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>

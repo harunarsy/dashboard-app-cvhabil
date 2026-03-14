@@ -1,8 +1,27 @@
-# CHANGELOG - HABIL SUPERAPP
+# Changelog HABIL SUPERAPP
 
-## [v1.3.16-stable] - 2026-03-14
+Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
+
+## [v1.3.18-stable] — 2026-03-14
+
+### Fixed
+- **Settings Save Bug**: Perbaikan error "Gagal menyimpan pengaturan" dengan implementasi bulk update API dan sinkronisasi state frontend-backend.
+
+## [v1.3.17-stable] — 2026-03-14
 
 ### Added
+- **Revenue & Profit Tracking**: Tracking status pembayaran (Paid/Unpaid) pada Nota Penjualan.
+- **HPP CRUD**: Input HPP kustom per item di Nota Penjualan (HPP default dari Master Produk).
+- **Laba Kotor**: Card statistik baru di Dashboard untuk memantau akumulasi laba kotor dari nota lunas bulan ini.
+- **Auto-fill HPP**: Otomatis menarik harga HPP (hna) saat memilih produk di form nota.
+
+### Changed
+- **Dashboard Stats**: Reorganisasi card statistik untuk menyertakan Laba Kotor.
+- **Sales Order API**: Kalkulasi `gross_profit` dipindahkan ke sisi server untuk integritas data.
+
+## [v1.3.16-stable] — 2026-03-14
+### Added
+- **Mobile Responsive Sidebar**: Hamburger menu untuk layar kecil dengan overlay slide-in.
 - **Prompt 2 — UI/UX Standardization**:
   - **PDF Nota**: Customer address now shown below customer name in Nota Penjualan PDF.
   - **PDF SP**: Distributor address now shown in "Kepada Yth." block of Surat Pesanan PDF.
@@ -26,7 +45,7 @@
 
 ## [v1.3.12-stable] - 2026-03-14
 ### Added
-- **Final Parity Audit**: Confirmed 100% data integrity across all migrated tables.
+- **Final Parity Audit**: Confirmed 100% data integrity across all migrated tables from Supabase to Neon.tech.
 - **System Shutdown**: Finalized deployment and merged to main.
 
 ## [v1.3.11-stable] - 2026-03-14
