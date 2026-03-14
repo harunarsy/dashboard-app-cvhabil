@@ -2,6 +2,10 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.24-stable] - 2026-03-15
+### Fixed
+- **Bug — Data Pengaturan (print_settings) hilang setelah refresh**: GET endpoint sekarang menormalisasi `setting_value` (parse JSON jika string dari DB/driver). BULK update memastikan nilai di-`JSON.stringify` sebelum INSERT. Data Pengaturan kini persisten setelah refresh, login ulang, atau buka dari device lain.
+
 ## [v1.3.23-stable] - 2026-03-15
 ### Fixed
 - **Bug #1 — Header PDF SP**: Tampilkan `settings.address` dan `settings.phone` di bawah nama perusahaan, menggunakan `-` saat kosong.
