@@ -14,6 +14,7 @@ import {
   ChevronDown,
   User
 } from 'lucide-react';
+import Skeleton from './common/Skeleton';
 
 const API_BASE = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5001/api' : '/api');
 
@@ -45,17 +46,21 @@ const TasksKanban = () => {
   const [editingTask, setEditingTask] = useState(null);
   const [taskHistory, setTaskHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchTasks();
   }, []);
 
   const fetchTasks = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(`${API_BASE}/tasks`);
       setTasks(res.data);
     } catch (err) {
       console.error('Error fetching tasks:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -201,52 +206,64 @@ const TasksKanban = () => {
             </div>
 
             <div className="bg-black/[0.02] rounded-2xl p-2 flex flex-col gap-2 overflow-y-auto custom-scrollbar border border-black/[0.02] h-[320px]">
-              {getTasksByStatus(column.id).map(task => (
-                <div 
-                  key={task.id} 
-                  draggable
-                  onDragStart={(e) => onDragStart(e, task.id)}
-                  onClick={() => setEditingTask(task)}
-                  className="bg-white/90 backdrop-blur-sm border border-black/[0.05] p-3 rounded-xl shadow-sm hover:shadow-md transition-all group cursor-pointer active:scale-95"
-                >
-                  <div className="flex justify-between items-start mb-1.5">
-                    <span 
-                      className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                      style={{ 
-                        backgroundColor: PRIORITY_COLORS[task.priority]?.bg, 
-                        color: PRIORITY_COLORS[task.priority]?.text 
-                      }}
-                    >
-                      {task.priority}
-                    </span>
+              {loading ? (
+                [1, 2, 3].map(i => (
+                  <div key={i} className="bg-white/90 p-3 rounded-xl border border-black/[0.05]">
+                    <Skeleton width="40px" height="12px" style={{ marginBottom: '8px' }} />
+                    <Skeleton width="100%" height="16px" style={{ marginBottom: '8px' }} />
+                    <Skeleton width="80%" height="10px" />
                   </div>
-                  <h4 className="font-bold text-[#1d1d1f] text-xs leading-snug mb-1.5 group-hover:text-[#0071e3] transition-colors">
-                    {task.title}
-                  </h4>
-                  {task.description && (
-                    <p className="text-[10px] text-[#86868b] line-clamp-2 mb-2 leading-relaxed">
-                      {task.description}
-                    </p>
-                  )}
-                  {task.due_date && (
-                    <div className="flex items-center gap-1 text-[9px] font-bold text-[#86868b]">
-                      <Calendar size={10} />
-                      <span>{new Date(task.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
+                ))
+              ) : (
+                <>
+                  {getTasksByStatus(column.id).map(task => (
+                    <div 
+                      key={task.id} 
+                      draggable
+                      onDragStart={(e) => onDragStart(e, task.id)}
+                      onClick={() => setEditingTask(task)}
+                      className="bg-white/90 backdrop-blur-sm border border-black/[0.05] p-3 rounded-xl shadow-sm hover:shadow-md transition-all group cursor-pointer active:scale-95"
+                    >
+                      <div className="flex justify-between items-start mb-1.5">
+                        <span 
+                          className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                          style={{ 
+                            backgroundColor: PRIORITY_COLORS[task.priority]?.bg, 
+                            color: PRIORITY_COLORS[task.priority]?.text 
+                          }}
+                        >
+                          {task.priority}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-[#1d1d1f] text-xs leading-snug mb-1.5 group-hover:text-[#0071e3] transition-colors">
+                        {task.title}
+                      </h4>
+                      {task.description && (
+                        <p className="text-[10px] text-[#86868b] line-clamp-2 mb-2 leading-relaxed">
+                          {task.description}
+                        </p>
+                      )}
+                      {task.due_date && (
+                        <div className="flex items-center gap-1 text-[9px] font-bold text-[#86868b]">
+                          <Calendar size={10} />
+                          <span>{new Date(task.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
+                        </div>
+                      )}
+                      {task.pic && (
+                        <div className="flex items-center gap-1 text-[9px] font-bold text-blue-500 mt-1">
+                          <User size={10} />
+                          <span>PIC: {task.pic}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {getTasksByStatus(column.id).length === 0 && (
+                    <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-black/5 rounded-2xl py-8">
+                      <p className="text-[10px] font-bold text-[#86868b] opacity-40 uppercase tracking-tighter">Empty</p>
                     </div>
                   )}
-                  {task.pic && (
-                    <div className="flex items-center gap-1 text-[9px] font-bold text-blue-500 mt-1">
-                      <User size={10} />
-                      <span>PIC: {task.pic}</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-              
-              {getTasksByStatus(column.id).length === 0 && (
-                <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-black/5 rounded-2xl py-8">
-                  <p className="text-[10px] font-bold text-[#86868b] opacity-40 uppercase tracking-tighter">Empty</p>
-                </div>
+                </>
               )}
             </div>
           </div>

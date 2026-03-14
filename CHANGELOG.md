@@ -1,8 +1,24 @@
-# Changelog
+# CHANGELOG - HABIL SUPERAPP
 
-All notable changes to this project will be documented in this file.
+## [v1.3.12-stable] - 2026-03-14
+### Added
+- **Final Parity Audit**: Confirmed 100% data integrity across all migrated tables.
+- **System Shutdown**: Finalized deployment and merged to main.
 
-## [1.3.11-stable] - 2026-03-14
+## [v1.3.11-stable] - 2026-03-14
+### Added
+- **Full Database Parity**: Successfully migrated all operational tables from Supabase to Neon.tech.
+- **Premium Skeleton Loading**: Implemented across Bugs, Customers, Ledger, Kanban, and Print Settings.
+- **Deep Migration Engine**: New robust script for cross-platform data synchronization.
+
+### Fixed
+- **Parsing Errors**: Resolved syntax and import issues in `BugReports.jsx` and `PrintSettings.jsx`.
+- **Data Gap**: Fixed missing records in `employees`, `products`, and `custom_orders`.
+
+### Changed
+- **UX Refinement**: Replaced all legacy loading indicators with visual placeholders.
+
+## [v1.3.11-stable] - 2026-03-14
 
 ### Fixed
 - **Deep Data Migration**: Selesai memigrasikan data tabel `invoices`, `invoice_items`, `purchase_orders`, `purchase_order_items`, dan `bug_reports` dengan data parity 100%.
@@ -14,7 +30,10 @@ All notable changes to this project will be documented in this file.
 ## [1.3.10-stable] - 2026-03-14
 
 ### Changed
-- **Session Shutdown**: Final audit versi global dan sinkronisasi seluruh komponen UI ke state v1.3.10-stable.
+- **Session Shutdown**: Final audit versi global dan sinkronisasi seluruh komponen UI
+- **Version**: `v1.3.11-stable`
+- **Primary Database**: Neon.tech (PostgreSQL 17)
+- **Status**: Stable & Migrated
 - **Documentation**: Update [SUPERAPP_BRAIN.md](SUPERAPP_BRAIN.md) dan [FEEDBACK_LOG.md](FEEDBACK_LOG.md) dengan recap migrasi database.
 
 ## [1.3.9-stable] - 2026-03-14
