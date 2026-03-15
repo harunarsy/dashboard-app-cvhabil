@@ -2,6 +2,10 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.27-stable] - 2026-03-15
+### Fixed
+- **Bug — Section "Kepada Yth" hilang total di PDF Nota**: Root cause: tabel PDF punya `startY` fixed `margin+30` sehingga menimpa blok customer. Tabel sekarang mulai setelah blok customer (`addressY + padding`). Nama customer selalu tampil; alamat/telepon tampil hanya jika ada di DB.
+
 ## [v1.3.26-stable] - 2026-03-15
 ### Fixed
 - **Bug — Alamat & telepon customer tidak muncul di PDF Nota**: API GET /api/sales sekarang JOIN customers untuk customer_phone; kolom customer_phone ditambah di sales_orders. Form Nota punya field Telepon, auto-fill dari customer terpilih. generateNotaPDF render address/phone hanya bila ada data.
