@@ -120,6 +120,7 @@ export function generateNotaPDF(order, options = {}) {
     addressY += isA6 ? 4 : 5;
     doc.text(`Telp: ${String(order.customer_phone).trim()}`, margin + (isA6 ? 18 : 22), addressY);
   }
+  const tableStartY = addressY + (isA6 ? 5 : 6);
 
   // Payment Method info
   if (type !== 'terima') {
@@ -148,7 +149,7 @@ export function generateNotaPDF(order, options = {}) {
     : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']];
 
   autoTable(doc, {
-    startY: margin + 30,
+    startY: tableStartY,
     head: tableHead,
     body: tableData,
     theme: 'grid',
