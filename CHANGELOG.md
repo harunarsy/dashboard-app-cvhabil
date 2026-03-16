@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.28-stable] - 2026-03-16
+### Changed
+- **UI/UX — Mobile Sidebar**: Redesign ke pattern **Modal Navigation Drawer** yang lebih premium: lebar 80% (max 300px), scrim/backdrop gelap (0.5) + blur, rounded ending edge, shadow lebih dalam, animasi slide+fade 280ms.
+- **UX — Drawer Behavior**: Klik backdrop/klik menu item auto-close, swipe kiri untuk tutup, focus trap + Escape untuk tutup, dan prevent body scroll saat drawer terbuka.
+
 ## [v1.3.27-stable] - 2026-03-15
 ### Fixed
 - **Bug — Section "Kepada Yth" hilang total di PDF Nota**: Root cause: tabel PDF punya `startY` fixed `margin+30` sehingga menimpa blok customer. Tabel sekarang mulai setelah blok customer (`addressY + padding`). Nama customer selalu tampil; alamat/telepon tampil hanya jika ada di DB.

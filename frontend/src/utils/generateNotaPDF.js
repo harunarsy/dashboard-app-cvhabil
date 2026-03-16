@@ -21,14 +21,15 @@ function angkaKeTerbilang(n) {
 export function generateNotaPDF(order, options = {}) {
   try {
     console.log('[generateNotaPDF] Starting with order:', order);
-    const raw = options.settings || {};
-    const settings = {
-      company_name: raw.company_name || raw.shop_name || 'CV HABIL SEJAHTERA BERSAMA',
-      address: raw.address || '',
-      phone: raw.phone || '',
-      footer_text: raw.footer_text || raw.footer || 'Dokumen ini dicetak secara otomatis oleh Dashboard CV Habil'
-    };
-    const { format = 'A4', type = 'nota' } = options;
+    const {
+      format = 'A4',
+      type = 'nota',
+      settings = {
+        company_name: 'CV HABIL SEJAHTERA BERSAMA',
+        address: 'Surabaya, Jawa Timur — Indonesia',
+        footer_text: 'Dokumen ini dicetak secara otomatis oleh Dashboard CV Habil'
+      }
+    } = options;
 
     console.log('[generateNotaPDF] Format:', format, 'Type:', type);
 
@@ -54,18 +55,16 @@ export function generateNotaPDF(order, options = {}) {
   doc.setTextColor(...accentColor);
   console.log('[generateNotaPDF] Header - company_name:', settings.company_name, 'coordinates:', margin, margin + 5);
   doc.text(String(settings.company_name || 'CV HABIL SEJAHTERA BERSAMA'), margin, margin + 5);
-  let headerY = margin + 11;
+  
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize - 1);
   doc.setTextColor(80, 80, 80);
-  if (settings.address && String(settings.address).trim()) {
-    doc.text(String(settings.address).trim(), margin, headerY);
-    headerY += 6;
-  }
-  if (settings.phone && String(settings.phone).trim()) {
-    doc.text(String(settings.phone).trim(), margin, headerY);
-    headerY += 6;
-  }
+  console.log('[generateNotaPDF] Address:', settings.address, 'coordinates:', margin, margin + 11);
+  doc.text(String(settings.address || '-'), margin, margin + 11);
+  
+  // Phone number (if available)
+  console.log('[generateNotaPDF] Phone:', settings.phone, 'coordinates:', margin, margin + 15);
+  doc.text(String(settings.phone || '-'), margin, margin + 15);
 
   // Doc Info (Top Right)
   const infoX = pageWidth - margin;
@@ -89,44 +88,40 @@ export function generateNotaPDF(order, options = {}) {
     : '-';
   doc.text(saleDateStr, infoX, titleY + 9, { align: 'right' });
 
-  // Blue Line Divider (below header, min margin+22)
-  const dividerY = Math.max(margin + 22, headerY + 4);
+  // Blue Line Divider
   doc.setDrawColor(...accentColor);
   doc.setLineWidth(0.4);
-  doc.line(margin, dividerY, pageWidth - margin, dividerY);
+  doc.line(margin, margin + 22, pageWidth - margin, margin + 22);
 
   // ─── Customer & Payment ───────────────────────────────────────────────
-  const customerY = dividerY + 7;
   doc.setFontSize(baseFontSize);
   doc.setTextColor(0);
   doc.setFont('helvetica', 'normal');
-  doc.text('Kepada Yth:', margin, customerY);
+  doc.text('Kepada Yth:', margin, margin + 29);
   doc.setFont('helvetica', 'bold');
-  doc.text(String(order.customer_name || '-'), margin + (isA6 ? 18 : 22), customerY);
+  doc.text(String(order.customer_name || '-'), margin + (isA6 ? 18 : 22), margin + 29);
 
-  // Customer address & phone (only if non-empty)
-  let addressY = customerY;
-  if (order.customer_address && String(order.customer_address).trim()) {
+  // Customer address (if available)
+  let addressY = margin + 29;
+  if (order.customer_address) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(baseFontSize - 2);
     doc.setTextColor(80, 80, 80);
-    addressY += isA6 ? 4 : 5;
-    doc.text(String(order.customer_address).trim(), margin + (isA6 ? 18 : 22), addressY);
+    const addrOffset = isA6 ? 4 : 5;
+    addressY += addrOffset;
+    doc.text(String(order.customer_address), margin + (isA6 ? 18 : 22), addressY);
   }
-  if (order.customer_phone && String(order.customer_phone).trim()) {
-    doc.setFont('helvetica', 'normal');
+  if (order.customer_phone) {
     doc.setFontSize(baseFontSize - 2);
-    doc.setTextColor(80, 80, 80);
     addressY += isA6 ? 4 : 5;
-    doc.text(`Telp: ${String(order.customer_phone).trim()}`, margin + (isA6 ? 18 : 22), addressY);
+    doc.text(`Telp: ${String(order.customer_phone)}`, margin + (isA6 ? 18 : 22), addressY);
   }
-  const tableStartY = addressY + (isA6 ? 5 : 6);
 
   // Payment Method info
   if (type !== 'terima') {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(baseFontSize);
-    doc.text(`Metode: ${String(order.payment_method || 'Tunai')}`, infoX, customerY, { align: 'right' });
+    doc.text(`Metode: ${String(order.payment_method || 'Tunai')}`, infoX, margin + 25, { align: 'right' });
   }
 
   // ─── Table ────────────────────────────────────────────────────────────
@@ -149,7 +144,7 @@ export function generateNotaPDF(order, options = {}) {
     : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']];
 
   autoTable(doc, {
-    startY: tableStartY,
+    startY: margin + 30,
     head: tableHead,
     body: tableData,
     theme: 'grid',
