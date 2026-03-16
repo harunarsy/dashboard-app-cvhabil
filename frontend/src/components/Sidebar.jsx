@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, ShoppingCart, Package, DollarSign, Users, ChevronLeft, ChevronRight, Sun, LogOut, Bug, X, Moon, FileText, BarChart3, Briefcase, Printer, Menu } from 'lucide-react';
 import api from '../services/api';
@@ -16,6 +16,8 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   // Mobile state
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const drawerRef = useRef(null);
+  const touchStartXRef = useRef(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -25,6 +27,32 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
 
   // Close mobile sidebar on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
+  // Prevent body scroll when modal drawer open (mobile only)
+  useEffect(() => {
+    if (!isMobile) return;
+    if (!mobileOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.touchAction = prevTouchAction;
+    };
+  }, [isMobile, mobileOpen]);
+
+  const userDisplayName = useMemo(() => {
+    const u = user || {};
+    return (
+      u.name ||
+      u.full_name ||
+      u.username ||
+      u.email ||
+      u.user ||
+      'Admin'
+    );
+  }, [user]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -82,6 +110,83 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const txt = isDarkMode ? '#FFF' : '#000';
   const sub = isDarkMode ? '#86868B' : '#6B7280';
+  const appVersion = 'v1.3.28-stable';
+
+  const closeMobileDrawer = () => setMobileOpen(false);
+
+  const handleNavigate = (path, isActive) => {
+    if (!isActive) return;
+    // Close first to avoid ghost states on slower devices, then navigate.
+    if (isMobile) setMobileOpen(false);
+    navigate(path);
+  };
+
+  // Focus trap + ESC close (accessibility) for modal drawer (mobile only)
+  useEffect(() => {
+    if (!isMobile || !mobileOpen) return;
+    const root = drawerRef.current;
+    if (!root) return;
+
+    const prevActive = document.activeElement;
+    const focusables = () =>
+      Array.from(
+        root.querySelectorAll(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((el) => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
+
+    // Focus first actionable item (close button if exists, else first menu)
+    const first = focusables()[0];
+    if (first) first.focus();
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        closeMobileDrawer();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const items = focusables();
+      if (items.length === 0) return;
+      const firstEl = items[0];
+      const lastEl = items[items.length - 1];
+      const active = document.activeElement;
+
+      if (e.shiftKey) {
+        if (active === firstEl || !root.contains(active)) {
+          e.preventDefault();
+          lastEl.focus();
+        }
+      } else {
+        if (active === lastEl) {
+          e.preventDefault();
+          firstEl.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+      if (prevActive && prevActive.focus) prevActive.focus();
+    };
+  }, [isMobile, mobileOpen]);
+
+  const onDrawerTouchStart = (e) => {
+    if (!isMobile || !mobileOpen) return;
+    touchStartXRef.current = e.touches?.[0]?.clientX ?? null;
+  };
+  const onDrawerTouchMove = (e) => {
+    if (!isMobile || !mobileOpen) return;
+    const startX = touchStartXRef.current;
+    const x = e.touches?.[0]?.clientX ?? null;
+    if (startX == null || x == null) return;
+    const deltaX = x - startX;
+    if (deltaX < -60) {
+      touchStartXRef.current = null;
+      closeMobileDrawer();
+    }
+  };
 
   return (
     <>
@@ -95,60 +200,153 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
             width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
           }}
+          aria-label={mobileOpen ? 'Tutup menu' : 'Buka menu'}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-navigation-drawer"
         >
           {mobileOpen ? <X size={18} color={txt} /> : <Menu size={18} color={txt} />}
         </button>
       )}
 
       {/* Mobile Overlay */}
-      {isMobile && mobileOpen && (
+      {isMobile && (
         <div
-          onClick={() => setMobileOpen(false)}
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 39, backdropFilter: 'blur(2px)' }}
+          onClick={closeMobileDrawer}
+          className={[
+            'fixed inset-0 z-[90] transition-opacity duration-300',
+            'bg-black/50 backdrop-blur-[2px]',
+            mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
+          ].join(' ')}
+          aria-hidden={!mobileOpen}
         />
       )}
 
       {/* Sidebar Panel */}
-      <div style={{
-        position: 'fixed', left: 0, top: 0, height: '100vh',
-        width: isMobile ? '256px' : (isSidebarOpen ? '256px' : '80px'),
-        backgroundColor: bg, borderRight: `1px solid ${border}`,
-        display: 'flex', flexDirection: 'column',
-        transition: isMobile ? 'transform 0.3s ease-in-out' : 'width 0.3s ease-in-out',
-        zIndex: 40,
-        transform: isMobile ? (mobileOpen ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
-      }}>
+      <div
+        id="mobile-navigation-drawer"
+        ref={drawerRef}
+        role={isMobile ? 'dialog' : undefined}
+        aria-modal={isMobile ? true : undefined}
+        aria-label={isMobile ? 'Navigasi' : undefined}
+        onTouchStart={onDrawerTouchStart}
+        onTouchMove={onDrawerTouchMove}
+        className={isMobile ? [
+          'fixed left-0 top-0 z-[100] h-dvh',
+          'w-[80vw] max-w-[300px]',
+          'rounded-r-2xl',
+          'shadow-[12px_0_40px_rgba(0,0,0,0.35)]',
+          'transition-transform duration-[280ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full',
+          'flex flex-col',
+        ].join(' ') : undefined}
+        style={isMobile ? {
+          backgroundColor: bg,
+          borderRight: `1px solid ${border}`,
+        } : {
+          position: 'fixed', left: 0, top: 0, height: '100vh',
+          width: isSidebarOpen ? '256px' : '80px',
+          backgroundColor: bg, borderRight: `1px solid ${border}`,
+          display: 'flex', flexDirection: 'column',
+          transition: 'width 0.3s ease-in-out',
+          zIndex: 40,
+          transform: 'translateX(0)',
+        }}
+      >
         
         {/* Header */}
-        <div style={{ padding: '1.5rem', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: (isMobile ? 'space-between' : (isSidebarOpen ? 'space-between' : 'center')) }}>
-          {(isMobile || isSidebarOpen) && (
-            <div>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0 0 0.25rem 0', color: txt }}>Dashboard</h1>
-              <p style={{ fontSize: '0.875rem', color: sub, margin: 0 }}>HABIL SUPERAPP</p>
+        <div
+          className={isMobile ? 'px-5 pt-6 pb-4' : undefined}
+          style={isMobile ? { borderBottom: `1px solid ${border}` } : { padding: '1.5rem', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: (isSidebarOpen ? 'space-between' : 'center') }}
+        >
+          {isMobile ? (
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="h-11 w-11 rounded-2xl shadow-sm flex items-center justify-center text-white font-black tracking-tight"
+                    style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}
+                    aria-hidden="true"
+                  >
+                    H
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-extrabold uppercase tracking-wider" style={{ color: sub }}>
+                      HABIL SUPERAPP
+                    </div>
+                    <div
+                      className="text-base font-bold leading-tight truncate"
+                      style={{ color: txt }}
+                      title={userDisplayName}
+                    >
+                      {userDisplayName}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={closeMobileDrawer}
+                className="shrink-0 p-2 rounded-xl"
+                style={{ color: txt, backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}
+                aria-label="Tutup navigasi"
+              >
+                <X size={18} />
+              </button>
             </div>
+          ) : (
+            isSidebarOpen && (
+              <div>
+                <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0 0 0.25rem 0', color: txt }}>Dashboard</h1>
+                <p style={{ fontSize: '0.875rem', color: sub, margin: 0 }}>HABIL SUPERAPP</p>
+              </div>
+            )
           )}
           {!isMobile && (
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', color: txt }}>
               {isSidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
             </button>
           )}
-          {isMobile && (
-            <button onClick={() => setMobileOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', color: txt }}>
-              <X size={20} />
-            </button>
-          )}
         </div>
 
         {/* Menu */}
-        <nav style={{ flex: 1, padding: '1rem', overflowY: 'auto' }}>
+        <nav
+          style={{ flex: 1, padding: isMobile ? '1rem 0.75rem' : '1rem', overflowY: 'auto' }}
+          aria-label="Menu utama"
+        >
           {menuItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = item.active;
             const isCurrent = location.pathname === item.path;
             const showLabel = isMobile || isSidebarOpen;
             return (
-              <button key={index} onClick={() => isActive && navigate(item.path)} title={item.label}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.5rem', border: 'none', cursor: isActive ? 'pointer' : 'not-allowed', backgroundColor: isCurrent ? '#007AFF' : (isActive ? (isDarkMode ? '#1C1C1E' : '#F5F5F7') : 'transparent'), color: isCurrent ? '#FFF' : (isActive ? txt : (isDarkMode ? '#3A3A3C' : '#D1D5DB')), opacity: isActive ? 1 : 0.5, fontSize: '0.875rem', fontWeight: isCurrent ? '700' : '500', textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+              <button
+                key={index}
+                onClick={() => handleNavigate(item.path, isActive)}
+                title={item.label}
+                style={{
+                  width: '100%',
+                  minHeight: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.75rem 1rem',
+                  marginBottom: '0.5rem',
+                  borderRadius: '0.75rem',
+                  border: 'none',
+                  cursor: isActive ? 'pointer' : 'not-allowed',
+                  backgroundColor: isCurrent
+                    ? '#007AFF'
+                    : (isActive ? (isDarkMode ? '#1C1C1E' : '#F5F5F7') : 'transparent'),
+                  color: isCurrent
+                    ? '#FFF'
+                    : (isActive ? txt : (isDarkMode ? '#3A3A3C' : '#D1D5DB')),
+                  opacity: isActive ? 1 : 0.5,
+                  fontSize: '0.875rem',
+                  fontWeight: isCurrent ? '700' : '600',
+                  textAlign: 'left',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                }}
+              >
                 <Icon size={20} style={{ minWidth: '20px' }} />
                 {showLabel && (
                   <>
@@ -162,25 +360,33 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
         </nav>
 
         {/* Footer */}
-        <div style={{ padding: '1rem', borderTop: `1px solid ${border}` }}>
+        <div style={{ padding: isMobile ? '0.75rem 0.75rem 1rem' : '1rem', borderTop: `1px solid ${border}` }}>
           {/* Bug Report button */}
-          <button onClick={() => setShowBugModal(true)} title="Bug / Saran Fitur"
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? '#2C1A00' : '#FFF9E6', color: '#FF9500', fontSize: '0.875rem', fontWeight: '600' }}>
+          <button onClick={() => { if (isMobile) closeMobileDrawer(); setShowBugModal(true); }} title="Bug / Saran Fitur"
+            style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? '#2C1A00' : '#FFF9E6', color: '#FF9500', fontSize: '0.875rem', fontWeight: '700' }}>
             <Bug size={20} style={{ minWidth: '20px' }} />
             {(isMobile || isSidebarOpen) && <span>Bug / Saran Fitur</span>}
           </button>
 
-          <button onClick={() => setIsDarkMode(!isDarkMode)} title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7', color: txt, fontSize: '0.875rem', fontWeight: '500' }}>
+          <button onClick={() => { setIsDarkMode(!isDarkMode); if (isMobile) closeMobileDrawer(); }} title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
+            style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7', color: txt, fontSize: '0.875rem', fontWeight: '600' }}>
             {isDarkMode ? <Sun size={20} style={{ minWidth: '20px' }} /> : <Moon size={20} style={{ minWidth: '20px' }} />}
             {(isMobile || isSidebarOpen) && <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>}
           </button>
 
-          <button onClick={handleLogout} title="Logout"
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', backgroundColor: '#FF3B30', color: 'white', fontSize: '0.875rem', fontWeight: '500' }}>
+          <button onClick={() => { if (isMobile) closeMobileDrawer(); handleLogout(); }} title="Logout"
+            style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: '#FF3B30', color: 'white', fontSize: '0.875rem', fontWeight: '700' }}>
             <LogOut size={20} style={{ minWidth: '20px' }} />
             {(isMobile || isSidebarOpen) && <span>Logout</span>}
           </button>
+
+          {isMobile && (
+            <div className="mt-3 px-2">
+              <div className="text-[11px] font-semibold" style={{ color: sub, opacity: 0.75 }}>
+                Sistem {appVersion}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
