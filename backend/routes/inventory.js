@@ -346,6 +346,7 @@ router.get('/mutations', auth, async (req, res) => {
 // GET FEFO batch HNA for a product (for auto-fill in sales order)
 router.get('/fefo-hna/:productId', auth, async (req, res) => {
   try {
+    // 1. Try to get HNA from the FEFO batch (earliest expiry with stock)
     const { rows: [batch] } = await pool.query(`
       SELECT hna
       FROM inventory_batches
@@ -353,15 +354,26 @@ router.get('/fefo-hna/:productId', auth, async (req, res) => {
       ORDER BY expired_date ASC NULLS LAST
       LIMIT 1
     `, [req.params.productId]);
-    
-    if (batch) {
-      res.json({ hna: batch.hna || 0 });
-    } else {
-      // No active batch, return product master HNA
-      const { rows: [product] } = await pool.query('SELECT hna FROM product_master WHERE id = $1', [req.params.productId]);
-      res.json({ hna: product?.hna || 0 });
-    }
-  } catch (err) { res.status(500).json({ error: err.message }); }
+
+    // 2. Always fetch product master for fallback (hna + sell_price)
+    const { rows: [product] } = await pool.query(
+      'SELECT hna, sell_price FROM product_master WHERE id = $1',
+      [req.params.productId]
+    );
+
+    // 3. Determine the best HNA value (first non-zero wins)
+    const batchHna = batch ? parseFloat(batch.hna) : 0;
+    const masterHna = product ? parseFloat(product.hna) : 0;
+    const sellPrice = product ? parseFloat(product.sell_price) : 0;
+
+    // Priority: batch FEFO HNA → product master HNA → product sell_price → 0
+    const finalHna = batchHna || masterHna || sellPrice || 0;
+
+    res.json({ hna: finalHna, sell_price: sellPrice });
+  } catch (err) {
+    console.error('[Inventory FEFO-HNA] Error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

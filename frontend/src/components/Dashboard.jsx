@@ -6,7 +6,14 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
    {
-    version: 'v1.3.28-stable', date: '16 Mar 2026', status: 'latest',
+    version: 'v1.3.29-stable', date: '20 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'BUG-001: Task creation — validasi input judul wajib, null-safe params, error logging detail.' },
+      { type: 'fix', text: 'BUG-002: HPP auto-fill dari FEFO batch — fallback 3 tier (batch HNA → master HNA → sell_price).' }
+    ]
+  },
+  {
+    version: 'v1.3.28-stable', date: '16 Mar 2026', status: 'stable',
     changes: [
       { type: 'ui', text: 'Sidebar Mobile: Redesign ke Modal Navigation Drawer (overlay 0.5 + blur, rounded edge, shadow lebih dalam).' },
       { type: 'ui', text: 'Animasi: Slide-in/out + backdrop fade 280ms dengan easing smooth.' },
@@ -230,7 +237,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.3.28-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.29-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -284,7 +291,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.3.28-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.29-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -378,7 +385,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.28-stable — 2026
+            HABIL SUPERAPP v1.3.29-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
