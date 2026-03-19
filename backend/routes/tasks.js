@@ -25,13 +25,20 @@ router.get('/trash', async (req, res) => {
 // POST new task
 router.post('/', async (req, res) => {
   const { title, description, status, priority, due_date, pic } = req.body;
+
+  // Validate required fields
+  if (!title || !title.trim()) {
+    return res.status(400).json({ error: 'Judul tugas wajib diisi' });
+  }
+
   try {
     const result = await pool.query(
       'INSERT INTO tasks (title, description, status, priority, due_date, pic) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [title, description, status || 'todo', priority || 'medium', due_date, pic]
+      [title.trim(), description || '', status || 'todo', priority || 'medium', due_date || null, pic || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
+    console.error('[Tasks POST] Error creating task:', err.message, { title, status, priority, due_date, pic });
     res.status(500).json({ error: err.message });
   }
 });

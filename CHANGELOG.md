@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.29-stable] - 2026-03-20
+### Fixed
+- **Bug — Task Creation HTTP 500**: Menambahkan validasi input (judul wajib), null-safe parameter binding (`due_date || null`, `pic || null`), dan error logging detail di endpoint `POST /api/tasks`. Root cause asli: transient error dari cold start Vercel — task terbuat di DB tapi response timeout. Sekarang lebih robust.
+- **Bug — HPP Auto-fill = 0 dari FEFO Batch**: FEFO endpoint (`GET /inventory/fefo-hna/:productId`) sekarang menggunakan fallback 3 tier: batch HNA → product master HNA → sell_price. Sebelumnya return `hna: 0.00` karena batch DIANERAL punya `hna=0` di `inventory_batches` dan fallback ke `product_master.hna` juga 0. Sekarang return `hna: 36100` (dari `sell_price`).
+
 ## [v1.3.28-stable] - 2026-03-16
 ### Changed
 - **UI/UX — Mobile Sidebar**: Redesign ke pattern **Modal Navigation Drawer** yang lebih premium: lebar 80% (max 300px), scrim/backdrop gelap (0.5) + blur, rounded ending edge, shadow lebih dalam, animasi slide+fade 280ms.
