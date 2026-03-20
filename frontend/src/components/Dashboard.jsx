@@ -6,20 +6,54 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
    {
-    version: 'v1.3.35-stable', date: '20 Mar 2026', status: 'latest',
+    version: 'v1.3.36-stable', date: '20 Mar 2026', status: 'latest',
     changes: [
-      { type: 'ui', text: 'Mobile: Content area full-width saat sidebar hidden (centralized layout).' },
+      { type: 'fix', text: 'Counter Auto Desync: Manual save otomatis mengupdate sequence counter (Purchase Orders & Sales).' }
+    ]
+  },
+  {
+    version: 'v1.3.34-stable', date: '20 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'fix', text: 'Duplicate Key Error Items: Sinkronisasi sequence tabel items dengan id maksimal real di DB.' }
+    ]
+  },
+  {
+    version: 'v1.3.33-stable', date: '20 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'ui', text: 'Split Number Field: Prefix HSB-SP-/NOTA- dibuat readonly; field angka memiliki input mandiri.' },
+      { type: 'fix', text: 'Counter Increment Refetch: Memastikan frontend memanggil ulang fetchCounters setelah save mode Auto.' }
+    ]
+  },
+  {
+    version: 'v1.3.32-stable', date: '20 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'fix', text: 'Document Counter: Sinkronisasi nilai MAX(id) untuk SP untuk mencegah collision manual SP.' },
+      { type: 'ui', text: 'Mode Dokumen: Sentralisasi tombol Auto/Manual ke dalam UI Pembuatan SP dan Nota.' }
+    ]
+  },
+  {
+    version: 'v1.3.31-stable', date: '20 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'ui', text: 'UX Polish: Standarisasi seluruh copy/teks UI ke Bahasa Indonesia (Tombol Buat, Nama Menu, dll).' },
+      { type: 'ui', text: 'Safe Actions: Universal Confirm Modal menggantikan window.confirm default browser.' },
+      { type: 'ui', text: 'Navigasi: Breadcrumbs ditambahkan untuk semua halaman.' }
+    ]
+  },
+  {
+    version: 'v1.3.30-stable', date: '20 Mar 2026', status: 'stable',
+    changes: [
+      { type: 'ui', text: 'Mobile: Content area full-width saat sidebar hidden (centralized padding).' },
       { type: 'fix', text: 'Inventory Alert: Counter header sinkron dengan isi tab (exclude expired batches).' },
-      { type: 'fix', text: 'Release Modal: sessionStorage di-clear saat logout — modal muncul tiap login baru.' },
-      { type: 'ui', text: 'Form Nota: Validasi inline (red border + pesan error) menggantikan window.alert().' },
-      { type: 'ui', text: 'Loading: Skeleton loader di header stats mencegah flash "0 records" saat fetch.'},
+      { type: 'fix', text: 'Release Modal: sessionStorage di-clear saat logout — modal muncul setiap login baru.' },
+      { type: 'ui', text: 'Form Nota: Validasi inline (red border + pesan error) menggantikan alert mentah.' },
+      { type: 'ui', text: 'Loading: Skeleton loader di header mencegah flash "0 records".' }
     ]
   },
   {
     version: 'v1.3.29-stable', date: '20 Mar 2026', status: 'stable',
     changes: [
-      { type: 'fix', text: 'BUG-001: Task creation — validasi input judul wajib, null-safe params, error logging detail.' },
-      { type: 'fix', text: 'BUG-002: HPP auto-fill dari FEFO batch — fallback 3 tier (batch HNA → master HNA → sell_price).' }
+      { type: 'fix', text: 'BUG-001: Task creation — validasi input wajib, null-safe binding teratasi dari error 500 Vercel.' },
+      { type: 'fix', text: 'BUG-002: HPP auto-fill dari FEFO batch — fallback multi-tier ke sell_price produk.' }
     ]
   },
   {
@@ -247,7 +281,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.3.35-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.36-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -301,7 +335,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.3.35-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.36-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -395,7 +429,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.35-stable — 2026
+            HABIL SUPERAPP v1.3.36-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

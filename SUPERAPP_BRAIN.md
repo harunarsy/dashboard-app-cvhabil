@@ -1,8 +1,8 @@
 # 🧠 HABIL SUPERAPP — Source of Truth
-> **Current Version: v1.3.35-stable
-System Version: v1.3.35-stable
+> **Current Version: v1.3.36-stable
+System Version: v1.3.36-stable
 Status: PROD-STABLE
-> **VERSI SISTEM**: v1.3.35-stable
+> **VERSI SISTEM**: v1.3.36-stable
 
 ---
 
@@ -59,6 +59,8 @@ Status: PROD-STABLE
    - Key format: `habil_release_seen_${VERSION.replace(/\./g, '_')}`
    - Contoh: `habil_release_seen_v1_3_22_stable`
    - **Alasan:** User berbagi 1 akun (Harun, Fivin, Ferry), perlu popup muncul setiap login baru tetapi tidak loop saat navigasi antar halaman.
+
+4. **Wajib saat bump versi:** Update RELEASES array di `Dashboard.jsx` dengan konten yang sesuai CHANGELOG entry baru. Jangan copy-paste dari versi sebelumnya.
 
 ### [PROTOKOL B — TOKEN EFFICIENCY (max 160k/session)]
 
