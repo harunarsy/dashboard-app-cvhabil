@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.33-stable] - 2026-03-20
+
+### Fixed / UX Polish
+- **Counter Increment Refetch**: Memastikan frontend memanggil `fetchCounters()` sesudah pembuatan SP (Purchase Order) maupun Nota Penjualan agar angka Auto UI sinkron dengan *database index* yang di-increment otomatis oleh backend.
+- **Split Number Field UX**: Merombak UI pembuatan SP dan Nota khusus mode Manual. Prefix nomor dokumen (`HSB-SP-` dan `HSB-NOTA-`) kini *readonly* untuk menghindari kesalahan modifikasi *prefix string*. Hanya blok angka yang bisa disunting, dengan fitur *autofocus* saat toggle Manual diklik.
+
 ## [v1.3.32-stable] - 2026-03-20
 
 ### Fixed
