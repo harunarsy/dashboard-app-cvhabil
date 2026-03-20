@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.35-stable] - 2026-03-20
+
+### Fixed
+- **Counter Auto Desync**: Menambahkan logika di backend (`purchaseOrders.js` dan `sales.js`) untuk memverifikasi nomor dokumen saat `mode=Manual`. Jika digit ID dokumen manual lebih besar dari nilai *counter* auto saat ini, nilai *last_number* di tabel `document_counters` otomatis diperbarui untuk mencegah collision pada nomor berikutnya.
+
 ## [v1.3.34-stable] - 2026-03-20
 
 ### Fixed
