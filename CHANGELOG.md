@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.32-stable] - 2026-03-20
+
+### Fixed
+- **Duplicate Key Error SP**: Sinkronisasi nilai *counter* `document_counters` untuk Surat Pesanan menjadi `75` untuk mencegah collision dengan nomor SP manual (`SP26030001`).
+- **Document Counters UI**: Memindahkan toggle Lock/Unlock (Auto/Manual) penomoran SP dan Nota langsung ke dalam Modal Create masing-masing. Mode Manual tidak akan meng-increment counter di database, mode Auto akan otomatis di-handle backend.
+
 ## [v1.3.31-stable] - 2026-03-20
 
 ### UX Polish
