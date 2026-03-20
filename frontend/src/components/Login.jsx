@@ -42,7 +42,7 @@ export default function Login() {
             <Building2 size={32} />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">HABIL SUPERAPP</h1>
-            <p className="mt-8 text-xs text-gray-700 font-medium">HABIL SUPERAPP v1.3.30-stable — 2026</p>
+            <p className="mt-8 text-xs text-gray-700 font-medium">HABIL SUPERAPP v1.3.31-stable — 2026</p>
         </div>
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
           <h2 className="text-xl font-semibold text-gray-800 mb-6 text-center">Sign In</h2>
@@ -66,7 +66,7 @@ export default function Login() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder-gray-400"
-                  placeholder="Enter your username"
+                  placeholder="Masukkan username"
                   disabled={loading}
                   autoComplete="username"
                 />
@@ -84,7 +84,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm outline-none transition-all focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder-gray-400"
-                  placeholder="Enter your password"
+                  placeholder="Masukkan password"
                   disabled={loading}
                   autoComplete="current-password"
                 />

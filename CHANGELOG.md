@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.31-stable] - 2026-03-20
+
+### UX Polish
+- **Konsistensi Bahasa**: Mengubah semua istilah UI ke Bahasa Indonesia (Trash -> Sampah, Invoice -> Faktur, Edit -> Ubah, dsb.)
+- **Konsistensi Tombol Create**: Menyamakan format tombol tambah data menjadi "+ Buat/Tambah [Item]"
+- **Custom Delete Modal**: Mengganti `window.confirm` bawaan browser dengan custom modal `ConfirmModal` pada aksi hapus (Customer, SP, Nota, Faktur, Transaksi)
+- **Breadcrumb Navigation**: Menambahkan komponen `<Breadcrumb />` di semua halaman navigasi utama
+
 ## [v1.3.30-stable] - 2026-03-20
 ### Fixed
 - **UX — Mobile Content Full-Width**: Content area sekarang 100% width di mobile (centralized `marginLeft` di `App.js` ProtectedRoute wrapper, removed dari semua 11 komponen). Ditambahkan `isMobile` hook + responsive padding.

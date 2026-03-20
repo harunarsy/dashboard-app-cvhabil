@@ -3,6 +3,8 @@ import { Plus, Search, AlertTriangle, Clock, Trash2, Edit2, X, ArrowDownCircle, 
 import { inventoryAPI } from '../services/api';
 import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
+import ConfirmModal from './common/ConfirmModal';
+import Breadcrumb from './common/Breadcrumb';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -17,6 +19,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   const [editId, setEditId] = useState(null);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   // Product form
   const [pForm, setPForm] = useState({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5 });
@@ -76,9 +79,11 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
       setShowModal(null); fetchProducts();
     } catch (e) { alert(e.response?.data?.error || e.message); }
   };
-  const deleteProduct = async (id) => {
-    if (!window.confirm('Nonaktifkan produk ini?')) return;
-    try { await inventoryAPI.deleteProduct(id); flash('Produk dinonaktifkan'); fetchProducts(); } catch (e) { alert(e.response?.data?.error || e.message); }
+  const deleteProduct = (id) => setDeleteConfirmId(id);
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    try { await inventoryAPI.deleteProduct(deleteConfirmId); flash('Produk dinonaktifkan'); fetchProducts(); } catch (e) { alert(e.response?.data?.error || e.message); }
+    finally { setDeleteConfirmId(null); }
   };
 
   // MasterSelect handlers for Products
@@ -141,6 +146,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
   return (
     <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+      <Breadcrumb title="Inventory" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
@@ -444,6 +450,16 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
           </div>
         </div>
       )}
+
+      {/* Delete Confirm Modal */}
+      <ConfirmModal 
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={confirmDelete}
+        title="Nonaktifkan Produk"
+        message="Apakah Anda yakin ingin menonaktifkan produk ini?"
+        isDarkMode={isDarkMode}
+      />
 
       {/* Toast */}
       {toast && (
