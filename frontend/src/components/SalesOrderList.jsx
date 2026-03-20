@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Trash2, Edit2, X, FileText } from 'lucide-react';
 import { salesAPI, customersAPI, inventoryAPI, printSettingsAPI, countersAPI } from '../services/api';
 import { generateNotaPDF } from '../utils/generateNotaPDF';
@@ -35,7 +35,9 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
 
   // Form state
   const [isAutoNota, setIsAutoNota] = useState(true);
+  const [manualNumber, setManualNumber] = useState('');
   const [notaCounter, setNotaCounter] = useState({ prefix: 'NT', last_number: 0 });
+  const numberInputRef = useRef(null);
   const [form, setForm] = useState({ 
     order_number: '',
     customer_name: '', 
@@ -143,6 +145,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
 
   const openAdd = () => {
     setIsAutoNota(true);
+    setManualNumber('');
     setEditId(null);
     setForm({ 
       order_number: '',
@@ -185,20 +188,26 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
     if (!form.customer_name.trim()) errors.customer_name = 'Customer wajib diisi';
     const validItems = items.filter(i => i.product_name.trim());
     if (!validItems.length) errors.items = 'Minimal 1 produk harus ditambahkan';
-    if (!isAutoNota && !form.order_number && !editId) errors.order_number = 'Nomor Nota wajib diisi (mode Manual)';
+    if (!isAutoNota && !manualNumber && !editId) errors.order_number = 'Nomor Nota wajib diisi (mode Manual)';
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
     setSaving(true);
     try {
       const payload = { ...form, items: validItems };
-      if (isAutoNota && !editId) delete payload.order_number;
+      if (!isAutoNota && !editId) {
+        payload.order_number = notaCounter.prefix + manualNumber;
+      }
+      if (isAutoNota && !editId) {
+        delete payload.order_number;
+      }
       if (editId) {
         await salesAPI.update(editId, { ...payload, status: 'final' });
         flash('Nota diperbarui');
       } else {
         await salesAPI.create(payload);
         flash('Nota berhasil dibuat');
+        fetchCounters(); 
       }
       setShowModal(false);
       fetchOrders();
@@ -430,17 +439,34 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                   <label style={labelStyle}>Nomor Nota *</label>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <input
-                      value={isAutoNota ? `[Auto] ${notaCounter.prefix}${String(notaCounter.last_number + 1).padStart(4, '0')}` : form.order_number}
-                      onChange={e => !isAutoNota && setForm(p => ({ ...p, order_number: e.target.value.toUpperCase() }))}
+                      value={notaCounter.prefix}
+                      disabled
+                      style={{ ...inputStyle, width: '130px', backgroundColor: isDarkMode ? '#333' : '#F5F5F7', opacity: 0.7, fontWeight: '600', textAlign: 'center' }}
+                    />
+                    <input
+                      ref={numberInputRef}
+                      value={isAutoNota ? String(notaCounter.last_number + 1).padStart(4, '0') : manualNumber}
+                      onChange={e => !isAutoNota && setManualNumber(e.target.value.replace(/\D/g, ''))}
                       disabled={isAutoNota}
-                      placeholder={isAutoNota ? "Auto-generated" : `Contoh: ${notaCounter.prefix}0001`}
+                      placeholder="0001"
                       style={{ ...inputStyle, flex: 1, backgroundColor: isAutoNota ? (isDarkMode ? '#333' : '#F5F5F7') : cardBg, opacity: isAutoNota ? 0.7 : 1 }}
                     />
                     <button
                       type="button"
                       onClick={() => {
-                        setIsAutoNota(!isAutoNota);
-                        if (isAutoNota) setForm(p => ({ ...p, order_number: '' }));
+                        const newMode = !isAutoNota;
+                        setIsAutoNota(newMode);
+                        if (!newMode) {
+                          setManualNumber(String(notaCounter.last_number + 1).padStart(4, '0'));
+                          setTimeout(() => {
+                            if (numberInputRef.current) {
+                              numberInputRef.current.focus();
+                              numberInputRef.current.select();
+                            }
+                          }, 50);
+                        } else {
+                          setManualNumber('');
+                        }
                       }}
                       style={{
                         padding: '10px 14px', borderRadius: '8px', border: `1px solid ${border}`,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Trash2, Edit2, X, CheckCircle, FileText } from 'lucide-react';
 import { purchaseOrdersAPI, distributorsAPI, inventoryAPI, countersAPI, printSettingsAPI } from '../services/api';
 import { generateSPPDF } from '../utils/generateSPPDF';
@@ -31,7 +31,9 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   const [isAutoSP, setIsAutoSP] = useState(true);
+  const [manualNumber, setManualNumber] = useState('');
   const [spCounter, setSpCounter] = useState({ prefix: 'SP', last_number: 0 });
+  const numberInputRef = useRef(null);
   const [form, setForm] = useState({ po_number: '', distributor_name: '', distributor_address: '', pic_name: 'Harun Al Rasyid', order_date: new Date().toISOString().split('T')[0], expected_date: '', notes: '' });
   const [distForm, setDistForm] = useState({ name: '', short_code: '', salesman_name: '', salesman_phone: '' });
   const [items, setItems] = useState([blankItem()]);
@@ -81,6 +83,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
 
   const openCreate = () => {
     setIsAutoSP(true);
+    setManualNumber('');
     setEditId(null);
     setForm({ po_number: '', distributor_name: '', distributor_address: '', pic_name: 'Harun Al Rasyid', order_date: new Date().toISOString().split('T')[0], expected_date: '', notes: '' });
     setItems([blankItem()]);
@@ -106,12 +109,21 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
     if (!validItems.length) return alert('Min 1 produk');
     try {
       const payload = { ...form, items: validItems };
-      if (!isAutoSP && !form.po_number && !editId) {
+      if (!isAutoSP && !manualNumber && !editId) {
         return alert('Nomor SP wajib diisi secara manual (Sistem sedang dalam mode Manual)');
       }
-      if (isAutoSP && !editId) delete payload.po_number;
+      if (!isAutoSP && !editId) {
+        payload.po_number = spCounter.prefix + manualNumber;
+      }
+      if (isAutoSP && !editId) {
+        delete payload.po_number;
+      }
       if (editId) { await purchaseOrdersAPI.update(editId, payload); flash('SP diperbarui'); }
-      else { await purchaseOrdersAPI.create(payload); flash('SP berhasil dibuat'); }
+      else { 
+        await purchaseOrdersAPI.create(payload); 
+        flash('SP berhasil dibuat'); 
+        fetchCounters(); 
+      }
       setShowModal(null); fetchOrders();
     } catch (e) { alert(e.response?.data?.error || e.message); }
   };
@@ -300,17 +312,34 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
                   <label style={labelStyle}>Nomor SP *</label>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <input
-                      value={isAutoSP ? `[Auto] ${spCounter.prefix}${String(spCounter.last_number + 1).padStart(4, '0')}` : form.po_number}
-                      onChange={e => !isAutoSP && setForm(p => ({ ...p, po_number: e.target.value.toUpperCase() }))}
+                      value={spCounter.prefix}
+                      disabled
+                      style={{ ...inputStyle, width: '130px', backgroundColor: isDarkMode ? '#333' : '#F5F5F7', opacity: 0.7, fontWeight: '600', textAlign: 'center' }}
+                    />
+                    <input
+                      ref={numberInputRef}
+                      value={isAutoSP ? String(spCounter.last_number + 1).padStart(4, '0') : manualNumber}
+                      onChange={e => !isAutoSP && setManualNumber(e.target.value.replace(/\D/g, ''))}
                       disabled={isAutoSP}
-                      placeholder={isAutoSP ? "Auto-generated" : `Contoh: ${spCounter.prefix}0001`}
+                      placeholder="0001"
                       style={{ ...inputStyle, flex: 1, backgroundColor: isAutoSP ? (isDarkMode ? '#333' : '#F5F5F7') : cardBg, opacity: isAutoSP ? 0.7 : 1 }}
                     />
                     <button
                       type="button"
                       onClick={() => {
-                        setIsAutoSP(!isAutoSP);
-                        if (isAutoSP) setForm(p => ({ ...p, po_number: '' }));
+                        const newMode = !isAutoSP;
+                        setIsAutoSP(newMode);
+                        if (!newMode) {
+                          setManualNumber(String(spCounter.last_number + 1).padStart(4, '0'));
+                          setTimeout(() => {
+                            if (numberInputRef.current) {
+                              numberInputRef.current.focus();
+                              numberInputRef.current.select();
+                            }
+                          }, 50);
+                        } else {
+                          setManualNumber('');
+                        }
                       }}
                       style={{
                         padding: '10px 14px', borderRadius: '8px', border: `1px solid ${border}`,
