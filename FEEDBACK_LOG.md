@@ -1,5 +1,8 @@
 # Feedback Log
 
+## [2026-03-20] - v1.3.35-stable
+- Perbaikan sinkronisasi dan manajemen counter Auto pada database untuk menanggulangi collision sequence saat user memasukkan ID manual yang nilainya melampaui rentetan antrean otomatis SP maupun Nota.
+
 ## [2026-03-20] - v1.3.34-stable
 - Perbaikan "duplicate key value violates unique constraint" pada tabel `purchase_order_items`, `sales_items`, dan `invoice_items`.
 - Sinkronisasi manual sequence ID database dengan nilai MAX(id) real di tabel.

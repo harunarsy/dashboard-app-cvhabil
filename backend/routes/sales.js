@@ -103,6 +103,18 @@ router.post('/', auth, async (req, res) => {
     if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
 
     const orderNumber = manualOrderNumber ? manualOrderNumber : await generateOrderNumber(client);
+    
+    if (manualOrderNumber) {
+      const match = manualOrderNumber.match(/\d+$/);
+      if (match) {
+        const manualInt = parseInt(match[0], 10);
+        await client.query(
+          "UPDATE document_counters SET last_number = $1 WHERE doc_type = 'NOTA' AND last_number < $1",
+          [manualInt]
+        );
+      }
+    }
+
     let total = 0;
     let gross_profit = 0;
     items.forEach(it => { 
