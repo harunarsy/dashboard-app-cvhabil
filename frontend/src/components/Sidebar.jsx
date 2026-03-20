@@ -70,7 +70,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
     { icon: Home, label: 'Dashboard', path: '/dashboard', active: true },
     { icon: FileText, label: 'Nota Penjualan', path: '/sales', active: true },
     { icon: Users, label: 'Customer', path: '/customers', active: true },
-    { icon: Package, label: 'Invoices', path: '/invoices', active: true },
+    { icon: Package, label: 'Faktur Pembelian', path: '/invoices', active: true },
     { icon: ShoppingCart, label: 'Surat Pesanan', path: '/orders', active: true },
     { icon: Package, label: 'Inventory', path: '/inventory', active: true },
     { icon: ShoppingCart, label: 'Toko Online', path: '/online-store', active: true },
@@ -114,7 +114,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const txt = isDarkMode ? '#FFF' : '#000';
   const sub = isDarkMode ? '#86868B' : '#6B7280';
-  const appVersion = 'v1.3.30-stable';
+  const appVersion = 'v1.3.31-stable';
 
   const closeMobileDrawer = () => setMobileOpen(false);
 

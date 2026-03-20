@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, X } from 'lucide-react';
 import { ledgerAPI } from '../services/api';
 import Skeleton from './common/Skeleton';
+import ConfirmModal from './common/ConfirmModal';
+import Breadcrumb from './common/Breadcrumb';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -15,6 +17,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
   const [toast, setToast] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [form, setForm] = useState({ entry_date: new Date().toISOString().split('T')[0], account_name: '', description: '', debit: 0, credit: 0, category: 'Penjualan' });
   const [loading, setLoading] = useState(true);
 
@@ -49,10 +52,17 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
     } catch (e) { alert(e.response?.data?.error || e.message); }
   };
 
-  const handleDelete = async (id) => { if (!window.confirm('Hapus entry?')) return; try { await ledgerAPI.remove(id); flash('Dihapus'); fetchEntries(); fetchSummary(); } catch (e) { alert(e.response?.data?.error || e.message); } };
+  const handleDelete = (id) => setDeleteConfirmId(id);
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    try { await ledgerAPI.remove(deleteConfirmId); flash('Dihapus'); fetchEntries(); fetchSummary(); } catch (e) { alert(e.response?.data?.error || e.message); }
+    finally { setDeleteConfirmId(null); }
+  };
 
   return (
     <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+      <Breadcrumb title="Buku Besar" isMobile={isMobile} isDarkMode={isDarkMode} />
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
         <div>
@@ -60,7 +70,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
           <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>Khusus Direktur • {entries.length} entries</p>
         </div>
         <button onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', backgroundColor: '#5856D6', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
-          <Plus size={18} /> Tambah Entry
+          <Plus size={18} /> Buat Transaksi
         </button>
       </div>
 
@@ -133,7 +143,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
                       </td>
                     </tr>
                   ))}
-                  {!entries.length && <tr><td colSpan={7} style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', textAlign: 'center', color: sub }}>Belum ada entry. Klik "Tambah Entry" untuk memulai.</td></tr>}
+                  {!entries.length && <tr><td colSpan={7} style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', textAlign: 'center', color: sub }}>Belum ada transaksi. Klik "Buat Transaksi" untuk memulai.</td></tr>}
                 </>
               )}
             </tbody>
@@ -190,13 +200,23 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
                 <div><label style={labelStyle}>Kredit</label><input type="number" value={form.credit} onChange={e => setForm(f => ({ ...f, credit: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
               </div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                <button onClick={handleSave} style={{ flex: 1, padding: '13px', backgroundColor: '#5856D6', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>{editId ? 'Simpan' : 'Tambah'}</button>
+                <button onClick={handleSave} style={{ flex: 1, padding: '13px', backgroundColor: '#5856D6', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>{editId ? 'Simpan' : 'Buat Transaksi'}</button>
                 <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Delete Confirm Modal */}
+      <ConfirmModal 
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={confirmDelete}
+        title="Hapus Transaksi"
+        message="Apakah Anda yakin ingin menghapus transaksi ini?"
+        isDarkMode={isDarkMode}
+      />
 
       {/* Toast */}
       {toast && <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>✅ {toast}</div>}

@@ -4,6 +4,8 @@ import { purchaseOrdersAPI, distributorsAPI, inventoryAPI, countersAPI, printSet
 import { generateSPPDF } from '../utils/generateSPPDF';
 import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
+import ConfirmModal from './common/ConfirmModal';
+import Breadcrumb from './common/Breadcrumb';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -26,6 +28,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   const [spCounter, setSpCounter] = useState({ is_locked: true, prefix: 'SP', last_number: 0 });
   const [form, setForm] = useState({ po_number: '', distributor_name: '', distributor_address: '', pic_name: 'Harun Al Rasyid', order_date: new Date().toISOString().split('T')[0], expected_date: '', notes: '' });
@@ -130,7 +133,12 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
     } catch (e) { alert(e.response?.data?.error || e.message); }
   };
 
-  const handleDelete = async (id) => { if (!window.confirm('Hapus SP ini?')) return; try { await purchaseOrdersAPI.remove(id); flash('SP dihapus'); fetchOrders(); } catch (e) { alert(e.response?.data?.error || e.message); } };
+  const handleDelete = (id) => setDeleteConfirmId(id);
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    try { await purchaseOrdersAPI.remove(deleteConfirmId); flash('SP dihapus'); fetchOrders(); } catch (e) { alert(e.response?.data?.error || e.message); }
+    finally { setDeleteConfirmId(null); }
+  };
   
   // MasterSelect handlers for Distributor
   const handleAddDistributor = async (name) => {
@@ -176,6 +184,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
 
   return (
     <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+      <Breadcrumb title="Surat Pesanan" isMobile={isMobile} isDarkMode={isDarkMode} />
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
         <div>
@@ -436,6 +445,16 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
           </div>
         </div>
       )}
+
+      {/* Delete Confirm Modal */}
+      <ConfirmModal 
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={confirmDelete}
+        title="Hapus SP"
+        message="Apakah Anda yakin ingin menghapus Surat Pesanan ini?"
+        isDarkMode={isDarkMode}
+      />
 
       {/* Toast */}
       {toast && (
