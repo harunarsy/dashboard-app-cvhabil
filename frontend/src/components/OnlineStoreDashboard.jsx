@@ -5,7 +5,7 @@ import Skeleton from './common/Skeleton';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 
-export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen }) {
+export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [tab, setTab] = useState('summary');
   const [summary, setSummary] = useState({ platforms: [], monthly: [] });
   const [sales, setSales] = useState([]);
@@ -69,7 +69,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen }) {
   const platformColors = { shopee: '#EE4D2D', tiktok: '#000000' };
 
   return (
-    <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
         <div>
@@ -184,7 +184,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen }) {
                   </tr>
                 ))
               )}
-              {!loading && !sales.length && <tr><td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: sub }}>Belum ada transaksi. Import CSV untuk memulai.</td></tr>}
+              {!loading && !sales.length && <tr><td colSpan={8} style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', textAlign: 'center', color: sub }}>Belum ada transaksi. Import CSV untuk memulai.</td></tr>}
             </tbody>
           </table>
         </div>

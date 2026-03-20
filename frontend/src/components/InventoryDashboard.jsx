@@ -8,7 +8,7 @@ const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currenc
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
 
-export default function InventoryDashboard({ isDarkMode, isSidebarOpen }) {
+export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [tab, setTab] = useState('products'); // products | stockIn | opname | alerts
   const [products, setProducts] = useState([]);
   const [alerts, setAlerts] = useState({ expiring: [], lowStock: [] });
@@ -140,13 +140,13 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen }) {
   const totalAlerts = alerts.expiring.length + alerts.lowStock.length;
 
   return (
-    <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: 0, color: text }}>📦 Inventory & Stok</h1>
-          <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>{products.length} produk aktif • {totalAlerts > 0 ? `⚠️ ${totalAlerts} alert` : '✅ Semua aman'}</p>
+          <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>{loading ? <Skeleton width="200px" height="14px" /> : <>{products.length} produk aktif • {totalAlerts > 0 ? `⚠️ ${totalAlerts} alert` : '✅ Semua aman'}</>}</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button onClick={openAddProduct} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' }}>
@@ -247,7 +247,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen }) {
                   );
                 })
               )}
-              {!loading && !filtered.length && <tr><td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: sub }}>Belum ada produk. Klik "Produk" untuk menambahkan.</td></tr>}
+              {!loading && !filtered.length && <tr><td colSpan={8} style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', textAlign: 'center', color: sub }}>Belum ada produk. Klik "Produk" untuk menambahkan.</td></tr>}
             </tbody>
           </table>
         </div>
