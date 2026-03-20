@@ -1,5 +1,9 @@
 # Feedback Log
 
+## [2026-03-20] - v1.3.34-stable
+- Perbaikan "duplicate key value violates unique constraint" pada tabel `purchase_order_items`, `sales_items`, dan `invoice_items`.
+- Sinkronisasi manual sequence ID database dengan nilai MAX(id) real di tabel.
+
 ## [2026-03-20] - v1.3.33-stable
 - Perbaikan sinkronisasi penomoran dokumen di frontend dengan backend pada mode Auto.
 - UI Split Number Field untuk mencegah manipulasi prefix oleh user.
