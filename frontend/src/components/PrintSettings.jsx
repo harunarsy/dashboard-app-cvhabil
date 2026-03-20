@@ -3,7 +3,7 @@ import { Save, RefreshCw, Printer, Monitor } from 'lucide-react';
 import Skeleton from './common/Skeleton';
 import { printSettingsAPI } from '../services/api';
 
-export default function PrintSettings({ isDarkMode, isSidebarOpen }) {
+export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile }) {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -68,7 +68,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen }) {
   const inputBg = isDarkMode ? '#2C2C2E' : '#F5F5F7';
 
   if (loading) return (
-    <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       <Skeleton width="200px" height="32px" style={{ marginBottom: '24px' }} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         <div style={{ backgroundColor: cardBg, borderRadius: '16px', padding: '24px', border: `1px solid ${border}` }}>
@@ -90,7 +90,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen }) {
   const previewFooter = settings.footer || 'Dokumen dicetak otomatis oleh Habil SuperApp';
 
   return (
-    <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
         {/* Page Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>

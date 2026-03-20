@@ -78,7 +78,7 @@ router.get('/products', auth, async (req, res) => {
       SELECT p.*,
         COALESCE(SUM(b.qty_current), 0) AS total_stock,
         MIN(b.expired_date) FILTER (WHERE b.qty_current > 0 AND b.expired_date IS NOT NULL) AS nearest_expiry,
-        COUNT(b.id) FILTER (WHERE b.qty_current > 0 AND b.expired_date IS NOT NULL AND b.expired_date < CURRENT_DATE + INTERVAL '90 days') AS expiring_batches
+        COUNT(b.id) FILTER (WHERE b.qty_current > 0 AND b.expired_date IS NOT NULL AND b.expired_date >= CURRENT_DATE AND b.expired_date < CURRENT_DATE + INTERVAL '90 days') AS expiring_batches
       FROM product_master p
       LEFT JOIN inventory_batches b ON b.product_id = p.id
       WHERE p.is_active = TRUE
@@ -312,6 +312,7 @@ router.get('/alerts', auth, async (req, res) => {
       FROM inventory_batches b
       JOIN product_master pm ON pm.id = b.product_id
       WHERE b.qty_current > 0 AND b.expired_date IS NOT NULL
+        AND b.expired_date >= CURRENT_DATE
         AND b.expired_date < CURRENT_DATE + INTERVAL '90 days'
       ORDER BY b.expired_date ASC
     `);

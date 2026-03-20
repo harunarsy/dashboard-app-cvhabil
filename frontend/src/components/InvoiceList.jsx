@@ -173,7 +173,7 @@ const sortData = (data, key, dir) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
+export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
   const [invoices, setInvoices] = useState([]);
   const [filteredInvoices, setFilteredInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -532,7 +532,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
     computed: { width: '100%', padding: '10px 12px', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#1C1C1E' : '#E5E5EA', color: isDarkMode ? '#30D158' : '#1C7C2A', fontWeight: '600', cursor: 'not-allowed', fontSize: '14px', boxSizing: 'border-box' },
   };
 
-  // if (loading) return <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px' }}>Loading...</div>; (Removed early return to use skeletons)
+  // if (loading) return <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem',  }}>Loading...</div>; (Removed early return to use skeletons)
 
   const SortIcon = ({ k }) => {
     if (sortKey !== k) return <span style={{ color: '#C7C7CC', marginLeft: '4px' }}>↕</span>;
@@ -540,7 +540,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen }) {
   };
 
   return (
-    <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: isDarkMode ? '#000' : '#F5F5F7', minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isDarkMode ? '#000' : '#F5F5F7', minHeight: '100vh', transition: 'margin-left 0.3s' }}>
 
       {/* Toast */}
       {successToast && (
