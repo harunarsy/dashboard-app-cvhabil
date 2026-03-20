@@ -20,6 +20,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [printOrder, setPrintOrder] = useState(null);
   const [printOptions, setPrintOptions] = useState({ format: 'A5', type: 'nota' });
   const [layoutSettings, setLayoutSettings] = useState(null);
@@ -184,6 +185,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
   };
 
   const handleSave = async () => {
+    setSaveError('');
     const errors = {};
     if (!form.customer_name.trim()) errors.customer_name = 'Customer wajib diisi';
     const validItems = items.filter(i => i.product_name.trim());
@@ -211,7 +213,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       }
       setShowModal(false);
       fetchOrders();
-    } catch (e) { flash(e.response?.data?.error || e.message); }
+    } catch (e) { setSaveError(e.response?.data?.error || e.message); }
     finally { setSaving(false); }
   };
 
@@ -478,6 +480,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                     </button>
                   </div>
                   {!isAutoNota && <p style={{ fontSize: '10px', color: '#E65100', marginTop: '4px' }}>Mode Manual: Counter sistem tidak akan bertambah.</p>}
+                  {saveError && <p style={{ fontSize: '12px', color: '#FF3B30', marginTop: '6px', fontWeight: '500' }}>{saveError}</p>}
                 </div>
               )}
               {editId && (

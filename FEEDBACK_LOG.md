@@ -1,5 +1,9 @@
 # Feedback Log
 
+## [2026-03-20] - v1.3.36-stable
+- Perbaikan UI untuk UX penolakan Duplikat ID di frontend dengan intercept `err.code` 23505.
+- Update Release array array Dashboard agar sejalan dengan Changelog.
+
 ## [2026-03-20] - v1.3.35-stable
 - Perbaikan sinkronisasi dan manajemen counter Auto pada database untuk menanggulangi collision sequence saat user memasukkan ID manual yang nilainya melampaui rentetan antrean otomatis SP maupun Nota.
 
