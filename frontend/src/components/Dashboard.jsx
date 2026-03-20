@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Info, X, Activity, ShoppingCart, Package } from 'lucide-react';
+import { Info, X, Activity, ShoppingCart, Package, Plus } from 'lucide-react';
 import api from '../services/api';
 import TasksKanban from './TasksKanban';
 import Skeleton from './common/Skeleton';
 
 const RELEASES = [
    {
-    version: 'v1.3.30-stable', date: '20 Mar 2026', status: 'latest',
+    version: 'v1.3.31-stable', date: '20 Mar 2026', status: 'latest',
     changes: [
       { type: 'ui', text: 'Mobile: Content area full-width saat sidebar hidden (centralized layout).' },
       { type: 'fix', text: 'Inventory Alert: Counter header sinkron dengan isi tab (exclude expired batches).' },
@@ -247,7 +247,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.3.30-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.31-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -301,7 +301,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.3.30-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.31-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -371,8 +371,8 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
           <div className="flex items-center gap-6">
             <h2 className="text-lg font-bold" style={{ color: text }}>Akses Cepat</h2>
             <div className="flex flex-wrap gap-3">
-              <a href="/sales" className="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold transition-all shadow-sm hover:shadow-md">Buat Nota</a>
-              <a href="/orders" className="px-4 py-2 rounded-xl border text-xs font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800" style={{ borderColor: border, color: text }}>Tambah SP</a>
+              <a href="/sales" className="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-1"><Plus size={14} /> Buat Nota</a>
+              <a href="/orders" className="px-4 py-2 rounded-xl border text-xs font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-1" style={{ borderColor: border, color: text }}><Plus size={14} /> Buat SP</a>
               <a href="/online-store" className="px-4 py-2 rounded-xl border text-xs font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800" style={{ borderColor: border, color: text }}>CSV Online</a>
             </div>
           </div>
@@ -395,7 +395,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.30-stable — 2026
+            HABIL SUPERAPP v1.3.31-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bug, Lightbulb, CheckCircle, Clock, AlertCircle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import api from '../services/api';
+import Breadcrumb from './common/Breadcrumb';
 import Skeleton from './common/Skeleton';
 
 const STATUS = {
@@ -141,6 +142,8 @@ export default function BugReports({ isDarkMode, isSidebarOpen, isMobile }) {
 
   return (
     <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+      <Breadcrumb title="Bug Reports & Feedback" isMobile={isMobile} isDarkMode={isDarkMode} />
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '26px', fontWeight: '700', color: txt, display: 'flex', alignItems: 'center', gap: '10px' }}>

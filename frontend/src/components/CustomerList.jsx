@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Phone, MapPin, X } from 'lucide-react';
 import { customersAPI } from '../services/api';
 import Skeleton from './common/Skeleton';
+import ConfirmModal from './common/ConfirmModal';
+import Breadcrumb from './common/Breadcrumb';
 
 export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
 
@@ -12,6 +14,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
   const [form, setForm] = useState({ name: '', address: '', phone: '', type: 'offline' });
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
   const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
@@ -54,13 +57,15 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
     } catch (e) { alert(e.response?.data?.error || e.message); }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Hapus customer ini?')) return;
+  const handleDelete = (id) => setDeleteConfirmId(id);
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
     try {
-      await customersAPI.remove(id);
+      await customersAPI.remove(deleteConfirmId);
       flash('Customer dihapus');
       fetchCustomers();
     } catch (e) { alert(e.response?.data?.error || e.message); }
+    finally { setDeleteConfirmId(null); }
   };
 
   const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
@@ -73,6 +78,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
 
   return (
     <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+      <Breadcrumb title="Master Customer" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
@@ -172,6 +178,16 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
           </div>
         </div>
       )}
+
+      {/* Delete Confirm Modal */}
+      <ConfirmModal 
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={confirmDelete}
+        title="Hapus Customer"
+        message="Apakah Anda yakin ingin menghapus customer ini?"
+        isDarkMode={isDarkMode}
+      />
 
       {/* Toast */}
       {toast && (

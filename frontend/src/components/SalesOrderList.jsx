@@ -4,6 +4,8 @@ import { salesAPI, customersAPI, inventoryAPI, printSettingsAPI, countersAPI } f
 import { generateNotaPDF } from '../utils/generateNotaPDF';
 import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
+import ConfirmModal from './common/ConfirmModal';
+import Breadcrumb from './common/Breadcrumb';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -25,6 +27,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   // Filters
   const [filterMonth, setFilterMonth] = useState('all');
@@ -200,13 +203,15 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
     finally { setSaving(false); }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Hapus nota ini?')) return;
+  const handleDelete = (id) => setDeleteConfirmId(id);
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
     try {
-      await salesAPI.remove(id);
+      await salesAPI.remove(deleteConfirmId);
       flash('Nota dihapus');
       fetchOrders();
     } catch (e) { alert(e.response?.data?.error || e.message); }
+    finally { setDeleteConfirmId(null); }
   };
 
   const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
@@ -269,6 +274,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
 
   return (
     <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+      <Breadcrumb title="Nota Penjualan" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
@@ -588,6 +594,16 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
           </div>
         </div>
       )}
+
+      {/* Delete Confirm Modal */}
+      <ConfirmModal 
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={confirmDelete}
+        title="Hapus Nota"
+        message="Apakah Anda yakin ingin menghapus nota ini? Tindakan ini tidak dapat dibatalkan."
+        isDarkMode={isDarkMode}
+      />
 
       {/* Toast */}
       {toast && (
