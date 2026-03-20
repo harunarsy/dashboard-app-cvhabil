@@ -8,9 +8,9 @@ root.render(
   <React.StrictMode>
     <>
       <App />
-      <p className="text-gray-500 mt-2">Business Management System v1.3.35-stable</p>
+      <p className="text-gray-500 mt-2">Business Management System v1.3.36-stable</p>
     </>
   </React.StrictMode>
 );
-document.title = "HABIL SUPERAPP — v1.3.35-stable";
-// HABIL SUPERAPP v1.3.35-stable
+document.title = "HABIL SUPERAPP — v1.3.36-stable";
+// HABIL SUPERAPP v1.3.36-stable
