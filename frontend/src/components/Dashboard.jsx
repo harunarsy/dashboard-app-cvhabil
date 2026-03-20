@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
    {
-    version: 'v1.3.29-stable', date: '20 Mar 2026', status: 'latest',
+    version: 'v1.3.30-stable', date: '20 Mar 2026', status: 'latest',
+    changes: [
+      { type: 'ui', text: 'Mobile: Content area full-width saat sidebar hidden (centralized layout).' },
+      { type: 'fix', text: 'Inventory Alert: Counter header sinkron dengan isi tab (exclude expired batches).' },
+      { type: 'fix', text: 'Release Modal: sessionStorage di-clear saat logout — modal muncul tiap login baru.' },
+      { type: 'ui', text: 'Form Nota: Validasi inline (red border + pesan error) menggantikan window.alert().' },
+      { type: 'ui', text: 'Loading: Skeleton loader di header stats mencegah flash "0 records" saat fetch.'},
+    ]
+  },
+  {
+    version: 'v1.3.29-stable', date: '20 Mar 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'BUG-001: Task creation — validasi input judul wajib, null-safe params, error logging detail.' },
       { type: 'fix', text: 'BUG-002: HPP auto-fill dari FEFO batch — fallback 3 tier (batch HNA → master HNA → sell_price).' }
@@ -231,13 +241,13 @@ const upcoming = [
   { priority: 'medium', title: 'Password Hashing', desc: 'Keamanan login dengan bcrypt' },
 ];
 
-export default function Dashboard({ isDarkMode, isSidebarOpen }) {
+export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [showModal, setShowModal] = useState(false);
   const [showDevNotes, setShowDevNotes] = useState(false);
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.3.29-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.30-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -291,7 +301,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.3.29-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.30-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -305,7 +315,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
 
 
   return (
-    <div className="font-sans min-h-screen transition-all duration-300" style={{ padding: '2.5rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg }}>
+    <div className="font-sans min-h-screen transition-all duration-300" style={{ padding: isMobile ? '1rem' : '2.5rem', paddingTop: isMobile ? '4rem' : '2.5rem', backgroundColor: bg }}>
       
       {/* Header Section */}
       <div className="flex justify-between items-center mb-10">
@@ -385,7 +395,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.29-stable — 2026
+            HABIL SUPERAPP v1.3.30-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.30-stable] - 2026-03-20
+### Fixed
+- **UX — Mobile Content Full-Width**: Content area sekarang 100% width di mobile (centralized `marginLeft` di `App.js` ProtectedRoute wrapper, removed dari semua 11 komponen). Ditambahkan `isMobile` hook + responsive padding.
+- **UX — Alert Count Sync**: Alert counter header sinkron dengan isi tab Alert. Backend query `expiring` batches sekarang exclude batches yang sudah expired (`>= CURRENT_DATE`).
+- **UX — Release Modal Per-Login**: `sessionStorage` key `habil_release_seen_*` di-clear saat logout. Modal "Apa yang Baru" sekarang muncul untuk setiap login baru.
+- **UX — Form Validation Nota**: Validasi inline menggantikan `window.alert()`. Red border + pesan error Bahasa Indonesia di field Customer. Tombol "Buat Nota" disabled + "Menyimpan..." saat proses simpan.
+- **UX — Loading Flicker**: Skeleton loader di header stats (produk, customer, nota, SP counts) mencegah flash "0 records" saat data sedang di-fetch.
+
 ## [v1.3.29-stable] - 2026-03-20
 ### Fixed
 - **Bug — Task Creation HTTP 500**: Menambahkan validasi input (judul wajib), null-safe parameter binding (`due_date || null`, `pic || null`), dan error logging detail di endpoint `POST /api/tasks`. Root cause asli: transient error dari cold start Vercel — task terbuat di DB tapi response timeout. Sekarang lebih robust.

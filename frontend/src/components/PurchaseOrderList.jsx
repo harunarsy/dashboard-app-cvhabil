@@ -16,7 +16,7 @@ const statusColors = {
   received: { bg: '#34C75918', color: '#34C759', label: 'Diterima' },
 };
 
-export default function PurchaseOrderList({ isDarkMode, isSidebarOpen }) {
+export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile }) {
   const [orders, setOrders] = useState([]);
   const [distributors, setDistributors] = useState([]);
   const [products, setProducts] = useState([]);
@@ -175,12 +175,12 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen }) {
   };
 
   return (
-    <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: 0, color: text }}>📋 Surat Pesanan</h1>
-          <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>{orders.length} SP tercatat</p>
+          <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>{loading ? <Skeleton width="130px" height="14px" /> : `${orders.length} SP tercatat`}</p>
         </div>
         <button onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', backgroundColor: '#5856D6', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
           <Plus size={18} /> Buat SP
@@ -269,7 +269,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen }) {
                 );
               })
             )}
-            {!loading && !filtered.length && <tr><td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: sub }}>Belum ada Surat Pesanan.</td></tr>}
+            {!loading && !filtered.length && <tr><td colSpan={6} style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', textAlign: 'center', color: sub }}>Belum ada Surat Pesanan.</td></tr>}
           </tbody>
         </table>
       </div>

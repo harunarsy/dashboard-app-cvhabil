@@ -10,7 +10,7 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-dig
 
 const blankItem = () => ({ product_name: '', qty: 1, unit: 'pcs', unit_price: 0, unit_hpp: 0 });
 
-export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
+export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const [orders, setOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -42,6 +42,8 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
     payment_details: ''
   });
   const [items, setItems] = useState([blankItem()]);
+  const [formErrors, setFormErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
   const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
@@ -174,14 +176,17 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
   };
 
   const handleSave = async () => {
-    if (!form.customer_name.trim()) return alert('Nama customer wajib diisi');
+    const errors = {};
+    if (!form.customer_name.trim()) errors.customer_name = 'Customer wajib diisi';
     const validItems = items.filter(i => i.product_name.trim());
-    if (!validItems.length) return alert('Minimal 1 produk');
+    if (!validItems.length) errors.items = 'Minimal 1 produk harus ditambahkan';
+    if (!notaCounter.is_locked && !form.order_number && !editId) errors.order_number = 'Nomor Nota wajib diisi (mode Unlocked)';
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setSaving(true);
     try {
       const payload = { ...form, items: validItems };
-      if (!notaCounter.is_locked && !form.order_number && !editId) {
-        return alert('Nomor Nota wajib diisi secara manual (Sistem sedang dalam mode Unlocked)');
-      }
       if (editId) {
         await salesAPI.update(editId, { ...payload, status: 'final' });
         flash('Nota diperbarui');
@@ -191,7 +196,8 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
       }
       setShowModal(false);
       fetchOrders();
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
+    finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
@@ -262,13 +268,13 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
   };
 
   return (
-    <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: 0, color: text }}>🧾 Nota Penjualan</h1>
-          <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>{orders.length} nota tercatat</p>
+          <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>{loading ? <Skeleton width="140px" height="14px" /> : `${orders.length} nota tercatat`}</p>
         </div>
         <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
           <Plus size={18} /> Buat Nota
@@ -392,7 +398,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
               ))
             )}
             {!loading && !filtered.length && (
-              <tr><td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: sub }}>Belum ada nota penjualan.</td></tr>
+              <tr><td colSpan={6} style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', textAlign: 'center', color: sub }}>Belum ada nota penjualan.</td></tr>
             )}
           </tbody>
         </table>
@@ -437,21 +443,25 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
 
               {/* Customer */}
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Customer *</label>
-                <MasterSelect 
-                  value={form.customer_name} 
-                  onChange={v => {
-                    setForm(p => ({ ...p, customer_name: v }));
-                    const match = customers.find(c => c.name === v);
-                    if (match) setForm(p => ({ ...p, customer_address: match.address || '' }));
-                  }} 
-                  options={customers}
-                  onAdd={handleAddCustomer}
-                  onRemove={handleRemoveCustomer}
-                  onRename={handleRenameCustomer}
-                  placeholder="Pilih atau tambah customer..."
-                  isDarkMode={isDarkMode}
-                />
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: formErrors.customer_name ? '#FF3B30' : sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Customer *</label>
+                <div style={formErrors.customer_name ? { border: '2px solid #FF3B30', borderRadius: '10px' } : {}}>
+                  <MasterSelect 
+                    value={form.customer_name} 
+                    onChange={v => {
+                      setForm(p => ({ ...p, customer_name: v }));
+                      setFormErrors(e => ({ ...e, customer_name: undefined }));
+                      const match = customers.find(c => c.name === v);
+                      if (match) setForm(p => ({ ...p, customer_address: match.address || '' }));
+                    }} 
+                    options={customers}
+                    onAdd={handleAddCustomer}
+                    onRemove={handleRemoveCustomer}
+                    onRename={handleRenameCustomer}
+                    placeholder="Pilih atau tambah customer..."
+                    isDarkMode={isDarkMode}
+                  />
+                </div>
+                {formErrors.customer_name && <p style={{ color: '#FF3B30', fontSize: '12px', margin: '4px 0 0', fontWeight: 500 }}>{formErrors.customer_name}</p>}
               </div>
 
               {/* Address */}
@@ -521,8 +531,9 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen }) {
 
               {/* Buttons */}
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={handleSave} style={{ flex: 1, padding: '13px', backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
-                  {editId ? 'Simpan Perubahan' : 'Buat Nota'}
+                {formErrors.items && <p style={{ color: '#FF3B30', fontSize: '12px', margin: '0 0 8px', fontWeight: 500, textAlign: 'center' }}>{formErrors.items}</p>}
+                <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '13px', backgroundColor: saving ? '#86868B' : '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', opacity: saving ? 0.7 : 1 }}>
+                  {saving ? 'Menyimpan...' : (editId ? 'Simpan Perubahan' : 'Buat Nota')}
                 </button>
                 <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
                   Batal
