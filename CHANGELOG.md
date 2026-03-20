@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.34-stable] - 2026-03-20
+
+### Fixed
+- **Duplicate Key Error Items**: Me-reset *sequence* ID pada tabel `purchase_order_items`, `sales_items`, dan `invoice_items` di database karena adanya ketidaksinkronan antara nilai `MAX(id)` dan `last_value` sequence (terutama pada tabel `invoice_items`). Hal ini memperbaiki error "duplicate key value violates unique constraint" saat menyimpan data dengan banyak produk.
+
 ## [v1.3.33-stable] - 2026-03-20
 
 ### Fixed / UX Polish
