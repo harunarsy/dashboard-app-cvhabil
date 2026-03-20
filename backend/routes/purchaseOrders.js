@@ -97,6 +97,18 @@ router.post('/', auth, async (req, res) => {
   try {
     await client.query('BEGIN');
     const poNumber = manualPoNumber ? manualPoNumber : await generatePONumber(client);
+    
+    if (manualPoNumber) {
+      const match = manualPoNumber.match(/\d+$/);
+      if (match) {
+        const manualInt = parseInt(match[0], 10);
+        await client.query(
+          "UPDATE document_counters SET last_number = $1 WHERE doc_type = 'SP' AND last_number < $1",
+          [manualInt]
+        );
+      }
+    }
+
     const total = items.reduce((s, i) => s + (i.qty || 0) * (i.unit_price || 0), 0);
 
     const { rows: [po] } = await client.query(
