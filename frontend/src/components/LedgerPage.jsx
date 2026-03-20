@@ -8,7 +8,7 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-dig
 
 const CATEGORIES = ['Penjualan', 'Pembelian', 'Operasional', 'Gaji', 'Toko Online', 'Lain-lain'];
 
-export default function LedgerPage({ isDarkMode, isSidebarOpen }) {
+export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
   const [entries, setEntries] = useState([]);
   const [summary, setSummary] = useState({ byCategory: [], monthly: [], totals: { total_debit: 0, total_credit: 0, net_balance: 0 } });
   const [tab, setTab] = useState('entries');
@@ -52,7 +52,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen }) {
   const handleDelete = async (id) => { if (!window.confirm('Hapus entry?')) return; try { await ledgerAPI.remove(id); flash('Dihapus'); fetchEntries(); fetchSummary(); } catch (e) { alert(e.response?.data?.error || e.message); } };
 
   return (
-    <div style={{ padding: '2rem', marginLeft: isSidebarOpen ? '256px' : '80px', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
         <div>
@@ -133,7 +133,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen }) {
                       </td>
                     </tr>
                   ))}
-                  {!entries.length && <tr><td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: sub }}>Belum ada entry. Klik "Tambah Entry" untuk memulai.</td></tr>}
+                  {!entries.length && <tr><td colSpan={7} style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', textAlign: 'center', color: sub }}>Belum ada entry. Klik "Tambah Entry" untuk memulai.</td></tr>}
                 </>
               )}
             </tbody>
