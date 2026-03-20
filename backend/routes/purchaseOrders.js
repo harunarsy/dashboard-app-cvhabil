@@ -128,6 +128,9 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json(po);
   } catch (err) {
     await client.query('ROLLBACK');
+    if (err.code === '23505' && err.constraint === 'purchase_orders_po_number_key') {
+      return res.status(400).json({ error: 'Nomor SP sudah digunakan. Gunakan nomor lain.' });
+    }
     res.status(500).json({ error: err.message });
   } finally { client.release(); }
 });

@@ -180,6 +180,9 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (err) {
     await client.query('ROLLBACK');
+    if (err.code === '23505' && (err.constraint === 'sales_orders_order_number_key' || err.message.includes('order_number'))) {
+      return res.status(400).json({ error: 'Nomor Nota sudah digunakan. Gunakan nomor lain.' });
+    }
     res.status(500).json({ error: err.message });
   } finally {
     client.release();

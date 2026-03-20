@@ -29,6 +29,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [saveError, setSaveError] = useState('');
 
   const [isAutoSP, setIsAutoSP] = useState(true);
   const [manualNumber, setManualNumber] = useState('');
@@ -104,6 +105,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
   };
 
   const handleSave = async () => {
+    setSaveError('');
     if (!form.distributor_name.trim()) return alert('Nama distributor wajib');
     const validItems = items.filter(i => i.product_name.trim());
     if (!validItems.length) return alert('Min 1 produk');
@@ -125,7 +127,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
         fetchCounters(); 
       }
       setShowModal(null); fetchOrders();
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { setSaveError(e.response?.data?.error || e.message); }
   };
 
   const handleSaveDistributor = async () => {
@@ -351,6 +353,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
                     </button>
                   </div>
                   {!isAutoSP && <p style={{ fontSize: '10px', color: '#E65100', marginTop: '4px' }}>Mode Manual: Counter sistem tidak akan bertambah.</p>}
+                  {saveError && <p style={{ fontSize: '12px', color: '#FF3B30', marginTop: '6px', fontWeight: '500' }}>{saveError}</p>}
                 </div>
               )}
               {editId && (

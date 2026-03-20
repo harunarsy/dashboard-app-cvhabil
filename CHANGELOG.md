@@ -2,9 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
-## [v1.3.35-stable] - 2026-03-20
+## [v1.3.36-stable] - 2026-03-20
 
 ### Fixed
+- **Release Notes Sync**: Sinkronisasi konten array `RELEASES` di `Dashboard.jsx` agar benar-benar sesuai dengan entri dari `CHANGELOG.md` terbaru (mulai dari v1.3.29 hingga v1.3.35).
+- **Duplicate Document ID Error**: Mengubah error database mentah (kode 23505 constraint unique) saat user memasukkan Nomor SP atau Nota yang sudah ada di mode Manual, menjadi pesan error inline di form pembuatan dokumen.
+
+## [v1.3.35-stable] - 2026-03-20
 - **Counter Auto Desync**: Menambahkan logika di backend (`purchaseOrders.js` dan `sales.js`) untuk memverifikasi nomor dokumen saat `mode=Manual`. Jika digit ID dokumen manual lebih besar dari nilai *counter* auto saat ini, nilai *last_number* di tabel `document_counters` otomatis diperbarui untuk mencegah collision pada nomor berikutnya.
 
 ## [v1.3.34-stable] - 2026-03-20
