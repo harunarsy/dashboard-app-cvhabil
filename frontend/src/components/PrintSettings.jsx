@@ -2,6 +2,7 @@
 import { Save, RefreshCw, Printer, Monitor } from 'lucide-react';
 import Skeleton from './common/Skeleton';
 import { printSettingsAPI } from '../services/api';
+import Breadcrumb from './common/Breadcrumb';
 
 export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile }) {
   const [settings, setSettings] = useState(null);
@@ -69,6 +70,9 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile }) {
 
   if (loading) return (
     <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+      <Breadcrumb title="Pengaturan Cetak" isMobile={isMobile} isDarkMode={isDarkMode} />
+
+      {/* Header Skeleton */}
       <Skeleton width="200px" height="32px" style={{ marginBottom: '24px' }} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         <div style={{ backgroundColor: cardBg, borderRadius: '16px', padding: '24px', border: `1px solid ${border}` }}>

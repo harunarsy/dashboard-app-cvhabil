@@ -3,6 +3,7 @@ import { invoicesAPI, distributorsAPI, productsAPI, auditAPI } from '../services
 import { Plus, X, Trash2, RotateCcw, Search, AlertTriangle, Clock, FileText, ChevronLeft, ChevronRight, History } from 'lucide-react';
 import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
+import Breadcrumb from './common/Breadcrumb';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const parseNum = (v) => {
@@ -541,6 +542,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
 
   return (
     <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isDarkMode ? '#000' : '#F5F5F7', minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+      <Breadcrumb title="Faktur Pembelian" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Toast */}
       {successToast && (
@@ -552,7 +554,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
       {/* Header */}
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: '0 0 4px 0', color: isDarkMode ? '#FFF' : '#000' }}>📄 Invoice Management</h1>
+          <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: '0 0 4px 0', color: isDarkMode ? '#FFF' : '#000' }}>📄 Faktur Pembelian</h1>
           <p style={{ margin: 0, fontSize: '14px', color: '#86868B' }}>Faktur Pembelian — CV Habil</p>
         </div>
 
@@ -637,7 +639,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button onClick={() => { resetForm(); setShowModal(true); }} style={{ padding: '10px 20px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Plus size={16} /> Add Invoice
+            <Plus size={16} /> Buat Faktur
           </button>
           <button onClick={() => { setShowTrash(!showTrash); if (!showTrash) fetchTrash(); }} style={{ padding: '10px 16px', backgroundColor: showTrash ? '#FF3B30' : (isDarkMode ? '#2C2C2E' : '#E5E5EA'), color: showTrash ? 'white' : (isDarkMode ? '#FFF' : '#000'), border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Trash2 size={16} /> Trash
@@ -721,11 +723,11 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
       {showTrash && (
         <div style={{ ...S.card, padding: '1.25rem', marginBottom: '1.25rem', borderColor: '#FF3B30' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <p style={{ margin: 0, fontWeight: '700', fontSize: '14px', color: '#FF3B30', display: 'flex', alignItems: 'center', gap: '6px' }}><Trash2 size={16} /> Trash ({trashItems.length})</p>
+            <p style={{ margin: 0, fontWeight: '700', fontSize: '14px', color: '#FF3B30', display: 'flex', alignItems: 'center', gap: '6px' }}><Trash2 size={16} /> Sampah ({trashItems.length})</p>
             <button onClick={() => setShowTrash(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} color="#86868B" /></button>
           </div>
           {trashItems.length === 0
-            ? <p style={{ color: '#86868B', fontSize: '13px', textAlign: 'center', padding: '1rem' }}>Trash kosong</p>
+            ? <p style={{ color: '#86868B', fontSize: '13px', textAlign: 'center', padding: '1rem' }}>Sampah kosong</p>
             : trashItems.map(inv => (
               <div key={inv.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderRadius: '8px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F9F9F9', marginBottom: '6px', gap: '12px' }}>
                 <div style={{ flex: 1 }}>
@@ -833,7 +835,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
             <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#FF950020', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <AlertTriangle size={26} color="#FF9500" />
             </div>
-            <h3 style={{ margin: '0 0 8px', fontSize: '17px', fontWeight: '700', color: isDarkMode ? '#FFF' : '#000', textAlign: 'center' }}>Invoice sudah ada!</h3>
+            <h3 style={{ margin: '0 0 8px', fontSize: '17px', fontWeight: '700', color: isDarkMode ? '#FFF' : '#000', textAlign: 'center' }}>Faktur sudah ada!</h3>
             <p style={{ margin: '0 0 20px', fontSize: '14px', color: '#86868B', textAlign: 'center' }}>
               Nomor faktur <strong style={{ color: isDarkMode ? '#FFF' : '#000' }}>{dupConfirm.invoiceNumber}</strong> sudah tersimpan sebelumnya.
             </p>
@@ -844,7 +846,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
               </button>
               <button onClick={handleDupOverwrite} style={{ padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: isDarkMode ? '#FFF' : '#000', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span>🔄 Timpa dengan Data Sekarang</span>
-                <span style={{ fontSize: '11px', fontWeight: '400', color: '#86868B' }}>Invoice lama akan diganti sepenuhnya</span>
+                <span style={{ fontSize: '11px', fontWeight: '400', color: '#86868B' }}>Faktur lama akan diganti sepenuhnya</span>
               </button>
               <button onClick={() => setDupConfirm(null)} style={{ padding: '12px', backgroundColor: 'transparent', color: '#86868B', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, borderRadius: '10px', cursor: 'pointer', fontSize: '14px' }}>
                 Batal — Ganti Nomor Faktur
@@ -1059,7 +1061,7 @@ function InvoiceRow({ inv, isDarkMode, expanded, onToggleExpand, onEdit, onDelet
         {/* Aksi */}
         <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
           <button onClick={onAudit} title="Riwayat" style={{ padding: '6px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><History size={13} color="#86868B" /></button>
-          <button onClick={onEdit} style={{ padding: '6px 10px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Edit</button>
+          <button onClick={onEdit} style={{ padding: '6px 10px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Ubah</button>
           <button onClick={onDelete} style={{ padding: '6px', backgroundColor: '#FF3B30', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 size={13} /></button>
         </div>
       </div>
