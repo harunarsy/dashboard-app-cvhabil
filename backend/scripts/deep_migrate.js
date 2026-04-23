@@ -1,13 +1,20 @@
+// ARCHIVED — One-time migration script (Supabase → Neon). Sudah selesai dijalankan.
+// Jangan jalankan lagi kecuali ada kebutuhan migrasi ulang dari scratch.
 const { Pool } = require('pg');
 require('dotenv').config({ path: '../.env.dev' });
 
+if (!process.env.SUPABASE_URL || !process.env.DATABASE_URL) {
+  console.error('Error: SUPABASE_URL dan DATABASE_URL harus ada di .env.dev');
+  process.exit(1);
+}
+
 const SUPABASE_CONFIG = {
-  connectionString: 'postgresql://postgres.bgaatkxqljvibjosliat:habilsejahtera@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres',
+  connectionString: process.env.SUPABASE_URL,
   ssl: { rejectUnauthorized: false }
 };
 
 const NEON_CONFIG = {
-  connectionString: 'postgresql://neondb_owner:npg_sr8oI4GvWFhV@ep-frosty-glitter-a1kt0apa-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+  connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 };
 
@@ -23,9 +30,8 @@ async function migrateTable(tableName) {
       return;
     }
 
-    // Get columns from target table to filter input
     const colRes = await nPool.query(`
-      SELECT column_name FROM information_schema.columns 
+      SELECT column_name FROM information_schema.columns
       WHERE table_name = $1 AND table_schema = 'public'
     `, [tableName]);
     const validCols = colRes.rows.map(c => c.column_name);
@@ -55,7 +61,7 @@ async function migrateTable(tableName) {
 
 async function run() {
   const tables = [
-    'bug_reports', 'customers', 'distributors', 'employees', 'products', 
+    'bug_reports', 'customers', 'distributors', 'employees', 'products',
     'orders', 'order_items', 'transactions', 'product_master', 'inventory_batches',
     'invoices', 'invoice_items', 'sales_orders', 'sales_items', 'tasks', 'task_history'
   ];

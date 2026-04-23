@@ -16,7 +16,10 @@ pool.query(`
     status VARCHAR(50) DEFAULT 'open',
     type VARCHAR(20) DEFAULT 'bug'
   )
-`).catch(console.error);
+`).then(() =>
+  // Sync sequence to MAX(id) to prevent duplicate key after data migration
+  pool.query(`SELECT setval('bug_reports_id_seq', COALESCE((SELECT MAX(id) FROM bug_reports), 0) + 1, false)`)
+).catch(console.error);
 
 // Add type column if not exists (for existing DBs)
 pool.query(`ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'bug'`).catch(() => {});

@@ -24,7 +24,7 @@ pool.on('connect', () => {
 pool.on('error', (err) => {
   console.error('[DB] ❌ Unexpected error on idle client:', err.message);
   if (!isRemote && err.code === 'ECONNREFUSED') {
-    console.error('[DB] TIP: No local database found. Try adding DATABASE_URL to your .env to use Supabase.');
+    console.error('[DB] TIP: No local database found. Try adding DATABASE_URL to your .env to use Neon.');
   }
 });
 

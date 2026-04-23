@@ -5,8 +5,16 @@ import TasksKanban from './TasksKanban';
 import Skeleton from './common/Skeleton';
 
 const RELEASES = [
-   {
-    version: 'v1.3.36-stable', date: '20 Mar 2026', status: 'latest',
+  {
+    version: 'v1.3.37-stable', date: '23 Apr 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'Duplicate Key Customer: Reset sequence customers_id_seq — mencegah error saat tambah customer baru di Nota Penjualan.' },
+      { type: 'fix', text: 'Duplicate Key Bug Report: Reset sequence bug_reports_id_seq — mencegah error saat kirim laporan bug.' },
+      { type: 'fix', text: 'Cleanup Supabase: Hapus sisa referensi Supabase dari kode aktif. Sistem kini full Neon.' },
+    ]
+  },
+  {
+    version: 'v1.3.36-stable', date: '20 Mar 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Counter Auto Desync: Manual save otomatis mengupdate sequence counter (Purchase Orders & Sales).' }
     ]
@@ -281,7 +289,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.3.36-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.37-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -335,7 +343,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.3.36-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.37-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -429,7 +437,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.36-stable — 2026
+            HABIL SUPERAPP v1.3.37-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

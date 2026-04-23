@@ -16,6 +16,10 @@ const ensureTable = async () => {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  // Sync sequence to MAX(id) to prevent duplicate key after data migration
+  await pool.query(`
+    SELECT setval('customers_id_seq', COALESCE((SELECT MAX(id) FROM customers), 0) + 1, false)
+  `);
 };
 ensureTable().catch(e => console.error('customers ensureTable:', e));
 
