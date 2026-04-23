@@ -8,6 +8,7 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 - **Edit SP Loading State**: Tambah `isSaving` state pada form Edit SP — tombol "Simpan" berubah menjadi "Menyimpan..." dan di-disable saat request berlangsung. Error saat edit kini tampil inline di bawah form (sebelumnya tersembunyi).
 - **Auto Counter SP Loncat**: `generatePONumber` kini sync `last_number` ke `MAX(actual non-deleted SP numbers)` sebelum increment — counter tidak loncat setelah SP dihapus.
 - **Manual SP Nomor Deleted**: Ganti UNIQUE constraint kolom `po_number` menjadi partial unique index (`WHERE is_deleted = FALSE`) — nomor SP yang sudah dihapus kini bisa dipakai ulang tanpa error "sudah digunakan".
+- **Edit SP Date Empty**: Sanitize `expected_date` dan `order_date` ke `null` di backend PUT route saat nilai kosong — mencegah error `invalid input syntax for type date: ""` saat edit SP dengan Estimasi Tiba dikosongkan.
 
 ## [v1.3.37-stable] - 2026-04-23
 
