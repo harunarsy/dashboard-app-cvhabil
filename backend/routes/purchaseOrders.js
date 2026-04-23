@@ -37,11 +37,27 @@ const ensureSchema = async () => {
     CREATE INDEX IF NOT EXISTS idx_po_deleted ON purchase_orders(is_deleted);
     CREATE INDEX IF NOT EXISTS idx_po_status ON purchase_orders(status);
   `);
+  // Replace column-level UNIQUE with partial index (allows reuse of soft-deleted numbers)
+  await pool.query(`ALTER TABLE purchase_orders DROP CONSTRAINT IF EXISTS purchase_orders_po_number_key`);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_po_number_active
+      ON purchase_orders(po_number) WHERE is_deleted = FALSE
+  `);
 };
 ensureSchema().catch(e => console.error('purchase_orders ensureSchema:', e));
 
-// ─── Helper: generate PO number (SP2603xxxx) ────────────────────────────────
+// ─── Helper: generate PO number ─────────────────────────────────────────────
 const generatePONumber = async (client) => {
+  // Sync counter to actual MAX so deleted SPs don't cause gaps in auto-numbering
+  await client.query(`
+    UPDATE document_counters
+    SET last_number = GREATEST(last_number,
+      COALESCE((
+        SELECT MAX(CAST(REGEXP_REPLACE(po_number, '[^0-9]', '', 'g') AS INT))
+        FROM purchase_orders WHERE is_deleted = FALSE
+      ), 0))
+    WHERE doc_type = 'SP'
+  `);
   const { rows } = await client.query(
     "UPDATE document_counters SET last_number = last_number + 1 WHERE doc_type = 'SP' RETURNING prefix, last_number"
   );
