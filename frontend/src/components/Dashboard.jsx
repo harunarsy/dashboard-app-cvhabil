@@ -516,7 +516,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
               <div>
                 <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
-                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: {RELEASES[0]?.version} - Terakhir diupdate 15 Mar 2026</p>
+                <p className="text-xs mt-1" style={{ color: sub }}>Aktual: {RELEASES[0]?.version} - Terakhir diupdate {RELEASES[0]?.date}</p>
               </div>
               <button onClick={() => setShowModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />
