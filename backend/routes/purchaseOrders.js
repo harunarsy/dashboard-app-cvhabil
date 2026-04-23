@@ -163,7 +163,7 @@ router.put('/:id', auth, async (req, res) => {
        pic_name=COALESCE($3, pic_name), order_date=COALESCE($4, order_date), expected_date=COALESCE($5, expected_date),
        notes=COALESCE($6, notes), status=COALESCE($7, status), total=COALESCE($8, total), updated_at=NOW()
        WHERE id=$9`,
-      [distributor_name, distributor_address, req.body.pic_name, order_date, expected_date, notes, status, total, req.params.id]
+      [distributor_name, distributor_address, req.body.pic_name, order_date || null, expected_date || null, notes, status, total, req.params.id]
     );
     if (items) {
       await client.query('DELETE FROM purchase_order_items WHERE po_id = $1', [req.params.id]);

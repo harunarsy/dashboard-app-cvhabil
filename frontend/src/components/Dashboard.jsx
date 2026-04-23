@@ -11,6 +11,7 @@ const RELEASES = [
       { type: 'fix', text: 'Edit SP Loading: Tombol Simpan kini menampilkan "Menyimpan..." dan error edit tampil inline.' },
       { type: 'fix', text: 'Auto Counter SP: Counter sync ke MAX aktual sebelum increment — tidak loncat setelah SP dihapus.' },
       { type: 'fix', text: 'Manual SP: Nomor SP yang sudah dihapus kini bisa dipakai ulang (partial unique index).' },
+      { type: 'fix', text: 'Edit SP Date: Estimasi Tiba kosong tidak lagi menyebabkan error "invalid input syntax for type date".' },
     ]
   },
   {
