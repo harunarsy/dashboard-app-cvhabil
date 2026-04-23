@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.37-stable] - 2026-04-23
+
+### Fixed
+- **Duplicate Key Customer**: Reset sequence `customers_id_seq` otomatis saat server start — mencegah error "duplicate key violates constraint customers_pkey" saat menambah customer baru di form Nota Penjualan. Root cause: sequence tidak tersinkron setelah migrasi data dari Supabase.
+- **Duplicate Key Bug Report**: Reset sequence `bug_reports_id_seq` otomatis saat server start — mencegah error saat mengirim laporan bug via form "Kirim Laporan".
+
+### Changed
+- **Cleanup Supabase**: Hapus semua referensi aktif Supabase dari kode (database.js, deep_migrate.js, env files). Sistem sepenuhnya berjalan di Neon PostgreSQL.
+- **Infra**: Tambah `CREDENTIALS.local.md` (lokal, tidak di-commit) sebagai referensi terpusat untuk semua kredensial akses sistem.
+
 ## [v1.3.36-stable] - 2026-03-20
 
 ### Fixed
