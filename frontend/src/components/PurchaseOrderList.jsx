@@ -30,6 +30,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
   const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [saveError, setSaveError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const [isAutoSP, setIsAutoSP] = useState(true);
   const [manualNumber, setManualNumber] = useState('');
@@ -86,8 +87,10 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
     setIsAutoSP(true);
     setManualNumber('');
     setEditId(null);
+    setSaveError('');
     setForm({ po_number: '', distributor_name: '', distributor_address: '', pic_name: 'Harun Al Rasyid', order_date: new Date().toISOString().split('T')[0], expected_date: '', notes: '' });
     setItems([blankItem()]);
+    fetchCounters();
     setShowModal('create');
   };
 
@@ -109,9 +112,11 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
     if (!form.distributor_name.trim()) return alert('Nama distributor wajib');
     const validItems = items.filter(i => i.product_name.trim());
     if (!validItems.length) return alert('Min 1 produk');
+    setIsSaving(true);
     try {
       const payload = { ...form, items: validItems };
       if (!isAutoSP && !manualNumber && !editId) {
+        setIsSaving(false);
         return alert('Nomor SP wajib diisi secara manual (Sistem sedang dalam mode Manual)');
       }
       if (!isAutoSP && !editId) {
@@ -121,13 +126,17 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
         delete payload.po_number;
       }
       if (editId) { await purchaseOrdersAPI.update(editId, payload); flash('SP diperbarui'); }
-      else { 
-        await purchaseOrdersAPI.create(payload); 
-        flash('SP berhasil dibuat'); 
-        fetchCounters(); 
+      else {
+        await purchaseOrdersAPI.create(payload);
+        flash('SP berhasil dibuat');
+        fetchCounters();
       }
       setShowModal(null); fetchOrders();
-    } catch (e) { setSaveError(e.response?.data?.error || e.message); }
+    } catch (e) {
+      setSaveError(e.response?.data?.error || e.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSaveDistributor = async () => {
@@ -415,9 +424,12 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
                 <span style={{ fontSize: '14px', fontWeight: '600', color: sub }}>Total</span>
                 <span style={{ fontSize: '18px', fontWeight: '800', color: '#5856D6' }}>{fmtRp(grandTotal)}</span>
               </div>
+              {saveError && editId && (
+                <p style={{ fontSize: '12px', color: '#FF3B30', margin: '0', fontWeight: '500' }}>{saveError}</p>
+              )}
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={handleSave} style={{ flex: 1, padding: '13px', backgroundColor: '#5856D6', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>{editId ? 'Simpan' : 'Buat SP'}</button>
-                <button onClick={() => setShowModal(null)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
+                <button onClick={handleSave} disabled={isSaving} style={{ flex: 1, padding: '13px', backgroundColor: '#5856D6', color: '#FFF', border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', opacity: isSaving ? 0.7 : 1 }}>{isSaving ? 'Menyimpan...' : (editId ? 'Simpan' : 'Buat SP')}</button>
+                <button onClick={() => setShowModal(null)} disabled={isSaving} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600', opacity: isSaving ? 0.7 : 1 }}>Batal</button>
               </div>
             </div>
           </div>

@@ -1,8 +1,8 @@
 # 🧠 HABIL SUPERAPP — Source of Truth
-> **Current Version: v1.3.37-stable
-System Version: v1.3.37-stable
+> **Current Version: v1.3.38-stable
+System Version: v1.3.38-stable
 Status: PROD-STABLE
-> **VERSI SISTEM**: v1.3.37-stable
+> **VERSI SISTEM**: v1.3.38-stable
 
 > **CREDENTIALS (LOKAL):** Lihat `CREDENTIALS.local.md` di root project untuk semua akses: DB URL, JWT, Vercel, GitHub. File ini hanya ada di lokal (tidak di-commit).
 
