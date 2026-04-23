@@ -31,8 +31,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [saveError, setSaveError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [sortField, setSortField] = useState(null);
-  const [sortDir, setSortDir] = useState('asc');
+  const [sortKeys, setSortKeys] = useState([]);
 
   const [isAutoSP, setIsAutoSP] = useState(true);
   const [manualNumber, setManualNumber] = useState('');
@@ -77,19 +76,32 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
     o.distributor_name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleSort = (field) => {
-    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortField(field); setSortDir('asc'); }
+  const handleSort = (field, isShift) => {
+    setSortKeys(prev => {
+      const idx = prev.findIndex(k => k.field === field);
+      if (isShift) {
+        if (idx >= 0) {
+          if (prev[idx].dir === 'asc') return prev.map(k => k.field === field ? {...k, dir: 'desc'} : k);
+          return prev.filter(k => k.field !== field);
+        }
+        return [...prev, {field, dir: 'asc'}];
+      } else {
+        if (prev.length === 1 && prev[0].field === field) return [{field, dir: prev[0].dir === 'asc' ? 'desc' : 'asc'}];
+        return [{field, dir: 'asc'}];
+      }
+    });
   };
 
-  const sorted = sortField
+  const sorted = sortKeys.length
     ? [...filtered].sort((a, b) => {
-        let va = a[sortField], vb = b[sortField];
-        if (sortField === 'order_date') { va = new Date(va || 0); vb = new Date(vb || 0); }
-        else if (sortField === 'total') { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; }
-        else { va = String(va || '').toLowerCase(); vb = String(vb || '').toLowerCase(); }
-        if (va < vb) return sortDir === 'asc' ? -1 : 1;
-        if (va > vb) return sortDir === 'asc' ? 1 : -1;
+        for (const {field, dir} of sortKeys) {
+          let va = a[field], vb = b[field];
+          if (field === 'order_date') { va = new Date(va || 0); vb = new Date(vb || 0); }
+          else if (field === 'total') { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; }
+          else { va = String(va || '').toLowerCase(); vb = String(vb || '').toLowerCase(); }
+          if (va < vb) return dir === 'asc' ? -1 : 1;
+          if (va > vb) return dir === 'asc' ? 1 : -1;
+        }
         return 0;
       })
     : filtered;
@@ -242,9 +254,14 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
       </div>
 
       {/* Search */}
-      <div style={{ position: 'relative', marginBottom: '1.5rem', maxWidth: '400px' }}>
-        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: sub }} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nomor SP atau distributor..." style={{ ...inputStyle, paddingLeft: '36px' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+        <div style={{ position: 'relative', maxWidth: '400px', flex: 1 }}>
+          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: sub }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nomor SP atau distributor..." style={{ ...inputStyle, paddingLeft: '36px' }} />
+        </div>
+        {sortKeys.length > 0 && (
+          <button onClick={() => setSortKeys([])} style={{ padding: '10px 14px', border: `1px solid ${border}`, borderRadius: '10px', background: 'none', color: sub, fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>↺ Reset Sort</button>
+        )}
       </div>
 
       {/* Table */}
@@ -259,12 +276,16 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
                 { label: 'Total', field: 'total' },
                 { label: 'Status', field: 'status' },
                 { label: 'Aksi', field: null },
-              ].map(({ label, field }) => (
-                <th key={label} onClick={field ? () => handleSort(field) : undefined}
-                  style={{ padding: '12px 14px', textAlign: 'left', fontWeight: '700', color: field && sortField === field ? text : sub, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${border}`, cursor: field ? 'pointer' : 'default', userSelect: 'none', whiteSpace: 'nowrap' }}>
-                  {label}{field && (sortField === field ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ' ↕')}
+              ].map(({ label, field }) => {
+                const keyInfo = field ? sortKeys.find(k => k.field === field) : null;
+                const priority = field ? sortKeys.findIndex(k => k.field === field) + 1 : 0;
+                return (
+                <th key={label} onClick={field ? (e) => handleSort(field, e.shiftKey) : undefined}
+                  title={field ? 'Klik sort · Shift+klik multi-sort' : undefined}
+                  style={{ padding: '12px 14px', textAlign: 'left', fontWeight: '700', color: field && keyInfo ? text : sub, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${border}`, cursor: field ? 'pointer' : 'default', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                  {label}{field && (keyInfo ? ` ${sortKeys.length > 1 ? priority : ''}${keyInfo.dir === 'asc' ? '▲' : '▼'}` : ' ↕')}
                 </th>
-              ))}
+              );})}
             </tr>
           </thead>
           <tbody>
