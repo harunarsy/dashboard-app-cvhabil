@@ -12,6 +12,7 @@ const RELEASES = [
       { type: 'fix', text: 'Auto Counter SP: Counter sync ke MAX aktual sebelum increment — tidak loncat setelah SP dihapus.' },
       { type: 'fix', text: 'Manual SP: Nomor SP yang sudah dihapus kini bisa dipakai ulang (partial unique index).' },
       { type: 'fix', text: 'Edit SP Date: Estimasi Tiba kosong tidak lagi menyebabkan error "invalid input syntax for type date".' },
+      { type: 'ui', text: 'Sort Tabel SP: Klik header kolom (No. SP, Tanggal, Distributor, Total, Status) untuk sort ascending/descending.' },
     ]
   },
   {

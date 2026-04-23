@@ -31,6 +31,8 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [saveError, setSaveError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [sortField, setSortField] = useState(null);
+  const [sortDir, setSortDir] = useState('asc');
 
   const [isAutoSP, setIsAutoSP] = useState(true);
   const [manualNumber, setManualNumber] = useState('');
@@ -74,6 +76,23 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
     o.po_number.toLowerCase().includes(search.toLowerCase()) ||
     o.distributor_name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleSort = (field) => {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDir('asc'); }
+  };
+
+  const sorted = sortField
+    ? [...filtered].sort((a, b) => {
+        let va = a[sortField], vb = b[sortField];
+        if (sortField === 'order_date') { va = new Date(va || 0); vb = new Date(vb || 0); }
+        else if (sortField === 'total') { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; }
+        else { va = String(va || '').toLowerCase(); vb = String(vb || '').toLowerCase(); }
+        if (va < vb) return sortDir === 'asc' ? -1 : 1;
+        if (va > vb) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      })
+    : filtered;
 
   const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
   const inputStyle = {
@@ -233,8 +252,18 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             <tr style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}>
-              {['No. SP', 'Tanggal', 'Distributor', 'Total', 'Status', 'Aksi'].map(h => (
-                <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontWeight: '700', color: sub, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${border}` }}>{h}</th>
+              {[
+                { label: 'No. SP', field: 'po_number' },
+                { label: 'Tanggal', field: 'order_date' },
+                { label: 'Distributor', field: 'distributor_name' },
+                { label: 'Total', field: 'total' },
+                { label: 'Status', field: 'status' },
+                { label: 'Aksi', field: null },
+              ].map(({ label, field }) => (
+                <th key={label} onClick={field ? () => handleSort(field) : undefined}
+                  style={{ padding: '12px 14px', textAlign: 'left', fontWeight: '700', color: field && sortField === field ? text : sub, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${border}`, cursor: field ? 'pointer' : 'default', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                  {label}{field && (sortField === field ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ' ↕')}
+                </th>
               ))}
             </tr>
           </thead>
@@ -251,7 +280,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
                 </tr>
               ))
             ) : (
-              filtered.map(o => {
+              sorted.map(o => {
                 const sc = statusColors[o.status] || statusColors.draft;
                 return (
                   <React.Fragment key={o.id}>
@@ -304,7 +333,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
                 );
               })
             )}
-            {!loading && !filtered.length && <tr><td colSpan={6} style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', textAlign: 'center', color: sub }}>Belum ada Surat Pesanan.</td></tr>}
+            {!loading && !sorted.length && <tr><td colSpan={6} style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', textAlign: 'center', color: sub }}>Belum ada Surat Pesanan.</td></tr>}
           </tbody>
         </table>
       </div>
