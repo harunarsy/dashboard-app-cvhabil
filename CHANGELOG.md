@@ -2,6 +2,21 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.39-stable] - 2026-04-29
+
+### Added
+- **Pelunasan Date Picker**: Klik badge "BELUM BAYAR" kini membuka modal konfirmasi dengan date picker — user bisa memilih tanggal pelunasan secara manual (bukan otomatis `NOW()`). Tanggal yang sudah tersimpan di bawah badge "LUNAS" juga bisa diklik (✏️) untuk diedit kapan saja.
+- **Batalkan Pelunasan**: Modal edit pelunasan menampilkan tombol "Batalkan Pelunasan" untuk mengembalikan status nota ke Belum Bayar.
+- **Channel Online/Offline**: Setiap nota penjualan kini memiliki flag saluran — 🏪 Offline (default) atau 🛒 Online/Marketplace. Berguna sebagai pembeda untuk keperluan laporan pajak (digunggung vs tidak digunggung). Flag ini hanya tampil di sistem, **tidak masuk PDF nota**.
+- **Filter Saluran**: Filter bar Nota Penjualan kini memiliki dropdown "Semua Saluran / Offline / Online" untuk menyaring berdasarkan channel.
+- **Badge Channel di Tabel**: Kolom Customer menampilkan badge kecil 🏪 OFFLINE / 🛒 ONLINE di bawah nama customer.
+- **Field Saluran di Form**: Modal buat/edit nota memiliki dropdown "Saluran Penjualan" untuk memilih Offline atau Online/Marketplace.
+
+### Technical
+- Backend: `PATCH /sales/:id/payment-status` menerima `paid_at` opsional di body — jika dikirim dipakai, jika tidak fallback ke `NOW()`.
+- Backend: Kolom `channel VARCHAR(10) DEFAULT 'offline'` ditambahkan ke tabel `sales_orders` via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` (aman, data lama otomatis 'offline').
+- Backend: `POST /sales` dan `PUT /sales/:id` menerima dan menyimpan field `channel`.
+
 ## [v1.3.38-stable] - 2026-04-23
 
 ### Fixed
