@@ -44,18 +44,18 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
   const openEdit = (e) => { setEditId(e.id); setForm({ entry_date: e.entry_date?.split('T')[0] || '', account_name: e.account_name, description: e.description || '', debit: parseFloat(e.debit) || 0, credit: parseFloat(e.credit) || 0, category: e.category || 'Penjualan' }); setShowModal(true); };
 
   const handleSave = async () => {
-    if (!form.account_name.trim()) return alert('Nama akun wajib');
+    if (!form.account_name.trim()) return flash('Nama akun wajib');
     try {
       if (editId) { await ledgerAPI.update(editId, form); flash('Entry diperbarui'); }
       else { await ledgerAPI.create(form); flash('Entry ditambahkan'); }
       setShowModal(false); fetchEntries(); fetchSummary();
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
   const handleDelete = (id) => setDeleteConfirmId(id);
   const confirmDelete = async () => {
     if (!deleteConfirmId) return;
-    try { await ledgerAPI.remove(deleteConfirmId); flash('Dihapus'); fetchEntries(); fetchSummary(); } catch (e) { alert(e.response?.data?.error || e.message); }
+    try { await ledgerAPI.remove(deleteConfirmId); flash('Dihapus'); fetchEntries(); fetchSummary(); } catch (e) { flash(e.response?.data?.error || e.message); }
     finally { setDeleteConfirmId(null); }
   };
 
@@ -101,8 +101,8 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
 
       {/* Entries Tab */}
       {tab === 'entries' && (
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+        <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '600px' }}>
             <thead>
               <tr style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}>
                 {['Tanggal', 'Akun', 'Kategori', 'Keterangan', 'Debit', 'Kredit', 'Aksi'].map(h => (

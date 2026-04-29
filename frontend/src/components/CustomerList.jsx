@@ -54,7 +54,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
       }
       setShowModal(false);
       fetchCustomers();
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
   const handleDelete = (id) => setDeleteConfirmId(id);
@@ -64,7 +64,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
       await customersAPI.remove(deleteConfirmId);
       flash('Customer dihapus');
       fetchCustomers();
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
     finally { setDeleteConfirmId(null); }
   };
 

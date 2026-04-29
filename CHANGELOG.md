@@ -2,6 +2,24 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.40-stable] - 2026-04-26
+
+### Security
+- **bcrypt Password Hashing**: Dual-mode migration — password plaintext otomatis di-hash bcrypt saat login pertama kali. Seed user baru langsung ter-hash.
+- **Rate Limiting Login**: Endpoint `/api/auth/login` dibatasi 5 percobaan per 15 menit per IP menggunakan express-rate-limit.
+- **Auth Middleware Tasks**: Semua endpoint `/api/tasks` kini memerlukan autentikasi JWT.
+
+### Added
+- **Validasi Hapus Customer**: Customer yang masih memiliki nota penjualan belum lunas tidak bisa dihapus (return 400 dengan pesan informatif).
+
+### UI/UX
+- **Toast Notifications**: Seluruh `alert()` browser (30+ lokasi) diganti dengan toast notification in-app di semua komponen.
+- **PDF Loading State**: Tombol cetak di Nota Penjualan dan Surat Pesanan menampilkan "Membuat PDF..." dan di-disable selama proses.
+- **Mobile Table Overflow**: Semua tabel (`<table>`) kini dibungkus `overflowX: auto` — dapat di-scroll horizontal di layar kecil.
+
+### Fixed
+- **Console.log Production**: Hapus 3 `console.log` debug dari Dashboard.jsx yang tidak diperlukan di production.
+
 ## [v1.3.39-stable] - 2026-04-29
 
 ### Added

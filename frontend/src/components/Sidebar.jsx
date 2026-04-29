@@ -13,6 +13,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   const [bugForm, setBugForm] = useState({ title: '', description: '', steps: '', contact: '' });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [bugError, setBugError] = useState('');
   // Mobile state
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -83,7 +84,8 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   ];
 
   const handleSubmitBug = async () => {
-    if (!bugForm.title.trim()) { alert('Judul wajib diisi'); return; }
+    if (!bugForm.title.trim()) { setBugError('Judul wajib diisi'); return; }
+    setBugError('');
     setSubmitting(true);
     try {
       await api.post('/bugs', {
@@ -97,7 +99,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
       });
       setSubmitted(true);
     } catch (e) {
-      alert('Gagal mengirim: ' + (e.response?.data?.error || e.message));
+      setBugError('Gagal mengirim: ' + (e.response?.data?.error || e.message));
     } finally {
       setSubmitting(false);
     }
@@ -114,7 +116,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const txt = isDarkMode ? '#FFF' : '#000';
   const sub = isDarkMode ? '#86868B' : '#6B7280';
-  const appVersion = 'v1.3.39-stable';
+  const appVersion = 'v1.3.40-stable';
 
   const closeMobileDrawer = () => setMobileOpen(false);
 
@@ -477,6 +479,12 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
                     placeholder="Nama atau nomor HP"
                     style={{ width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: txt, fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
+
+                {bugError && (
+                  <div style={{ padding: '10px 12px', backgroundColor: '#FF3B3018', color: '#FF3B30', borderRadius: '10px', fontSize: '13px', fontWeight: '600', marginBottom: '10px' }}>
+                    {bugError}
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={handleSubmitBug} disabled={submitting}

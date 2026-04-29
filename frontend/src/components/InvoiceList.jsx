@@ -336,13 +336,13 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
       await distributorsAPI.rename(oldName, newName);
       setDistributors(prev => prev.map(d => d.name === oldName ? { ...d, name: newName } : d).sort((a,b) => a.name.localeCompare(b.name)));
       setInvoices(prev => prev.map(inv => inv.distributor_name === oldName ? { ...inv, distributor_name: newName } : inv));
-    } catch(e) { alert('Gagal rename: ' + (e.response?.data?.error || e.message)); }
+    } catch(e) { showToast('Gagal rename: ' + (e.response?.data?.error || e.message)); }
   };
   const handleRenameProduct = async (oldName, newName) => {
     try {
       await productsAPI.rename(oldName, newName);
       setProducts(prev => prev.map(p => p.name === oldName ? { ...p, name: newName } : p).sort((a,b) => a.name.localeCompare(b.name)));
-    } catch(e) { alert('Gagal rename: ' + (e.response?.data?.error || e.message)); }
+    } catch(e) { showToast('Gagal rename: ' + (e.response?.data?.error || e.message)); }
   };
 
   // Validate
@@ -387,7 +387,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const handleSubmit = async () => {
     const err = validateForm();
-    if (err) { alert(err); return; }
+    if (err) { showToast(err); return; }
 
     const payload = buildPayload();
     const existing = invoices.find(inv => inv.invoice_number === form.invoice_number && inv.id !== editingId);
@@ -409,7 +409,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
       resetForm(); setShowModal(false);
       showToast(isEdit ? '✅ Faktur berhasil diupdate!' : '✅ Faktur berhasil disimpan!');
     } catch (err) {
-      alert('Error: ' + (err.response?.data?.error || err.message));
+      showToast('Error: ' + (err.response?.data?.error || err.message));
     }
   };
 
@@ -421,7 +421,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
       setSavedDraft(null); setDraftBanner(false);
       fetchInvoices(); resetForm(); setShowModal(false); setDupConfirm(null);
       showToast('✅ Faktur berhasil diupdate!');
-    } catch (err) { alert('Error: ' + (err.response?.data?.error || err.message)); }
+    } catch (err) { showToast('Error: ' + (err.response?.data?.error || err.message)); }
   };
 
   const handleDupLoadExisting = async () => {
@@ -447,7 +447,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
         : [blankItem()]
       );
       setEditingId(existingId);
-    } catch (err) { alert('Error loading invoice'); }
+    } catch (err) { showToast('Error loading invoice'); }
   };
 
   const handleEdit = async (inv) => {
@@ -470,14 +470,14 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
         : [blankItem()]
       );
       setEditingId(inv.id); setShowModal(true);
-    } catch (err) { alert('Error loading invoice'); }
+    } catch (err) { showToast('Error loading invoice'); }
   };
 
   const handleDeleteRequest = (inv) => setDeleteConfirm({ id: inv.id, name: inv.invoice_number });
   const handleDeleteConfirm = async () => {
     if (!deleteConfirm) return;
     try { await invoicesAPI.softDelete(deleteConfirm.id); fetchInvoices(); setDeleteConfirm(null); showToast('🗑️ Faktur dipindahkan ke trash'); }
-    catch(e) { alert('Error'); }
+    catch(e) { showToast('Gagal menghapus faktur'); }
   };
   const handleRestore = async (id) => { try { await invoicesAPI.restore(id); fetchTrash(); fetchInvoices(); showToast('✅ Faktur berhasil direstore'); } catch(e){} };
   const handlePermanentDelete = async (id) => {
@@ -502,7 +502,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
       const r = await auditAPI.getByInvoice(inv.id);
       setAuditLog(r.data);
       setAuditModal({ invoiceId: inv.id, invoiceNumber: inv.invoice_number });
-    } catch(e) { alert('Error loading audit log'); }
+    } catch(e) { showToast('Error loading audit log'); }
   };
 
   const summaryData = filteredInvoices.length > 0 ? filteredInvoices : invoices;

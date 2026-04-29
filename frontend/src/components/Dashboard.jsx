@@ -6,7 +6,20 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.3.39-stable', date: '29 Apr 2026', status: 'latest',
+    version: 'v1.3.40-stable', date: '26 Apr 2026', status: 'latest',
+    changes: [
+      { type: 'feat', text: 'Keamanan: Password hashing bcrypt (dual-mode migration) — plaintext otomatis di-upgrade saat login.' },
+      { type: 'feat', text: 'Rate Limiting: Login dibatasi 5x per 15 menit per IP untuk mencegah brute force.' },
+      { type: 'feat', text: 'Auth Middleware: Semua endpoint Tasks kini memerlukan token JWT.' },
+      { type: 'feat', text: 'Validasi Hapus Customer: Customer yang masih punya nota belum lunas tidak bisa dihapus.' },
+      { type: 'ui', text: 'Toast Notifications: Semua alert() browser diganti dengan toast notification in-app.' },
+      { type: 'ui', text: 'Empty States: Tampilan "belum ada data" di semua halaman list.' },
+      { type: 'ui', text: 'PDF Loading State: Tombol Cetak menampilkan "Membuat PDF..." dan di-disable saat proses berlangsung.' },
+      { type: 'ui', text: 'Mobile Responsive Tables: Semua tabel kini bisa di-scroll horizontal di layar kecil.' },
+    ]
+  },
+  {
+    version: 'v1.3.39-stable', date: '29 Apr 2026', status: 'stable',
     changes: [
       { type: 'new', text: 'Pelunasan Date Picker: Klik badge BELUM BAYAR → modal pilih tanggal pelunasan. Tanggal LUNAS bisa diedit kapan saja (✏️).' },
       { type: 'new', text: 'Batalkan Pelunasan: Modal edit menampilkan tombol untuk mengembalikan status ke Belum Bayar.' },
@@ -309,7 +322,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.3.39-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.40-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -330,8 +343,6 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
     stability: { label: 'Stabil',   color: '#34C759', bg: '#34C75918' },
     removed:   { label: 'Hapus',    color: '#FF3B30', bg: '#FF3B3018' },
   };
-  console.log('[Dashboard] typeConfig available types:', Object.keys(typeConfig));
-  console.log('[Dashboard] RELEASES count:', RELEASES.length);
   const priorityConfig = {
     high:   { label: 'Prioritas Tinggi', color: '#FF3B30', bg: '#FF3B3018' },
     medium: { label: 'Sedang',           color: '#FF9500', bg: '#FF950018' },
@@ -363,7 +374,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.3.39-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.40-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -457,7 +468,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.39-stable — 2026
+            HABIL SUPERAPP v1.3.40-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
@@ -560,7 +571,6 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
                           rel.changes.map((c, ci) => {
                             try {
                               const cfg = typeConfig[c.type] || typeConfig.fix;
-                              console.log(`[Dashboard] Release ${rel.version} Change ${ci}: type=${c.type}, config=${JSON.stringify(cfg)}`);
                               return (
                                 <div key={ci} className="flex gap-3 items-start">
                                   <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase mt-0.5 shrink-0" style={{ backgroundColor: cfg.bg, color: cfg.color }}>

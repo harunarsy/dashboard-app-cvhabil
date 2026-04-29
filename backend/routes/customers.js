@@ -78,6 +78,13 @@ router.put('/:id', auth, async (req, res) => {
 // DELETE
 router.delete('/:id', auth, async (req, res) => {
   try {
+    const { rows: activeOrders } = await pool.query(
+      "SELECT 1 FROM sales_orders WHERE customer_name = (SELECT name FROM customers WHERE id = $1) AND payment_status != 'paid' LIMIT 1",
+      [req.params.id]
+    );
+    if (activeOrders.length) {
+      return res.status(400).json({ error: 'Customer masih punya nota yang belum lunas. Selesaikan pembayaran terlebih dahulu.' });
+    }
     const { rowCount } = await pool.query('DELETE FROM customers WHERE id = $1', [req.params.id]);
     if (!rowCount) return res.status(404).json({ error: 'Customer not found' });
     res.json({ message: 'Customer deleted' });

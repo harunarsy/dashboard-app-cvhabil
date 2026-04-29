@@ -31,6 +31,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [paymentModal, setPaymentModal] = useState({ open: false, order: null, date: '', mode: 'pay' });
   const [paymentSaving, setPaymentSaving] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // Filters
   const [filterMonth, setFilterMonth] = useState('all');
@@ -109,7 +110,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       flash('Tanggal pelunasan disimpan');
       setPaymentModal({ open: false, order: null, date: '', mode: 'pay' });
       fetchOrders();
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
     finally { setPaymentSaving(false); }
   };
 
@@ -121,7 +122,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       flash('Status dikembalikan ke Belum Bayar');
       setPaymentModal({ open: false, order: null, date: '', mode: 'pay' });
       fetchOrders();
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
     finally { setPaymentSaving(false); }
   };
 
@@ -131,7 +132,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       await customersAPI.create({ name, address: '' });
       flash('Customer ditambahkan');
       fetchCustomers();
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
   const handleRemoveCustomer = async (name) => {
@@ -142,7 +143,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
         flash('Customer dihapus');
         fetchCustomers();
       }
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
   const handleRenameCustomer = async (oldName, newName) => {
@@ -153,7 +154,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
         flash('Customer diubah');
         fetchCustomers();
       }
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
   useEffect(() => { fetchOrders(); fetchCustomers(); fetchProducts(); fetchSettings(); fetchCounters(); }, []);
@@ -257,25 +258,27 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       await salesAPI.remove(deleteConfirmId);
       flash('Nota dihapus');
       fetchOrders();
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
     finally { setDeleteConfirmId(null); }
   };
 
   const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
   const handlePrintPDF = async () => {
-    if (!printOrder) return;
+    if (!printOrder || pdfLoading) return;
+    setPdfLoading(true);
     try {
-      const doc = generateNotaPDF(printOrder, { 
-        ...printOptions, 
-        settings: layoutSettings 
+      const doc = generateNotaPDF(printOrder, {
+        ...printOptions,
+        settings: layoutSettings
       });
       doc.save(`${printOptions.type === 'terima' ? 'TT' : 'Nota'}_${printOrder.order_number}.pdf`);
       await salesAPI.updatePdfStatus(printOrder.id, 'sudah_dicetak');
       flash('PDF berhasil diunduh');
       setShowPrintModal(false);
       fetchOrders();
-    } catch (e) { alert('Gagal membuat PDF: ' + e.message); }
+    } catch (e) { flash('Gagal membuat PDF: ' + e.message); }
+    finally { setPdfLoading(false); }
   };
 
   const openPrintOptions = (order) => {
@@ -368,8 +371,8 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       </div>
 
       {/* Table */}
-      <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+      <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '640px' }}>
           <thead>
             <tr style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}>
               {['No. Nota', 'Tanggal', 'Customer', 'Total', 'Bayar', 'Status Doc', 'Aksi'].map(h => (
@@ -692,8 +695,8 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
               </div>
             </div>
 
-            <button onClick={handlePrintPDF} style={{ width: '100%', padding: '14px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '14px', cursor: 'pointer', fontWeight: '700', fontSize: '15px' }}>
-              Cetak Sekarang
+            <button onClick={handlePrintPDF} disabled={pdfLoading} style={{ width: '100%', padding: '14px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '14px', cursor: pdfLoading ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '15px', opacity: pdfLoading ? 0.7 : 1 }}>
+              {pdfLoading ? 'Membuat PDF...' : 'Cetak Sekarang'}
             </button>
           </div>
         </div>

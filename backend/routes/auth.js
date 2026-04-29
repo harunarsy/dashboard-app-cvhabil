@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const pool = require('../config/database');
 
 // ─── Auto-create users table with role support ──────────────────────────────
@@ -19,11 +20,14 @@ const ensureTable = async () => {
   // Seed default users if empty
   const { rowCount } = await pool.query('SELECT 1 FROM app_users LIMIT 1');
   if (!rowCount) {
-    await pool.query(`
-      INSERT INTO app_users (username, password, display_name, role) VALUES
-        ('direktur', 'direktur123', 'Direktur CV Habil', 'direktur'),
-        ('admin',    'admin123',    'Admin Toko',        'admin')
-    `);
+    const hashDirektur = await bcrypt.hash('direktur123', 12);
+    const hashAdmin    = await bcrypt.hash('admin123', 12);
+    await pool.query(
+      `INSERT INTO app_users (username, password, display_name, role) VALUES
+        ($1, $2, 'Direktur CV Habil', 'direktur'),
+        ($3, $4, 'Admin Toko',        'admin')`,
+      ['direktur', hashDirektur, 'admin', hashAdmin]
+    );
     console.log('[Auth] Seeded default users: direktur / admin');
   }
 };
@@ -42,11 +46,27 @@ router.post('/login', async (req, res) => {
       [username]
     );
 
-    if (!rows.length || rows[0].password !== password) {
+    if (!rows.length) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    const user = rows[0];
+    // Dual-mode: try bcrypt first, fallback to plaintext for existing unhashed passwords
+    let passwordValid = false;
+    const stored = user.password;
+    if (stored.startsWith('$2')) {
+      passwordValid = await bcrypt.compare(password, stored);
+    } else {
+      // Plaintext — validate then re-hash for migration
+      passwordValid = stored === password;
+      if (passwordValid) {
+        const hashed = await bcrypt.hash(password, 12);
+        await pool.query('UPDATE app_users SET password = $1 WHERE id = $2', [hashed, user.id]);
+      }
+    }
+    if (!passwordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const user = rows[0];
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET,

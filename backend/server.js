@@ -3,6 +3,7 @@ const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
 const bodyParser = require('body-parser');
+const rateLimit = require('express-rate-limit');
 const os = require('os');
 const { execSync } = require('child_process');
 const fs = require('fs');
@@ -66,11 +67,20 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors(corsOptions));
 
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Backend running', timestamp: new Date().toISOString(), uptime: process.uptime() });
 });
 
 // Routes
+app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/settings', require('./routes/settings'));
