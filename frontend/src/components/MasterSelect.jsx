@@ -26,6 +26,7 @@ export default function MasterSelect({
   const [confirmDelete, setConfirmDelete] = useState(null); // name yang mau dihapus
   const [renaming, setRenaming] = useState(null); // name yang sedang di-rename
   const [renameVal, setRenameVal] = useState('');
+  const [errMsg, setErrMsg] = useState('');
   const wrapRef = useRef(null);
   const inputRef = useRef(null);
   const newInputRef = useRef(null);
@@ -73,7 +74,8 @@ export default function MasterSelect({
       setAdding(false);
       setOpen(false);
     } catch (err) {
-      alert('Gagal menambahkan: ' + (err.response?.data?.error || err.message));
+      setErrMsg('Gagal menambahkan: ' + (err.response?.data?.error || err.message));
+      setTimeout(() => setErrMsg(''), 3000);
     }
   };
 
@@ -85,7 +87,8 @@ export default function MasterSelect({
         if (value === name) onChange('');
         setConfirmDelete(null);
       } catch (err) {
-        alert('Gagal menghapus: ' + (err.response?.data?.error || err.message));
+        setErrMsg('Gagal menghapus: ' + (err.response?.data?.error || err.message));
+        setTimeout(() => setErrMsg(''), 3000);
       }
     } else {
       setConfirmDelete(name);
@@ -162,6 +165,11 @@ export default function MasterSelect({
       {/* Dropdown */}
       {open && (
         <div style={dropdownStyle}>
+          {errMsg && (
+            <div style={{ padding: '8px 12px', backgroundColor: '#FF3B3018', color: '#FF3B30', fontSize: '12px', fontWeight: '600', borderBottom: `1px solid #FF3B3030` }}>
+              {errMsg}
+            </div>
+          )}
           {/* Search bar */}
           <div style={{
             padding: '10px',

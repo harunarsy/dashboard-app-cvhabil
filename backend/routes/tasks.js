@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
+const auth = require('../middleware/auth');
 
 // GET all active tasks
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM tasks WHERE is_deleted = false ORDER BY created_at DESC');
     res.json(result.rows);
@@ -13,7 +14,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET trash tasks
-router.get('/trash', async (req, res) => {
+router.get('/trash', auth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM tasks WHERE is_deleted = true ORDER BY updated_at DESC');
     res.json(result.rows);
@@ -23,7 +24,7 @@ router.get('/trash', async (req, res) => {
 });
 
 // POST new task
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
   const { title, description, status, priority, due_date, pic } = req.body;
 
   // Validate required fields
@@ -44,7 +45,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update task (status, priority, etc)
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   const { id } = req.params;
   const { title, description, status, priority, due_date, pic } = req.body;
   try {
@@ -60,7 +61,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // GET task history
-router.get('/:id/history', async (req, res) => {
+router.get('/:id/history', auth, async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query(
@@ -75,7 +76,7 @@ router.get('/:id/history', async (req, res) => {
 
 
 // PATCH soft-delete task (is_deleted = true)
-router.patch('/:id/soft-delete', async (req, res) => {
+router.patch('/:id/soft-delete', auth, async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query(
@@ -90,7 +91,7 @@ router.patch('/:id/soft-delete', async (req, res) => {
 });
 
 // DELETE task (soft delete - fallback)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   const { id } = req.params;
   try {
     await pool.query('UPDATE tasks SET is_deleted = TRUE, updated_at = NOW() WHERE id = $1', [id]);
@@ -101,7 +102,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // PATCH restore task
-router.patch('/:id/restore', async (req, res) => {
+router.patch('/:id/restore', auth, async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query(
@@ -116,7 +117,7 @@ router.patch('/:id/restore', async (req, res) => {
 });
 
 // DELETE permanent task
-router.delete('/:id/permanent', async (req, res) => {
+router.delete('/:id/permanent', auth, async (req, res) => {
   const { id } = req.params;
   try {
     await pool.query('DELETE FROM tasks WHERE id = $1', [id]);

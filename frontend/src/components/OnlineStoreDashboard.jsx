@@ -50,17 +50,17 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
   useEffect(() => { fetchSummary(); fetchSales(); }, []);
 
   const handleImport = async () => {
-    if (!importForm.csv_text.trim()) return alert('Paste CSV data');
+    if (!importForm.csv_text.trim()) return flash('Paste CSV data');
     try {
       const { data } = await onlineStoreAPI.importCSV(importForm);
       flash(data.message); setShowImport(false); fetchSummary(); fetchSales();
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
   const handleWithdrawal = async () => {
-    if (!wdForm.amount) return alert('Amount required');
+    if (!wdForm.amount) return flash('Amount required');
     try { await onlineStoreAPI.createWithdrawal(wdForm); flash('Withdrawal recorded'); setShowWithdrawal(false); }
-    catch (e) { alert(e.response?.data?.error || e.message); }
+    catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
   const totalGross = summary.platforms.reduce((s, p) => s + parseFloat(p.gross_revenue || 0), 0);

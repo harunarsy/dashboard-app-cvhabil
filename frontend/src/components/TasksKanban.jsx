@@ -51,6 +51,8 @@ const TasksKanban = () => {
   const [loading, setLoading] = useState(true);
   const [showTrashModal, setShowTrashModal] = useState(false);
   const [trashTasks, setTrashTasks] = useState([]);
+  const [toast, setToast] = useState('');
+  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
   const [trashLoading, setTrashLoading] = useState(false);
 
   useEffect(() => {
@@ -94,7 +96,7 @@ const TasksKanban = () => {
       setNewTask({ title: '', description: '', status: 'todo', priority: 'medium', due_date: '', pic: '' });
       fetchTasks();
     } catch (err) {
-      alert('Gagal menyimpan tugas. Silakan cek koneksi atau database.');
+      flash('Gagal menyimpan tugas. Silakan cek koneksi atau database.');
       console.error('Error adding task:', err);
     }
   };
@@ -167,7 +169,7 @@ const TasksKanban = () => {
       setEditingTask(null);
       fetchTasks();
     } catch (err) {
-      alert('Gagal memperbarui tugas.');
+      flash('Gagal memperbarui tugas.');
       console.error('Error updating task:', err);
     }
   };
@@ -683,6 +685,12 @@ const TasksKanban = () => {
           background: rgba(0,0,0,0.1);
         }
       `}} />
+      {/* Toast */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
+          ✅ {toast}
+        </div>
+      )}
     </div>
   );
 };

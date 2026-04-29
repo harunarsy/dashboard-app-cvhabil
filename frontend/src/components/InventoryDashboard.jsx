@@ -72,17 +72,17 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   const openAddProduct = () => { setEditId(null); setPForm({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5 }); setShowModal('product'); };
   const openEditProduct = (p) => { setEditId(p.id); setPForm({ code: p.code || '', name: p.name, unit: p.unit || 'pcs', hna: parseFloat(p.hna) || 0, sell_price: parseFloat(p.sell_price) || 0, category: p.category || '', min_stock: p.min_stock || 5 }); setShowModal('product'); };
   const saveProduct = async () => {
-    if (!pForm.name.trim()) return alert('Nama produk wajib diisi');
+    if (!pForm.name.trim()) return flash('Nama produk wajib diisi');
     try {
       if (editId) { await inventoryAPI.updateProduct(editId, pForm); flash('Produk diperbarui'); }
       else { await inventoryAPI.createProduct(pForm); flash('Produk ditambahkan'); }
       setShowModal(null); fetchProducts();
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
   };
   const deleteProduct = (id) => setDeleteConfirmId(id);
   const confirmDelete = async () => {
     if (!deleteConfirmId) return;
-    try { await inventoryAPI.deleteProduct(deleteConfirmId); flash('Produk dinonaktifkan'); fetchProducts(); } catch (e) { alert(e.response?.data?.error || e.message); }
+    try { await inventoryAPI.deleteProduct(deleteConfirmId); flash('Produk dinonaktifkan'); fetchProducts(); } catch (e) { flash(e.response?.data?.error || e.message); }
     finally { setDeleteConfirmId(null); }
   };
 
@@ -110,10 +110,10 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
     setShowModal('stockIn'); 
   };
   const saveStockIn = async () => {
-    if (!siForm.product_name || !siForm.qty) return alert('Pilih produk dan qty');
+    if (!siForm.product_name || !siForm.qty) return flash('Pilih produk dan qty');
     try {
       const prod = products.find(p => p.name === siForm.product_name);
-      if (!prod) return alert('Produk tidak ditemukan');
+      if (!prod) return flash('Produk tidak ditemukan');
       const payload = { ...siForm, product_id: prod.id };
       delete payload.product_name;
       await inventoryAPI.stockIn(payload);
@@ -122,15 +122,15 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
       fetchProducts();
       fetchAlerts();
     }
-    catch (e) { alert(e.response?.data?.error || e.message); }
+    catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
   // ─── Stock Out ────────────────────────────────────────────────────────
   const openStockOut = (p) => { setSoForm({ product_id: p?.id || '', qty: 1, notes: '' }); setShowModal('stockOut'); };
   const saveStockOut = async () => {
-    if (!soForm.product_id || !soForm.qty) return alert('Pilih produk dan qty');
+    if (!soForm.product_id || !soForm.qty) return flash('Pilih produk dan qty');
     try { await inventoryAPI.stockOut(soForm); flash('Stok keluar berhasil (FEFO)'); setShowModal(null); fetchProducts(); fetchAlerts(); }
-    catch (e) { alert(e.response?.data?.error || e.message); }
+    catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
   // ─── Opname ───────────────────────────────────────────────────────────
@@ -139,7 +139,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
     const changed = opItems.filter(i => i.physical_qty !== i.system_qty);
     if (!changed.length) { flash('Tidak ada perubahan stok'); setShowModal(null); return; }
     try { await inventoryAPI.createOpname({ items: changed }); flash(`Stok opname selesai (${changed.length} produk disesuaikan)`); setShowModal(null); fetchProducts(); fetchAlerts(); }
-    catch (e) { alert(e.response?.data?.error || e.message); }
+    catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
   const totalAlerts = alerts.expiring.length + alerts.lowStock.length;
@@ -190,8 +190,8 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
       {/* ─── Products Tab ───────────────────────────────────────────────── */}
       {tab === 'products' && (
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+        <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '600px' }}>
             <thead>
               <tr style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}>
                 {['Kode', 'Nama Produk', 'Satuan', 'HNA', 'Harga Jual', 'Stok', 'Exp Terdekat', 'Aksi'].map(h => (

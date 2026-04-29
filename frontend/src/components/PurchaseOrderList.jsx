@@ -31,6 +31,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [saveError, setSaveError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(null); // order id being printed
   const [sortKeys, setSortKeys] = useState([]);
 
   const [isAutoSP, setIsAutoSP] = useState(true);
@@ -140,15 +141,15 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
 
   const handleSave = async () => {
     setSaveError('');
-    if (!form.distributor_name.trim()) return alert('Nama distributor wajib');
+    if (!form.distributor_name.trim()) return flash('Nama distributor wajib');
     const validItems = items.filter(i => i.product_name.trim());
-    if (!validItems.length) return alert('Min 1 produk');
+    if (!validItems.length) return flash('Min 1 produk');
     setIsSaving(true);
     try {
       const payload = { ...form, items: validItems };
       if (!isAutoSP && !manualNumber && !editId) {
         setIsSaving(false);
-        return alert('Nomor SP wajib diisi secara manual (Sistem sedang dalam mode Manual)');
+        return flash('Nomor SP wajib diisi secara manual (Sistem sedang dalam mode Manual)');
       }
       if (!isAutoSP && !editId) {
         payload.po_number = spCounter.prefix + manualNumber;
@@ -171,29 +172,29 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
   };
 
   const handleSaveDistributor = async () => {
-    if (!distForm.name.trim()) return alert('Nama distributor wajib');
+    if (!distForm.name.trim()) return flash('Nama distributor wajib');
     try {
       const res = await distributorsAPI.add(distForm); // Backend handles UPSERT using name
       flash('Data Distributor Disimpan');
       setForm(p => ({ ...p, distributor_name: res.data.name }));
       fetchDistributors();
       setShowModal('create');
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
   const handleReceive = async () => {
     const toReceive = receiveItems.filter(i => (parseInt(i.received_qty) || 0) > 0);
-    if (!toReceive.length) return alert('Masukkan qty yang diterima');
+    if (!toReceive.length) return flash('Masukkan qty yang diterima');
     try {
       await purchaseOrdersAPI.receive(editId, { items: toReceive });
       flash('Barang diterima & stok diperbarui'); setShowModal(null); fetchOrders();
-    } catch (e) { alert(e.response?.data?.error || e.message); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
   const handleDelete = (id) => setDeleteConfirmId(id);
   const confirmDelete = async () => {
     if (!deleteConfirmId) return;
-    try { await purchaseOrdersAPI.remove(deleteConfirmId); flash('SP dihapus'); fetchOrders(); } catch (e) { alert(e.response?.data?.error || e.message); }
+    try { await purchaseOrdersAPI.remove(deleteConfirmId); flash('SP dihapus'); fetchOrders(); } catch (e) { flash(e.response?.data?.error || e.message); }
     finally { setDeleteConfirmId(null); }
   };
   
@@ -220,22 +221,21 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
   const selectedDistributorInfo = distributors.find(d => d.name === form.distributor_name);
 
   const handlePrintSP = async (o) => {
+    if (pdfLoading) return;
+    setPdfLoading(o.id);
     try {
       const bInfo = await printSettingsAPI.get();
       const settings = bInfo.data.nota_layout || undefined;
       const sInfo = distributors.find(d => d.name === o.distributor_name) || {};
-      
-      const doc = generateSPPDF(o, {
-        format: 'A6',
-        salesmanInfo: sInfo,
-        settings
-      });
+      const doc = generateSPPDF(o, { format: 'A6', salesmanInfo: sInfo, settings });
       doc.save(`SP_${o.po_number}.pdf`);
       flash('Cetak SP Berhasil');
       await purchaseOrdersAPI.update(o.id, { status: 'sent' });
       fetchOrders();
     } catch (e) {
-      alert('Gagal buat PDF: ' + e.message);
+      flash('Gagal buat PDF: ' + e.message);
+    } finally {
+      setPdfLoading(null);
     }
   };
 
@@ -265,8 +265,8 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
       </div>
 
       {/* Table */}
-      <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+      <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '640px' }}>
           <thead>
             <tr style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}>
               {[
@@ -315,7 +315,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
                       </td>
                       <td style={{ padding: '12px 14px' }}>
                         <div style={{ display: 'flex', gap: '4px' }} onClick={e => e.stopPropagation()}>
-                          <button onClick={() => handlePrintSP(o)} title="Cetak SP" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><FileText size={15} color="#5856D6" /></button>
+                          <button onClick={() => handlePrintSP(o)} title="Cetak SP" disabled={pdfLoading === o.id} style={{ background: 'none', border: 'none', cursor: pdfLoading === o.id ? 'not-allowed' : 'pointer', padding: '4px', opacity: pdfLoading === o.id ? 0.5 : 1 }}><FileText size={15} color="#5856D6" /></button>
                           {o.status !== 'received' && <button onClick={() => openReceive(o)} title="Terima Barang" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><CheckCircle size={15} color="#34C759" /></button>}
                           <button onClick={() => openEdit(o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="#007AFF" /></button>
                           <button onClick={() => handleDelete(o.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="#FF3B30" /></button>
@@ -325,7 +325,8 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
                     {expandedId === o.id && o.items?.length > 0 && (
                       <tr>
                         <td colSpan={6} style={{ padding: '0 14px 14px', backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', fontSize: '12px' }}>
+                          <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', fontSize: '12px', minWidth: '400px' }}>
                             <thead><tr>
                               {['Produk', 'Qty', 'Satuan', 'Harga', 'Subtotal', 'Diterima'].map(h => (
                                 <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: '600', color: sub, borderBottom: `1px solid ${border}` }}>{h}</th>
@@ -346,6 +347,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
                               ))}
                             </tbody>
                           </table>
+                          </div>
                           {o.notes && <p style={{ margin: '8px 0 0', fontSize: '12px', color: sub }}>📝 {o.notes}</p>}
                         </td>
                       </tr>
