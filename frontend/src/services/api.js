@@ -97,7 +97,7 @@ export const salesAPI = {
   update: (id, data) => api.put(`/sales/${id}`, data),
   remove: (id) => api.delete(`/sales/${id}`),
   updatePdfStatus: (id, pdf_status) => api.patch(`/sales/${id}/pdf-status`, { pdf_status }),
-  updatePaymentStatus: (id, payment_status) => api.patch(`/sales/${id}/payment-status`, { payment_status }),
+  updatePaymentStatus: (id, payment_status, paid_at) => api.patch(`/sales/${id}/payment-status`, { payment_status, ...(paid_at && { paid_at }) }),
 };
 
 export const inventoryAPI = {

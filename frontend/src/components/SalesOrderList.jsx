@@ -29,6 +29,8 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [paymentModal, setPaymentModal] = useState({ open: false, order: null, date: '', mode: 'pay' });
+  const [paymentSaving, setPaymentSaving] = useState(false);
 
   // Filters
   const [filterMonth, setFilterMonth] = useState('all');
@@ -39,14 +41,15 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
   const [manualNumber, setManualNumber] = useState('');
   const [notaCounter, setNotaCounter] = useState({ prefix: 'NT', last_number: 0 });
   const numberInputRef = useRef(null);
-  const [form, setForm] = useState({ 
+  const [form, setForm] = useState({
     order_number: '',
-    customer_name: '', 
-    customer_address: '', 
-    sale_date: new Date().toISOString().split('T')[0], 
+    customer_name: '',
+    customer_address: '',
+    sale_date: new Date().toISOString().split('T')[0],
     notes: '',
     payment_method: 'Tunai',
-    payment_details: ''
+    payment_details: '',
+    channel: 'offline',
   });
   const [items, setItems] = useState([blankItem()]);
   const [formErrors, setFormErrors] = useState({});
@@ -87,13 +90,39 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
     } catch (e) { console.error(e); }
   };
 
-  const togglePayment = async (order) => {
-    const next = order.payment_status === 'paid' ? 'unpaid' : 'paid';
+  const openPaymentModal = (order) => {
+    const today = new Date().toISOString().split('T')[0];
+    const existingDate = order.paid_at ? new Date(order.paid_at).toISOString().split('T')[0] : today;
+    setPaymentModal({
+      open: true,
+      order,
+      date: order.payment_status === 'paid' ? existingDate : today,
+      mode: order.payment_status === 'paid' ? 'edit' : 'pay',
+    });
+  };
+
+  const handlePaymentSave = async () => {
+    if (!paymentModal.order || !paymentModal.date) return;
+    setPaymentSaving(true);
     try {
-      await salesAPI.updatePaymentStatus(order.id, next);
-      flash(`Nota ${next === 'paid' ? 'Dilunasi' : 'Belum Dibayar'}`);
+      await salesAPI.updatePaymentStatus(paymentModal.order.id, 'paid', paymentModal.date);
+      flash('Tanggal pelunasan disimpan');
+      setPaymentModal({ open: false, order: null, date: '', mode: 'pay' });
       fetchOrders();
     } catch (e) { alert(e.response?.data?.error || e.message); }
+    finally { setPaymentSaving(false); }
+  };
+
+  const handlePaymentUnpay = async () => {
+    if (!paymentModal.order) return;
+    setPaymentSaving(true);
+    try {
+      await salesAPI.updatePaymentStatus(paymentModal.order.id, 'unpaid');
+      flash('Status dikembalikan ke Belum Bayar');
+      setPaymentModal({ open: false, order: null, date: '', mode: 'pay' });
+      fetchOrders();
+    } catch (e) { alert(e.response?.data?.error || e.message); }
+    finally { setPaymentSaving(false); }
   };
 
   // Customer CRUD Handlers
@@ -131,31 +160,34 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
 
   // Filters
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterChannel, setFilterChannel] = useState('all');
 
   const filtered = orders.filter(o => {
     const orderDate = new Date(o.sale_date);
-    const matchesSearch = o.order_number.toLowerCase().includes(search.toLowerCase()) || 
+    const matchesSearch = o.order_number.toLowerCase().includes(search.toLowerCase()) ||
                           o.customer_name.toLowerCase().includes(search.toLowerCase());
     const isAllMonth = String(filterMonth) === 'all';
     const isAllYear = String(filterYear) === 'all';
     const matchesMonth = isAllMonth || (orderDate.getMonth() + 1) === parseInt(filterMonth, 10);
     const matchesYear = isAllYear || orderDate.getFullYear() === parseInt(filterYear, 10);
     const matchesStatus = filterStatus === 'all' || o.payment_status === filterStatus;
-    return matchesSearch && matchesMonth && matchesYear && matchesStatus;
+    const matchesChannel = filterChannel === 'all' || (o.channel || 'offline') === filterChannel;
+    return matchesSearch && matchesMonth && matchesYear && matchesStatus && matchesChannel;
   });
 
   const openAdd = () => {
     setIsAutoNota(true);
     setManualNumber('');
     setEditId(null);
-    setForm({ 
+    setForm({
       order_number: '',
-      customer_name: '', 
-      customer_address: '', 
-      sale_date: new Date().toISOString().split('T')[0], 
+      customer_name: '',
+      customer_address: '',
+      sale_date: new Date().toISOString().split('T')[0],
       notes: '',
       payment_method: 'Tunai',
-      payment_details: ''
+      payment_details: '',
+      channel: 'offline',
     });
     setItems([blankItem()]);
     setShowModal(true);
@@ -171,6 +203,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       notes: order.notes || '',
       payment_method: order.payment_method || 'Tunai',
       payment_details: order.payment_details || '',
+      channel: order.channel || 'offline',
     });
     setItems(order.items?.length 
       ? order.items.map(i => ({ 
@@ -326,6 +359,12 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
           <option value="unpaid">Belum Bayar</option>
           <option value="paid">Sudah Lunas</option>
         </select>
+
+        <select value={filterChannel} onChange={e => setFilterChannel(e.target.value)} style={{ ...inputStyle, width: '150px' }}>
+          <option value="all">Semua Saluran</option>
+          <option value="offline">🏪 Offline</option>
+          <option value="online">🛒 Online</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -357,11 +396,18 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                   <tr style={{ borderBottom: `1px solid ${border}`, cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}>
                     <td style={{ padding: '12px 14px', fontWeight: '600', color: '#007AFF' }}>{o.order_number}</td>
                     <td style={{ padding: '12px 14px', color: text }}>{fmtDate(o.sale_date)}</td>
-                    <td style={{ padding: '12px 14px', color: text }}>{o.customer_name}</td>
+                    <td style={{ padding: '12px 14px', color: text }}>
+                      <div>{o.customer_name}</div>
+                      <span style={{ fontSize: '9px', fontWeight: '700', padding: '1px 5px', borderRadius: '3px',
+                        backgroundColor: o.channel === 'online' ? '#007AFF15' : '#8E8E9315',
+                        color: o.channel === 'online' ? '#007AFF' : '#8E8E93' }}>
+                        {o.channel === 'online' ? '🛒 ONLINE' : '🏪 OFFLINE'}
+                      </span>
+                    </td>
                     <td style={{ padding: '12px 14px', fontWeight: '600', color: text }}>{fmtRp(o.total)}</td>
                     <td style={{ padding: '12px 14px' }}>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); togglePayment(o); }}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openPaymentModal(o); }}
                         style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
                       >
                         <span style={{ fontSize: '10px', fontWeight: '800', padding: '4px 10px', borderRadius: '6px',
@@ -371,7 +417,14 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                           {o.payment_status === 'paid' ? 'LUNAS' : 'BELUM BAYAR'}
                         </span>
                       </button>
-                      {o.paid_at && <p style={{ margin: '4px 0 0', fontSize: '9px', color: sub }}>{fmtDate(o.paid_at)}</p>}
+                      {o.paid_at && (
+                        <p
+                          style={{ margin: '4px 0 0', fontSize: '9px', color: sub, cursor: 'pointer' }}
+                          onClick={(e) => { e.stopPropagation(); openPaymentModal(o); }}
+                        >
+                          {fmtDate(o.paid_at)} ✏️
+                        </p>
+                      )}
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px',
@@ -534,6 +587,14 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                 </div>
               </div>
 
+              <div>
+                <label style={labelStyle}>Saluran Penjualan</label>
+                <select value={form.channel} onChange={e => setForm(p => ({ ...p, channel: e.target.value }))} style={inputStyle}>
+                  <option value="offline">🏪 Offline</option>
+                  <option value="online">🛒 Online / Marketplace</option>
+                </select>
+              </div>
+
               {/* Items */}
               <div>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Produk</label>
@@ -638,8 +699,56 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
         </div>
       )}
 
+      {/* Payment Date Modal */}
+      {paymentModal.open && (
+        <div onClick={() => setPaymentModal({ open: false, order: null, date: '', mode: 'pay' })} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, backdropFilter: 'blur(4px)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, width: '100%', maxWidth: '360px', borderRadius: '20px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.25)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>
+                {paymentModal.mode === 'edit' ? '✏️ Edit Tanggal Pelunasan' : '💰 Konfirmasi Pelunasan'}
+              </h3>
+              <button onClick={() => setPaymentModal({ open: false, order: null, date: '', mode: 'pay' })} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
+            </div>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={labelStyle}>Tanggal Pelunasan</label>
+              <input
+                type="date"
+                value={paymentModal.date}
+                onChange={e => setPaymentModal(p => ({ ...p, date: e.target.value }))}
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button
+                onClick={handlePaymentSave}
+                disabled={paymentSaving || !paymentModal.date}
+                style={{ width: '100%', padding: '13px', backgroundColor: paymentSaving ? '#86868B' : '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: paymentSaving ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px' }}
+              >
+                {paymentSaving ? 'Menyimpan...' : 'Simpan'}
+              </button>
+              {paymentModal.mode === 'edit' && (
+                <button
+                  onClick={handlePaymentUnpay}
+                  disabled={paymentSaving}
+                  style={{ width: '100%', padding: '13px', backgroundColor: 'transparent', color: '#FF3B30', border: '1px solid #FF3B30', borderRadius: '10px', cursor: paymentSaving ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '14px' }}
+                >
+                  Batalkan Pelunasan
+                </button>
+              )}
+              <button
+                onClick={() => setPaymentModal({ open: false, order: null, date: '', mode: 'pay' })}
+                disabled={paymentSaving}
+                style={{ width: '100%', padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirm Modal */}
-      <ConfirmModal 
+      <ConfirmModal
         isOpen={!!deleteConfirmId}
         onClose={() => setDeleteConfirmId(null)}
         onConfirm={confirmDelete}

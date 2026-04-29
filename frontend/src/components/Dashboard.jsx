@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.3.38-stable', date: '23 Apr 2026', status: 'latest',
+    version: 'v1.3.39-stable', date: '29 Apr 2026', status: 'latest',
+    changes: [
+      { type: 'new', text: 'Pelunasan Date Picker: Klik badge BELUM BAYAR → modal pilih tanggal pelunasan. Tanggal LUNAS bisa diedit kapan saja (✏️).' },
+      { type: 'new', text: 'Batalkan Pelunasan: Modal edit menampilkan tombol untuk mengembalikan status ke Belum Bayar.' },
+      { type: 'new', text: 'Channel Online/Offline: Setiap nota kini punya flag 🏪 Offline / 🛒 Online — untuk laporan pajak (digunggung vs tidak). Tidak tampil di PDF.' },
+      { type: 'ui', text: 'Filter Saluran: Dropdown filter baru "Semua Saluran / Offline / Online" di halaman Nota Penjualan.' },
+      { type: 'ui', text: 'Badge Channel: Kolom Customer menampilkan badge OFFLINE/ONLINE di bawah nama customer.' },
+    ]
+  },
+  {
+    version: 'v1.3.38-stable', date: '23 Apr 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Edit SP Loading: Tombol Simpan kini menampilkan "Menyimpan..." dan error edit tampil inline.' },
       { type: 'fix', text: 'Auto Counter SP: Counter sync ke MAX aktual sebelum increment — tidak loncat setelah SP dihapus.' },
