@@ -40,6 +40,8 @@ const ensureSchema = async () => {
   `);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(30)`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS channel VARCHAR(10) DEFAULT 'offline'`);
+    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS due_date DATE`);
+    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS payment_terms INTEGER`);
 };
 ensureSchema().catch(e => console.error('sales ensureSchema:', e));
 
@@ -99,7 +101,7 @@ router.post('/', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, payment_method, payment_details, order_number: manualOrderNumber, channel: rawChannel } = req.body;
+    const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, payment_method, payment_details, order_number: manualOrderNumber, channel: rawChannel, due_date, payment_terms } = req.body;
     const channel = ['offline', 'online'].includes(rawChannel) ? rawChannel : 'offline';
     if (!customer_name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
     if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
@@ -125,9 +127,9 @@ router.post('/', auth, async (req, res) => {
     });
 
     const { rows } = await client.query(
-      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
-      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel]
+      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null]
     );
     const order = rows[0];
 
@@ -196,7 +198,7 @@ router.put('/:id', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, status, payment_method, payment_details, channel: rawChannel } = req.body;
+    const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, status, payment_method, payment_details, channel: rawChannel, due_date, payment_terms } = req.body;
     const channel = ['offline', 'online'].includes(rawChannel) ? rawChannel : 'offline';
     if (!customer_name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
     if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
@@ -209,9 +211,9 @@ router.put('/:id', auth, async (req, res) => {
     });
 
     const { rowCount } = await client.query(
-      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, channel=$12, updated_at=NOW()
-       WHERE id=$13 AND is_deleted=FALSE`,
-      [customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'draft', payment_method || 'Tunai', payment_details || '', channel, req.params.id]
+      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, channel=$12, due_date=$13, payment_terms=$14, updated_at=NOW()
+       WHERE id=$15 AND is_deleted=FALSE`,
+      [customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'draft', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, req.params.id]
     );
     if (!rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
 

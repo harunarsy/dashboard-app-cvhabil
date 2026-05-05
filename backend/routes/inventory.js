@@ -377,4 +377,18 @@ router.get('/fefo-hna/:productId', auth, async (req, res) => {
   }
 });
 
+// GET all available batches for a product (for batch dropdown in sales/nota)
+router.get('/batches-by-product/:productId', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT batch_no, expired_date, qty_current, hna,
+             CASE WHEN qty_current > 0 AND hna > 0 THEN (hna / qty_current) * 1.11 ELSE 0 END AS hpp_inc_ppn
+      FROM inventory_batches
+      WHERE product_id = $1 AND qty_current > 0
+      ORDER BY expired_date ASC NULLS LAST
+    `, [req.params.productId]);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;

@@ -2,6 +2,20 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.41-stable] - 2026-05-05
+
+### Added
+- **Batch Number Faktur**: Field "No. Batch/Lot" per item di faktur masukan. Nilai ini tersimpan ke `invoice_items.batch_number` dan juga digunakan sebagai `batch_no` di `inventory_batches` saat auto stock-in — memungkinkan traceability batch ke level penjualan.
+- **Tempo Pembayaran Nota**: Quick-select 7/14/30 hari di form nota penjualan. Klik tombol → `due_date` otomatis dihitung dari `sale_date`. Kolom `due_date` dan `payment_terms` (jumlah hari) kini tersimpan di DB.
+- **Quick-Select Jatuh Tempo Faktur**: Tombol +1/+7/+21/+30 hari di form faktur masukan — mengisi `due_date` relatif terhadap `purchase_date` dengan satu klik. Tombol aktif di-highlight biru.
+- **Dropdown Batch Harga di Nota**: Saat memilih produk di nota penjualan, sistem menampilkan dropdown semua batch tersedia (batch_no, ED, stok, HNA) dari `inventory_batches`. Pilih batch → HPP otomatis terisi. Endpoint baru: `GET /api/inventory/batches-by-product/:productId`.
+
+### UI/UX
+- **Animasi Overdue Faktur & Nota**: Badge "Terlambat Xh" beranimasi pulse (kelap-kelip halus) saat faktur/nota sudah melewati due_date — lebih mudah terlihat tanpa mengganggu keterbacaan.
+
+### Fixed
+- **Persistent Login (7 Hari)**: Token JWT diperpanjang dari 15 menit ke 7 hari — user tidak perlu login ulang setiap membuka browser di komputer yang sama.
+
 ## [v1.3.40-stable] - 2026-04-26
 
 ### Security

@@ -47,7 +47,8 @@ const ensureSchema = async () => {
   // Ensure newer columns exist in invoice_items
   await pool.query(`
     ALTER TABLE invoice_items
-      ADD COLUMN IF NOT EXISTS hpp_inc_ppn DECIMAL(15,2) DEFAULT 0
+      ADD COLUMN IF NOT EXISTS hpp_inc_ppn DECIMAL(15,2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS batch_number VARCHAR(100)
   `);
 
   // Data Migration: Populate missing hpp_inc_ppn and hna_per_item for old records
@@ -234,14 +235,15 @@ router.post('/', auth, async (req, res) => {
           `INSERT INTO invoice_items
             (invoice_id, product_name, quantity, unit_price, total_price,
              expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
-             disc_cod_per_item, hna_after_cod, hpp_inc_ppn)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
           [invoiceId, item.product_name, item.quantity||0,
            item.unit_price||item.hna||0, item.total_price||item.hna_times_qty||0,
            item.expired_date||null, item.hna||0, item.hna_times_qty||0,
            item.disc_percent||0, item.disc_nominal||0, item.hna_baru||0,
            item.hna_per_item||0, item.margin||0,
-           item.disc_cod_per_item||0, item.hna_after_cod||0, item.hpp_inc_ppn||0]
+           item.disc_cod_per_item||0, item.hna_after_cod||0, item.hpp_inc_ppn||0,
+           item.batch_number||null]
         );
       }
     }
@@ -263,7 +265,7 @@ router.post('/', auth, async (req, res) => {
           const { rows: [batch] } = await pool.query(
             `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref)
              VALUES ($1, $2, $3, $4, $5, 'faktur', $6) RETURNING id`,
-            [product.id, invoice_number, item.expired_date || null, item.quantity, batchHna, `invoice-${invoiceId}`]
+            [product.id, item.batch_number || invoice_number, item.expired_date || null, item.quantity, batchHna, `invoice-${invoiceId}`]
           );
           // Record mutation
           await pool.query(
@@ -337,14 +339,15 @@ router.put('/:id', auth, async (req, res) => {
           `INSERT INTO invoice_items
             (invoice_id, product_name, quantity, unit_price, total_price,
              expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
-             disc_cod_per_item, hna_after_cod, hpp_inc_ppn)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
           [id, item.product_name, item.quantity||0,
            item.unit_price||item.hna||0, item.total_price||item.hna_times_qty||0,
            item.expired_date||null, item.hna||0, item.hna_times_qty||0,
            item.disc_percent||0, item.disc_nominal||0, item.hna_baru||0,
            item.hna_per_item||0, item.margin||0,
-           item.disc_cod_per_item||0, item.hna_after_cod||0, item.hpp_inc_ppn||0]
+           item.disc_cod_per_item||0, item.hna_after_cod||0, item.hpp_inc_ppn||0,
+           item.batch_number||null]
         );
       }
     }

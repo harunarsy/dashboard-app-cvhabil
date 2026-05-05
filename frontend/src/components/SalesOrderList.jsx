@@ -7,8 +7,25 @@ import Skeleton from './common/Skeleton';
 import ConfirmModal from './common/ConfirmModal';
 import Breadcrumb from './common/Breadcrumb';
 
+if (typeof document !== 'undefined' && !document.getElementById('habil-pulse-style')) {
+  const s = document.createElement('style'); s.id = 'habil-pulse-style';
+  s.textContent = '@keyframes habil-pulse{0%,100%{opacity:1}50%{opacity:0.35}}';
+  document.head.appendChild(s);
+}
+
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+const addDays = (dateStr, n) => {
+  const base = dateStr ? new Date(dateStr + 'T00:00:00') : new Date();
+  base.setDate(base.getDate() + n);
+  return `${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}-${String(base.getDate()).padStart(2,'0')}`;
+};
+const notaDaysDiff = (dateStr) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.ceil((d - now) / 86400000);
+};
 
 const blankItem = () => ({ product_name: '', qty: 1, unit: 'pcs', unit_price: 0, unit_hpp: 0 });
 
@@ -51,8 +68,11 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
     payment_method: 'Tunai',
     payment_details: '',
     channel: 'offline',
+    due_date: '',
+    payment_terms: null,
   });
   const [items, setItems] = useState([blankItem()]);
+  const [itemBatches, setItemBatches] = useState([]);
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -189,8 +209,11 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       payment_method: 'Tunai',
       payment_details: '',
       channel: 'offline',
+      due_date: '',
+      payment_terms: null,
     });
     setItems([blankItem()]);
+    setItemBatches([]);
     setShowModal(true);
   };
 
@@ -205,6 +228,8 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       payment_method: order.payment_method || 'Tunai',
       payment_details: order.payment_details || '',
       channel: order.channel || 'offline',
+      due_date: order.due_date ? order.due_date.split('T')[0] : '',
+      payment_terms: order.payment_terms || null,
     });
     setItems(order.items?.length 
       ? order.items.map(i => ({ 
@@ -286,8 +311,8 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
     setShowPrintModal(true);
   };
 
-  const addItem = () => setItems([...items, blankItem()]);
-  const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx));
+  const addItem = () => { setItems([...items, blankItem()]); setItemBatches([...itemBatches, []]); };
+  const removeItem = (idx) => { setItems(items.filter((_, i) => i !== idx)); setItemBatches(itemBatches.filter((_, i) => i !== idx)); };
   const updateItem = async (idx, field, value) => {
     const newItems = [...items];
     let updated = { ...newItems[idx], [field]: value };
@@ -298,18 +323,41 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       if (match) {
         updated.unit_price = parseFloat(match.sell_price) || 0;
         updated.unit = match.unit || 'pcs';
-        
-        // Fetch FEFO batch HNA (or product master HNA as fallback)
+        updated._product_id = match.id;
+
+        // Fetch available batches for dropdown
         try {
-          const { data } = await inventoryAPI.getFefoHna(match.id);
-          updated.unit_hpp = parseFloat(data.hna) || 0;
+          const { data: batches } = await inventoryAPI.getAvailableBatches(match.id);
+          const newBatches = [...itemBatches];
+          newBatches[idx] = batches;
+          setItemBatches(newBatches);
+          // Auto-select FEFO (first batch)
+          if (batches.length > 0) {
+            updated.unit_hpp = parseFloat(batches[0].hna) || 0;
+            updated._selected_batch = batches[0].batch_no;
+          } else {
+            updated.unit_hpp = parseFloat(match.hna) || 0;
+          }
         } catch (e) {
-          // Fallback to product master HNA
           updated.unit_hpp = parseFloat(match.hna) || 0;
         }
+      } else {
+        // Clear batch list when product name doesn't match
+        const newBatches = [...itemBatches];
+        newBatches[idx] = [];
+        setItemBatches(newBatches);
       }
     }
-    
+
+    // When batch is manually selected
+    if (field === '_selected_batch') {
+      const batches = itemBatches[idx] || [];
+      const batch = batches.find(b => b.batch_no === value);
+      if (batch) {
+        updated.unit_hpp = parseFloat(batch.hna) || 0;
+      }
+    }
+
     newItems[idx] = updated;
     setItems(newItems);
   };
@@ -428,6 +476,13 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                           {fmtDate(o.paid_at)} ✏️
                         </p>
                       )}
+                      {o.payment_status !== 'paid' && o.due_date && (() => {
+                        const diff = notaDaysDiff(o.due_date);
+                        if (diff === null) return null;
+                        if (diff < 0) return <p style={{ margin: '4px 0 0', fontSize: '9px', fontWeight: '700', color: '#FF3B30', animation: 'habil-pulse 1.2s ease-in-out infinite' }}>Terlambat {Math.abs(diff)}h</p>;
+                        if (diff <= 3) return <p style={{ margin: '4px 0 0', fontSize: '9px', fontWeight: '700', color: '#FF9500' }}>JT {diff}h lagi</p>;
+                        return <p style={{ margin: '4px 0 0', fontSize: '9px', color: sub }}>JT: {fmtDate(o.due_date)}</p>;
+                      })()}
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px',
@@ -590,6 +645,29 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                 </div>
               </div>
 
+              {/* Tempo Pembayaran */}
+              <div>
+                <label style={labelStyle}>Tempo Pembayaran (Jatuh Tempo)</label>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                  {[7,14,30].map(n => {
+                    const target = addDays(form.sale_date, n);
+                    const active = form.due_date === target && form.payment_terms === n;
+                    return (
+                      <button key={n} type="button"
+                        onClick={() => setForm(p => ({ ...p, due_date: target, payment_terms: n }))}
+                        style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '700', borderRadius: '8px', border: `1px solid ${active ? '#007AFF' : (isDarkMode ? '#3A3A3C' : '#D1D1D6')}`, backgroundColor: active ? '#007AFF' : 'transparent', color: active ? '#FFF' : (isDarkMode ? '#ABABAB' : '#555'), cursor: 'pointer' }}>
+                        {n} hari
+                      </button>
+                    );
+                  })}
+                  <button type="button" onClick={() => setForm(p => ({ ...p, due_date: '', payment_terms: null }))}
+                    style={{ padding: '6px 10px', fontSize: '11px', borderRadius: '8px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, backgroundColor: 'transparent', color: '#86868B', cursor: 'pointer' }}>
+                    Tunai
+                  </button>
+                </div>
+                <input type="date" value={form.due_date} onChange={e => setForm(p => ({ ...p, due_date: e.target.value, payment_terms: null }))} style={{ ...inputStyle, fontSize: '12px' }} placeholder="Atau pilih tanggal manual" />
+              </div>
+
               <div>
                 <label style={labelStyle}>Saluran Penjualan</label>
                 <select value={form.channel} onChange={e => setForm(p => ({ ...p, channel: e.target.value }))} style={inputStyle}>
@@ -612,18 +690,35 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                   <div></div>
                 </div>
                 
-                {items.map((it, idx) => (
-                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 60px 45px 80px 100px 30px', gap: '6px', marginBottom: '6px', alignItems: 'center' }}>
-                    <input list="product-list" value={it.product_name} onChange={e => updateItem(idx, 'product_name', e.target.value)} placeholder="Nama produk" style={{ ...inputStyle, fontSize: '13px', padding: '8px 10px' }} />
-                    <input type="number" value={it.qty} onChange={e => updateItem(idx, 'qty', parseInt(e.target.value) || 0)} min="1" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
-                    <input value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} placeholder="pcs" style={{ ...inputStyle, fontSize: '13px', padding: '8px 4px', textAlign: 'center' }} />
-                    <input type="number" value={it.unit_hpp} onChange={e => updateItem(idx, 'unit_hpp', parseFloat(e.target.value) || 0)} min="0" placeholder="0" style={{ ...inputStyle, fontSize: '12px', padding: '8px 6px', backgroundColor: isDarkMode ? '#1C1C1E' : '#EBEBEB', border: `1px dashed ${border}`, textAlign: 'center' }} />
-                    <input type="number" value={it.unit_price} onChange={e => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} min="0" placeholder="0" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
-                    {items.length > 1 && (
-                      <button onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>
-                    )}
-                  </div>
-                ))}
+                {items.map((it, idx) => {
+                  const batches = itemBatches[idx] || [];
+                  return (
+                    <div key={idx} style={{ marginBottom: '10px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 60px 45px 80px 100px 30px', gap: '6px', alignItems: 'center' }}>
+                        <input list="product-list" value={it.product_name} onChange={e => updateItem(idx, 'product_name', e.target.value)} placeholder="Nama produk" style={{ ...inputStyle, fontSize: '13px', padding: '8px 10px' }} />
+                        <input type="number" value={it.qty} onChange={e => updateItem(idx, 'qty', parseInt(e.target.value) || 0)} min="1" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
+                        <input value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} placeholder="pcs" style={{ ...inputStyle, fontSize: '13px', padding: '8px 4px', textAlign: 'center' }} />
+                        <input type="number" value={it.unit_hpp} onChange={e => updateItem(idx, 'unit_hpp', parseFloat(e.target.value) || 0)} min="0" placeholder="0" style={{ ...inputStyle, fontSize: '12px', padding: '8px 6px', backgroundColor: isDarkMode ? '#1C1C1E' : '#EBEBEB', border: `1px dashed ${border}`, textAlign: 'center' }} />
+                        <input type="number" value={it.unit_price} onChange={e => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} min="0" placeholder="0" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
+                        {items.length > 1 && (
+                          <button onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>
+                        )}
+                      </div>
+                      {batches.length > 0 && (
+                        <div style={{ marginTop: '4px', paddingLeft: '2px' }}>
+                          <select value={it._selected_batch || ''} onChange={e => updateItem(idx, '_selected_batch', e.target.value)}
+                            style={{ ...inputStyle, fontSize: '11px', padding: '5px 8px', backgroundColor: isDarkMode ? '#1C1C1E' : '#F0F8FF', border: `1px solid #007AFF40`, color: '#007AFF' }}>
+                            {batches.map(b => (
+                              <option key={b.batch_no} value={b.batch_no}>
+                                Batch: {b.batch_no} | ED: {b.expired_date ? new Date(b.expired_date).toLocaleDateString('id-ID', {day:'2-digit',month:'short',year:'numeric'}) : '-'} | Stok: {b.qty_current} | HNA: {new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(b.hna)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 <datalist id="product-list">
                   {products.map(p => <option key={p.id || p.name} value={p.name} />)}
                 </datalist>

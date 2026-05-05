@@ -6,7 +6,18 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.3.40-stable', date: '26 Apr 2026', status: 'latest',
+    version: 'v1.3.41-stable', date: '05 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'feat', text: 'Batch Number Faktur: Field No. Batch/Lot per item di faktur masukan — tersimpan ke inventory batch untuk traceability.' },
+      { type: 'feat', text: 'Tempo Pembayaran Nota: Quick-select 7/14/30 hari di form nota penjualan — due_date otomatis terhitung dari tanggal jual.' },
+      { type: 'feat', text: 'Quick-Select Jatuh Tempo Faktur: Tombol +1/+7/+21/+30 hari di form faktur untuk isi due_date cepat.' },
+      { type: 'feat', text: 'Dropdown Batch Harga Nota: Pilih batch spesifik (batch_no + ED + stok + HNA) saat input produk di nota — harga otomatis dari batch FEFO.' },
+      { type: 'ui', text: 'Animasi Overdue: Badge jatuh tempo merah berkedip (pulse) saat faktur/nota sudah melewati due_date.' },
+      { type: 'fix', text: 'Persistent Login: Token JWT diperpanjang 15 menit → 7 hari — user tidak perlu login ulang setiap buka browser.' },
+    ]
+  },
+  {
+    version: 'v1.3.40-stable', date: '26 Apr 2026', status: 'stable',
     changes: [
       { type: 'feat', text: 'Keamanan: Password hashing bcrypt (dual-mode migration) — plaintext otomatis di-upgrade saat login.' },
       { type: 'feat', text: 'Rate Limiting: Login dibatasi 5x per 15 menit per IP untuk mencegah brute force.' },
@@ -322,7 +333,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.3.40-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.41-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -374,7 +385,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.3.40-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.41-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -468,7 +479,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.40-stable — 2026
+            HABIL SUPERAPP v1.3.41-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

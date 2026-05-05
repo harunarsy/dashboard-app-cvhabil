@@ -5,6 +5,12 @@ import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
 import Breadcrumb from './common/Breadcrumb';
 
+const OVERDUE_PULSE_CSS = `@keyframes habil-pulse{0%,100%{opacity:1}50%{opacity:0.35}}`;
+if (typeof document !== 'undefined' && !document.getElementById('habil-pulse-style')) {
+  const s = document.createElement('style'); s.id = 'habil-pulse-style'; s.textContent = OVERDUE_PULSE_CSS;
+  document.head.appendChild(s);
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const parseNum = (v) => {
   if (v === '' || v == null) return 0;
@@ -56,9 +62,15 @@ const daysDiff = (dateStr) => {
   const now = new Date(); now.setHours(0,0,0,0);
   return Math.ceil((d - now) / 86400000);
 };
+const addDays = (dateStr, n) => {
+  const base = dateStr ? parseLocalDate(dateStr) : new Date();
+  if (!base) return '';
+  const d = new Date(base); d.setDate(d.getDate() + n);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
 const blankItem = () => ({
   _id: Math.random().toString(36).slice(2),
-  product_name: '', expired_date: '', quantity: '', hna: '',
+  product_name: '', batch_number: '', expired_date: '', quantity: '', hna: '',
   hna_times_qty: 0, disc_percent: '', disc_nominal: 0, hna_baru: 0, hna_per_item: 0,
 });
 const blankForm = () => ({
@@ -108,7 +120,7 @@ const calcTotals = (items, form) => {
 const getDueStatus = (due_date, status) => {
   if (status === 'Paid' || !due_date) return null;
   const diff = daysDiff(due_date);
-  if (diff < 0) return { label: `Terlambat ${Math.abs(diff)}h`, color: '#FF3B30', bg: '#FF3B3020' };
+  if (diff < 0) return { label: `Terlambat ${Math.abs(diff)}h`, color: '#FF3B30', bg: '#FF3B3020', animation: 'habil-pulse 1.2s ease-in-out infinite' };
   if (diff <= 3) return { label: `Jatuh tempo ${diff}h lagi`, color: '#FF9500', bg: '#FF950020' };
   if (diff <= 7) return { label: `${diff}h lagi`, color: '#FFCC00', bg: '#FFCC0020' };
   return null;
@@ -443,7 +455,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
         status: invoice.status,
       });
       setItems(invItems.length > 0
-        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0 }))
+        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', batch_number: i.batch_number||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0 }))
         : [blankItem()]
       );
       setEditingId(existingId);
@@ -466,7 +478,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
         status: invoice.status,
       });
       setItems(invItems.length > 0
-        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0 }))
+        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', batch_number: i.batch_number||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0 }))
         : [blankItem()]
       );
       setEditingId(inv.id); setShowModal(true);
@@ -1046,7 +1058,7 @@ function InvoiceRow({ inv, isDarkMode, expanded, onToggleExpand, onEdit, onDelet
         <div>
           <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: '800', backgroundColor: sc.bg, color: sc.text, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>{statusLabel}</span>
           {!isPaid && inv.due_date && dueStatus && (
-            <div style={{ marginTop: '5px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '8px', backgroundColor: dueStatus.bg }}>
+            <div style={{ marginTop: '5px', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '8px', backgroundColor: dueStatus.bg, animation: dueStatus.animation || 'none' }}>
               <span style={{ fontSize: '10px', fontWeight: '700', color: dueStatus.color }}>{dueStatus.label}</span>
             </div>
           )}
@@ -1075,11 +1087,11 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
   useEffect(() => { invoicesAPI.getById(invoiceId).then(r => setItems(r.data.items)).catch(() => setItems([])); }, [invoiceId]);
   if (!items) return <div style={{ padding: '12px 24px', fontSize: '13px', color: '#86868B' }}>Memuat...</div>;
   if (!items.length) return null;
-  const cols = '2fr 60px 90px 100px 70px 100px 100px 90px 100px 100px';
+  const cols = '2fr 100px 60px 90px 100px 70px 100px 100px 90px 100px 100px';
   return (
     <div style={{ backgroundColor: isDarkMode ? '#111' : '#FAFAFA', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, padding: '8px 24px', borderLeft: `3px solid ${distColor?.dot || '#007AFF'}` }}>
       <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '8px', padding: '6px 0', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, marginBottom: '4px' }}>
-        {['Nama Produk','QTY','HNA','HNA*QTY','Disc%','Disc Nom.','HNA Baru','Disc COD','HNA Final','HPP/pcs'].map(h => (
+        {['Nama Produk','Batch No.','QTY','HNA','HNA*QTY','Disc%','Disc Nom.','HNA Baru','Disc COD','HNA Final','HPP/pcs'].map(h => (
           <div key={h} style={{ fontSize: '10px', fontWeight: '700', color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</div>
         ))}
       </div>
@@ -1089,6 +1101,7 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
             <div style={{ fontSize: '13px', fontWeight: '500', color: isDarkMode ? '#FFF' : '#000' }}>{item.product_name}</div>
             {item.expired_date && <div style={{ fontSize: '11px', color: '#FF9500' }}>Exp: {formatLocalDate(item.expired_date)}</div>}
           </div>
+          <div style={{ fontSize: '12px', color: isDarkMode ? '#ABABAB' : '#555', fontFamily: 'monospace' }}>{item.batch_number || <span style={{color:'#C7C7CC'}}>—</span>}</div>
           <div style={{ fontSize: '13px', color: isDarkMode ? '#FFF' : '#000' }}>{item.quantity}</div>
           <div style={{ fontSize: '13px', color: isDarkMode ? '#FFF' : '#000' }}>{formatRp(item.hna||item.unit_price)}</div>
           <div style={{ fontSize: '13px', color: isDarkMode ? '#FFF' : '#000' }}>{formatRp(item.hna_times_qty||item.total_price)}</div>
@@ -1136,7 +1149,22 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
             </div>
             <div style={{ ...r2, marginTop: '14px' }}>
               <div><label style={S.label}>Distributor</label><MasterSelect value={form.distributor_name} onChange={v => onFormChange('distributor_name', v)} options={distributors} onAdd={onAddDistributor} onRemove={onRemoveDistributor} onRename={onRenameDistributor} placeholder="Pilih atau tambah distributor..." isDarkMode={isDarkMode} /></div>
-              <div><label style={S.label}>Tanggal Jatuh Tempo</label><input type="date" style={S.input} value={form.due_date} onChange={e => onFormChange('due_date', e.target.value)} /></div>
+              <div>
+                <label style={S.label}>Tanggal Jatuh Tempo</label>
+                <input type="date" style={S.input} value={form.due_date} onChange={e => onFormChange('due_date', e.target.value)} />
+                <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                  {[1,7,21,30].map(n => {
+                    const target = addDays(form.purchase_date, n);
+                    const active = form.due_date === target;
+                    return (
+                      <button key={n} type="button" onClick={() => onFormChange('due_date', target)}
+                        style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '6px', border: `1px solid ${active ? '#007AFF' : (isDarkMode ? '#3A3A3C' : '#D1D1D6')}`, backgroundColor: active ? '#007AFF' : 'transparent', color: active ? '#FFF' : (isDarkMode ? '#ABABAB' : '#555'), cursor: 'pointer' }}>
+                        +{n}h
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1155,7 +1183,11 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                 )}
                 <div style={{ ...r2, marginBottom: '10px' }}>
                   <div><label style={S.label}>Nama Produk</label><MasterSelect value={item.product_name} onChange={v => updateItem(idx, 'product_name', v)} options={products} onAdd={onAddProduct} onRemove={onRemoveProduct} onRename={onRenameProduct} placeholder="Pilih atau tambah produk..." isDarkMode={isDarkMode} /></div>
+                  <div><label style={S.label}>No. Batch / Lot</label><input style={S.input} value={item.batch_number} onChange={e => updateItem(idx, 'batch_number', e.target.value)} placeholder="Contoh: B2025001" /></div>
+                </div>
+                <div style={{ ...r2, marginBottom: '10px' }}>
                   <div><label style={S.label}>Expired Date</label><input type="date" style={S.input} value={item.expired_date} onChange={e => updateItem(idx, 'expired_date', e.target.value)} /></div>
+                  <div />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                   <div><label style={S.label}>QTY</label><input style={S.input} type="number" min="0" value={item.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} placeholder="0" /></div>
