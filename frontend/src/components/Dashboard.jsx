@@ -6,7 +6,15 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.3.41-stable', date: '05 Mei 2026', status: 'latest',
+    version: 'v1.3.42-stable', date: '10 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'feat', text: 'Product MasterSelect di Nota: Dropdown produk di form nota penjualan kini dilengkapi CRUD inline — cari, tambah, rename, dan hapus produk langsung dari nota.' },
+      { type: 'feat', text: 'HPP Auto-fill Reliable: Pilih produk via dropdown → HPP/HNA otomatis terisi dari batch FEFO, bisa diedit manual per baris.' },
+      { type: 'fix', text: 'Error Feedback Inventory: Pesan error saat tambah/edit produk kini tampil merah (❌) di dalam modal dan sebagai toast — tidak lagi tampil hijau seperti sukses.' },
+    ]
+  },
+  {
+    version: 'v1.3.42-stable', date: '05 Mei 2026', status: 'stable',
     changes: [
       { type: 'feat', text: 'Batch Number Faktur: Field No. Batch/Lot per item di faktur masukan — tersimpan ke inventory batch untuk traceability.' },
       { type: 'feat', text: 'Tempo Pembayaran Nota: Quick-select 7/14/30 hari di form nota penjualan — due_date otomatis terhitung dari tanggal jual.' },
@@ -333,7 +341,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.3.41-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.42-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -385,7 +393,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.3.41-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.42-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -479,7 +487,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.41-stable — 2026
+            HABIL SUPERAPP v1.3.42-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

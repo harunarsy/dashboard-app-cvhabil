@@ -177,6 +177,45 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
     } catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
+  // Product CRUD Handlers
+  const handleAddProduct = async (name) => {
+    try {
+      await inventoryAPI.createProduct({ name, unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5 });
+      flash('Produk ditambahkan');
+      fetchProducts();
+    } catch (e) { flash(e.response?.data?.error || e.message); }
+  };
+
+  const handleRemoveProduct = async (name) => {
+    try {
+      const product = products.find(p => p.name === name);
+      if (product) {
+        await inventoryAPI.deleteProduct(product.id);
+        flash('Produk dinonaktifkan');
+        fetchProducts();
+      }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
+  };
+
+  const handleRenameProduct = async (oldName, newName) => {
+    try {
+      const product = products.find(p => p.name === oldName);
+      if (product) {
+        await inventoryAPI.updateProduct(product.id, {
+          name: newName,
+          code: product.code,
+          unit: product.unit,
+          hna: product.hna,
+          sell_price: product.sell_price,
+          category: product.category,
+          min_stock: product.min_stock,
+        });
+        flash('Nama produk diubah');
+        fetchProducts();
+      }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
+  };
+
   useEffect(() => { fetchOrders(); fetchCustomers(); fetchProducts(); fetchSettings(); fetchCounters(); }, []);
 
   // Filters
@@ -695,7 +734,16 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                   return (
                     <div key={idx} style={{ marginBottom: '10px' }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '2fr 60px 45px 80px 100px 30px', gap: '6px', alignItems: 'center' }}>
-                        <input list="product-list" value={it.product_name} onChange={e => updateItem(idx, 'product_name', e.target.value)} placeholder="Nama produk" style={{ ...inputStyle, fontSize: '13px', padding: '8px 10px' }} />
+                        <MasterSelect
+                          value={it.product_name}
+                          onChange={v => updateItem(idx, 'product_name', v)}
+                          options={products.map(p => ({ name: p.name }))}
+                          onAdd={handleAddProduct}
+                          onRemove={handleRemoveProduct}
+                          onRename={handleRenameProduct}
+                          isDarkMode={isDarkMode}
+                          placeholder="Nama produk"
+                        />
                         <input type="number" value={it.qty} onChange={e => updateItem(idx, 'qty', parseInt(e.target.value) || 0)} min="1" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
                         <input value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} placeholder="pcs" style={{ ...inputStyle, fontSize: '13px', padding: '8px 4px', textAlign: 'center' }} />
                         <input type="number" value={it.unit_hpp} onChange={e => updateItem(idx, 'unit_hpp', parseFloat(e.target.value) || 0)} min="0" placeholder="0" style={{ ...inputStyle, fontSize: '12px', padding: '8px 6px', backgroundColor: isDarkMode ? '#1C1C1E' : '#EBEBEB', border: `1px dashed ${border}`, textAlign: 'center' }} />
@@ -719,9 +767,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                     </div>
                   );
                 })}
-                <datalist id="product-list">
-                  {products.map(p => <option key={p.id || p.name} value={p.name} />)}
-                </datalist>
+
                 <button onClick={addItem} style={{ fontSize: '13px', color: '#007AFF', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', marginTop: '4px' }}>+ Tambah Produk</button>
               </div>
 

@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.42-stable] - 2026-05-10
+
+### Added
+- **Product MasterSelect di Nota Penjualan**: Dropdown produk pada form nota penjualan kini menggunakan komponen MasterSelect — lengkap dengan pencarian, tambah produk baru inline, rename, dan hapus produk (soft-delete). Konsisten dengan pola dropdown Customer.
+- **HPP Auto-fill Reliable**: Saat memilih produk via MasterSelect, HPP/HNA otomatis terisi dari batch FEFO dan tetap bisa diedit manual per baris produk.
+
+### Fixed
+- **Error Feedback Inventory**: Pesan error saat menambah/mengedit produk di modul Inventory kini tampil dengan benar — toast merah (❌) dan pesan inline di dalam modal. Sebelumnya error ditampilkan sebagai toast hijau (✅) sehingga terkesan berhasil padahal gagal.
+
 ## [v1.3.41-stable] - 2026-05-05
 
 ### Added

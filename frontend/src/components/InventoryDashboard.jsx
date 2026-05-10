@@ -17,7 +17,8 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(null); // null | 'product' | 'stockIn' | 'stockOut' | 'opname'
   const [editId, setEditId] = useState(null);
-  const [toast, setToast] = useState('');
+  const [toast, setToast] = useState({ msg: '', type: 'success' });
+  const [modalError, setModalError] = useState('');
   const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
@@ -59,7 +60,8 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
     (p.category || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+  const flashSuccess = (msg) => { setToast({ msg, type: 'success' }); setTimeout(() => setToast({ msg: '', type: 'success' }), 2500); };
+  const flashError = (msg) => { setToast({ msg, type: 'error' }); setTimeout(() => setToast({ msg: '', type: 'success' }), 3500); };
 
   const inputStyle = {
     width: '100%', padding: '10px 12px', border: `1px solid ${border}`,
@@ -72,17 +74,22 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   const openAddProduct = () => { setEditId(null); setPForm({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5 }); setShowModal('product'); };
   const openEditProduct = (p) => { setEditId(p.id); setPForm({ code: p.code || '', name: p.name, unit: p.unit || 'pcs', hna: parseFloat(p.hna) || 0, sell_price: parseFloat(p.sell_price) || 0, category: p.category || '', min_stock: p.min_stock || 5 }); setShowModal('product'); };
   const saveProduct = async () => {
-    if (!pForm.name.trim()) return flash('Nama produk wajib diisi');
+    if (!pForm.name.trim()) { setModalError('Nama produk wajib diisi'); return; }
+    setModalError('');
     try {
-      if (editId) { await inventoryAPI.updateProduct(editId, pForm); flash('Produk diperbarui'); }
-      else { await inventoryAPI.createProduct(pForm); flash('Produk ditambahkan'); }
+      if (editId) { await inventoryAPI.updateProduct(editId, pForm); flashSuccess('Produk diperbarui'); }
+      else { await inventoryAPI.createProduct(pForm); flashSuccess('Produk ditambahkan'); }
       setShowModal(null); fetchProducts();
-    } catch (e) { flash(e.response?.data?.error || e.message); }
+    } catch (e) {
+      const msg = e.response?.data?.error || e.message;
+      setModalError(msg);
+      flashError(msg);
+    }
   };
   const deleteProduct = (id) => setDeleteConfirmId(id);
   const confirmDelete = async () => {
     if (!deleteConfirmId) return;
-    try { await inventoryAPI.deleteProduct(deleteConfirmId); flash('Produk dinonaktifkan'); fetchProducts(); } catch (e) { flash(e.response?.data?.error || e.message); }
+    try { await inventoryAPI.deleteProduct(deleteConfirmId); flashSuccess('Produk dinonaktifkan'); fetchProducts(); } catch (e) { flashError(e.response?.data?.error || e.message); }
     finally { setDeleteConfirmId(null); }
   };
 
@@ -110,36 +117,36 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
     setShowModal('stockIn'); 
   };
   const saveStockIn = async () => {
-    if (!siForm.product_name || !siForm.qty) return flash('Pilih produk dan qty');
+    if (!siForm.product_name || !siForm.qty) return flashError('Pilih produk dan qty');
     try {
       const prod = products.find(p => p.name === siForm.product_name);
-      if (!prod) return flash('Produk tidak ditemukan');
+      if (!prod) return flashError('Produk tidak ditemukan');
       const payload = { ...siForm, product_id: prod.id };
       delete payload.product_name;
       await inventoryAPI.stockIn(payload);
-      flash('Stok masuk berhasil');
+      flashSuccess('Stok masuk berhasil');
       setShowModal(null);
       fetchProducts();
       fetchAlerts();
     }
-    catch (e) { flash(e.response?.data?.error || e.message); }
+    catch (e) { flashError(e.response?.data?.error || e.message); }
   };
 
   // ─── Stock Out ────────────────────────────────────────────────────────
   const openStockOut = (p) => { setSoForm({ product_id: p?.id || '', qty: 1, notes: '' }); setShowModal('stockOut'); };
   const saveStockOut = async () => {
-    if (!soForm.product_id || !soForm.qty) return flash('Pilih produk dan qty');
-    try { await inventoryAPI.stockOut(soForm); flash('Stok keluar berhasil (FEFO)'); setShowModal(null); fetchProducts(); fetchAlerts(); }
-    catch (e) { flash(e.response?.data?.error || e.message); }
+    if (!soForm.product_id || !soForm.qty) return flashError('Pilih produk dan qty');
+    try { await inventoryAPI.stockOut(soForm); flashSuccess('Stok keluar berhasil (FEFO)'); setShowModal(null); fetchProducts(); fetchAlerts(); }
+    catch (e) { flashError(e.response?.data?.error || e.message); }
   };
 
   // ─── Opname ───────────────────────────────────────────────────────────
   const openOpname = () => { setOpItems(products.map(p => ({ product_id: p.id, product_name: p.name, system_qty: parseInt(p.total_stock) || 0, physical_qty: parseInt(p.total_stock) || 0, notes: '' }))); setShowModal('opname'); };
   const saveOpname = async () => {
     const changed = opItems.filter(i => i.physical_qty !== i.system_qty);
-    if (!changed.length) { flash('Tidak ada perubahan stok'); setShowModal(null); return; }
-    try { await inventoryAPI.createOpname({ items: changed }); flash(`Stok opname selesai (${changed.length} produk disesuaikan)`); setShowModal(null); fetchProducts(); fetchAlerts(); }
-    catch (e) { flash(e.response?.data?.error || e.message); }
+    if (!changed.length) { flashSuccess('Tidak ada perubahan stok'); setShowModal(null); return; }
+    try { await inventoryAPI.createOpname({ items: changed }); flashSuccess(`Stok opname selesai (${changed.length} produk disesuaikan)`); setShowModal(null); fetchProducts(); fetchAlerts(); }
+    catch (e) { flashError(e.response?.data?.error || e.message); }
   };
 
   const totalAlerts = alerts.expiring.length + alerts.lowStock.length;
@@ -307,27 +314,32 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
       {/* ─── Product Modal ──────────────────────────────────────────────── */}
       {showModal === 'product' && (
-        <div onClick={() => setShowModal(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+        <div onClick={() => { setShowModal(null); setModalError(''); }} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
           <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '480px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>{editId ? '✏️ Edit Produk' : '➕ Produk Baru'}</h3>
-              <button onClick={() => setShowModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
+              <button onClick={() => { setShowModal(null); setModalError(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
             </div>
             <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div><label style={labelStyle}>Kode</label><input value={pForm.code} onChange={e => setPForm(p => ({ ...p, code: e.target.value }))} placeholder="OBT-001" style={inputStyle} /></div>
                 <div><label style={labelStyle}>Kategori</label><input value={pForm.category} onChange={e => setPForm(p => ({ ...p, category: e.target.value }))} placeholder="Obat, Nutrisi..." style={inputStyle} /></div>
               </div>
-              <div><label style={labelStyle}>Nama Produk *</label><input value={pForm.name} onChange={e => setPForm(p => ({ ...p, name: e.target.value }))} placeholder="Paracetamol 500mg" style={inputStyle} /></div>
+              <div><label style={labelStyle}>Nama Produk *</label><input value={pForm.name} onChange={e => { setPForm(p => ({ ...p, name: e.target.value })); setModalError(''); }} placeholder="Paracetamol 500mg" style={inputStyle} /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 <div><label style={labelStyle}>Satuan</label><input value={pForm.unit} onChange={e => setPForm(p => ({ ...p, unit: e.target.value }))} placeholder="pcs" style={inputStyle} /></div>
                 <div><label style={labelStyle}>HNA</label><input type="number" value={pForm.hna} onChange={e => setPForm(p => ({ ...p, hna: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
                 <div><label style={labelStyle}>Harga Jual</label><input type="number" value={pForm.sell_price} onChange={e => setPForm(p => ({ ...p, sell_price: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
               </div>
               <div><label style={labelStyle}>Stok Minimum</label><input type="number" value={pForm.min_stock} onChange={e => setPForm(p => ({ ...p, min_stock: parseInt(e.target.value) || 0 }))} style={inputStyle} /></div>
+              {modalError && (
+                <div style={{ backgroundColor: '#FF3B3015', border: '1px solid #FF3B3040', borderRadius: '8px', padding: '10px 14px', color: '#FF3B30', fontSize: '13px', fontWeight: '600' }}>
+                  ❌ {modalError}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
                 <button onClick={saveProduct} style={{ flex: 1, padding: '13px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>{editId ? 'Simpan' : 'Tambah'}</button>
-                <button onClick={() => setShowModal(null)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
+                <button onClick={() => { setShowModal(null); setModalError(''); }} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
               </div>
             </div>
           </div>
@@ -462,9 +474,9 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
       />
 
       {/* Toast */}
-      {toast && (
-        <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
-          ✅ {toast}
+      {toast.msg && (
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: toast.type === 'error' ? '#FF3B30' : '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
+          {toast.type === 'error' ? '❌' : '✅'} {toast.msg}
         </div>
       )}
     </div>
