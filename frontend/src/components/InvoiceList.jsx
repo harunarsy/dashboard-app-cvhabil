@@ -251,10 +251,6 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
     try {
       const r = await invoicesAPI.getAll();
       setInvoices(r.data);
-      // Auto-expand all rows by default
-      const allExpanded = {};
-      r.data.forEach(inv => { allExpanded[inv.id] = true; });
-      setExpandedRows(allExpanded);
     }
     catch (e) { console.error(e); } finally { setLoading(false); }
   };

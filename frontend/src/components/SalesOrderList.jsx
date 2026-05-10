@@ -441,7 +441,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
 
         <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{ ...inputStyle, width: '100px' }}>
           <option value="all">Semua Tahun</option>
-          {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+          {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => <option key={y} value={y}>{y}</option>)}
         </select>
 
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, width: '140px' }}>

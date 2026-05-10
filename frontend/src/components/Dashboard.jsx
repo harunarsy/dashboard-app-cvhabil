@@ -6,7 +6,20 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.3.42-stable', date: '10 Mei 2026', status: 'latest',
+    version: 'v1.3.43-stable', date: '10 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'FEFO Transaction Safety: Stock deduction nota penjualan kini berada di dalam DB transaction — mencegah race condition stok negatif saat 2 user order bersamaan.' },
+      { type: 'fix', text: 'FEFO Expired Filter: Batch yang sudah expired tidak lagi dipakai untuk penjualan (filter expired_date >= today).' },
+      { type: 'fix', text: 'Stok Kurang Error: Jika stok tidak cukup saat buat nota, transaksi dibatalkan otomatis + pesan error jelas (sebelumnya: nota tersimpan tapi stok tidak terpotong).' },
+      { type: 'fix', text: 'Invoice Transaction: Simpan faktur masukan kini atomic — jika auto stock-in gagal, seluruh faktur dibatalkan (tidak ada data setengah-setengah).' },
+      { type: 'fix', text: 'Invoice Delete Cleanup: Hapus permanen faktur kini juga membersihkan inventory_batches dan mutations terkait — tidak ada lagi phantom stock.' },
+      { type: 'fix', text: 'Schema Missing Columns: Tambah ALTER TABLE untuk gross_profit (sales_orders) dan unit_hpp (sales_items) — fresh DB tidak lagi crash saat buat nota.' },
+      { type: 'perf', text: 'Invoice List: Faktur tidak lagi auto-expand semua baris saat halaman dibuka — menghilangkan 50+ API calls beruntun yang memperlambat halaman.' },
+      { type: 'ui', text: 'Filter Tahun Dinamis: Dropdown filter tahun di Nota Penjualan kini auto-generate ±2 tahun dari tahun sekarang — tidak lagi stuck di 2024-2026.' },
+    ]
+  },
+  {
+    version: 'v1.3.42-stable', date: '10 Mei 2026', status: 'stable',
     changes: [
       { type: 'feat', text: 'Product MasterSelect di Nota: Dropdown produk di form nota penjualan kini dilengkapi CRUD inline — cari, tambah, rename, dan hapus produk langsung dari nota.' },
       { type: 'feat', text: 'HPP Auto-fill Reliable: Pilih produk via dropdown → HPP/HNA otomatis terisi dari batch FEFO, bisa diedit manual per baris.' },
@@ -487,7 +500,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.42-stable — 2026
+            HABIL SUPERAPP v1.3.43-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

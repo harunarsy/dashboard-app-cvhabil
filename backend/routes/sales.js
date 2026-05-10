@@ -42,6 +42,8 @@ const ensureSchema = async () => {
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS channel VARCHAR(10) DEFAULT 'offline'`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS due_date DATE`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS payment_terms INTEGER`);
+    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS gross_profit DECIMAL(15,2) DEFAULT 0`);
+    await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS unit_hpp DECIMAL(15,2) DEFAULT 0`);
 };
 ensureSchema().catch(e => console.error('sales ensureSchema:', e));
 
@@ -142,36 +144,42 @@ router.post('/', auth, async (req, res) => {
       );
     }
 
-    await client.query('COMMIT');
-
     // ─── Auto Stock-Out (FEFO): Nota Penjualan → Inventory ──────────────
-    // Only deduct stock when order is created (draft orders don't deduct)
     for (const it of items) {
-      // Find product in product_master by name
-      const { rows: [product] } = await pool.query(
-        'SELECT id FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
+      const { rows: [product] } = await client.query(
+        'SELECT id, name FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
         [it.product_name]
       );
       if (product && (it.qty || 0) > 0) {
-        // FEFO: deduct from batches ordered by expired_date ASC
-        const { rows: batches } = await pool.query(
-          `SELECT * FROM inventory_batches WHERE product_id = $1 AND qty_current > 0
-           ORDER BY expired_date ASC NULLS LAST`, [product.id]
+        const { rows: batches } = await client.query(
+          `SELECT * FROM inventory_batches
+           WHERE product_id = $1 AND qty_current > 0
+           AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
+           ORDER BY expired_date ASC NULLS LAST
+           FOR UPDATE`,
+          [product.id]
         );
         let remaining = it.qty || 0;
         for (const batch of batches) {
           if (remaining <= 0) break;
           const deduct = Math.min(batch.qty_current, remaining);
-          await pool.query('UPDATE inventory_batches SET qty_current = qty_current - $1 WHERE id = $2', [deduct, batch.id]);
-          await pool.query(
+          await client.query('UPDATE inventory_batches SET qty_current = qty_current - $1 WHERE id = $2', [deduct, batch.id]);
+          await client.query(
             `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes)
              VALUES ($1, $2, 'out', $3, 'nota', $4, $5)`,
             [product.id, batch.id, deduct, order.id, `Stok keluar FEFO dari nota ${orderNumber}`]
           );
           remaining -= deduct;
         }
+        if (remaining > 0) {
+          await client.query('ROLLBACK');
+          client.release();
+          return res.status(400).json({ error: `Stok ${product.name} tidak mencukupi (kurang: ${remaining})` });
+        }
       }
     }
+
+    await client.query('COMMIT');
 
     // Return the full order with items
     const result = await pool.query(
@@ -184,12 +192,14 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (err) {
     await client.query('ROLLBACK');
+    client.release();
     if (err.code === '23505' && (err.constraint === 'sales_orders_order_number_key' || err.message.includes('order_number'))) {
       return res.status(400).json({ error: 'Nomor Nota sudah digunakan. Gunakan nomor lain.' });
     }
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   } finally {
-    client.release();
+    // Only release if not already released (early return path releases manually)
+    try { client.release(); } catch (_) {}
   }
 });
 

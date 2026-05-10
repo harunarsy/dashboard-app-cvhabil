@@ -179,8 +179,11 @@ router.post('/', auth, async (req, res) => {
   const resolvedHnaFinal = hna_final ?? final_hna ?? null;
   const resolvedPpn = ppn_masukan ?? ppn_input ?? null;
 
+  const client = await pool.connect();
   try {
-    const existing = await pool.query(
+    await client.query('BEGIN');
+
+    const existing = await client.query(
       'SELECT id FROM invoices WHERE invoice_number = $1 AND deleted_at IS NULL AND (is_draft IS NULL OR is_draft = FALSE)',
       [invoice_number]
     );
@@ -189,10 +192,10 @@ router.post('/', auth, async (req, res) => {
     if (existing.rows.length > 0) {
       invoiceId = existing.rows[0].id;
       // snapshot before update
-      const snap = await pool.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
+      const snap = await client.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
       await logAudit(invoiceId, invoice_number, 'UPDATE', snap.rows[0], null, 'Overwrite via POST');
 
-      await pool.query(
+      await client.query(
         `UPDATE invoices SET purchase_date=$1, distributor_name=$2,
           total_hna=$3, discount_amount=$4, hna_baru=$5,
           disc_cod_ada=$6, disc_cod_amount=$7,
@@ -208,7 +211,7 @@ router.post('/', auth, async (req, res) => {
          due_date||null, payment_date||null, status||'Pending', invoiceId]
       );
     } else {
-      const r = await pool.query(
+      const r = await client.query(
         `INSERT INTO invoices
           (invoice_number, purchase_date, distributor_name,
            total_hna, discount_amount, hna_baru,
@@ -228,10 +231,10 @@ router.post('/', auth, async (req, res) => {
       await logAudit(invoiceId, invoice_number, 'CREATE', { invoice_number, distributor_name, status, hna_final: resolvedHnaFinal, hna_plus_ppn });
     }
 
-    await pool.query('DELETE FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
+    await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
     if (items && items.length > 0) {
       for (const item of items) {
-        await pool.query(
+        await client.query(
           `INSERT INTO invoice_items
             (invoice_id, product_name, quantity, unit_price, total_price,
              expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
@@ -248,41 +251,48 @@ router.post('/', auth, async (req, res) => {
       }
     }
 
-    await pool.query(`DELETE FROM invoices WHERE is_draft = TRUE`);
+    await client.query('DELETE FROM invoices WHERE id = $1 AND is_draft = TRUE', [invoiceId]);
 
     // ─── Auto Stock-In: Faktur → Inventory ──────────────────────────────
     // Each invoice item gets added to inventory_batches + inventory_mutations
     if (items && items.length > 0) {
       for (const item of items) {
         // Find product in product_master by name
-        const { rows: [product] } = await pool.query(
+        const { rows: [product] } = await client.query(
           'SELECT id, hna FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
           [item.product_name]
         );
         if (product && (item.quantity || 0) > 0) {
           // Create inventory batch with HNA from invoice item (or fallback to product HNA)
           const batchHna = item.hna || product.hna || 0;
-          const { rows: [batch] } = await pool.query(
+          const { rows: [batch] } = await client.query(
             `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref)
              VALUES ($1, $2, $3, $4, $5, 'faktur', $6) RETURNING id`,
             [product.id, item.batch_number || invoice_number, item.expired_date || null, item.quantity, batchHna, `invoice-${invoiceId}`]
           );
           // Record mutation
-          await pool.query(
+          await client.query(
             `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes)
              VALUES ($1, $2, 'in', $3, 'faktur', $4, $5)`,
             [product.id, batch.id, item.quantity, invoiceId, `Stok masuk dari faktur ${invoice_number}`]
           );
+        } else if (!product) {
+          console.warn(`[Invoice ${invoice_number}] Produk "${item.product_name}" tidak ditemukan di product_master — stok tidak dibuat otomatis`);
         }
       }
     }
+
+    await client.query('COMMIT');
 
     const final = await pool.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
     if (global.io) global.io.emit('invoiceCreated', final.rows[0]);
     res.status(201).json({ invoice: final.rows[0], items: items||[] });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Create invoice error:', err);
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
@@ -388,6 +398,15 @@ router.delete('/:id/permanent', auth, async (req, res) => {
   try {
     const snap = await pool.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
     if (snap.rows.length) await logAudit(req.params.id, snap.rows[0].invoice_number, 'PERMANENT_DELETE', snap.rows[0]);
+    // Clean up inventory_batches and mutations created from this invoice
+    await pool.query(
+      `DELETE FROM inventory_mutations WHERE reference_type = 'faktur' AND reference_id = $1`,
+      [req.params.id]
+    );
+    await pool.query(
+      `DELETE FROM inventory_batches WHERE source_ref = $1`,
+      [`invoice-${req.params.id}`]
+    );
     await pool.query('DELETE FROM invoice_items WHERE invoice_id = $1', [req.params.id]);
     await pool.query('DELETE FROM invoices WHERE id = $1', [req.params.id]);
     res.json({ message: 'Permanently deleted' });

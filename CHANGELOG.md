@@ -2,6 +2,23 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.43-stable] - 2026-05-10
+
+### Fixed (Critical)
+- **FEFO Transaction Safety**: Stock deduction saat buat nota penjualan kini berada di dalam DB transaction (sebelum COMMIT) — mencegah race condition yang bisa menyebabkan stok negatif jika 2 user order produk sama bersamaan. Menggunakan `SELECT ... FOR UPDATE` untuk lock batch.
+- **FEFO Expired Filter**: Batch yang sudah melewati `expired_date` tidak lagi digunakan untuk FEFO deduction — mencegah penjualan produk kadaluarsa.
+- **Stok Kurang → Error + Rollback**: Jika stok tidak cukup untuk memenuhi nota, transaksi dibatalkan seluruhnya (ROLLBACK) dan user mendapat error jelas "Stok X tidak mencukupi (kurang: Y)" — sebelumnya nota tersimpan tapi stok tidak terpotong.
+- **Invoice Create Transaction**: Simpan faktur masukan kini fully atomic — jika auto stock-in gagal di salah satu item, seluruh faktur di-rollback. Tidak ada lagi kondisi invoice tersimpan setengah-setengah.
+- **Invoice Delete Cleanup**: Hapus permanen faktur kini juga menghapus `inventory_batches` dan `inventory_mutations` terkait — mencegah phantom stock yang menggelembungkan laporan stok.
+- **Schema Missing Columns**: Tambah `ALTER TABLE IF NOT EXISTS` untuk `gross_profit` (sales_orders) dan `unit_hpp` (sales_items) — fresh DB deployment tidak lagi crash saat buat nota pertama.
+- **Draft Clear Scoped**: Draft delete saat save invoice kini hanya hapus draft milik invoice yang bersangkutan, bukan SEMUA draft — mencegah draft user lain terhapus secara tidak sengaja.
+
+### Performance
+- **Invoice List N+1 Fix**: Hapus auto-expand semua baris faktur saat halaman dibuka — menghilangkan 50+ API calls beruntun yang membuat halaman berat. Faktur kini mulai collapsed, expand per-klik.
+
+### UI
+- **Filter Tahun Dinamis**: Dropdown filter tahun di Nota Penjualan kini auto-generate ±2 tahun dari tahun berjalan — tidak lagi hardcoded 2024-2026.
+
 ## [v1.3.42-stable] - 2026-05-10
 
 ### Added
