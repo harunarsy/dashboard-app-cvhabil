@@ -176,10 +176,6 @@ const TasksKanban = () => {
 
   const fetchHistory = async (taskId) => {
     try {
-      // Need dedicated method in ledger or tasks? History is in tasks.js
-      await tasksAPI.getAll(); // Actually, need to fetch history specifically
-      // Let's keep direct call if not in tasksAPI or update tasksAPI
-      // Actually, history is already in task_history table
       const historyRes = await axios.get(`${API_BASE}/tasks/${taskId}/history`);
       setTaskHistory(historyRes.data);
       setShowHistory(true);

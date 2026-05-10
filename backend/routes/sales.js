@@ -44,6 +44,8 @@ const ensureSchema = async () => {
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS payment_terms INTEGER`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS gross_profit DECIMAL(15,2) DEFAULT 0`);
     await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS unit_hpp DECIMAL(15,2) DEFAULT 0`);
+    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'unpaid'`);
+    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP`);
 };
 ensureSchema().catch(e => console.error('sales ensureSchema:', e));
 

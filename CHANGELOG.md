@@ -2,6 +2,21 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.44-stable] - 2026-05-10
+
+### Fixed (Critical)
+- **Schema payment_status + paid_at**: Dua kolom ini kini dibuat otomatis via `ALTER TABLE IF NOT EXISTS` — dashboard stats laba kotor dan endpoint update status bayar tidak lagi crash pada fresh DB deployment.
+- **Product Rename Sync**: Rename produk kini mengupdate `product_catalog`, `product_master`, dan `invoice_items` secara bersamaan — nama lama tidak lagi muncul di dropdown setelah rename.
+- **Opname FOR UPDATE**: Deduction batch stok saat opname kini menggunakan `SELECT ... FOR UPDATE` — mencegah double-deduct jika 2 opname berjalan bersamaan untuk produk yang sama.
+- **Batch Picker Expired Filter**: Dropdown pemilih batch di nota penjualan tidak lagi menampilkan batch yang sudah melewati `expired_date`.
+- **Soft-delete GET/:id**: Faktur dan Surat Pesanan yang sudah dihapus kini mengembalikan 404 saat diakses via direct URL — sebelumnya masih bisa dibuka.
+- **Over-receive Guard**: Penerimaan barang di Surat Pesanan kini divalidasi — tidak bisa menerima lebih dari qty yang dipesan, dengan error jelas dan ROLLBACK otomatis.
+- **HPP NaN Fix**: Kolom HPP di daftar faktur tidak lagi menampilkan "NaN" untuk item dengan `hna_per_item = 0` atau undefined.
+
+### Performance
+- **API Timeout**: Timeout global Axios naik dari 10s → 30s — operasi besar seperti generate PDF tidak lagi gagal timeout di production.
+- **Kanban History**: Hapus wasted API call (`tasksAPI.getAll`) yang terpanggil sia-sia setiap kali membuka history task.
+
 ## [v1.3.43-stable] - 2026-05-10
 
 ### Fixed (Critical)

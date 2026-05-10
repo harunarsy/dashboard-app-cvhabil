@@ -130,7 +130,7 @@ router.get('/:id/audit', auth, async (req, res) => {
 // GET single invoice with items
 router.get('/:id', auth, async (req, res) => {
   try {
-    const inv = await pool.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
+    const inv = await pool.query('SELECT * FROM invoices WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
     if (!inv.rows.length) return res.status(404).json({ error: 'Not found' });
     const items = await pool.query('SELECT * FROM invoice_items WHERE invoice_id = $1 ORDER BY id', [req.params.id]);
     res.json({ invoice: inv.rows[0], items: items.rows });

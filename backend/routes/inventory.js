@@ -280,7 +280,7 @@ router.post('/opname', auth, async (req, res) => {
           // Deduct from oldest batches
           let toDeduct = Math.abs(diff);
           const { rows: batches } = await client.query(
-            'SELECT * FROM inventory_batches WHERE product_id = $1 AND qty_current > 0 ORDER BY expired_date ASC NULLS LAST',
+            'SELECT * FROM inventory_batches WHERE product_id = $1 AND qty_current > 0 ORDER BY expired_date ASC NULLS LAST FOR UPDATE',
             [item.product_id]
           );
           for (const b of batches) {
@@ -385,6 +385,7 @@ router.get('/batches-by-product/:productId', auth, async (req, res) => {
              CASE WHEN qty_current > 0 AND hna > 0 THEN (hna / qty_current) * 1.11 ELSE 0 END AS hpp_inc_ppn
       FROM inventory_batches
       WHERE product_id = $1 AND qty_current > 0
+      AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
       ORDER BY expired_date ASC NULLS LAST
     `, [req.params.productId]);
     res.json(rows);

@@ -387,7 +387,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
           hna_per_item: i.hna_per_item, margin: 0,
           disc_cod_per_item: withCod.disc_cod_per_item || 0,
           hna_after_cod: withCod.hna_after_cod || i.hna_baru,
-          hpp_inc_ppn: withCod.hpp_inc_ppn || (i.hna_per_item * 1.11),
+          hpp_inc_ppn: withCod.hpp_inc_ppn || (i.hna_per_item || 0) * 1.11,
         };
       }),
     };

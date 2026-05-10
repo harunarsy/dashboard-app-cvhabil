@@ -96,7 +96,7 @@ router.get('/', auth, async (req, res) => {
 // GET single PO
 router.get('/:id', auth, async (req, res) => {
   try {
-    const { rows: [po] } = await pool.query('SELECT * FROM purchase_orders WHERE id = $1', [req.params.id]);
+    const { rows: [po] } = await pool.query('SELECT * FROM purchase_orders WHERE id = $1 AND is_deleted = FALSE', [req.params.id]);
     if (!po) return res.status(404).json({ error: 'SP not found' });
     const { rows: items } = await pool.query('SELECT * FROM purchase_order_items WHERE po_id = $1 ORDER BY id', [req.params.id]);
     res.json({ ...po, items });
@@ -208,6 +208,17 @@ router.post('/:id/receive', auth, async (req, res) => {
     for (const item of items) {
       const recvQty = parseInt(item.received_qty) || 0;
       if (recvQty <= 0) continue;
+
+      // Validate over-receive
+      const { rows: [current] } = await client.query(
+        'SELECT qty, received_qty FROM purchase_order_items WHERE id = $1 FOR UPDATE',
+        [item.po_item_id]
+      );
+      if (!current) continue;
+      if (current.received_qty + recvQty > current.qty) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: `Jumlah diterima melebihi jumlah pesanan (maks: ${current.qty - current.received_qty})` });
+      }
 
       // Update PO item received_qty
       await client.query('UPDATE purchase_order_items SET received_qty = received_qty + $1 WHERE id = $2', [recvQty, item.po_item_id]);

@@ -6,7 +6,21 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.3.43-stable', date: '10 Mei 2026', status: 'latest',
+    version: 'v1.3.44-stable', date: '10 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'Schema payment_status + paid_at: Kolom ini kini dibuat otomatis via ALTER TABLE — dashboard stats dan update status bayar tidak lagi crash pada fresh DB.' },
+      { type: 'fix', text: 'Product Rename Sync: Rename produk kini juga update product_catalog — nama lama tidak lagi muncul di dropdown setelah diganti.' },
+      { type: 'fix', text: 'Opname FOR UPDATE: Deduction batch saat opname kini pakai SELECT FOR UPDATE — mencegah double-deduct jika 2 opname berjalan bersamaan.' },
+      { type: 'fix', text: 'Batch Picker Expired Filter: Dropdown batch di nota penjualan tidak lagi menampilkan batch yang sudah expired.' },
+      { type: 'fix', text: 'Soft-delete GET/:id: Faktur dan Surat Pesanan yang sudah dihapus kini mengembalikan 404 — tidak bisa diakses via direct URL.' },
+      { type: 'fix', text: 'Over-receive Guard: Penerimaan barang (SP → Faktur) kini divalidasi — tidak bisa menerima lebih dari qty yang dipesan.' },
+      { type: 'fix', text: 'HPP NaN Fix: Kolom HPP di daftar faktur tidak lagi menampilkan "NaN" untuk item dengan hna_per_item = 0.' },
+      { type: 'perf', text: 'API Timeout: Timeout global naik dari 10s → 30s — PDF dan operasi besar tidak lagi timeout di production.' },
+      { type: 'perf', text: 'Kanban History: Hapus wasted API call (tasksAPI.getAll) setiap buka history task.' },
+    ]
+  },
+  {
+    version: 'v1.3.43-stable', date: '10 Mei 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'FEFO Transaction Safety: Stock deduction nota penjualan kini berada di dalam DB transaction — mencegah race condition stok negatif saat 2 user order bersamaan.' },
       { type: 'fix', text: 'FEFO Expired Filter: Batch yang sudah expired tidak lagi dipakai untuk penjualan (filter expired_date >= today).' },
@@ -354,7 +368,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.3.42-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.44-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -406,7 +420,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.3.42-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.44-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -500,7 +514,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.43-stable — 2026
+            HABIL SUPERAPP v1.3.44-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
