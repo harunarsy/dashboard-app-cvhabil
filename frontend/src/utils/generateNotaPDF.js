@@ -167,16 +167,14 @@ export function generateNotaPDF(order, options = {}) {
   });
 
   // ─── Summary ──────────────────────────────────────────────────────────
-  let finalY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 5 : pageHeight - 80;
-  const isNearBottom = finalY > pageHeight - 40;
-  if (isNearBottom) { doc.addPage(); finalY = margin + 10; }
+  const tableEndY = (doc.lastAutoTable?.finalY || 0);
+  let finalY = tableEndY > 0 ? tableEndY + 5 : margin + (isA6 ? 30 : 50);
 
   if (type !== 'terima') {
     doc.setFontSize(baseFontSize);
     doc.setFont('helvetica', 'bold');
     doc.text(`GRAND TOTAL: ${fmtRp(order.total || 0)}`, pageWidth - margin, finalY, { align: 'right' });
 
-    // Terbilang
     finalY += 5;
     doc.setFontSize(baseFontSize - 2);
     doc.setFont('helvetica', 'italic');
@@ -195,22 +193,49 @@ export function generateNotaPDF(order, options = {}) {
     doc.setTextColor(0);
   }
 
+  // ─── Pre-calculate space for all remaining elements ───────────────────
+  const lineH = isA6 ? 3.5 : 4;
+  const sigBlockH = isA6 ? 20 : 26; // label + gap + line + name
+  const footerReserve = footerText ? 8 : 4;
+
+  let ketentuanLines = [];
+  let ketentuanH = 0;
+  if (ketentuan && type !== 'terima') {
+    ketentuanLines = ketentuan.split('\n').filter(l => l.trim());
+    ketentuanH = 3 + 4; // top padding + NOTE: label row
+    ketentuanLines.forEach((line, i) => {
+      const wrapped = doc.splitTextToSize(`${i + 1}. ${line}`, pageWidth - margin * 2);
+      ketentuanH += wrapped.length * lineH;
+    });
+  }
+
+  let bankH = 0;
+  if (bankInfo && type !== 'terima') {
+    bankH = 5 + 5; // top padding + bank text row
+    if (qrisText) bankH += 5;
+  }
+
+  const totalNeeded = ketentuanH + bankH + sigBlockH + footerReserve + 8;
+
+  // Single page-break decision — move ALL remaining content together
+  if (finalY + totalNeeded > pageHeight - 4) {
+    doc.addPage();
+    finalY = margin + 10;
+  }
+
   // ─── Ketentuan / Notes ────────────────────────────────────────────────
   if (ketentuan && type !== 'terima') {
     finalY += 3;
-    // Check if we need a new page
-    if (finalY > pageHeight - 60) { doc.addPage(); finalY = margin + 10; }
-    const lines = ketentuan.split('\n').filter(l => l.trim());
     doc.setFontSize(baseFontSize - 2);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 59, 48); // Apple Red
+    doc.setTextColor(255, 59, 48);
     doc.text('NOTE:', margin, finalY);
     finalY += 4;
     doc.setFont('helvetica', 'normal');
-    lines.forEach((line, i) => {
+    ketentuanLines.forEach((line, i) => {
       const wrapped = doc.splitTextToSize(`${i + 1}. ${line}`, pageWidth - margin * 2);
       doc.text(wrapped, margin, finalY);
-      finalY += wrapped.length * (isA6 ? 3.5 : 4);
+      finalY += wrapped.length * lineH;
     });
     doc.setTextColor(0);
   }
@@ -218,7 +243,6 @@ export function generateNotaPDF(order, options = {}) {
   // ─── Bank Info ────────────────────────────────────────────────────────
   if (bankInfo && type !== 'terima') {
     finalY += 5;
-    if (finalY > pageHeight - 50) { doc.addPage(); finalY = margin + 10; }
     doc.setFontSize(baseFontSize - 1);
     doc.setTextColor(0);
     doc.setFont('helvetica', 'bold');
@@ -229,12 +253,13 @@ export function generateNotaPDF(order, options = {}) {
     }
   }
 
-  // ─── Signatures ───────────────────────────────────────────────────────
-  const sigY = pageHeight - (isA6 ? 22 : 28);
-  const sigOffset = isA6 ? 10 : 15;
-  const sigNameOffset = isA6 ? 15 : 20;
+  // ─── Signatures (relative to content, not fixed) ──────────────────────
+  const sigGap = isA6 ? 5 : 7;
+  const sigLineOffset = isA6 ? 10 : 14;
+  const sigNameOffset = isA6 ? 14 : 19;
   const sigHalfWidth = isA6 ? 30 : 45;
-  const sigCenter = isA6 ? 15 : 20;
+  const sigCenter = isA6 ? 15 : 22;
+  const sigY = finalY + sigGap;
 
   doc.setFontSize(baseFontSize - 1);
   doc.setTextColor(0);
@@ -242,13 +267,13 @@ export function generateNotaPDF(order, options = {}) {
 
   // Left: Customer (Penerima)
   doc.text('Penerima,', margin + sigCenter, sigY, { align: 'center' });
-  doc.line(margin, sigY + sigOffset, margin + sigHalfWidth, sigY + sigOffset);
+  doc.line(margin, sigY + sigLineOffset, margin + sigHalfWidth, sigY + sigLineOffset);
   doc.text('(                          )', margin + sigCenter, sigY + sigNameOffset, { align: 'center' });
 
   // Right: Company/Signer (Hormat kami)
   const rightSigX = pageWidth - margin - sigCenter;
   doc.text('Hormat kami,', rightSigX, sigY, { align: 'center' });
-  doc.line(pageWidth - margin - sigHalfWidth, sigY + sigOffset, pageWidth - margin, sigY + sigOffset);
+  doc.line(pageWidth - margin - sigHalfWidth, sigY + sigLineOffset, pageWidth - margin, sigY + sigLineOffset);
   if (signerName) {
     doc.text(signerName, rightSigX, sigY + sigNameOffset, { align: 'center' });
   }

@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.46-stable] - 2026-05-11
+
+### Fixed
+- **Nota PDF — Layout 2 Halaman**: PDF nota tidak lagi terpecah menjadi 2 halaman. Root cause: fallback `finalY = pageHeight - 80` terlalu besar sehingga bank info check memicu `addPage()`, plus signature fixed di `pageHeight - 28` tanpa mempertimbangkan konten di atasnya. Fix: fallback diperbaiki, space pre-dihitung sebelum render, semua elemen bawah (NOTE, rekening, QRIS, tanda tangan) dipindahkan sekaligus jika tidak cukup ruang, signature kini mengikuti posisi konten (relatif, bukan fixed).
+
 ## [v1.3.45-stable] - 2026-05-11
 
 ### Fixed
