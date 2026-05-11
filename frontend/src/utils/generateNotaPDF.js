@@ -24,12 +24,16 @@ export function generateNotaPDF(order, options = {}) {
     const {
       format = 'A4',
       type = 'nota',
-      settings = {
-        company_name: 'CV HABIL SEJAHTERA BERSAMA',
-        address: 'Surabaya, Jawa Timur — Indonesia',
-        footer_text: 'Dokumen ini dicetak secara otomatis oleh Dashboard CV Habil'
-      }
+      settings = {}
     } = options;
+
+    // Normalize keys — handle both old (shop_name/footer) and new (company_name/footer_text) formats
+    const companyName = settings.company_name || settings.shop_name || 'CV HABIL SEJAHTERA BERSAMA';
+    const footerText = settings.footer_text || settings.footer || '';
+    const signerName = settings.signer_name || '';
+    const bankInfo = settings.bank_info || '';
+    const qrisText = settings.qris_text || '';
+    const ketentuan = settings.ketentuan || '';
 
     console.log('[generateNotaPDF] Format:', format, 'Type:', type);
 
@@ -43,7 +47,7 @@ export function generateNotaPDF(order, options = {}) {
 
   const isA6 = format.toUpperCase() === 'A6';
   const isA5 = format.toUpperCase() === 'A5';
-  
+
   // Scaling factors for landscape A5/A6
   const baseFontSize = isA6 ? 8 : (isA5 ? 9 : 10);
   const margin = isA6 ? 7 : (isA5 ? 10 : 12);
@@ -53,38 +57,32 @@ export function generateNotaPDF(order, options = {}) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(baseFontSize + 4);
   doc.setTextColor(...accentColor);
-  console.log('[generateNotaPDF] Header - company_name:', settings.company_name, 'coordinates:', margin, margin + 5);
-  doc.text(String(settings.company_name || 'CV HABIL SEJAHTERA BERSAMA'), margin, margin + 5);
-  
+  doc.text(String(companyName), margin, margin + 5);
+
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize - 1);
   doc.setTextColor(80, 80, 80);
-  console.log('[generateNotaPDF] Address:', settings.address, 'coordinates:', margin, margin + 11);
   doc.text(String(settings.address || '-'), margin, margin + 11);
-  
+
   // Phone number (if available)
-  console.log('[generateNotaPDF] Phone:', settings.phone, 'coordinates:', margin, margin + 15);
   doc.text(String(settings.phone || '-'), margin, margin + 15);
 
   // Doc Info (Top Right)
   const infoX = pageWidth - margin;
   const docTitle = type === 'terima' ? 'TANDA TERIMA' : 'NOTA PENJUALAN';
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(baseFontSize + 2);
   doc.setTextColor(0);
-  // Pushing title slightly higher or on its own line if it's small paper
   const titleY = isA6 ? margin + 4 : margin + 5;
-  console.log('[generateNotaPDF] Title - docTitle:', docTitle, 'infoX:', infoX, 'titleY:', titleY);
   doc.text(docTitle, infoX, titleY, { align: 'right' });
-  
+
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(baseFontSize - 1.5); // Smaller info text
+  doc.setFontSize(baseFontSize - 1.5);
   doc.setTextColor(60, 60, 60);
-  console.log('[generateNotaPDF] Order number:', order.order_number, 'coordinates:', infoX, titleY + 5);
   doc.text(`No: ${String(order.order_number || '-')}`, infoX, titleY + 5, { align: 'right' });
-  const saleDateStr = order.sale_date 
-    ? new Date(order.sale_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) 
+  const saleDateStr = order.sale_date
+    ? new Date(order.sale_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
     : '-';
   doc.text(saleDateStr, infoX, titleY + 9, { align: 'right' });
 
@@ -131,15 +129,15 @@ export function generateNotaPDF(order, options = {}) {
       return [index + 1, item.product_name, item.qty || 0, item.unit || 'pcs'];
     }
     return [
-      index + 1, 
-      item.product_name, 
-      item.qty || 0, 
-      fmtRp(item.unit_price), 
+      index + 1,
+      item.product_name,
+      item.qty || 0,
+      fmtRp(item.unit_price),
       fmtRp((item.qty || 0) * (item.unit_price || 0))
     ];
   });
 
-  const tableHead = type === 'terima' 
+  const tableHead = type === 'terima'
     ? [['No', 'Nama Barang', 'Qty', 'Satuan']]
     : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']];
 
@@ -155,9 +153,9 @@ export function generateNotaPDF(order, options = {}) {
       fontSize: baseFontSize - 1.5,
       halign: 'center',
     },
-    styles: { 
-      fontSize: baseFontSize - 1.5, 
-      cellPadding: isA6 ? 1 : 1.8 
+    styles: {
+      fontSize: baseFontSize - 1.5,
+      cellPadding: isA6 ? 1 : 1.8
     },
     columnStyles: {
       0: { halign: 'center', cellWidth: isA6 ? 8 : 10 },
@@ -169,56 +167,98 @@ export function generateNotaPDF(order, options = {}) {
   });
 
   // ─── Summary ──────────────────────────────────────────────────────────
-  console.log('[generateNotaPDF] Summary section - lastAutoTable:', doc.lastAutoTable);
   let finalY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 5 : pageHeight - 80;
-  console.log('[generateNotaPDF] Final Y position:', finalY);
   const isNearBottom = finalY > pageHeight - 40;
   if (isNearBottom) { doc.addPage(); finalY = margin + 10; }
 
   if (type !== 'terima') {
     doc.setFontSize(baseFontSize);
     doc.setFont('helvetica', 'bold');
-    console.log('[generateNotaPDF] Grand total - value:', order.total, 'coordinates:', pageWidth - margin, finalY);
     doc.text(`GRAND TOTAL: ${fmtRp(order.total || 0)}`, pageWidth - margin, finalY, { align: 'right' });
-    
+
     // Terbilang
     finalY += 5;
     doc.setFontSize(baseFontSize - 2);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100);
     const words = (angkaKeTerbilang(order.total || 0) + " Rupiah").trim();
-    console.log('[generateNotaPDF] Terbilang text:', words);
     doc.text(`Terbilang: ${words}`, margin, finalY);
     finalY += (isA6 ? 4 : 6);
+    doc.setTextColor(0);
   }
 
   if (order.notes) {
     doc.setFontSize(baseFontSize - 2);
     doc.setTextColor(120);
-    console.log('[generateNotaPDF] Notes:', order.notes);
     doc.text(`Catatan: ${String(order.notes || '')}`, margin, finalY);
+    finalY += 5;
+    doc.setTextColor(0);
+  }
+
+  // ─── Ketentuan / Notes ────────────────────────────────────────────────
+  if (ketentuan && type !== 'terima') {
+    finalY += 3;
+    // Check if we need a new page
+    if (finalY > pageHeight - 60) { doc.addPage(); finalY = margin + 10; }
+    const lines = ketentuan.split('\n').filter(l => l.trim());
+    doc.setFontSize(baseFontSize - 2);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 59, 48); // Apple Red
+    doc.text('NOTE:', margin, finalY);
+    finalY += 4;
+    doc.setFont('helvetica', 'normal');
+    lines.forEach((line, i) => {
+      const wrapped = doc.splitTextToSize(`${i + 1}. ${line}`, pageWidth - margin * 2);
+      doc.text(wrapped, margin, finalY);
+      finalY += wrapped.length * (isA6 ? 3.5 : 4);
+    });
+    doc.setTextColor(0);
+  }
+
+  // ─── Bank Info ────────────────────────────────────────────────────────
+  if (bankInfo && type !== 'terima') {
+    finalY += 5;
+    if (finalY > pageHeight - 50) { doc.addPage(); finalY = margin + 10; }
+    doc.setFontSize(baseFontSize - 1);
+    doc.setTextColor(0);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`REK ${bankInfo}`, pageWidth / 2, finalY, { align: 'center' });
+    if (qrisText) {
+      finalY += 5;
+      doc.text(qrisText, pageWidth / 2, finalY, { align: 'center' });
+    }
   }
 
   // ─── Signatures ───────────────────────────────────────────────────────
   const sigY = pageHeight - (isA6 ? 22 : 28);
+  const sigOffset = isA6 ? 10 : 15;
+  const sigNameOffset = isA6 ? 15 : 20;
+  const sigHalfWidth = isA6 ? 30 : 45;
+  const sigCenter = isA6 ? 15 : 20;
+
   doc.setFontSize(baseFontSize - 1);
   doc.setTextColor(0);
   doc.setFont('helvetica', 'normal');
-  
-  // Left: Customer
-  doc.text('Penerima,', margin + (isA6 ? 15 : 20), sigY, { align: 'center' });
-  doc.line(margin, sigY + (isA6 ? 10 : 15), margin + (isA6 ? 30 : 45), sigY + (isA6 ? 10 : 15));
-  doc.text('(                          )', margin + (isA6 ? 15 : 20), sigY + (isA6 ? 15 : 20), { align: 'center' });
 
-  // Right: Company
-  const rightSigX = pageWidth - margin - (isA6 ? 15 : 20);
-  doc.line(pageWidth - margin - (isA6 ? 30 : 45), sigY + (isA6 ? 10 : 15), pageWidth - margin, sigY + (isA6 ? 10 : 15));
-  doc.text(String(settings.company_name || ''), rightSigX, sigY + (isA6 ? 15 : 20), { align: 'center' });
+  // Left: Customer (Penerima)
+  doc.text('Penerima,', margin + sigCenter, sigY, { align: 'center' });
+  doc.line(margin, sigY + sigOffset, margin + sigHalfWidth, sigY + sigOffset);
+  doc.text('(                          )', margin + sigCenter, sigY + sigNameOffset, { align: 'center' });
+
+  // Right: Company/Signer (Hormat kami)
+  const rightSigX = pageWidth - margin - sigCenter;
+  doc.text('Hormat kami,', rightSigX, sigY, { align: 'center' });
+  doc.line(pageWidth - margin - sigHalfWidth, sigY + sigOffset, pageWidth - margin, sigY + sigOffset);
+  if (signerName) {
+    doc.text(signerName, rightSigX, sigY + sigNameOffset, { align: 'center' });
+  }
 
   // ─── Footer ───────────────────────────────────────────────────────────
-  doc.setFontSize(isA6 ? 5 : 6);
-  doc.setTextColor(180);
-  doc.text(String(settings.footer_text || ''), pageWidth / 2, pageHeight - 4, { align: 'center' });
+  if (footerText) {
+    doc.setFontSize(isA6 ? 5 : 6);
+    doc.setTextColor(180);
+    doc.text(String(footerText), pageWidth / 2, pageHeight - 4, { align: 'center' });
+  }
 
     console.log('[generateNotaPDF] PDF generated successfully');
     return doc;

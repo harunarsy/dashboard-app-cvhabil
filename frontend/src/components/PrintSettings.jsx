@@ -14,17 +14,20 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile }) {
     setLoading(true);
     try {
       const { data } = await printSettingsAPI.get();
-      // The backend returns { nota_layout: { ... } }
       if (data && data.nota_layout) {
+        const nl = data.nota_layout;
         setSettings({
-          shop_name: data.nota_layout.shop_name || data.nota_layout.company_name || '',
-          address: data.nota_layout.address || '',
-          phone: data.nota_layout.phone || '',
-          footer: data.nota_layout.footer || data.nota_layout.footer_text || ''
+          company_name: nl.company_name || nl.shop_name || '',
+          address: nl.address || '',
+          phone: nl.phone || '',
+          footer_text: nl.footer_text || nl.footer || '',
+          signer_name: nl.signer_name || '',
+          bank_info: nl.bank_info || '',
+          qris_text: nl.qris_text || '',
+          ketentuan: nl.ketentuan || '',
         });
       } else {
-        // Fallback to empty if no settings found
-        setSettings({ shop_name: '', address: '', phone: '', footer: '' });
+        setSettings({ company_name: '', address: '', phone: '', footer_text: '', signer_name: '', bank_info: '', qris_text: '', ketentuan: '' });
       }
     } catch (e) {
       console.error('Error fetching settings:', e);
@@ -40,14 +43,16 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // The backend expects a flat object of key-value pairs
-      // nota_layout is the key used for print settings
       const payload = {
         nota_layout: {
-          shop_name: settings.shop_name,
+          company_name: settings.company_name,
           address: settings.address,
           phone: settings.phone,
-          footer: settings.footer
+          footer_text: settings.footer_text,
+          signer_name: settings.signer_name,
+          bank_info: settings.bank_info,
+          qris_text: settings.qris_text,
+          ketentuan: settings.ketentuan,
         }
       };
       await printSettingsAPI.update(payload);
@@ -71,8 +76,6 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile }) {
   if (loading) return (
     <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       <Breadcrumb title="Pengaturan Cetak" isMobile={isMobile} isDarkMode={isDarkMode} />
-
-      {/* Header Skeleton */}
       <Skeleton width="200px" height="32px" style={{ marginBottom: '24px' }} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         <div style={{ backgroundColor: cardBg, borderRadius: '16px', padding: '24px', border: `1px solid ${border}` }}>
@@ -87,11 +90,14 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile }) {
 
   if (!settings) return <div style={{ padding: '40px', textAlign: 'center', color: sub }}>Gagal memuat pengaturan.</div>;
 
-  // Live preview derived values
-  const previewName = settings.shop_name || 'NAMA TOKO';
+  const previewName = settings.company_name || 'NAMA TOKO';
   const previewAddr = settings.address || 'Alamat toko Anda akan muncul di sini';
   const previewPhone = settings.phone || '';
-  const previewFooter = settings.footer || 'Dokumen dicetak otomatis oleh Habil SuperApp';
+  const previewFooter = settings.footer_text || 'Dokumen dicetak otomatis oleh Habil SuperApp';
+  const previewKetentuan = settings.ketentuan ? settings.ketentuan.split('\n').filter(l => l.trim()).slice(0, 2) : [];
+
+  const fieldStyle = { width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, backgroundColor: inputBg, color: text, boxSizing: 'border-box', fontFamily: 'inherit' };
+  const labelStyle = { display: 'block', fontSize: '12px', color: sub, marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase' };
 
   return (
     <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
@@ -117,9 +123,9 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile }) {
           </button>
         </div>
 
-        {/* Split Layout: Form (left) + Preview (right) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'start' }}>
-          
+        {/* Split Layout */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px', alignItems: 'start' }}>
+
           {/* LEFT — Form Inputs */}
           <div style={{ backgroundColor: cardBg, borderRadius: '16px', padding: '24px', border: `1px solid ${border}`, boxShadow: isDarkMode ? 'none' : '0 1px 3px rgba(0,0,0,0.05)' }}>
             <h3 style={{ fontSize: '15px', fontWeight: '700', color: text, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -127,48 +133,52 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile }) {
             </h3>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', color: sub, marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase' }}>NAMA TOKO</label>
-              <input
-                type="text"
-                value={settings.shop_name}
-                onChange={e => setSettings({ ...settings, shop_name: e.target.value })}
-                placeholder="Contoh: CV HABIL SEJAHTERA"
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, backgroundColor: inputBg, color: text, boxSizing: 'border-box' }}
-              />
+              <label style={labelStyle}>NAMA TOKO</label>
+              <input type="text" value={settings.company_name} onChange={e => setSettings({ ...settings, company_name: e.target.value })} placeholder="Contoh: CV HABIL SEJAHTERA BERSAMA" style={fieldStyle} />
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', color: sub, marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase' }}>ALAMAT</label>
+              <label style={labelStyle}>ALAMAT</label>
+              <textarea rows={3} value={settings.address} onChange={e => setSettings({ ...settings, address: e.target.value })} placeholder="Jl. Contoh No. 1, Surabaya" style={{ ...fieldStyle, resize: 'none' }} />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={labelStyle}>NOMOR TELEPON</label>
+              <input type="text" value={settings.phone} onChange={e => setSettings({ ...settings, phone: e.target.value })} placeholder="0812-xxxx-xxxx" style={fieldStyle} />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={labelStyle}>NAMA PENANDA TANGAN</label>
+              <input type="text" value={settings.signer_name} onChange={e => setSettings({ ...settings, signer_name: e.target.value })} placeholder="Contoh: Harun Al Rasyid, S.Kom" style={fieldStyle} />
+              <p style={{ fontSize: '11px', color: sub, marginTop: '6px' }}>Muncul di bawah garis tanda tangan kanan (Hormat kami).</p>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={labelStyle}>INFO REKENING BANK (opsional)</label>
+              <input type="text" value={settings.bank_info} onChange={e => setSettings({ ...settings, bank_info: e.target.value })} placeholder="Contoh: BCA CV HABIL SEJAHTERA BERSAMA 5603004174" style={fieldStyle} />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={labelStyle}>TEKS QRIS (opsional)</label>
+              <input type="text" value={settings.qris_text} onChange={e => setSettings({ ...settings, qris_text: e.target.value })} placeholder="Contoh: ATAU BISA MELALUI QRIS HABIL >>" style={fieldStyle} />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={labelStyle}>KETENTUAN / NOTES (opsional)</label>
               <textarea
-                rows={3}
-                value={settings.address}
-                onChange={e => setSettings({ ...settings, address: e.target.value })}
-                placeholder="Jl. Contoh No. 1, Surabaya"
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, backgroundColor: inputBg, color: text, resize: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                rows={4}
+                value={settings.ketentuan}
+                onChange={e => setSettings({ ...settings, ketentuan: e.target.value })}
+                placeholder={"Satu baris = satu poin. Contoh:\nHarap mengecek kembali barang yang diterima\nWajib video unboxing apabila menggunakan ekspedisi"}
+                style={{ ...fieldStyle, resize: 'vertical' }}
               />
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', color: sub, marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase' }}>NOMOR TELEPON</label>
-              <input
-                type="text"
-                value={settings.phone}
-                onChange={e => setSettings({ ...settings, phone: e.target.value })}
-                placeholder="0812-xxxx-xxxx"
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, backgroundColor: inputBg, color: text, boxSizing: 'border-box' }}
-              />
+              <p style={{ fontSize: '11px', color: sub, marginTop: '6px' }}>Tampil merah di PDF. Satu baris = satu nomor poin.</p>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: sub, marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase' }}>CATATAN KAKI (FOOTER)</label>
-              <input
-                type="text"
-                value={settings.footer}
-                onChange={e => setSettings({ ...settings, footer: e.target.value })}
-                placeholder="Terima kasih atas kepercayaan Anda"
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: `1px solid ${border}`, backgroundColor: inputBg, color: text, boxSizing: 'border-box' }}
-              />
-              <p style={{ fontSize: '11px', color: sub, marginTop: '6px' }}>Teks ini muncul di bagian bawah setiap dokumen cetak.</p>
+              <label style={labelStyle}>CATATAN KAKI (FOOTER)</label>
+              <input type="text" value={settings.footer_text} onChange={e => setSettings({ ...settings, footer_text: e.target.value })} placeholder="Terima kasih atas kepercayaan Anda" style={fieldStyle} />
+              <p style={{ fontSize: '11px', color: sub, marginTop: '6px' }}>Teks kecil di bagian paling bawah dokumen cetak.</p>
             </div>
           </div>
 
@@ -182,35 +192,31 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile }) {
 
               {/* Document Preview Card */}
               <div style={{
-                backgroundColor: '#FFF', borderRadius: '10px', padding: '20px',
+                backgroundColor: '#FFF', borderRadius: '10px', padding: '16px',
                 border: '1px solid #E5E5EA', boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
                 fontFamily: 'Helvetica, Arial, sans-serif',
               }}>
-                {/* Header area */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '13px', fontWeight: '800', color: '#007AFF', marginBottom: '3px' }}>
-                      {previewName}
-                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: '800', color: '#007AFF', marginBottom: '3px' }}>{previewName}</div>
                     <div style={{ fontSize: '9px', color: '#555', lineHeight: '1.4' }}>{previewAddr}</div>
-                    {previewPhone && <div style={{ fontSize: '9px', color: '#555' }}>Telp: {previewPhone}</div>}
+                    {previewPhone && <div style={{ fontSize: '9px', color: '#555' }}>{previewPhone}</div>}
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <div style={{ fontSize: '11px', fontWeight: '800', color: '#000', marginBottom: '2px' }}>NOTA PENJUALAN</div>
                     <div style={{ fontSize: '8px', color: '#777' }}>No: NT/2026/001</div>
-                    <div style={{ fontSize: '8px', color: '#777' }}>14 Mar 2026</div>
+                    <div style={{ fontSize: '8px', color: '#777' }}>11 Mei 2026</div>
                   </div>
                 </div>
 
-                {/* Divider */}
-                <div style={{ height: '1.5px', backgroundColor: '#007AFF', marginBottom: '10px', borderRadius: '2px' }} />
+                <div style={{ height: '1.5px', backgroundColor: '#007AFF', marginBottom: '8px', borderRadius: '2px' }} />
 
-                {/* Body placeholder */}
-                <div style={{ marginBottom: '8px' }}>
+                <div style={{ marginBottom: '6px' }}>
                   <span style={{ fontSize: '9px', color: '#555' }}>Kepada Yth: </span>
                   <span style={{ fontSize: '9px', fontWeight: '700', color: '#000' }}>Nama Customer</span>
                 </div>
-                <div style={{ backgroundColor: '#F5F5F7', borderRadius: '6px', overflow: 'hidden', marginBottom: '10px' }}>
+                <div style={{ backgroundColor: '#F5F5F7', borderRadius: '6px', overflow: 'hidden', marginBottom: '8px' }}>
                   <table style={{ width: '100%', fontSize: '8px', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ backgroundColor: '#007AFF', color: '#FFF' }}>
@@ -230,22 +236,59 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile }) {
                     </tbody>
                   </table>
                 </div>
+                <div style={{ textAlign: 'right', fontSize: '9px', fontWeight: '800', color: '#000', marginBottom: '6px' }}>GRAND TOTAL: Rp 100.000</div>
 
-                <div style={{ textAlign: 'right', fontSize: '10px', fontWeight: '800', color: '#000', marginBottom: '12px' }}>
-                  GRAND TOTAL: Rp 100.000
+                {/* Ketentuan preview */}
+                {previewKetentuan.length > 0 && (
+                  <div style={{ marginBottom: '6px' }}>
+                    <span style={{ fontSize: '7px', fontWeight: '700', color: '#FF3B30' }}>NOTE: </span>
+                    {previewKetentuan.map((line, i) => (
+                      <div key={i} style={{ fontSize: '7px', color: '#FF3B30' }}>{i + 1}. {line}</div>
+                    ))}
+                    {settings.ketentuan && settings.ketentuan.split('\n').filter(l => l.trim()).length > 2 && (
+                      <div style={{ fontSize: '7px', color: '#FF3B30', opacity: 0.6 }}>…</div>
+                    )}
+                  </div>
+                )}
+
+                {/* Bank info preview */}
+                {settings.bank_info && (
+                  <div style={{ textAlign: 'center', fontSize: '8px', fontWeight: '700', color: '#000', marginBottom: '4px' }}>
+                    REK {settings.bank_info}
+                  </div>
+                )}
+                {settings.qris_text && (
+                  <div style={{ textAlign: 'center', fontSize: '8px', fontWeight: '700', color: '#000', marginBottom: '6px' }}>
+                    {settings.qris_text}
+                  </div>
+                )}
+
+                {/* Signatures preview */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '8px' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ color: '#555' }}>Penerima,</div>
+                    <div style={{ borderBottom: '1px solid #555', width: '60px', margin: '10px auto 2px' }} />
+                    <div style={{ color: '#999' }}>(          )</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ color: '#555' }}>Hormat kami,</div>
+                    <div style={{ borderBottom: '1px solid #555', width: '60px', margin: '10px auto 2px' }} />
+                    {settings.signer_name && <div style={{ color: '#333', fontSize: '7px' }}>{settings.signer_name}</div>}
+                  </div>
                 </div>
 
                 {/* Footer */}
-                <div style={{ borderTop: '1px dashed #E5E5EA', paddingTop: '6px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '8px', color: '#AEAEB2' }}>{previewFooter}</div>
+                <div style={{ borderTop: '1px dashed #E5E5EA', paddingTop: '5px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '7px', color: '#AEAEB2' }}>{previewFooter}</div>
                 </div>
               </div>
 
-              {/* Info legend */}
+              {/* Legend */}
               <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {[
                   { color: '#007AFF', label: 'Nama Toko' },
                   { color: '#555', label: 'Alamat & Telepon' },
+                  { color: '#FF3B30', label: 'Ketentuan / Notes' },
                   { color: '#AEAEB2', label: 'Footer / Catatan Kaki' },
                 ].map(item => (
                   <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

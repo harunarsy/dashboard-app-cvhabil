@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.45-stable] - 2026-05-11
+
+### Fixed
+- **Nota PDF Footer Sync**: "Dengan senang hati melayani anda" (dan semua data Pengaturan) kini benar-benar masuk ke PDF. Root cause: mismatch key `shop_name`/`footer` (yang disimpan UI) vs `company_name`/`footer_text` (yang dibaca PDF generator). Semua layer kini pakai key yang konsisten dengan fallback backward-compat.
+
+### Added
+- **Pengaturan Cetak — 4 Field Baru**: Nama Penanda Tangan, Info Rekening Bank, Teks QRIS, dan Ketentuan/Notes. Semua field langsung tampil di live preview Pengaturan.
+- **Nota PDF — Hormat kami + Nama**: Garis tanda tangan kanan kini menampilkan label "Hormat kami," dan nama penanda tangan dari Pengaturan (sebelumnya hanya garis kosong dengan nama toko).
+- **Nota PDF — NOTE/Ketentuan**: Field ketentuan pengembalian barang tampil merah bernomor di PDF (isi per baris di Pengaturan).
+- **Nota PDF — Info Rekening & QRIS**: Rekening bank dan teks QRIS tampil di atas tanda tangan pada PDF nota.
+
 ## [v1.3.44-stable] - 2026-05-10
 
 ### Fixed (Critical)

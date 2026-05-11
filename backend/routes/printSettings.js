@@ -15,15 +15,10 @@ const ensureSchema = async () => {
     )
   `);
   
-  // Default settings
+  // Default settings (only applied on fresh DB — ON CONFLICT DO NOTHING)
   await pool.query(`
     INSERT INTO print_settings (setting_key, setting_value)
-    VALUES ('nota_layout', '{
-        "company_name": "CV HABIL SEJAHTERA BERSAMA",
-        "address": "Surabaya, Jawa Timur — Indonesia",
-        "footer_text": "Dokumen ini dicetak secara otomatis oleh Dashboard CV Habil",
-        "show_logo": false
-    }')
+    VALUES ('nota_layout', '{"company_name":"CV HABIL SEJAHTERA BERSAMA","address":"Jl. Siwalankerto Tengah No.8, Wonocolo, Surabaya. 60236","phone":"0851-4117-5248","footer_text":"dengan senang hati melayani anda","signer_name":"Harun Al Rasyid, S.Kom","bank_info":"BCA CV HABIL SEJAHTERA BERSAMA 5603004174","qris_text":"ATAU BISA MELALUI QRIS HABIL >>","ketentuan":"Harap mengecek kembali barang yang diterima\\nWajib video unboxing apabila pengiriman menggunakan ekspedisi\\nBarang yang sudah dibeli tidak dapat dikembalikan kecuali ada cacat produk atau ED tidak sesuai dan bukan kesalahan kurir"}')
     ON CONFLICT (setting_key) DO NOTHING
   `);
 };
