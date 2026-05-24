@@ -158,7 +158,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
               const totalSpent = parseFloat(c.total_spent) || 0;
               const hasActivity = totalOrders > 0;
               return (
-                <div key={c.id} style={{
+                <div key={c.id} className="glass-target" style={{
                   backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px',
                   padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px',
                   transition: 'transform 0.15s, box-shadow 0.15s',
@@ -245,7 +245,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
       {/* Modal */}
       {showModal && (
         <div onClick={() => setShowModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '460px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)', border: `1px solid ${border}` }}>
+          <div onClick={e => e.stopPropagation()} className="glass-target glass-target--clear" style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '460px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)', border: `1px solid ${border}` }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>{editId ? '✏️ Edit Customer' : '➕ Tambah Customer'}</h3>
               <button onClick={() => setShowModal(false)} aria-label="Tutup" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><X size={18} color={sub} /></button>

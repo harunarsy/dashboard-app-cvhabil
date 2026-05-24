@@ -94,7 +94,7 @@ export default function BatchFormModal({ mode, batch, productId, productName, on
         zIndex: 2100, padding: '1rem',
       }}
     >
-      <div style={{
+      <div className="glass-target glass-target--clear" style={{
         background: bg, color: text, borderRadius: '20px', width: '100%',
         maxWidth: '480px', padding: '24px', boxShadow: '0 32px 64px rgba(0,0,0,0.35)',
       }}>

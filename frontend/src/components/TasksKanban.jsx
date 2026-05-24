@@ -257,7 +257,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowTrashModal(false)} />
           <div
-            className="relative w-full max-w-3xl max-h-[80vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col"
+            className="glass-target glass-target--clear relative w-full max-w-3xl max-h-[80vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div className="p-6 flex justify-between items-center" style={{ backgroundColor: bg, borderBottom: `1px solid ${border}` }}>
@@ -450,7 +450,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       {/* Add Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-6">
-          <div className="w-full max-w-lg rounded-[2.5rem] shadow-2xl p-8 transform transition-all" style={{ backgroundColor: cardBg, color: text, border: `1px solid ${border}` }}>
+          <div className="glass-target glass-target--clear w-full max-w-lg rounded-[2.5rem] shadow-2xl p-8 transform transition-all" style={{ backgroundColor: cardBg, color: text, border: `1px solid ${border}` }}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-extrabold tracking-tight" style={{ color: text }}>Buat Tugas Baru</h2>
               <button onClick={() => setShowAddModal(false)} className="p-2 rounded-full transition-colors" style={{ color: sub }}
@@ -516,7 +516,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       {/* Edit Modal */}
       {editingTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-6">
-          <div className="w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden transform transition-all" style={{ backgroundColor: cardBg, color: text, border: `1px solid ${border}` }}>
+          <div className="glass-target glass-target--clear w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden transform transition-all" style={{ backgroundColor: cardBg, color: text, border: `1px solid ${border}` }}>
             <div className="flex justify-between items-center p-8 pb-4">
               <h2 className="text-2xl font-extrabold tracking-tight" style={{ color: text }}>Detail Tugas</h2>
               <div className="flex gap-2">

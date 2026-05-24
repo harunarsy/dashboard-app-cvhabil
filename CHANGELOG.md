@@ -2,6 +2,34 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.5.0-stable] - 2026-05-25
+
+### Added (Major Feature: Liquid Glass Theme)
+- **🪟 Liquid Glass Theme Overlay (Beta)**: Tema visual berbasis Apple Liquid Glass (WWDC25, iOS 26 / macOS 26 design language). Sidebar, modal, drawer, cards (stats Dashboard, Customer cards, welcome modal cards, changelog modal, kanban add/edit/trash modal, ConfirmModal, opname/batch/product modal) berubah jadi semi-transparent dengan backdrop blur + saturate + inner glow + subtle border.
+- **Toggle di Login Page**: Tombol Sparkles icon di pojok kanan atas, sebelah Dark Mode toggle. Filled saat ON, outline saat OFF. First-time enable tampil warning modal (sekali aja, persist via `localStorage.habil_glass_warned`). Auto-detect device <4GB RAM via `navigator.deviceMemory` → tampil hint.
+- **Animasi 350ms Crossfade**: CSS transition `cubic-bezier(0.4, 0, 0.2, 1)` untuk `backdrop-filter` + `background-color` + `box-shadow` + `border-color`. Icon Glass micro-animation: scale 1.08 saat aktif, scale 0.88 saat click (ripple). Body bg auto-transition.
+- **3 Glass Tier (Apple HIG)**: Regular (frost 18px) untuk sidebar, Clear (24px) untuk modal/drawer/sheet, Ultra (12px) untuk toast/chip. Saturate 180% sesuai Apple guideline.
+- **4 Tint Variants**: `glass-target--tint-blue/green/orange/purple` untuk accent overlay. Diterapkan ke 4 stats cards Dashboard sesuai metrik.
+
+### Safety (Triple Layer)
+- **Git Tag Backup**: `v1.4.2-pre-glass-stable` di-push sebelum mulai overhaul. Rollback via `git checkout` atau `git revert`.
+- **URL Kill Switch**: `?glass=off` di URL force-disable walau localStorage ON. `?glass=on` force enable untuk demo.
+- **Try-catch Wrapper**: `useGlassMode` hook wrap `localStorage` access + `body.classList.toggle()` → auto-disable + console.warn kalau gagal.
+- **OS Preference Respect**: `@media (prefers-reduced-transparency: reduce)` → auto-disable glass walau toggle ON. `prefers-reduced-motion: reduce` → animasi jadi instant.
+- **Browser Fallback**: `@supports not (backdrop-filter)` → fallback ke solid 92% opacity bg.
+
+### Added (Infrastructure)
+- **`frontend/src/styles/liquid-glass.css`**: Single source of truth untuk glass styling, scoped via `body.liquid-glass-active` class. Zero impact saat toggle OFF (specificity tidak match).
+- **`frontend/src/hooks/useGlassMode.js`**: Centralized state hook dengan 3-tier resolution (URL > OS pref > localStorage).
+- **Skill `frontend-design`** dari Anthropic terinstall di `~/.claude/skills/frontend-design/` untuk bantu Tailwind/CSS animation pattern.
+
+### Excluded from Glass (Intentional)
+Tabel rows (Inventory/Nota/Customer) — readability critical, tetap solid bg.
+Form input fields — focus state harus crisp.
+Severity badges (expired, low stock) — contrast critical.
+TasksKanban container — terlalu banyak nested element, hanya modal-nya yang glass.
+Toast notifications — durasi terlalu singkat, glass effect kurang impactful.
+
 ## [v1.4.2-stable] - 2026-05-25
 
 ### Fixed

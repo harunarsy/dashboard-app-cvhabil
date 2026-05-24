@@ -690,7 +690,7 @@ function ModalShell({ onClose, cardBg, title, titleColor, text, border, sub, isM
       position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: isMobile ? 0 : '1rem',
     }}>
-      <div style={{
+      <div className="glass-target glass-target--clear" style={{
         backgroundColor: cardBg, borderRadius: isMobile ? 0 : '16px', width: '100%',
         maxWidth, maxHeight: isMobile ? '100%' : '90vh', overflow: 'auto',
         boxShadow: '0 32px 64px rgba(0,0,0,0.35)', height: isMobile ? '100%' : 'auto',

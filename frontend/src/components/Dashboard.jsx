@@ -6,7 +6,18 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.4.2-stable', date: '25 Mei 2026', status: 'latest',
+    version: 'v1.5.0-stable', date: '25 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'feat', text: '🪟 Liquid Glass Theme (Beta): Tema visual Apple-style (WWDC25) — sidebar/modal/drawer/cards berubah jadi semi-transparent dengan backdrop blur + saturate + inner glow. Toggle di Login page sebelah Dark Mode (icon Sparkles).' },
+      { type: 'feat', text: 'Toggle Glass dari Login: Tombol di pojok kanan atas Login page. First-time enable tampil warning + auto-detect device <4GB RAM. Persist via localStorage habil_glass_mode.' },
+      { type: 'feat', text: 'Animasi Transisi 350ms: Crossfade smooth saat toggle on/off (backdrop-filter + bg + border + shadow). Icon Glass micro-animation scale 1.08 saat aktif + ripple saat click.' },
+      { type: 'fix', text: 'Triple Safety Net: (1) Git tag v1.4.2-pre-glass-stable untuk rollback. (2) URL kill switch ?glass=off untuk emergency disable. (3) Try-catch wrapper di hook — auto-disable kalau gagal.' },
+      { type: 'ui', text: 'Apple HIG Compliance: Frost level 18/24/12 (regular/clear/ultra tier), saturate 180%, respect prefers-reduced-transparency + prefers-reduced-motion. Tabel & input field tidak kena glass untuk readability.' },
+      { type: 'feat', text: 'Stats Cards Tinted: 4 metric card Dashboard pakai glass dengan tint warna sesuai (green/blue/orange/purple). Welcome modal "APA YANG BARU?" cards juga glass-aware.' },
+    ]
+  },
+  {
+    version: 'v1.4.2-stable', date: '25 Mei 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Dashboard Dark Mode: Kanban Manajemen Tugas, task cards, DRAG HERE TO DELETE zone, modal add/edit tugas — semua kini ikut dark mode (sebelumnya hardcoded putih).' },
       { type: 'fix', text: 'Inventory Visual: Mini bar Stok tidak lagi muncul untuk produk tanpa Stok Minimum (hilangkan garis nyasar). Kolom Exp Terdekat: produk aman (>90 hari) tampil plain text, hanya yang mendekati/expired yang punya badge background.' },
@@ -426,7 +437,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.4.2-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.5.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -478,7 +489,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.4.2-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.5.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -514,19 +525,19 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
       </div>
 
       {/* Kanban Tasks Section - MOVED TO TOP */}
-      <div className="mb-10 rounded-3xl p-8 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+      <div className="glass-target mb-10 rounded-3xl p-8 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
         <TasksKanban isDarkMode={isDarkMode} isMobile={isMobile} />
       </div>
 
       {/* Quick Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {[
-          { label: 'Total Penjualan bln ini', value: stats.totalPenjualan, type: 'currency', icon: <Activity size={24} className="text-green-500"/> },
-          { label: 'Laba Kotor bln ini', value: stats.totalLaba, type: 'currency', icon: <Activity size={24} className="text-blue-500"/> },
-          { label: 'Surat Pesanan Aktif', value: stats.suratPesananAktif, type: 'number', icon: <ShoppingCart size={24} className="text-orange-500"/> },
-          { label: 'Stok Low/Expired', value: stats.stokLowExpired, type: 'number', icon: <Package size={24} className="text-red-500"/> },
+          { label: 'Total Penjualan bln ini', value: stats.totalPenjualan, type: 'currency', tint: 'green', icon: <Activity size={24} className="text-green-500"/> },
+          { label: 'Laba Kotor bln ini', value: stats.totalLaba, type: 'currency', tint: 'blue', icon: <Activity size={24} className="text-blue-500"/> },
+          { label: 'Surat Pesanan Aktif', value: stats.suratPesananAktif, type: 'number', tint: 'orange', icon: <ShoppingCart size={24} className="text-orange-500"/> },
+          { label: 'Stok Low/Expired', value: stats.stokLowExpired, type: 'number', tint: 'purple', icon: <Package size={24} className="text-red-500"/> },
         ].map((stat, i) => (
-          <div key={i} className="rounded-2xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+          <div key={i} className={`glass-target glass-target--tint-${stat.tint} rounded-2xl p-6 border shadow-sm`} style={{ backgroundColor: cardBg, borderColor: border }}>
             <div className="flex justify-between items-start mb-4">
               <div className="p-3 bg-gray-50 rounded-xl dark:bg-gray-800">{stat.icon}</div>
             </div>
@@ -544,7 +555,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
       {/* Quick Access Section - Compacted Row */}
       <div className="flex flex-col md:flex-row gap-6 mb-10">
-        <div className="flex-1 rounded-3xl p-6 border shadow-sm flex items-center justify-between" style={{ backgroundColor: cardBg, borderColor: border }}>
+        <div className="glass-target flex-1 rounded-3xl p-6 border shadow-sm flex items-center justify-between" style={{ backgroundColor: cardBg, borderColor: border }}>
           <div className="flex items-center gap-6">
             <h2 className="text-lg font-bold" style={{ color: text }}>Akses Cepat</h2>
             <div className="flex flex-wrap gap-3">
@@ -567,12 +578,12 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
       {/* Auto-Release Popup v1.2.1 */}
       {showReleaseModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
-          <div 
-            className="w-full max-w-lg overflow-hidden rounded-3xl shadow-2xl flex flex-col transform transition-all scale-100"
+          <div
+            className="glass-target glass-target--clear w-full max-w-lg overflow-hidden rounded-3xl shadow-2xl flex flex-col transform transition-all scale-100"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.4.2-stable — 2026
+            HABIL SUPERAPP v1.5.0-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
@@ -643,8 +654,8 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
       {/* Changelog & Upcoming Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
-          <div 
-            className="w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col"
+          <div
+            className="glass-target glass-target--clear w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             {/* Modal Header */}
@@ -746,8 +757,8 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
       {/* Developer Notes Modal */}
       {showDevNotes && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
-          <div 
-            className="w-full max-w-md overflow-hidden rounded-3xl shadow-2xl flex flex-col"
+          <div
+            className="glass-target glass-target--clear w-full max-w-md overflow-hidden rounded-3xl shadow-2xl flex flex-col"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>

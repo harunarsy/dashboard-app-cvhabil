@@ -1,12 +1,14 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Lock, User, AlertCircle, Building2, Sun, Moon } from 'lucide-react';
+import { Lock, User, AlertCircle, Building2, Sun, Moon, Sparkles } from 'lucide-react';
 
-export default function Login({ isDarkMode = false, setIsDarkMode }) {
+export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode = false, setIsGlassMode }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showGlassWarning, setShowGlassWarning] = useState(false);
+  const [glassClicked, setGlassClicked] = useState(false);
   const { login, loading } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -44,29 +46,142 @@ export default function Login({ isDarkMode = false, setIsDarkMode }) {
 
   const toggleTheme = () => setIsDarkMode?.((v) => !v);
 
+  const toggleGlass = () => {
+    if (!setIsGlassMode) return;
+    setGlassClicked(true);
+    setTimeout(() => setGlassClicked(false), 200);
+    // First-time enable → tampil warning sekali aja
+    const warned = localStorage.getItem('habil_glass_warned') === '1';
+    if (!isGlassMode && !warned) {
+      setShowGlassWarning(true);
+      return; // tunggu user confirm dulu
+    }
+    setIsGlassMode((v) => !v);
+  };
+
+  const confirmGlassWarning = () => {
+    try { localStorage.setItem('habil_glass_warned', '1'); } catch {}
+    setShowGlassWarning(false);
+    setIsGlassMode?.(true);
+  };
+
+  // Detect low memory device (Chrome/Edge expose; undefined di Safari/Firefox)
+  const lowMemory = typeof navigator !== 'undefined' && navigator.deviceMemory && navigator.deviceMemory < 4;
+
   return (
     <div
       className="min-h-screen flex flex-col justify-center items-center p-4 font-sans transition-colors duration-300"
       style={{ backgroundColor: bg, color: text }}
     >
-      {/* Theme toggle (floating top-right) */}
-      {setIsDarkMode && (
-        <button
-          onClick={toggleTheme}
-          aria-label={isDarkMode ? 'Aktifkan light mode' : 'Aktifkan dark mode'}
-          title={isDarkMode ? 'Light mode' : 'Dark mode'}
+      {/* Theme toggles (floating top-right) — Glass + Dark Mode */}
+      <div style={{ position: 'fixed', top: '20px', right: '20px', display: 'flex', gap: '8px', zIndex: 50 }}>
+        {setIsGlassMode && (
+          <button
+            onClick={toggleGlass}
+            aria-label={isGlassMode ? 'Matikan Liquid Glass mode' : 'Aktifkan Liquid Glass mode (Beta)'}
+            aria-pressed={isGlassMode}
+            title={isGlassMode ? 'Liquid Glass aktif' : 'Liquid Glass (Beta)'}
+            className={`glass-toggle-btn ${isGlassMode ? 'glass-target glass-target--ultra' : ''}`}
+            style={{
+              width: '40px', height: '40px', borderRadius: '12px',
+              background: isGlassMode ? 'transparent' : card,
+              border: `1px solid ${isGlassMode ? 'rgba(0, 122, 255, 0.4)' : cardBorder}`,
+              color: isGlassMode ? '#007AFF' : text,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: isGlassMode
+                ? '0 4px 16px rgba(0, 122, 255, 0.25)'
+                : (isDarkMode ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.06)'),
+              transform: glassClicked ? 'scale(0.88)' : (isGlassMode ? 'scale(1.08)' : 'scale(1)'),
+              transition: 'transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 250ms ease, box-shadow 250ms ease, border-color 250ms ease',
+            }}
+          >
+            <Sparkles size={18} fill={isGlassMode ? '#007AFF' : 'none'} />
+          </button>
+        )}
+        {setIsDarkMode && (
+          <button
+            onClick={toggleTheme}
+            aria-label={isDarkMode ? 'Aktifkan light mode' : 'Aktifkan dark mode'}
+            title={isDarkMode ? 'Light mode' : 'Dark mode'}
+            style={{
+              width: '40px', height: '40px', borderRadius: '12px',
+              background: card, border: `1px solid ${cardBorder}`,
+              color: text, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: isDarkMode ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.06)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+        )}
+      </div>
+
+      {/* First-time Glass warning modal */}
+      {showGlassWarning && (
+        <div
+          onClick={() => setShowGlassWarning(false)}
           style={{
-            position: 'fixed', top: '20px', right: '20px',
-            width: '40px', height: '40px', borderRadius: '12px',
-            background: card, border: `1px solid ${cardBorder}`,
-            color: text, cursor: 'pointer',
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: isDarkMode ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.06)',
-            transition: 'all 0.2s ease',
+            zIndex: 9999, padding: '1rem', backdropFilter: 'blur(4px)',
           }}
         >
-          {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-target glass-target--clear"
+            style={{
+              background: card, color: text, borderRadius: '20px', padding: '28px',
+              width: '100%', maxWidth: '420px', textAlign: 'center',
+              boxShadow: '0 32px 64px rgba(0,0,0,0.35)', border: `1px solid ${cardBorder}`,
+            }}
+          >
+            <div style={{
+              width: '56px', height: '56px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px', color: '#FFF',
+            }}>
+              <Sparkles size={26} fill="#FFF" />
+            </div>
+            <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: '700', color: text }}>
+              🪟 Liquid Glass (Beta)
+            </h3>
+            <p style={{ margin: '0 0 8px', fontSize: '14px', color: sub, lineHeight: 1.5 }}>
+              Efek visual experimental Apple-style. Kalau device kerasa lemot,
+              tinggal toggle OFF lagi kapan saja.
+            </p>
+            {lowMemory && (
+              <p style={{
+                margin: '0 0 20px', padding: '8px 12px',
+                background: isDarkMode ? '#3A2E0F' : '#FFF8F0', color: '#FF9F0A',
+                borderRadius: '8px', fontSize: '12px', fontWeight: '600',
+              }}>
+                ⚠️ Device kamu &lt;4GB RAM — mungkin agak lemot
+              </p>
+            )}
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button
+                onClick={() => setShowGlassWarning(false)}
+                style={{
+                  flex: 1, padding: '12px', background: inputBg, color: text,
+                  border: `1px solid ${inputBorder}`, borderRadius: '10px',
+                  cursor: 'pointer', fontSize: '14px', fontWeight: '600',
+                }}
+              >Batal</button>
+              <button
+                onClick={confirmGlassWarning}
+                style={{
+                  flex: 1, padding: '12px',
+                  background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
+                  color: '#FFF', border: 'none', borderRadius: '10px',
+                  cursor: 'pointer', fontSize: '14px', fontWeight: '700',
+                }}
+              >Ok, lanjut</button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="w-full max-w-md">
@@ -80,11 +195,11 @@ export default function Login({ isDarkMode = false, setIsDarkMode }) {
             <Building2 size={32} />
           </div>
           <h1 className="text-3xl font-bold tracking-tight" style={{ color: text }}>HABIL SUPERAPP</h1>
-          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.4.2-stable — 2026</p>
+          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.5.0-stable — 2026</p>
         </div>
 
         <div
-          className="rounded-3xl p-8 transition-colors duration-300"
+          className="glass-target glass-target--clear rounded-3xl p-8 transition-colors duration-300"
           style={{
             backgroundColor: card,
             border: `1px solid ${cardBorder}`,

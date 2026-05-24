@@ -9,7 +9,7 @@ export default function ConfirmModal({ isOpen, onClose, onConfirm, title, messag
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
-      <div onClick={e => e.stopPropagation()} style={{ backgroundColor: bg, borderRadius: '16px', width: '100%', maxWidth: '360px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)', padding: '24px', textAlign: 'center' }}>
+      <div onClick={e => e.stopPropagation()} className="glass-target glass-target--clear" style={{ backgroundColor: bg, borderRadius: '16px', width: '100%', maxWidth: '360px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)', padding: '24px', textAlign: 'center' }}>
         <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#FF3B3020', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
           <AlertTriangle size={26} color="#FF3B30" />
         </div>

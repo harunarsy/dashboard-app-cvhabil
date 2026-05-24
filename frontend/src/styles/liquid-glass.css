@@ -1,0 +1,174 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HABIL SUPERAPP — Liquid Glass Theme Overlay (v1.5.0)
+ *
+ * Scoped behind `.liquid-glass-active` body class.
+ * Saat toggle OFF: zero impact (selector tidak match, semua existing styling apply normal).
+ * Saat toggle ON: glass-target / glass-target--clear / glass-target--ultra di-aktifkan.
+ *
+ * Design rules — Apple "Adopting Liquid Glass" (WWDC25):
+ *  - Frost level 10-25 (baseline 18 regular, 24 clear, 12 ultra)
+ *  - Depth ≤ 20 — backdrop-blur >25px harm readability
+ *  - Tint subtle (35-55% opacity) + inner shadow lift effect
+ *  - Respect prefers-reduced-transparency (auto-disable) + prefers-reduced-motion
+ *  - Hindari stack glass-on-glass (performance + visual chaos)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Design tokens ─────────────────────────────────────────────────────── */
+:root {
+  --glass-frost-regular: 18px;
+  --glass-frost-clear: 24px;
+  --glass-frost-ultra: 12px;
+  --glass-saturate: 180%;
+
+  /* Light mode */
+  --glass-tint-light: rgba(255, 255, 255, 0.55);
+  --glass-border-light: rgba(255, 255, 255, 0.35);
+  --glass-glow-light: inset 0 1px 6px rgba(255, 255, 255, 0.45);
+  --glass-fallback-light: rgba(255, 255, 255, 0.92);
+
+  /* Dark mode */
+  --glass-tint-dark: rgba(28, 28, 30, 0.55);
+  --glass-border-dark: rgba(255, 255, 255, 0.12);
+  --glass-glow-dark: inset 0 1px 6px rgba(255, 255, 255, 0.08);
+  --glass-fallback-dark: rgba(28, 28, 30, 0.95);
+
+  /* Common */
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --glass-shadow-strong: 0 16px 48px rgba(0, 0, 0, 0.25);
+  --glass-transition:
+    backdrop-filter 350ms cubic-bezier(0.4, 0, 0.2, 1),
+    -webkit-backdrop-filter 350ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 350ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 350ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Base glass-target (regular tier) — light mode ─────────────────────── */
+.liquid-glass-active .glass-target {
+  background-color: var(--glass-tint-light) !important;
+  backdrop-filter: blur(var(--glass-frost-regular)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-frost-regular)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-border-light) !important;
+  box-shadow: var(--glass-glow-light), var(--glass-shadow) !important;
+  transition: var(--glass-transition);
+}
+
+/* Dark mode override — body sudah pakai class `dark` (App.js line 79) */
+body.dark.liquid-glass-active .glass-target,
+.dark .liquid-glass-active .glass-target {
+  background-color: var(--glass-tint-dark) !important;
+  border-color: var(--glass-border-dark) !important;
+  box-shadow: var(--glass-glow-dark), var(--glass-shadow) !important;
+}
+
+/* ─── Variant: clear (modal, drawer, sheet) ─────────────────────────────── */
+.liquid-glass-active .glass-target--clear {
+  backdrop-filter: blur(var(--glass-frost-clear)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-frost-clear)) saturate(var(--glass-saturate));
+  box-shadow: var(--glass-glow-light), var(--glass-shadow-strong) !important;
+}
+body.dark.liquid-glass-active .glass-target--clear,
+.dark .liquid-glass-active .glass-target--clear {
+  box-shadow: var(--glass-glow-dark), var(--glass-shadow-strong) !important;
+}
+
+/* ─── Variant: ultra (toast, chip, micro-surface) ───────────────────────── */
+.liquid-glass-active .glass-target--ultra {
+  backdrop-filter: blur(var(--glass-frost-ultra)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-frost-ultra)) saturate(var(--glass-saturate));
+}
+
+/* ─── Tint variants (Apple-style accent overlay) ───────────────────────── */
+.liquid-glass-active .glass-target--tint-blue {
+  background-color: color-mix(in srgb, var(--glass-tint-light) 70%, #007AFF 30%) !important;
+}
+.liquid-glass-active .glass-target--tint-green {
+  background-color: color-mix(in srgb, var(--glass-tint-light) 70%, #34C759 30%) !important;
+}
+.liquid-glass-active .glass-target--tint-orange {
+  background-color: color-mix(in srgb, var(--glass-tint-light) 70%, #FF9500 30%) !important;
+}
+.liquid-glass-active .glass-target--tint-purple {
+  background-color: color-mix(in srgb, var(--glass-tint-light) 70%, #5E5CE6 30%) !important;
+}
+body.dark.liquid-glass-active .glass-target--tint-blue,
+.dark .liquid-glass-active .glass-target--tint-blue {
+  background-color: color-mix(in srgb, var(--glass-tint-dark) 70%, #007AFF 30%) !important;
+}
+body.dark.liquid-glass-active .glass-target--tint-green,
+.dark .liquid-glass-active .glass-target--tint-green {
+  background-color: color-mix(in srgb, var(--glass-tint-dark) 70%, #34C759 30%) !important;
+}
+body.dark.liquid-glass-active .glass-target--tint-orange,
+.dark .liquid-glass-active .glass-target--tint-orange {
+  background-color: color-mix(in srgb, var(--glass-tint-dark) 70%, #FF9500 30%) !important;
+}
+body.dark.liquid-glass-active .glass-target--tint-purple,
+.dark .liquid-glass-active .glass-target--tint-purple {
+  background-color: color-mix(in srgb, var(--glass-tint-dark) 70%, #5E5CE6 30%) !important;
+}
+
+/* ─── Smooth root crossfade saat toggle on/off ──────────────────────────── */
+body {
+  transition: background-color 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Toggle button micro-interaction ───────────────────────────────────── */
+.glass-toggle-btn {
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              background-color 250ms ease,
+              box-shadow 250ms ease;
+}
+.glass-toggle-btn:active {
+  transform: scale(0.92);
+}
+.liquid-glass-active .glass-toggle-btn {
+  transform: scale(1.08);
+}
+
+/* ─── OS preference: prefers-reduced-transparency → force-disable ───────── */
+@media (prefers-reduced-transparency: reduce) {
+  .liquid-glass-active .glass-target,
+  .liquid-glass-active .glass-target--clear,
+  .liquid-glass-active .glass-target--ultra {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: var(--glass-fallback-light) !important;
+  }
+  body.dark.liquid-glass-active .glass-target,
+  body.dark.liquid-glass-active .glass-target--clear,
+  body.dark.liquid-glass-active .glass-target--ultra,
+  .dark .liquid-glass-active .glass-target,
+  .dark .liquid-glass-active .glass-target--clear,
+  .dark .liquid-glass-active .glass-target--ultra {
+    background-color: var(--glass-fallback-dark) !important;
+  }
+}
+
+/* ─── OS preference: prefers-reduced-motion → instant ───────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  body,
+  .liquid-glass-active .glass-target,
+  .liquid-glass-active .glass-target--clear,
+  .liquid-glass-active .glass-target--ultra,
+  .glass-toggle-btn {
+    transition: none !important;
+  }
+}
+
+/* ─── Fallback: browser tanpa backdrop-filter (extra paranoia) ──────────── */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .liquid-glass-active .glass-target,
+  .liquid-glass-active .glass-target--clear,
+  .liquid-glass-active .glass-target--ultra {
+    background-color: var(--glass-fallback-light) !important;
+  }
+  body.dark.liquid-glass-active .glass-target,
+  body.dark.liquid-glass-active .glass-target--clear,
+  body.dark.liquid-glass-active .glass-target--ultra,
+  .dark .liquid-glass-active .glass-target,
+  .dark .liquid-glass-active .glass-target--clear,
+  .dark .liquid-glass-active .glass-target--ultra {
+    background-color: var(--glass-fallback-dark) !important;
+  }
+}

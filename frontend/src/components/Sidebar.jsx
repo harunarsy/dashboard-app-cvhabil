@@ -116,7 +116,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const txt = isDarkMode ? '#FFF' : '#000';
   const sub = isDarkMode ? '#86868B' : '#6B7280';
-  const appVersion = 'v1.4.2-stable';
+  const appVersion = 'v1.5.0-stable';
 
   const closeMobileDrawer = () => setMobileOpen(false);
 
@@ -237,6 +237,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
         onTouchStart={onDrawerTouchStart}
         onTouchMove={onDrawerTouchMove}
         className={isMobile ? [
+          'glass-target',
           'fixed left-0 top-0 z-[100] h-dvh',
           'w-[80vw] max-w-[300px]',
           'rounded-r-2xl',
@@ -244,7 +245,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
           'transition-transform duration-[280ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
           'flex flex-col',
-        ].join(' ') : undefined}
+        ].join(' ') : 'glass-target'}
         style={isMobile ? {
           backgroundColor: bg,
           borderRight: `1px solid ${border}`,

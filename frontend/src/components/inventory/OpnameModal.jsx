@@ -119,7 +119,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000,
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? 0 : '1rem',
     }}>
-      <div style={{
+      <div className="glass-target glass-target--clear" style={{
         background: bg, color: text, borderRadius: isMobile ? 0 : '20px',
         width: '100%', maxWidth: '960px', height: isMobile ? '100%' : '85vh',
         display: 'flex', flexDirection: 'column', boxShadow: '0 32px 64px rgba(0,0,0,0.35)',

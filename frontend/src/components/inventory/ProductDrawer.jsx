@@ -111,7 +111,7 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1900,
         animation: 'fadeIn 0.2s ease-out',
       }} />
-      <div style={{
+      <div className="glass-target glass-target--clear" style={{
         position: 'fixed', top: 0, right: 0, bottom: 0, width: drawerWidth, maxWidth: '100%',
         background: bg, color: text, zIndex: 1950, display: 'flex', flexDirection: 'column',
         boxShadow: '-12px 0 32px rgba(0,0,0,0.15)', animation: 'slideIn 0.25s ease-out',
@@ -292,7 +292,7 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2100,
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
         }}>
-          <div style={{ background: bg, color: text, borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '420px' }}>
+          <div className="glass-target glass-target--clear" style={{ background: bg, color: text, borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '420px' }}>
             <h3 style={{ margin: '0 0 4px', fontSize: '17px', fontWeight: '700' }}>Adjust Qty Batch</h3>
             <p style={{ margin: '0 0 16px', fontSize: '12px', color: sub }}>
               Batch <strong>{adjustFor.batch_no || '(no batch)'}</strong> · Sistem: {adjustFor.qty_current}

@@ -14,7 +14,9 @@ import LedgerPage from './components/LedgerPage';
 import PrintSettings from './components/PrintSettings';
 import { AuthContext, AuthProvider } from './context/AuthContext';
 import { useDocumentTitle } from './hooks/useDocumentTitle';
+import useGlassMode from './hooks/useGlassMode';
 import './App.css';
+import './styles/liquid-glass.css';
 
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint);
@@ -26,12 +28,12 @@ function useIsMobile(breakpoint = 768) {
   return isMobile;
 }
 
-function ProtectedRoute({ children, isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen, isMobile }) {
+function ProtectedRoute({ children, isDarkMode, setIsDarkMode, isGlassMode, isSidebarOpen, setIsSidebarOpen, isMobile }) {
   const { token } = useContext(AuthContext);
   if (!token) return <Navigate to="/login" />;
   return (
     <div className="flex">
-      <Sidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
+      <Sidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
       <div className="flex-1" style={{ marginLeft: isMobile ? 0 : (isSidebarOpen ? '256px' : '80px'), transition: 'margin-left 0.3s ease-in-out' }}>{children}</div>
     </div>
   );
@@ -42,18 +44,18 @@ function PageTitleWrapper({ title, children }) {
   return children;
 }
 
-function AppRoutes({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen, isMobile }) {
+function AppRoutes({ isDarkMode, setIsDarkMode, isGlassMode, setIsGlassMode, isSidebarOpen, setIsSidebarOpen, isMobile }) {
   const { token } = useContext(AuthContext);
   const wrap = (Component, title) => (
-    <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isMobile={isMobile}>
+    <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isMobile={isMobile}>
       <PageTitleWrapper title={title}>
-        <Component isDarkMode={isDarkMode} isSidebarOpen={isSidebarOpen} isMobile={isMobile} />
+        <Component isDarkMode={isDarkMode} isGlassMode={isGlassMode} isSidebarOpen={isSidebarOpen} isMobile={isMobile} />
       </PageTitleWrapper>
     </ProtectedRoute>
   );
   return (
     <Routes>
-      <Route path="/login" element={<PageTitleWrapper title="Login"><Login isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} /></PageTitleWrapper>} />
+      <Route path="/login" element={<PageTitleWrapper title="Login"><Login isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} setIsGlassMode={setIsGlassMode} /></PageTitleWrapper>} />
       <Route path="/dashboard" element={wrap(Dashboard, 'Dashboard')} />
       <Route path="/invoices" element={wrap(InvoiceList, 'Nota Penjualan')} />
       <Route path="/sales" element={wrap(SalesOrderList, 'Nota Penjualan')} />
@@ -79,13 +81,24 @@ function App() {
     setIsDarkModeState(next);
     try { localStorage.setItem('habil_dark_mode', next ? '1' : '0'); } catch {}
   };
+  // Liquid Glass overlay theme — toggle dari Login page, persist localStorage
+  const [isGlassMode, setIsGlassMode] = useGlassMode();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
+
+  // Sync `dark` class ke body supaya CSS selector `body.dark.liquid-glass-active` matches
+  useEffect(() => {
+    try {
+      if (isDarkMode) document.body.classList.add('dark');
+      else document.body.classList.remove('dark');
+    } catch {}
+  }, [isDarkMode]);
+
   return (
     <AuthProvider>
       <Router>
         <div className={`transition-colors duration-300 ${isDarkMode ? 'dark' : ''}`} style={{ backgroundColor: isDarkMode ? '#000000' : '#FFFFFF' }}>
-          <AppRoutes isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isMobile={isMobile} />
+          <AppRoutes isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} setIsGlassMode={setIsGlassMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isMobile={isMobile} />
         </div>
       </Router>
     </AuthProvider>
