@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Info, X, Activity, ShoppingCart, Package, Plus } from 'lucide-react';
+import { Info, X, Activity, ShoppingCart, Package, Plus, Sparkles, Wrench, Palette, Zap } from 'lucide-react';
 import api from '../services/api';
 import TasksKanban from './TasksKanban';
 import Skeleton from './common/Skeleton';
@@ -559,38 +559,46 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
               <p className="text-white/80 font-medium mt-1">Habil SuperApp {RELEASES[0]?.version} telah mengudara!</p>
             </div>
 
-            {/* Content Highlights */}
+            {/* Content Highlights — auto-sourced dari RELEASES[0].changes */}
             <div className="p-6 pb-2" style={{ backgroundColor: bg }}>
-              <div className="flex flex-col gap-4">
-                <div className="flex gap-4 items-start p-4 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
-                  <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                    <Activity size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">Profit Tracking</h3>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-relaxed">Pantau Laba Kotor secara real-time di Dashboard. Hanya nota lunas yang dihitung!</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4 items-start p-4 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
-                  <div className="p-2 rounded-xl bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400">
-                    <Package size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">HPP CRUD & Status Bayar</h3>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-relaxed">Input HPP per item nota dan tandai pelunasan nota dengan satu klik saja.</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4 items-start p-4 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
-                  <div className="p-2 rounded-xl bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
-                    <Activity size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">Otomasi Nomor Dokumen</h3>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-relaxed">Selamat tinggal input manual! Nomor SP & Nota kini digenerate otomatis, dengan opsi edit masa transisi.</p>
-                  </div>
-                </div>
+              <div className="flex flex-col gap-3 max-h-[55vh] overflow-y-auto pr-1">
+                {(RELEASES[0]?.changes || []).slice(0, 6).map((c, idx) => {
+                  const typeMeta = {
+                    feat:   { Icon: Sparkles, bg: 'bg-blue-50 dark:bg-blue-900/30',     fg: 'text-blue-600 dark:text-blue-400',     label: 'BARU' },
+                    new:    { Icon: Sparkles, bg: 'bg-blue-50 dark:bg-blue-900/30',     fg: 'text-blue-600 dark:text-blue-400',     label: 'BARU' },
+                    fix:    { Icon: Wrench,   bg: 'bg-green-50 dark:bg-green-900/30',   fg: 'text-green-600 dark:text-green-400',   label: 'FIX' },
+                    ui:     { Icon: Palette,  bg: 'bg-purple-50 dark:bg-purple-900/30', fg: 'text-purple-600 dark:text-purple-400', label: 'UI' },
+                    perf:   { Icon: Zap,      bg: 'bg-orange-50 dark:bg-orange-900/30', fg: 'text-orange-600 dark:text-orange-400', label: 'CEPAT' },
+                  }[c.type] || { Icon: Activity, bg: 'bg-gray-50 dark:bg-gray-800', fg: 'text-gray-500', label: c.type?.toUpperCase() };
+                  const TypeIcon = typeMeta.Icon;
+                  const [headLine, ...rest] = (c.text || '').split(':');
+                  const heading = rest.length ? headLine : headLine.length > 60 ? headLine.slice(0, 60) + '…' : headLine;
+                  const body = rest.length ? rest.join(':').trim() : '';
+                  return (
+                    <div key={idx} className="flex gap-3 items-start p-3.5 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+                      <div className={`p-2 rounded-xl ${typeMeta.bg} ${typeMeta.fg} flex-shrink-0`}>
+                        <TypeIcon size={18} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h3 className="font-bold text-gray-900 dark:text-white leading-tight text-sm">{heading}</h3>
+                          <span className={`text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded ${typeMeta.bg} ${typeMeta.fg}`}>{typeMeta.label}</span>
+                        </div>
+                        {body && (
+                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 leading-relaxed">{body}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {(RELEASES[0]?.changes?.length || 0) > 6 && (
+                  <p className="text-xs text-center text-gray-500 dark:text-gray-400 italic py-1">
+                    + {RELEASES[0].changes.length - 6} perubahan lainnya di Changelog
+                  </p>
+                )}
+                {(RELEASES[0]?.changes?.length || 0) === 0 && (
+                  <p className="text-sm text-center text-gray-500 dark:text-gray-400 py-4">Tidak ada catatan perubahan untuk versi ini.</p>
+                )}
               </div>
             </div>
             
