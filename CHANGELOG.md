@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.4.1-stable] - 2026-05-24
+
+### Added
+- **Dark Mode di Login**: Toggle ☀️/🌙 di pojok kanan atas Login page. Preferensi tersimpan ke `localStorage.habil_dark_mode` dan persist saat lanjut ke main app — tidak perlu login dulu untuk ganti tema.
+- **Welcome Modal Auto-Sync**: Popup "APA YANG BARU?" tiap login otomatis render dari `RELEASES[0].changes`. Setiap perubahan punya ikon + badge type (Sparkles/Wrench/Palette/Zap untuk feat/fix/ui/perf). Tidak hardcoded lagi — tinggal tambah RELEASES entry, modal auto-update.
+
+### Changed
+- **Roadmap Modal**: Password Hashing dihapus dari Upcoming Features karena sudah ter-implement sejak v1.3.40 (bcrypt dual-mode dengan auto-upgrade plaintext saat login).
+- **Upcoming Features baru**: QR/Barcode Scanner, Predictive Restocking Alerts, TypeScript Migration ditambahkan sebagai planning publik.
+- **Komentar `upcoming` array**: Tambah dokumentasi inline di `Dashboard.jsx` — fitur yang shipped harus DIHAPUS dari upcoming dan dipindah ke RELEASES[0].changes.
+
 ## [v1.4.0-stable] - 2026-05-24
 
 ### Added (Inventory Module Revamp)

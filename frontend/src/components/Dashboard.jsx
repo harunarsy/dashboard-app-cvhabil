@@ -6,7 +6,15 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.4.0-stable', date: '24 Mei 2026', status: 'latest',
+    version: 'v1.4.1-stable', date: '24 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'feat', text: 'Dark Mode di Login: Toggle ☀️/🌙 muncul di pojok kanan atas Login page — preferensi tersimpan di localStorage dan persist ke seluruh app.' },
+      { type: 'feat', text: 'Welcome Modal Auto-Sync: Popup "APA YANG BARU?" tiap login otomatis render dari RELEASES[0].changes (ikon + badge per type: feat/fix/ui/perf). Tidak hardcoded lagi.' },
+      { type: 'ui', text: 'Roadmap Cleanup: Password Hashing dipindah dari Upcoming → sudah implemented sejak v1.3.40 (bcrypt dual-mode). Tambah QR Scanner + Predictive Restocking + TypeScript Migration sebagai upcoming.' },
+    ]
+  },
+  {
+    version: 'v1.4.0-stable', date: '24 Mei 2026', status: 'stable',
     changes: [
       { type: 'feat', text: 'Inventory — Expandable Row: Klik chevron ▶ di list produk untuk lihat semua batch (No.Batch, ED, Qty, HNA) tanpa pindah halaman.' },
       { type: 'feat', text: 'Inventory — Detail Drawer: Klik nama produk → panel slide-in dari kanan dengan 3 tab: Profil, Batch (CRUD lengkap), Riwayat (timeline mutasi).' },
@@ -390,10 +398,15 @@ const RELEASES = [
   }
 ];
 
+// UPCOMING_FEATURES — single source of truth untuk roadmap modal "Changelog & Roadmap".
+// Cara update: tambah/edit/hapus entry. Saat fitur shipped, HAPUS dari sini dan tambahkan ke RELEASES[0].changes.
+// Fields: priority ('high'|'medium'|'low'), title (string), desc (string).
 const upcoming = [
   { priority: 'high', title: 'Export PDF / Excel', desc: 'Export faktur individual atau rekap bulanan ke PDF & Excel untuk laporan dan arsip' },
   { priority: 'high', title: 'Halaman Finance & Karyawan', desc: 'Modul lanjutan untuk penggajian dan manajemen hutang/piutang' },
-  { priority: 'medium', title: 'Password Hashing', desc: 'Keamanan login dengan bcrypt' },
+  { priority: 'medium', title: 'QR / Barcode Scanner', desc: 'Scan barcode produk untuk stok masuk / keluar / opname lebih cepat' },
+  { priority: 'medium', title: 'Predictive Restocking', desc: 'Alert otomatis kapan harus restock berdasarkan velocity penjualan + lead time supplier' },
+  { priority: 'low', title: 'TypeScript Migration', desc: 'Full type safety untuk seluruh codebase' },
 ];
 
 export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
@@ -402,7 +415,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.4.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.4.1-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -454,7 +467,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.4.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.4.1-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -548,7 +561,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.4.0-stable — 2026
+            HABIL SUPERAPP v1.4.1-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

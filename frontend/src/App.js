@@ -53,7 +53,7 @@ function AppRoutes({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen,
   );
   return (
     <Routes>
-      <Route path="/login" element={<PageTitleWrapper title="Login"><Login /></PageTitleWrapper>} />
+      <Route path="/login" element={<PageTitleWrapper title="Login"><Login isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} /></PageTitleWrapper>} />
       <Route path="/dashboard" element={wrap(Dashboard, 'Dashboard')} />
       <Route path="/invoices" element={wrap(InvoiceList, 'Nota Penjualan')} />
       <Route path="/sales" element={wrap(SalesOrderList, 'Nota Penjualan')} />
@@ -70,7 +70,15 @@ function AppRoutes({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen,
 }
 
 function App() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // Init dark mode dari localStorage (persist antar sesi, juga aktif di Login page sebelum auth)
+  const [isDarkMode, setIsDarkModeState] = useState(() => {
+    try { return localStorage.getItem('habil_dark_mode') === '1'; } catch { return false; }
+  });
+  const setIsDarkMode = (val) => {
+    const next = typeof val === 'function' ? val(isDarkMode) : val;
+    setIsDarkModeState(next);
+    try { localStorage.setItem('habil_dark_mode', next ? '1' : '0'); } catch {}
+  };
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
   return (
