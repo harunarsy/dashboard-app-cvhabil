@@ -80,7 +80,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode }) {
             <Building2 size={32} />
           </div>
           <h1 className="text-3xl font-bold tracking-tight" style={{ color: text }}>HABIL SUPERAPP</h1>
-          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.4.1-stable — 2026</p>
+          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.4.2-stable — 2026</p>
         </div>
 
         <div

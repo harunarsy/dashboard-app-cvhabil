@@ -23,11 +23,40 @@ const ensureTable = async () => {
 };
 ensureTable().catch(e => console.error('customers ensureTable:', e));
 
-// GET all
+// GET all (with aggregate sales metadata: total_orders, total_spent, last_sale_date)
 router.get('/', auth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM customers ORDER BY name ASC');
-    res.json(rows);
+    const { rows } = await pool.query(`
+      SELECT
+        c.*,
+        COALESCE(agg.total_orders, 0)::int AS total_orders,
+        COALESCE(agg.total_spent, 0)::numeric AS total_spent,
+        agg.last_sale_date
+      FROM customers c
+      LEFT JOIN (
+        SELECT
+          COALESCE(customer_id, NULL) AS customer_id,
+          customer_name,
+          COUNT(*) AS total_orders,
+          SUM(total) AS total_spent,
+          MAX(sale_date) AS last_sale_date
+        FROM sales_orders
+        WHERE COALESCE(is_deleted, FALSE) = FALSE
+        GROUP BY customer_id, customer_name
+      ) agg ON (agg.customer_id = c.id OR (agg.customer_id IS NULL AND agg.customer_name = c.name))
+      ORDER BY c.name ASC
+    `);
+    // Karena 1 customer bisa punya 2 baris (matched by id DAN matched by name fallback), merge:
+    const merged = {};
+    for (const r of rows) {
+      if (!merged[r.id]) merged[r.id] = { ...r, total_orders: 0, total_spent: 0, last_sale_date: null };
+      merged[r.id].total_orders += parseInt(r.total_orders) || 0;
+      merged[r.id].total_spent = (parseFloat(merged[r.id].total_spent) || 0) + (parseFloat(r.total_spent) || 0);
+      if (r.last_sale_date && (!merged[r.id].last_sale_date || new Date(r.last_sale_date) > new Date(merged[r.id].last_sale_date))) {
+        merged[r.id].last_sale_date = r.last_sale_date;
+      }
+    }
+    res.json(Object.values(merged).sort((a, b) => a.name.localeCompare(b.name)));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

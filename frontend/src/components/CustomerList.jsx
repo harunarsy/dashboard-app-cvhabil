@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Phone, MapPin, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Plus, Search, Edit2, Trash2, Phone, MapPin, X, Users, FileText, AlertCircle } from 'lucide-react';
 import { customersAPI } from '../services/api';
 import Skeleton from './common/Skeleton';
 import ConfirmModal from './common/ConfirmModal';
 import Breadcrumb from './common/Breadcrumb';
 
-export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
+const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(parseFloat(n) || 0);
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 
+export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('name_asc'); // name_asc | name_desc | most_active | top_spender | oldest
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ name: '', address: '', phone: '', type: 'offline' });
@@ -18,6 +21,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
   const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
+  const surface = isDarkMode ? '#2C2C2E' : '#F5F5F7';
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = '#86868B';
@@ -33,11 +37,25 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
 
   useEffect(() => { fetchCustomers(); }, []);
 
-  const filtered = customers.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.phone || '').includes(search) ||
-    (c.address || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    const list = customers.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      (c.phone || '').includes(search) ||
+      (c.address || '').toLowerCase().includes(q)
+    );
+    const sorted = [...list].sort((a, b) => {
+      switch (sortBy) {
+        case 'name_asc':     return a.name.localeCompare(b.name);
+        case 'name_desc':    return b.name.localeCompare(a.name);
+        case 'most_active':  return (b.total_orders || 0) - (a.total_orders || 0);
+        case 'top_spender':  return (parseFloat(b.total_spent) || 0) - (parseFloat(a.total_spent) || 0);
+        case 'oldest':       return new Date(a.last_sale_date || 0) - new Date(b.last_sale_date || 0);
+        default: return 0;
+      }
+    });
+    return sorted;
+  }, [customers, search, sortBy]);
 
   const openAdd = () => { setEditId(null); setForm({ name: '', address: '', phone: '', type: 'offline' }); setShowModal(true); };
   const openEdit = (c) => { setEditId(c.id); setForm({ name: c.name, address: c.address || '', phone: c.phone || '', type: c.type || 'offline' }); setShowModal(true); };
@@ -45,13 +63,8 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
   const handleSave = async () => {
     if (!form.name.trim()) return;
     try {
-      if (editId) {
-        await customersAPI.update(editId, form);
-        flash('Customer diperbarui');
-      } else {
-        await customersAPI.create(form);
-        flash('Customer ditambahkan');
-      }
+      if (editId) { await customersAPI.update(editId, form); flash('Customer diperbarui'); }
+      else { await customersAPI.create(form); flash('Customer ditambahkan'); }
       setShowModal(false);
       fetchCustomers();
     } catch (e) { flash(e.response?.data?.error || e.message); }
@@ -70,14 +83,30 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
+  useEffect(() => {
+    if (!showModal) return;
+    const onKey = (e) => { if (e.key === 'Escape') setShowModal(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [showModal]);
+
   const inputStyle = {
     width: '100%', padding: '10px 12px', border: `1px solid ${border}`,
-    borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7',
-    color: text, fontSize: '14px', outline: 'none', boxSizing: 'border-box',
+    borderRadius: '10px', backgroundColor: surface,
+    color: text, fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+  };
+  const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' };
+
+  // Compress big numbers (1.2M, 870K)
+  const compact = (n) => {
+    const v = parseFloat(n) || 0;
+    if (v >= 1_000_000) return `Rp ${(v / 1_000_000).toFixed(1).replace('.0', '')}M`;
+    if (v >= 1_000) return `Rp ${(v / 1_000).toFixed(0)}K`;
+    return fmtRp(v);
   };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s', color: text }}>
       <Breadcrumb title="Master Customer" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header */}
@@ -91,18 +120,27 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
         </button>
       </div>
 
-      {/* Search */}
-      <div style={{ position: 'relative', marginBottom: '1.5rem', maxWidth: '400px' }}>
-        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: sub }} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nama, telepon, atau alamat..."
-          style={{ ...inputStyle, paddingLeft: '36px' }} />
+      {/* Search + Sort */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: '1 1 280px', maxWidth: '480px' }}>
+          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: sub }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nama, telepon, atau alamat..."
+            style={{ ...inputStyle, paddingLeft: '36px' }} />
+        </div>
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '180px', cursor: 'pointer' }}>
+          <option value="name_asc">📝 Nama A → Z</option>
+          <option value="name_desc">📝 Nama Z → A</option>
+          <option value="most_active">🔥 Paling Aktif</option>
+          <option value="top_spender">💰 Transaksi Terbesar</option>
+          <option value="oldest">⏱ Terlama Bertransaksi</option>
+        </select>
       </div>
 
       {/* Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: '12px' }}>
         {loading ? (
           [1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '16px 18px' }}>
+            <div key={i} style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px', padding: '16px 18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <Skeleton width="60%" height="20px" />
                 <div style={{ display: 'flex', gap: '4px' }}><Skeleton width="24px" height="24px" /><Skeleton width="24px" height="24px" /></div>
@@ -114,54 +152,120 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
           ))
         ) : (
           <>
-            {filtered.map(c => (
-              <div key={c.id} style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '16px 18px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ fontSize: '15px', fontWeight: '700', color: text, marginBottom: '6px' }}>{c.name}</div>
-                    {c.phone && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: sub, marginBottom: '4px' }}><Phone size={13} /> {c.phone}</div>}
-                    {c.address && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: sub }}><MapPin size={13} /> {c.address}</div>}
+            {filtered.map(c => {
+              const incomplete = !c.phone && !c.address;
+              const totalOrders = parseInt(c.total_orders) || 0;
+              const totalSpent = parseFloat(c.total_spent) || 0;
+              const hasActivity = totalOrders > 0;
+              return (
+                <div key={c.id} style={{
+                  backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px',
+                  padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = isDarkMode ? '0 4px 14px rgba(0,0,0,0.4)' : '0 4px 14px rgba(0,0,0,0.06)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                >
+                  {/* Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: '15px', fontWeight: '700', color: text, marginBottom: '6px', wordBreak: 'break-word' }}>{c.name}</div>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px',
+                          backgroundColor: c.type === 'reseller' ? '#FF950018' : c.type === 'institusi' ? '#5E5CE618' : '#007AFF18',
+                          color: c.type === 'reseller' ? '#FF9500' : c.type === 'institusi' ? '#5E5CE6' : '#007AFF' }}>
+                          {c.type === 'reseller' ? 'Reseller' : c.type === 'institusi' ? 'Institusi' : 'Offline'}
+                        </span>
+                        {!hasActivity && (
+                          <span style={{ fontSize: '10px', fontWeight: '600', color: sub, fontStyle: 'italic' }}>
+                            Belum ada transaksi
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button onClick={() => openEdit(c)} aria-label={`Edit customer ${c.name}`} title="Edit" style={iconBtnStyle}><Edit2 size={16} color="#007AFF" /></button>
+                      <button onClick={() => handleDelete(c.id)} aria-label={`Hapus customer ${c.name}`} title="Hapus" style={iconBtnStyle}><Trash2 size={16} color="#FF3B30" /></button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    <button onClick={() => openEdit(c)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={16} color="#007AFF" /></button>
-                    <button onClick={() => handleDelete(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={16} color="#FF3B30" /></button>
+
+                  {/* Contact info */}
+                  {(c.phone || c.address) && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {c.phone && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: sub }}><Phone size={13} /> {c.phone}</div>}
+                      {c.address && <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '13px', color: sub }}><MapPin size={13} style={{ marginTop: '2px', flexShrink: 0 }} /> <span>{c.address}</span></div>}
+                    </div>
+                  )}
+
+                  {/* Incomplete warning (clickable) */}
+                  {incomplete && (
+                    <button onClick={() => openEdit(c)} aria-label="Lengkapi data customer" style={{
+                      background: isDarkMode ? '#3A2E0F' : '#FFF8F0',
+                      border: 'none', borderRadius: '8px', padding: '8px 10px',
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      color: '#FF9F0A', fontSize: '11px', fontWeight: '600', cursor: 'pointer', textAlign: 'left',
+                    }}>
+                      <AlertCircle size={14} />
+                      <span>Lengkapi telepon & alamat →</span>
+                    </button>
+                  )}
+
+                  {/* Metadata badges */}
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', borderTop: `1px solid ${border}`, paddingTop: '10px', marginTop: 'auto' }}>
+                    <MetaBadge icon={FileText} label={`${totalOrders} nota`} color={hasActivity ? '#34C759' : sub} sub={sub} cardBg={surface} />
+                    {hasActivity && <MetaBadge label={compact(totalSpent)} color="#007AFF" sub={sub} cardBg={surface} />}
+                    {c.last_sale_date && <MetaBadge label={`Last: ${fmtDate(c.last_sale_date)}`} color={sub} sub={sub} cardBg={surface} />}
                   </div>
                 </div>
-                <div style={{ marginTop: '8px' }}>
-                  <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', backgroundColor: c.type === 'reseller' ? '#FF950018' : '#007AFF18', color: c.type === 'reseller' ? '#FF9500' : '#007AFF' }}>
-                    {c.type === 'reseller' ? 'Reseller' : c.type === 'institusi' ? 'Institusi' : 'Offline'}
-                  </span>
+              );
+            })}
+            {!filtered.length && !loading && (
+              <div style={{ gridColumn: '1 / -1', padding: '4rem 1rem', textAlign: 'center', color: sub, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: surface, display: 'flex', alignItems: 'center', justifyContent: 'center', color: sub }}>
+                  <Users size={32} />
                 </div>
+                <h3 style={{ margin: 0, fontSize: '15px', color: text, fontWeight: '600' }}>
+                  {search ? 'Tidak ada customer cocok dengan pencarian' : 'Belum ada customer terdaftar'}
+                </h3>
+                {!search && (
+                  <button onClick={openAdd} style={{
+                    marginTop: '4px', padding: '10px 18px', background: '#007AFF', color: '#FFF',
+                    border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  }}>
+                    <Plus size={14} /> Tambah Customer Pertama
+                  </button>
+                )}
               </div>
-            ))}
-            {!filtered.length && <p style={{ color: sub, fontSize: '14px', gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>Belum ada customer.</p>}
+            )}
           </>
         )}
       </div>
 
       {/* Modal */}
       {showModal && (
-        <div onClick={() => setShowModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '440px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
+        <div onClick={() => setShowModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '460px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)', border: `1px solid ${border}` }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>{editId ? '✏️ Edit Customer' : '➕ Tambah Customer'}</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
+              <button onClick={() => setShowModal(false)} aria-label="Tutup" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><X size={18} color={sub} /></button>
             </div>
             <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Nama *</label>
-                <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Nama customer" style={inputStyle} />
+                <label style={labelStyle}>Nama *</label>
+                <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Nama customer" style={inputStyle} autoFocus />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Telepon</label>
-                <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="08xx" style={inputStyle} />
+                <label style={labelStyle}>Telepon</label>
+                <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value.replace(/[^0-9+\-\s]/g, '') }))}
+                  inputMode="tel" placeholder="08xx xxxx xxxx" style={inputStyle} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Alamat</label>
+                <label style={labelStyle}>Alamat</label>
                 <textarea value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} rows={2} placeholder="Alamat" style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Tipe</label>
+                <label style={labelStyle}>Tipe</label>
                 <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))} style={inputStyle}>
                   <option value="offline">Offline</option>
                   <option value="reseller">Reseller</option>
@@ -172,7 +276,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
                 <button onClick={handleSave} style={{ flex: 1, padding: '13px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
                   {editId ? 'Simpan' : 'Tambah'}
                 </button>
-                <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
+                <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '13px', backgroundColor: surface, color: text, border: `1px solid ${border}`, borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
               </div>
             </div>
           </div>
@@ -180,7 +284,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
       )}
 
       {/* Delete Confirm Modal */}
-      <ConfirmModal 
+      <ConfirmModal
         isOpen={!!deleteConfirmId}
         onClose={() => setDeleteConfirmId(null)}
         onConfirm={confirmDelete}
@@ -191,10 +295,27 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
 
       {/* Toast */}
       {toast && (
-        <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
+        <div role="status" aria-live="polite" style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
           ✅ {toast}
         </div>
       )}
     </div>
+  );
+}
+
+const iconBtnStyle = {
+  background: 'none', border: 'none', cursor: 'pointer', padding: '6px',
+  borderRadius: '6px', display: 'flex', alignItems: 'center', transition: 'background 0.15s',
+};
+
+function MetaBadge({ icon: Icon, label, color, cardBg }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      fontSize: '11px', fontWeight: '600', color, padding: '4px 8px',
+      borderRadius: '8px', backgroundColor: cardBg,
+    }}>
+      {Icon && <Icon size={11} />} {label}
+    </span>
   );
 }

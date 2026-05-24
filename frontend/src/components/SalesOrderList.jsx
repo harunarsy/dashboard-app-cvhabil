@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Trash2, Edit2, X, FileText } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2, X, FileText, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { salesAPI, customersAPI, inventoryAPI, printSettingsAPI, countersAPI } from '../services/api';
 import { generateNotaPDF } from '../utils/generateNotaPDF';
 import MasterSelect from './MasterSelect';
@@ -221,19 +221,34 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
   // Filters
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterChannel, setFilterChannel] = useState('all');
+  const [sortKey, setSortKey] = useState('sale_date'); // 'sale_date' | 'total' | 'order_number'
+  const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
 
-  const filtered = orders.filter(o => {
-    const orderDate = new Date(o.sale_date);
-    const matchesSearch = o.order_number.toLowerCase().includes(search.toLowerCase()) ||
-                          o.customer_name.toLowerCase().includes(search.toLowerCase());
-    const isAllMonth = String(filterMonth) === 'all';
-    const isAllYear = String(filterYear) === 'all';
-    const matchesMonth = isAllMonth || (orderDate.getMonth() + 1) === parseInt(filterMonth, 10);
-    const matchesYear = isAllYear || orderDate.getFullYear() === parseInt(filterYear, 10);
-    const matchesStatus = filterStatus === 'all' || o.payment_status === filterStatus;
-    const matchesChannel = filterChannel === 'all' || (o.channel || 'offline') === filterChannel;
-    return matchesSearch && matchesMonth && matchesYear && matchesStatus && matchesChannel;
-  });
+  const toggleSort = (key) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('desc'); }
+  };
+
+  const filtered = orders
+    .filter(o => {
+      const orderDate = new Date(o.sale_date);
+      const matchesSearch = o.order_number.toLowerCase().includes(search.toLowerCase()) ||
+                            o.customer_name.toLowerCase().includes(search.toLowerCase());
+      const isAllMonth = String(filterMonth) === 'all';
+      const isAllYear = String(filterYear) === 'all';
+      const matchesMonth = isAllMonth || (orderDate.getMonth() + 1) === parseInt(filterMonth, 10);
+      const matchesYear = isAllYear || orderDate.getFullYear() === parseInt(filterYear, 10);
+      const matchesStatus = filterStatus === 'all' || o.payment_status === filterStatus;
+      const matchesChannel = filterChannel === 'all' || (o.channel || 'offline') === filterChannel;
+      return matchesSearch && matchesMonth && matchesYear && matchesStatus && matchesChannel;
+    })
+    .sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      if (sortKey === 'sale_date') return (new Date(a.sale_date) - new Date(b.sale_date)) * dir;
+      if (sortKey === 'total') return ((parseFloat(a.total) || 0) - (parseFloat(b.total) || 0)) * dir;
+      if (sortKey === 'order_number') return String(a.order_number).localeCompare(String(b.order_number)) * dir;
+      return 0;
+    });
 
   const openAdd = () => {
     setIsAutoNota(true);
@@ -462,9 +477,36 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '640px' }}>
           <thead>
             <tr style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}>
-              {['No. Nota', 'Tanggal', 'Customer', 'Total', 'Bayar', 'Status Doc', 'Aksi'].map(h => (
-                <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontWeight: '700', color: sub, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${border}` }}>{h}</th>
-              ))}
+              {[
+                { label: 'No. Nota', key: 'order_number', sortable: true },
+                { label: 'Tanggal', key: 'sale_date', sortable: true },
+                { label: 'Customer', key: null, sortable: false },
+                { label: 'Total', key: 'total', sortable: true },
+                { label: 'Bayar', key: null, sortable: false },
+                { label: 'Status Doc', key: null, sortable: false },
+                { label: 'Aksi', key: null, sortable: false },
+              ].map(({ label, key, sortable }) => {
+                const isActive = sortable && sortKey === key;
+                const SortIcon = !sortable ? null : (!isActive ? ChevronsUpDown : (sortDir === 'asc' ? ChevronUp : ChevronDown));
+                return (
+                  <th key={label}
+                    onClick={() => sortable && toggleSort(key)}
+                    aria-sort={!sortable ? 'none' : isActive ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    style={{
+                      padding: '12px 14px', textAlign: 'left', fontWeight: '700',
+                      color: isActive ? '#007AFF' : sub,
+                      fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em',
+                      borderBottom: `1px solid ${border}`,
+                      cursor: sortable ? 'pointer' : 'default',
+                      userSelect: 'none',
+                    }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {label}
+                      {SortIcon && <SortIcon size={12} style={{ opacity: isActive ? 1 : 0.4 }} />}
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -532,15 +574,15 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <button onClick={(e) => { e.stopPropagation(); openPrintOptions(o); }} title="Cetak PDF" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><FileText size={15} color="#34C759" /></button>
-                        <button onClick={(e) => { e.stopPropagation(); openEdit(o); }} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="#007AFF" /></button>
-                        <button onClick={(e) => { e.stopPropagation(); handleDelete(o.id); }} title="Hapus" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="#FF3B30" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); openPrintOptions(o); }} aria-label={`Cetak nota ${o.order_number}`} title="Cetak PDF" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><FileText size={15} color="#34C759" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); openEdit(o); }} aria-label={`Edit nota ${o.order_number}`} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="#007AFF" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(o.id); }} aria-label={`Hapus nota ${o.order_number}`} title="Hapus" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="#FF3B30" /></button>
                       </div>
                     </td>
                   </tr>
                   {expandedId === o.id && o.items?.length > 0 && (
                     <tr>
-                      <td colSpan={6} style={{ padding: '0 14px 14px', backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
+                      <td colSpan={7} style={{ padding: '0 14px 14px', backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', fontSize: '12px' }}>
                           <thead><tr>
                             {['Produk', 'Qty', 'Satuan', 'HPP', 'Harga', 'Subtotal'].map(h => (
@@ -568,7 +610,11 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
               ))
             )}
             {!loading && !filtered.length && (
-              <tr><td colSpan={6} style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', textAlign: 'center', color: sub }}>Belum ada nota penjualan.</td></tr>
+              <tr><td colSpan={7} style={{ padding: '2.5rem 1rem', textAlign: 'center', color: sub }}>
+                {search || filterMonth !== 'all' || filterYear !== 'all' || filterStatus !== 'all' || filterChannel !== 'all'
+                  ? 'Tidak ada nota yang cocok dengan filter.'
+                  : 'Belum ada nota penjualan.'}
+              </td></tr>
             )}
           </tbody>
         </table>

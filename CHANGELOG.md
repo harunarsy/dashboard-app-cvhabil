@@ -2,6 +2,23 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.4.2-stable] - 2026-05-25
+
+### Fixed
+- **Dashboard Dark Mode (Kanban)**: Section Manajemen Tugas + task cards + DRAG HERE TO DELETE zone + modal add/edit kini ikut dark mode. Root cause: `TasksKanban` di-render tanpa prop `isDarkMode` plus banyak hardcoded `bg-white/[0.x]` di komponen. Fix: pass props + ganti semua color jadi inline conditional + tambah dark variants `PRIORITY_COLORS`.
+- **Inventory — Mini Stock Bar**: Bar visual di kolom Stok kini disembunyikan untuk produk tanpa `min_stock` (sebelumnya bar full-width nyasar). Tambah aria-label "Stok X dari minimum Y".
+- **Inventory — Exp Terdekat Konsistensi**: Produk aman (>90 hari) tampil plain green text (tanpa badge bg), hanya yang mendekati/expired punya badge solid. Dark mode badge bg di-tuning ke tone gelap proper.
+- **Nota Penjualan — Empty State Colspan**: Fix `colSpan={6}` → `7` di empty state + expanded item row (tabel jebol di tablet/mobile sebelumnya).
+
+### Added
+- **Nota Penjualan — Sort Header**: Klik header No.Nota / Tanggal / Total → toggle sort asc/desc dengan chevron indicator. Default Tanggal terbaru.
+- **Nota Penjualan — Filter Empty State Smart**: Pesan empty state otomatis sesuai konteks ("Tidak ada nota yang cocok dengan filter" vs "Belum ada nota penjualan").
+- **Customer — Aggregate Metadata**: Setiap card tampil badge `📄 N nota · 💰 Rp X.XM · ⏱ Last: tanggal`. Backend `GET /customers` join `sales_orders` (by customer_id + fallback name) untuk hitung total_orders, total_spent, last_sale_date.
+- **Customer — Sort Dropdown**: A→Z / Z→A / Paling Aktif / Top Spender / Terlama Bertransaksi.
+- **Customer — Empty Data Callout**: Customer tanpa telepon & alamat tampil banner orange "Lengkapi telepon & alamat →" (clickable → buka edit modal).
+- **Customer — Empty State CTA**: Ganti generic "Belum ada customer" dengan ikon Users + CTA primary "Tambah Customer Pertama".
+- **Accessibility**: Aria-label untuk semua icon button (Cetak/Edit/Hapus nota, Edit/Hapus customer, Stok in/out/edit/delete inventory). Toast pakai `role="status" aria-live="polite"`.
+
 ## [v1.4.1-stable] - 2026-05-24
 
 ### Added

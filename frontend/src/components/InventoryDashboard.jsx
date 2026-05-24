@@ -16,13 +16,15 @@ const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currenc
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
 
-function expirySeverity(date) {
-  if (!date) return { color: '#86868B', bg: 'transparent', label: '-' };
+function expirySeverity(date, isDarkMode) {
+  if (!date) return { color: '#86868B', bg: 'transparent', label: '—', plain: true };
   const days = daysUntil(date);
-  if (days <= 0) return { color: '#FF3B30', bg: '#FFF5F5', label: `EXPIRED · ${fmtDate(date)}` };
-  if (days < 30) return { color: '#FF3B30', bg: '#FFF5F5', label: `${fmtDate(date)} (${days}d)` };
-  if (days < 90) return { color: '#FF9500', bg: '#FFF8F0', label: `${fmtDate(date)} (${days}d)` };
-  return { color: '#34C759', bg: 'transparent', label: fmtDate(date) };
+  const redBg = isDarkMode ? '#3A1F1F' : '#FFF5F5';
+  const orangeBg = isDarkMode ? '#3A2E0F' : '#FFF8F0';
+  if (days <= 0) return { color: '#FF453A', bg: redBg, label: `EXPIRED · ${fmtDate(date)}` };
+  if (days < 30) return { color: '#FF453A', bg: redBg, label: `${fmtDate(date)} (${days}d)` };
+  if (days < 90) return { color: '#FF9F0A', bg: orangeBg, label: `${fmtDate(date)} (${days}d)` };
+  return { color: '#34C759', bg: 'transparent', label: fmtDate(date), plain: true };
 }
 
 export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile }) {
@@ -300,11 +302,14 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                   ))
                 ) : (
                   filtered.map(p => {
-                    const sev = expirySeverity(p.nearest_expiry);
+                    const sev = expirySeverity(p.nearest_expiry, isDarkMode);
                     const stock = parseInt(p.total_stock) || 0;
-                    const isLowStock = stock < (p.min_stock || 0);
+                    const minStockNum = parseInt(p.min_stock) || 0;
+                    const hasMinStock = minStockNum > 0;
+                    const isLowStock = hasMinStock && stock < minStockNum;
                     const isExpanded = expandedIds.has(p.id);
-                    const stockPct = p.min_stock > 0 ? Math.min(100, (stock / (p.min_stock * 2)) * 100) : 100;
+                    // Bar visible HANYA bila min_stock terdefinisi (> 0). Tanpa threshold = no gauge.
+                    const stockPct = hasMinStock ? Math.min(100, (stock / (minStockNum * 2)) * 100) : 0;
                     const stockColor = stock <= 0 ? '#FF3B30' : isLowStock ? '#FF9500' : '#34C759';
                     return (
                       <React.Fragment key={p.id}>
@@ -330,19 +335,30 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                           <td style={{ ...tdStyle, color: sub }}>{p.unit}</td>
                           <td style={{ ...tdStyle, color: text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtRp(p.hna)}</td>
                           <td style={{ ...tdStyle, color: text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtRp(p.sell_price)}</td>
-                          <td style={{ ...tdStyle, textAlign: 'center' }}>
-                            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '52px' }}>
-                              <span style={{ fontWeight: '700', color: stockColor, fontSize: '14px' }}>{stock}</span>
-                              <div style={{ width: '40px', height: '4px', background: isDarkMode ? '#000' : '#E5E5EA', borderRadius: '2px', overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${stockPct}%`, background: stockColor }} />
-                              </div>
+                          <td style={{ ...tdStyle, textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div
+                              aria-label={hasMinStock ? `Stok ${stock} dari minimum ${minStockNum}` : `Stok ${stock}`}
+                              style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '52px' }}
+                            >
+                              <span style={{ fontWeight: '700', color: stockColor, fontSize: '14px', fontVariantNumeric: 'tabular-nums' }}>{stock}</span>
+                              {hasMinStock && (
+                                <div style={{ width: '40px', height: '4px', background: isDarkMode ? '#2C2C2E' : '#E5E5EA', borderRadius: '2px', overflow: 'hidden' }}>
+                                  <div style={{ height: '100%', width: `${stockPct}%`, background: stockColor, transition: 'width 0.3s' }} />
+                                </div>
+                              )}
                             </div>
                           </td>
-                          <td style={tdStyle}>
+                          <td style={{ ...tdStyle, verticalAlign: 'middle' }}>
                             {p.nearest_expiry ? (
-                              <span style={{ fontSize: '12px', fontWeight: '600', color: sev.color, padding: '2px 8px', borderRadius: '6px', backgroundColor: sev.bg }}>
-                                {sev.label}
-                              </span>
+                              sev.plain ? (
+                                <span style={{ fontSize: '12px', fontWeight: '600', color: sev.color, fontVariantNumeric: 'tabular-nums' }}>
+                                  {sev.label}
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '12px', fontWeight: '600', color: sev.color, padding: '3px 8px', borderRadius: '6px', backgroundColor: sev.bg, fontVariantNumeric: 'tabular-nums', display: 'inline-block' }}>
+                                  {sev.label}
+                                </span>
+                              )
                             ) : <span style={{ color: sub }}>—</span>}
                           </td>
                           <td style={{ ...tdStyle, textAlign: 'right' }}>
@@ -363,7 +379,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                                 productId={p.id}
                                 batches={batchesCache[p.id]}
                                 loading={batchesLoading[p.id]}
-                                sub={sub} text={text} border={border} cardBg={cardBg}
+                                sub={sub} text={text} border={border} cardBg={cardBg} isDarkMode={isDarkMode}
                                 onAddBatch={() => openStockIn(p)}
                                 onOpenDrawer={() => setDrawerProductId(p.id)}
                               />
@@ -608,7 +624,7 @@ function IconBtn({ onClick, label, Icon, color }) {
   );
 }
 
-function ExpandedBatches({ productId, batches, loading, sub, text, border, cardBg, onAddBatch, onOpenDrawer }) {
+function ExpandedBatches({ productId, batches, loading, sub, text, border, cardBg, isDarkMode, onAddBatch, onOpenDrawer }) {
   if (loading) return <p style={{ color: sub, fontSize: '12px', padding: '8px 0' }}>Memuat batch...</p>;
   if (!batches || batches.length === 0) {
     return (
@@ -639,12 +655,18 @@ function ExpandedBatches({ productId, batches, loading, sub, text, border, cardB
         </thead>
         <tbody>
           {batches.map(b => {
-            const sev = expirySeverity(b.expired_date);
+            const sev = expirySeverity(b.expired_date, isDarkMode);
             return (
               <tr key={b.id} style={{ borderTop: `1px solid ${border}` }}>
                 <td style={{ padding: '8px 14px', color: text, fontWeight: '600' }}>{b.batch_no || <em style={{ color: sub, fontWeight: '400' }}>(tanpa no.)</em>}</td>
                 <td style={{ padding: '8px 14px' }}>
-                  {b.expired_date ? <span style={{ color: sev.color, fontWeight: '600', padding: '2px 6px', borderRadius: '4px', background: sev.bg }}>{sev.label}</span> : <span style={{ color: sub }}>—</span>}
+                  {b.expired_date ? (
+                    sev.plain ? (
+                      <span style={{ color: sev.color, fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{sev.label}</span>
+                    ) : (
+                      <span style={{ color: sev.color, fontWeight: '600', padding: '2px 6px', borderRadius: '4px', background: sev.bg, fontVariantNumeric: 'tabular-nums', display: 'inline-block' }}>{sev.label}</span>
+                    )
+                  ) : <span style={{ color: sub }}>—</span>}
                 </td>
                 <td style={{ padding: '8px 14px', textAlign: 'right', color: text, fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{b.qty_current}</td>
                 <td style={{ padding: '8px 14px', textAlign: 'right', color: sub, fontVariantNumeric: 'tabular-nums' }}>{fmtRp(b.hna)}</td>

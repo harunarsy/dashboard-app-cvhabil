@@ -6,7 +6,18 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.4.1-stable', date: '24 Mei 2026', status: 'latest',
+    version: 'v1.4.2-stable', date: '25 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'Dashboard Dark Mode: Kanban Manajemen Tugas, task cards, DRAG HERE TO DELETE zone, modal add/edit tugas — semua kini ikut dark mode (sebelumnya hardcoded putih).' },
+      { type: 'fix', text: 'Inventory Visual: Mini bar Stok tidak lagi muncul untuk produk tanpa Stok Minimum (hilangkan garis nyasar). Kolom Exp Terdekat: produk aman (>90 hari) tampil plain text, hanya yang mendekati/expired yang punya badge background.' },
+      { type: 'feat', text: 'Nota Penjualan — Sort Kolom: Klik header No.Nota / Tanggal / Total untuk sort asc/desc dengan indicator chevron. Default sort by Tanggal terbaru.' },
+      { type: 'feat', text: 'Customer — Metadata Cards: Setiap card kini tampil jumlah nota, total transaksi (compact), dan tanggal transaksi terakhir. Sort dropdown: A-Z / Z-A / Paling Aktif / Top Spender / Terlama.' },
+      { type: 'ui', text: 'Customer Cards: Customer tanpa telepon & alamat tampil callout "Lengkapi data →" (clickable). Empty state baru dengan CTA "Tambah Customer Pertama".' },
+      { type: 'ui', text: 'Accessibility: Aria-label untuk semua icon button (Cetak/Edit/Hapus di Nota + Customer cards). Fix colspan empty state Nota Penjualan (6 → 7).' },
+    ]
+  },
+  {
+    version: 'v1.4.1-stable', date: '24 Mei 2026', status: 'stable',
     changes: [
       { type: 'feat', text: 'Dark Mode di Login: Toggle ☀️/🌙 muncul di pojok kanan atas Login page — preferensi tersimpan di localStorage dan persist ke seluruh app.' },
       { type: 'feat', text: 'Welcome Modal Auto-Sync: Popup "APA YANG BARU?" tiap login otomatis render dari RELEASES[0].changes (ikon + badge per type: feat/fix/ui/perf). Tidak hardcoded lagi.' },
@@ -415,7 +426,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.4.1-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.4.2-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -467,7 +478,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.4.1-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.4.2-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -504,7 +515,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
       {/* Kanban Tasks Section - MOVED TO TOP */}
       <div className="mb-10 rounded-3xl p-8 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
-        <TasksKanban />
+        <TasksKanban isDarkMode={isDarkMode} isMobile={isMobile} />
       </div>
 
       {/* Quick Stats Cards */}
@@ -561,7 +572,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.4.1-stable — 2026
+            HABIL SUPERAPP v1.4.2-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
