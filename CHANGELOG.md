@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.3.47-stable] - 2026-05-24
+
+### Fixed (Critical)
+- **Tambah Produk Gagal — Duplicate Key Constraint**: Error `duplicate key value violates unique constraint "product_master_pkey"` saat tambah produk baru di Inventory. Root cause: sequence `product_master_id_seq` tertinggal di angka lama setelah data migration Supabase → Neon (incident v1.3.11) — saat INSERT baru, sequence return ID yang sudah dipakai → tabrakan dengan baris existing. Fix: tambah `setval()` resync di `ensureSchema()` untuk 4 tabel SERIAL (`product_master`, `inventory_batches`, `inventory_mutations`, `stock_opname`). Idempotent, jalan tiap cold-start.
+
 ## [v1.3.46-stable] - 2026-05-11
 
 ### Fixed

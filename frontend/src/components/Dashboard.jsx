@@ -6,13 +6,19 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.3.46-stable', date: '11 Mei 2026', status: 'latest',
+    version: 'v1.3.47-stable', date: '24 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: 'Tambah Produk Gagal: Error "duplicate key value violates unique constraint product_master_pkey" saat tambah produk baru di Inventory kini sudah teratasi. Penyebab: sequence ID tertinggal setelah migrasi data Supabase → Neon. Fix: auto-resync sequence saat backend start (juga untuk batch, mutations, dan opname).' },
+    ]
+  },
+  {
+    version: 'v1.3.46-stable', date: '11 Mei 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Nota PDF — Layout 1 Halaman: PDF nota tidak lagi terpecah menjadi 2 halaman. NOTE, rekening, QRIS, dan tanda tangan kini selalu muncul bersama di bawah grand total — tidak ada lagi halaman kosong.' },
     ]
   },
   {
-    version: 'v1.3.46-stable', date: '11 Mei 2026', status: 'stable',
+    version: 'v1.3.45-stable', date: '11 Mei 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Nota PDF — Footer Sync: "Dengan senang hati melayani anda" dan data Pengaturan kini benar-benar masuk ke PDF (fix key mismatch shop_name/footer → company_name/footer_text).' },
       { type: 'feat', text: 'Nota PDF — Nama Penanda Tangan: Garis kanan nota kini menampilkan "Hormat kami," + nama penanda tangan yang diatur di Pengaturan.' },
@@ -22,7 +28,7 @@ const RELEASES = [
     ]
   },
   {
-    version: 'v1.3.46-stable', date: '10 Mei 2026', status: 'stable',
+    version: 'v1.3.45-stable', date: '10 Mei 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Schema payment_status + paid_at: Kolom ini kini dibuat otomatis via ALTER TABLE — dashboard stats dan update status bayar tidak lagi crash pada fresh DB.' },
       { type: 'fix', text: 'Product Rename Sync: Rename produk kini juga update product_catalog — nama lama tidak lagi muncul di dropdown setelah diganti.' },
@@ -384,7 +390,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.3.46-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.47-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -436,7 +442,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.3.46-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.3.47-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -530,7 +536,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.46-stable — 2026
+            HABIL SUPERAPP v1.3.47-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

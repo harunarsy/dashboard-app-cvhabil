@@ -64,6 +64,11 @@ const ensureSchema = async () => {
     ALTER TABLE inventory_batches
       ADD COLUMN IF NOT EXISTS hna DECIMAL(15,2) DEFAULT 0;
   `);
+  // Resync SERIAL sequences supaya tidak tabrakan dengan data hasil migration/import (fix duplicate key constraint violation)
+  await pool.query(`SELECT setval('product_master_id_seq', COALESCE((SELECT MAX(id) FROM product_master), 0) + 1, false)`);
+  await pool.query(`SELECT setval('inventory_batches_id_seq', COALESCE((SELECT MAX(id) FROM inventory_batches), 0) + 1, false)`);
+  await pool.query(`SELECT setval('inventory_mutations_id_seq', COALESCE((SELECT MAX(id) FROM inventory_mutations), 0) + 1, false)`);
+  await pool.query(`SELECT setval('stock_opname_id_seq', COALESCE((SELECT MAX(id) FROM stock_opname), 0) + 1, false)`);
 };
 ensureSchema().catch(e => console.error('inventory ensureSchema:', e));
 
