@@ -2,6 +2,28 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.4.0-stable] - 2026-05-24
+
+### Added (Inventory Module Revamp)
+- **Expandable Row per Produk**: Chevron di kolom pertama list — klik untuk lihat semua batch (No. Batch, ED, Qty, HNA) langsung tanpa pindah halaman. Sudah tidak misteri "ada batch apa di balik nama produk".
+- **Detail Drawer (Slide-in dari Kanan)**: Klik nama produk → drawer 520px desktop / fullscreen mobile dengan 3 tab: **Profil** (master + total stok + nilai inventaris), **Batches** (CRUD lengkap: edit, adjust qty, hapus), **Riwayat** (20 mutasi terakhir dengan timeline).
+- **Edit Batch Penuh**: Modal edit batch dengan field No. Batch, Tanggal Expired, HNA, Catatan. Untuk ubah qty pakai tombol **Adjust** yang menulis ke audit trail (alasan wajib).
+- **Adjust Qty Batch**: Dialog adjust qty manual dengan field alasan wajib — semua adjustment tercatat sebagai mutation `adjust` dengan keterangan jelas.
+- **Stok Opname Per Batch**: Modal opname total rombak — 2-pane layout (kiri list produk + search, kanan list batch dengan input fisik per batch). Selisih ke-trace ke batch spesifik di audit trail. Backward-compat dengan opname lama.
+- **Tombol Stok Keluar di Header**: Sebelumnya hanya di icon row, sekarang prominent di toolbar (parity dengan Stok Masuk).
+- **Filter Status Produk**: Dropdown filter di toolbar — Semua / Stok rendah / Mendekati expired / Sudah expired.
+- **Mini Stock Bar**: Visual bar kecil di kolom Stok (qty vs min_stock ratio) dengan color coding hijau/orange/merah.
+- **Endpoint Baru**: `GET /inventory/products/:id/full` (single payload product+batches+mutations untuk drawer), `PUT/DELETE /inventory/batches/:id`, `POST /inventory/batches/:id/adjust`, `GET /inventory/products/:id/batches`.
+
+### Changed
+- **Schema**: `stock_opname.batch_id` (nullable FK) + `inventory_batches.notes` + `inventory_batches.is_active` untuk soft-delete batch.
+- **Opname Adjustment Logic**: Per-batch INSERT mutation type `in`/`out` dengan `reference_id = stock_opname.id` — audit trail lebih granular daripada per-product proportional FIFO lama.
+- **Modal UX**: Loading state di tombol Simpan, error inline merah dengan ikon, Esc untuk tutup, click-overlay-to-close konsisten.
+- **Realtime Emit**: `inventoryBatchUpdated` event ke Socket.io setelah edit/delete/adjust batch — drawer & list auto-refresh.
+
+### Skills (Design System Bootstrap)
+- Install Claude Code skill **ux-designer** (WCAG 2.2 AA, Apple HIG audit) + **design-auditor** (19-rule design review) di `~/.claude/skills/` untuk gating kualitas UI iterasi berikutnya.
+
 ## [v1.3.47-stable] - 2026-05-24
 
 ### Fixed (Critical)

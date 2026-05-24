@@ -114,6 +114,12 @@ export const inventoryAPI = {
   createOpname: (data) => api.post('/inventory/opname', data),
   getFefoHna: (productId) => api.get(`/inventory/fefo-hna/${productId}`),
   getAvailableBatches: (productId) => api.get(`/inventory/batches-by-product/${productId}`),
+  // Phase 1: batch CRUD + product full
+  getProductFull: (id) => api.get(`/inventory/products/${id}/full`),
+  getProductBatches: (id) => api.get(`/inventory/products/${id}/batches`),
+  updateBatch: (id, data) => api.put(`/inventory/batches/${id}`, data),
+  deleteBatch: (id) => api.delete(`/inventory/batches/${id}`),
+  adjustBatch: (id, data) => api.post(`/inventory/batches/${id}/adjust`, data),
 };
 
 export const purchaseOrdersAPI = {

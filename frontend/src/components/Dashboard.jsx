@@ -6,7 +6,19 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.3.47-stable', date: '24 Mei 2026', status: 'latest',
+    version: 'v1.4.0-stable', date: '24 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'feat', text: 'Inventory — Expandable Row: Klik chevron ▶ di list produk untuk lihat semua batch (No.Batch, ED, Qty, HNA) tanpa pindah halaman.' },
+      { type: 'feat', text: 'Inventory — Detail Drawer: Klik nama produk → panel slide-in dari kanan dengan 3 tab: Profil, Batch (CRUD lengkap), Riwayat (timeline mutasi).' },
+      { type: 'feat', text: 'Inventory — Edit Batch Penuh: No.Batch, ED, HNA, Catatan bisa di-edit langsung; qty via tombol Adjust dengan audit trail (alasan wajib).' },
+      { type: 'feat', text: 'Stok Opname Per Batch: Modal opname rombak total — 2-pane layout, input fisik per batch, selisih ke-trace ke batch spesifik (bukan per-produk lagi).' },
+      { type: 'ui', text: 'Inventory Toolbar: Tombol Stok Keluar kini di header (sebelumnya hanya icon row); tambah filter status (low/expiring/expired); mini stock bar visual di kolom Stok.' },
+      { type: 'feat', text: 'Endpoint Baru: GET /products/:id/full, PUT/DELETE /batches/:id, POST /batches/:id/adjust + realtime socket emit setelah batch berubah.' },
+      { type: 'fix', text: 'Schema: ALTER stock_opname.batch_id + inventory_batches.notes/is_active untuk per-batch tracking & soft-delete batch.' },
+    ]
+  },
+  {
+    version: 'v1.3.47-stable', date: '24 Mei 2026', status: 'stable',
     changes: [
       { type: 'fix', text: 'Tambah Produk Gagal: Error "duplicate key value violates unique constraint product_master_pkey" saat tambah produk baru di Inventory kini sudah teratasi. Penyebab: sequence ID tertinggal setelah migrasi data Supabase → Neon. Fix: auto-resync sequence saat backend start (juga untuk batch, mutations, dan opname).' },
     ]
@@ -390,7 +402,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.3.47-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.4.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -442,7 +454,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.3.47-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.4.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -536,7 +548,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.3.47-stable — 2026
+            HABIL SUPERAPP v1.4.0-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

@@ -64,6 +64,13 @@ const ensureSchema = async () => {
     ALTER TABLE inventory_batches
       ADD COLUMN IF NOT EXISTS hna DECIMAL(15,2) DEFAULT 0;
   `);
+  // Phase 1 additions: per-batch opname tracking + batch notes/soft-delete
+  await pool.query(`
+    ALTER TABLE inventory_batches ADD COLUMN IF NOT EXISTS notes TEXT;
+    ALTER TABLE inventory_batches ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+    ALTER TABLE stock_opname ADD COLUMN IF NOT EXISTS batch_id INT REFERENCES inventory_batches(id);
+    CREATE INDEX IF NOT EXISTS idx_opname_batch ON stock_opname(batch_id);
+  `);
   // Resync SERIAL sequences supaya tidak tabrakan dengan data hasil migration/import (fix duplicate key constraint violation)
   await pool.query(`SELECT setval('product_master_id_seq', COALESCE((SELECT MAX(id) FROM product_master), 0) + 1, false)`);
   await pool.query(`SELECT setval('inventory_batches_id_seq', COALESCE((SELECT MAX(id) FROM inventory_batches), 0) + 1, false)`);
@@ -224,6 +231,107 @@ router.post('/stock-out', auth, async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
+// BATCH CRUD (Phase 1 — direct batch management)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET batches for a product (full list incl zero-stock & expired, for management view)
+router.get('/products/:id/batches', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM inventory_batches
+       WHERE product_id = $1 AND COALESCE(is_active, TRUE) = TRUE
+       ORDER BY expired_date ASC NULLS LAST, id DESC`,
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET single product full payload (product + batches + last 20 mutations) — for drawer
+router.get('/products/:id/full', auth, async (req, res) => {
+  try {
+    const { rows: [product] } = await pool.query('SELECT * FROM product_master WHERE id = $1', [req.params.id]);
+    if (!product) return res.status(404).json({ error: 'Product not found' });
+    const { rows: batches } = await pool.query(
+      `SELECT * FROM inventory_batches
+       WHERE product_id = $1 AND COALESCE(is_active, TRUE) = TRUE
+       ORDER BY expired_date ASC NULLS LAST, id DESC`, [req.params.id]
+    );
+    const { rows: mutations } = await pool.query(
+      `SELECT m.*, b.batch_no
+       FROM inventory_mutations m
+       LEFT JOIN inventory_batches b ON b.id = m.batch_id
+       WHERE m.product_id = $1
+       ORDER BY m.created_at DESC LIMIT 20`, [req.params.id]
+    );
+    const totalStock = batches.reduce((s, b) => s + (b.qty_current || 0), 0);
+    const inventoryValue = batches.reduce((s, b) => s + (b.qty_current || 0) * (parseFloat(b.hna) || 0), 0);
+    res.json({ ...product, batches, mutations, total_stock: totalStock, inventory_value: inventoryValue });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// UPDATE batch metadata (batch_no, expired_date, hna, notes — NOT qty_current)
+router.put('/batches/:id', auth, async (req, res) => {
+  const { batch_no, expired_date, hna, notes } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE inventory_batches
+       SET batch_no = $1, expired_date = $2, hna = $3, notes = $4
+       WHERE id = $5 RETURNING *`,
+      [batch_no || null, expired_date || null, hna || 0, notes || null, req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Batch not found' });
+    if (global.io) global.io.emit('inventoryBatchUpdated', { product_id: rows[0].product_id, batch_id: rows[0].id });
+    res.json(rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// DELETE batch (soft) — guard: qty_current must be 0
+router.delete('/batches/:id', auth, async (req, res) => {
+  try {
+    const { rows: [batch] } = await pool.query('SELECT * FROM inventory_batches WHERE id = $1', [req.params.id]);
+    if (!batch) return res.status(404).json({ error: 'Batch not found' });
+    if (batch.qty_current > 0) {
+      return res.status(400).json({ error: `Tidak bisa hapus batch dengan stok ${batch.qty_current}. Adjust ke 0 dulu.` });
+    }
+    await pool.query('UPDATE inventory_batches SET is_active = FALSE WHERE id = $1', [req.params.id]);
+    if (global.io) global.io.emit('inventoryBatchUpdated', { product_id: batch.product_id, batch_id: batch.id });
+    res.json({ message: 'Batch dihapus' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST adjust batch qty (manual adjustment — creates audit mutation)
+router.post('/batches/:id/adjust', auth, async (req, res) => {
+  const { new_qty, reason } = req.body;
+  if (new_qty === undefined || new_qty === null || isNaN(parseInt(new_qty))) {
+    return res.status(400).json({ error: 'new_qty wajib (angka)' });
+  }
+  if (!reason?.trim()) return res.status(400).json({ error: 'Alasan adjustment wajib' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows: [batch] } = await client.query('SELECT * FROM inventory_batches WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (!batch) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Batch not found' }); }
+    const oldQty = batch.qty_current;
+    const newQty = parseInt(new_qty);
+    const diff = newQty - oldQty;
+    if (diff === 0) { await client.query('ROLLBACK'); return res.json({ message: 'Tidak ada perubahan', batch }); }
+    await client.query('UPDATE inventory_batches SET qty_current = $1 WHERE id = $2', [newQty, req.params.id]);
+    await client.query(
+      `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, notes, created_by)
+       VALUES ($1, $2, $3, $4, 'adjust', $5, $6)`,
+      [batch.product_id, batch.id, diff > 0 ? 'in' : 'out', Math.abs(diff), `Adjust: ${oldQty} → ${newQty}. ${reason}`, req.user?.id || null]
+    );
+    await client.query('COMMIT');
+    if (global.io) global.io.emit('inventoryBatchUpdated', { product_id: batch.product_id, batch_id: batch.id });
+    res.json({ message: `Adjustment ${diff > 0 ? '+' : ''}${diff} berhasil`, batch: { ...batch, qty_current: newQty } });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally { client.release(); }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 // STOCK OPNAME
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -241,21 +349,59 @@ router.get('/opname', auth, async (req, res) => {
 });
 
 // POST opname (record stock check)
+// Items can be per-batch (preferred) or per-product (legacy fallback):
+//   per-batch: { batch_id, physical_qty, notes }
+//   per-product: { product_id, physical_qty, notes } — uses FIFO deduct/surplus batch
 router.post('/opname', auth, async (req, res) => {
-  const { items } = req.body; // [{ product_id, physical_qty, notes }]
+  const { items } = req.body;
   if (!items?.length) return res.status(400).json({ error: 'items required' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const results = [];
+    const touchedProducts = new Set();
+
     for (const item of items) {
-      // Get system qty
+      const physicalQty = parseInt(item.physical_qty) || 0;
+      if (physicalQty < 0) continue;
+
+      // ─── Per-batch flow (preferred) ───────────────────────────────────────
+      if (item.batch_id) {
+        const { rows: [batch] } = await client.query(
+          'SELECT * FROM inventory_batches WHERE id = $1 FOR UPDATE', [item.batch_id]
+        );
+        if (!batch) continue;
+        const systemQty = batch.qty_current;
+        const diff = physicalQty - systemQty;
+
+        const { rows: [record] } = await client.query(
+          `INSERT INTO stock_opname (product_id, batch_id, system_qty, physical_qty, difference, notes, created_by)
+           VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+          [batch.product_id, batch.id, systemQty, physicalQty, diff, item.notes || '', req.user?.id || null]
+        );
+        results.push(record);
+
+        if (diff !== 0) {
+          await client.query('UPDATE inventory_batches SET qty_current = $1 WHERE id = $2', [physicalQty, batch.id]);
+          await client.query(
+            `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by)
+             VALUES ($1,$2,$3,$4,'opname',$5,$6,$7)`,
+            [batch.product_id, batch.id, diff > 0 ? 'in' : 'out', Math.abs(diff), record.id,
+             `Opname batch ${batch.batch_no || batch.id}: ${systemQty} → ${physicalQty}${item.notes ? ' · ' + item.notes : ''}`,
+             req.user?.id || null]
+          );
+        }
+        touchedProducts.add(batch.product_id);
+        continue;
+      }
+
+      // ─── Per-product flow (legacy fallback) ───────────────────────────────
+      if (!item.product_id) continue;
       const { rows: [stock] } = await client.query(
         'SELECT COALESCE(SUM(qty_current), 0) AS system_qty FROM inventory_batches WHERE product_id = $1',
         [item.product_id]
       );
       const systemQty = parseInt(stock.system_qty);
-      const physicalQty = parseInt(item.physical_qty) || 0;
       const diff = physicalQty - systemQty;
 
       const { rows: [record] } = await client.query(
@@ -265,24 +411,20 @@ router.post('/opname', auth, async (req, res) => {
       );
       results.push(record);
 
-      // Adjust stock if different (create adjustment mutation)
       if (diff !== 0) {
-        const type = diff > 0 ? 'in' : 'out';
         await client.query(
-          `INSERT INTO inventory_mutations (product_id, type, qty, reference_type, notes, created_by)
-           VALUES ($1,$2,$3,'opname',$4,$5)`,
-          [item.product_id, type, Math.abs(diff), `Stok opname adjustment: ${diff > 0 ? '+' : ''}${diff}`, req.user?.id || null]
+          `INSERT INTO inventory_mutations (product_id, type, qty, reference_type, reference_id, notes, created_by)
+           VALUES ($1,$2,$3,'opname',$4,$5,$6)`,
+          [item.product_id, diff > 0 ? 'in' : 'out', Math.abs(diff), record.id,
+           `Opname produk (legacy): ${systemQty} → ${physicalQty}`, req.user?.id || null]
         );
-        // Adjust batch quantities proportionally
         if (diff > 0) {
-          // Add to existing batch or create adjustment batch
           await client.query(
             `INSERT INTO inventory_batches (product_id, batch_no, qty_current, source_type, source_ref)
              VALUES ($1, 'OPNAME-ADJ', $2, 'opname', $3)`,
             [item.product_id, diff, `opname-${record.id}`]
           );
         } else {
-          // Deduct from oldest batches
           let toDeduct = Math.abs(diff);
           const { rows: batches } = await client.query(
             'SELECT * FROM inventory_batches WHERE product_id = $1 AND qty_current > 0 ORDER BY expired_date ASC NULLS LAST FOR UPDATE',
@@ -296,8 +438,12 @@ router.post('/opname', auth, async (req, res) => {
           }
         }
       }
+      touchedProducts.add(item.product_id);
     }
     await client.query('COMMIT');
+    if (global.io) {
+      for (const pid of touchedProducts) global.io.emit('inventoryBatchUpdated', { product_id: pid });
+    }
     res.status(201).json(results);
   } catch (err) {
     await client.query('ROLLBACK');
