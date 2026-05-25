@@ -120,6 +120,9 @@ export const inventoryAPI = {
   updateBatch: (id, data) => api.put(`/inventory/batches/${id}`, data),
   deleteBatch: (id) => api.delete(`/inventory/batches/${id}`),
   adjustBatch: (id, data) => api.post(`/inventory/batches/${id}/adjust`, data),
+  // v1.7.0: tiered pricing
+  getProductTiers: (id) => api.get(`/inventory/products/${id}/tiers`),
+  updateProductTiers: (id, tiers) => api.put(`/inventory/products/${id}/tiers`, { tiers }),
 };
 
 export const purchaseOrdersAPI = {

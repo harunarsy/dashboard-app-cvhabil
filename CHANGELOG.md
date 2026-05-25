@@ -2,6 +2,25 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.7.0-stable] - 2026-05-25
+
+### Added (Major Features)
+- **💰 Tiered Pricing (Grosir Tier)**: Schema `product_price_tiers` (per-unit, per-qty-range). Backend `backend/utils/pricing.js` resolver + endpoints GET + PUT `/products/:id/tiers`. Frontend Product form modal: inline CRUD tier rows. SalesOrderList auto-resolve saat qty/unit/product change + UI tag "🏷️ Harga grosir tier diaplikasikan".
+- **📊 Multi-Select Nota Penjualan + Export PDF Laporan**: Checkbox column + sticky action bar. `frontend/src/utils/generateLaporanPDF.js` (landscape A4, tabel ringkasan, Grand Total, breakdown Lunas/Belum Bayar).
+- **📦 Stok Keluar Batch Picker**: Dropdown batch di modal Stok Keluar (default FEFO terdekat, bisa override manual). Backend `POST /stock-out` accept `selected_batch_id` → single-batch deduction skip FEFO loop.
+- **PDF Nota item: batch_no + ED snapshot**: `sales_items` add `batch_no_snapshot` + `expired_date_snapshot` (additive ALTER). POST `/sales` peek first FEFO batch saat INSERT sales_items. `generateNotaPDF` tampil sub-line "Batch: X · ED: Y" kalau snapshot ada.
+
+### Fixed
+- **Filter textbox Nota tidak kepotong**: tambah `textOverflow: ellipsis` + `whiteSpace: nowrap` + `overflow: hidden` + `paddingRight: 32px` (ruang chevron) + minWidth sesuai opsi terpanjang.
+- **Footer "Business Management System" di root level dihapus** (`index.js`): gak ikut theme system (dark mode bocor) + redundant dengan version label di Sidebar badge, Login footer, Dashboard footer, document.title.
+
+### Infrastructure
+- Git tag `v1.6.0-pre-tier-pricing` di-push sebelum overhaul (rollback aman).
+- Neon manual snapshot dibuat user.
+- Schema 100% additive (`CREATE TABLE IF NOT EXISTS` + `ALTER TABLE ... IF NOT EXISTS`). Backward-compat: tier resolution return NULL kalau tabel kosong → fallback ke `sell_price`/`sell_price_pack` existing.
+
+---
+
 ## [v1.6.0-stable] - 2026-05-25
 
 ### Added (Major Feature: Multi-Unit Packaging — Carton ↔ Pcs)

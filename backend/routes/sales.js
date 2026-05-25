@@ -50,6 +50,9 @@ const ensureSchema = async () => {
     // v1.6.0 multi-unit packaging: snapshot qty di unit input + pack_size saat sale
     await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS qty_in_unit DECIMAL(15,4)`);
     await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS pack_size_at_sale INT`);
+    // v1.7.0: batch_no + ED snapshot per item (untuk display di PDF Nota — Image #17 feedback)
+    await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS batch_no_snapshot VARCHAR(100)`);
+    await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS expired_date_snapshot DATE`);
 };
 ensureSchema().catch(e => console.error('sales ensureSchema:', e));
 
@@ -141,7 +144,7 @@ router.post('/', auth, async (req, res) => {
     );
     const order = rows[0];
 
-    // v1.6.0 multi-unit: resolve product (pack info) per item ke Map untuk reuse di items insert + FEFO
+    // v1.6.0 multi-unit + v1.7.0 batch snapshot: resolve product (pack info) + peek first FEFO batch per item
     const productMap = new Map();
     for (const it of items) {
       if (productMap.has(it.product_name)) continue;
@@ -149,7 +152,16 @@ router.post('/', auth, async (req, res) => {
         'SELECT id, name, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
         [it.product_name]
       );
-      if (p) productMap.set(it.product_name, p);
+      if (!p) continue;
+      // v1.7.0: peek first FEFO batch (for batch_no + ED snapshot di sales_items → tampil di PDF Nota)
+      const { rows: [firstBatch] } = await client.query(
+        `SELECT batch_no, expired_date FROM inventory_batches
+         WHERE product_id = $1 AND qty_current > 0 AND COALESCE(is_active, TRUE) = TRUE
+         AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
+         ORDER BY expired_date ASC NULLS LAST LIMIT 1`,
+        [p.id]
+      );
+      productMap.set(it.product_name, { ...p, firstBatch });
     }
 
     for (const it of items) {
@@ -158,10 +170,12 @@ router.post('/', auth, async (req, res) => {
       const qtyBase = product ? uom.toBase(qtyInUnit, it.unit, product) : qtyInUnit;
       const packSize = product?.pack_size || 1;
       const subtotal = qtyInUnit * (it.unit_price || 0);
+      const fb = product?.firstBatch;
       await client.query(
-        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, subtotal, qty_in_unit, pack_size_at_sale)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-        [order.id, it.product_name, qtyBase, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, subtotal, qtyInUnit, packSize]
+        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, subtotal, qty_in_unit, pack_size_at_sale, batch_no_snapshot, expired_date_snapshot)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        [order.id, it.product_name, qtyBase, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, subtotal, qtyInUnit, packSize,
+         fb?.batch_no || null, fb?.expired_date || null]
       );
     }
 

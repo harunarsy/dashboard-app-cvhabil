@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const pricing = require('../utils/pricing');
 
 // ─── Auto-create tables ─────────────────────────────────────────────────────
 const ensureSchema = async () => {
@@ -83,6 +84,20 @@ const ensureSchema = async () => {
     ALTER TABLE inventory_mutations ADD COLUMN IF NOT EXISTS qty_unit VARCHAR(30);
     ALTER TABLE inventory_mutations ADD COLUMN IF NOT EXISTS qty_in_unit DECIMAL(15,4);
   `);
+  // v1.7.0 tiered pricing (grosir): per-unit, per-qty-range pricing tier per produk
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS product_price_tiers (
+      id SERIAL PRIMARY KEY,
+      product_id INT NOT NULL REFERENCES product_master(id) ON DELETE CASCADE,
+      unit VARCHAR(30) NOT NULL,
+      min_qty INT NOT NULL DEFAULT 1,
+      max_qty INT,
+      price DECIMAL(15,2) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_price_tiers_product_unit ON product_price_tiers(product_id, unit, min_qty);
+  `);
+  await pool.query(`SELECT setval('product_price_tiers_id_seq', COALESCE((SELECT MAX(id) FROM product_price_tiers), 0) + 1, false)`);
   // Backfill base_unit dari kolom existing `unit` (existing rows compat) — hanya kalau base_unit masih default
   await pool.query(`UPDATE product_master SET base_unit = unit WHERE (base_unit IS NULL OR base_unit = 'pcs') AND unit IS NOT NULL AND unit != ''`);
   // Resync SERIAL sequences supaya tidak tabrakan dengan data hasil migration/import (fix duplicate key constraint violation)
@@ -216,12 +231,30 @@ router.post('/stock-in', auth, async (req, res) => {
 
 // POST stock out (stok keluar) — uses FEFO (First Expired, First Out)
 router.post('/stock-out', auth, async (req, res) => {
-  const { product_id, qty, reference_type, reference_id, notes } = req.body;
+  const { product_id, qty, reference_type, reference_id, notes, selected_batch_id } = req.body;
   if (!product_id || !qty || qty <= 0) return res.status(400).json({ error: 'product_id and qty required' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    // Get batches sorted by expiry (FEFO)
+    // v1.7.0: kalau user pilih batch manual (override FEFO), single-batch deduction
+    if (selected_batch_id) {
+      const { rows: [batch] } = await client.query(
+        'SELECT * FROM inventory_batches WHERE id = $1 AND product_id = $2 AND COALESCE(is_active, TRUE) = TRUE FOR UPDATE',
+        [selected_batch_id, product_id]
+      );
+      if (!batch) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Batch tidak ditemukan / non-aktif' }); }
+      if (batch.qty_current < qty) { await client.query('ROLLBACK'); return res.status(400).json({ error: `Stok batch tidak cukup (tersedia: ${batch.qty_current})` }); }
+      await client.query('UPDATE inventory_batches SET qty_current = qty_current - $1 WHERE id = $2', [qty, batch.id]);
+      await client.query(
+        `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by)
+         VALUES ($1,$2,'out',$3,$4,$5,$6,$7)`,
+        [product_id, batch.id, qty, reference_type || 'manual-batch-pick', reference_id || null,
+         notes || `Manual pick batch ${batch.batch_no || batch.id}`, req.user?.id || null]
+      );
+      await client.query('COMMIT');
+      return res.json({ message: `Stok keluar ${qty} dari batch ${batch.batch_no || batch.id}` });
+    }
+    // Default: FEFO multi-batch deduction
     const { rows: batches } = await client.query(
       `SELECT * FROM inventory_batches WHERE product_id = $1 AND qty_current > 0
        AND COALESCE(is_active, TRUE) = TRUE
@@ -288,7 +321,12 @@ router.get('/products/:id/full', auth, async (req, res) => {
     );
     const totalStock = batches.reduce((s, b) => s + (b.qty_current || 0), 0);
     const inventoryValue = batches.reduce((s, b) => s + (b.qty_current || 0) * (parseFloat(b.hna) || 0), 0);
-    res.json({ ...product, batches, mutations, total_stock: totalStock, inventory_value: inventoryValue });
+    // v1.7.0: include tier pricing untuk auto-resolve di SalesOrderList
+    const { rows: tiers } = await pool.query(
+      'SELECT id, unit, min_qty, max_qty, price FROM product_price_tiers WHERE product_id = $1 ORDER BY unit, min_qty',
+      [req.params.id]
+    );
+    res.json({ ...product, batches, mutations, total_stock: totalStock, inventory_value: inventoryValue, price_tiers: tiers });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -347,6 +385,49 @@ router.post('/batches/:id/adjust', auth, async (req, res) => {
     await client.query('COMMIT');
     if (global.io) global.io.emit('inventoryBatchUpdated', { product_id: batch.product_id, batch_id: batch.id });
     res.json({ message: `Adjustment ${diff > 0 ? '+' : ''}${diff} berhasil`, batch: { ...batch, qty_current: newQty } });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally { client.release(); }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PRICE TIERS (v1.7.0 — grosir tier per product per unit)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET tiers per produk
+router.get('/products/:id/tiers', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, unit, min_qty, max_qty, price FROM product_price_tiers WHERE product_id = $1 ORDER BY unit, min_qty',
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PUT bulk replace tiers — frontend kirim array lengkap, backend DELETE + INSERT atomic
+router.put('/products/:id/tiers', auth, async (req, res) => {
+  const { tiers } = req.body;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM product_price_tiers WHERE product_id = $1', [req.params.id]);
+    const inserted = [];
+    for (const t of (tiers || [])) {
+      const unit = (t.unit || '').trim();
+      const minQty = parseInt(t.min_qty);
+      const price = parseFloat(t.price);
+      if (!unit || !minQty || minQty < 1 || !price || price <= 0) continue;
+      const maxQty = t.max_qty !== null && t.max_qty !== undefined && t.max_qty !== '' ? parseInt(t.max_qty) : null;
+      const { rows } = await client.query(
+        'INSERT INTO product_price_tiers (product_id, unit, min_qty, max_qty, price) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+        [req.params.id, unit, minQty, maxQty, price]
+      );
+      inserted.push(rows[0]);
+    }
+    await client.query('COMMIT');
+    res.json({ message: 'Tiers updated', tiers: inserted });
   } catch (err) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });

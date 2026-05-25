@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Trash2, Edit2, X, FileText, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { salesAPI, customersAPI, inventoryAPI, printSettingsAPI, countersAPI } from '../services/api';
-import { getProductUnits, formatQtyWithConversion, isPackUnit } from '../constants/units';
+import { getProductUnits, formatQtyWithConversion, isPackUnit, resolveTierPrice } from '../constants/units';
 import { generateNotaPDF } from '../utils/generateNotaPDF';
+import { generateLaporanPDF } from '../utils/generateLaporanPDF';
 import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
 import ConfirmModal from './common/ConfirmModal';
@@ -33,6 +34,9 @@ const blankItem = () => ({ product_name: '', qty: 1, unit: 'pcs', unit_price: 0,
 export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const [orders, setOrders] = useState([]);
+  // v1.7.0 multi-select bulk export
+  const [selectedNotaIds, setSelectedNotaIds] = useState(new Set());
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
@@ -368,6 +372,41 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
 
   const addItem = () => { setItems([...items, blankItem()]); setItemBatches([...itemBatches, []]); };
   const removeItem = (idx) => { setItems(items.filter((_, i) => i !== idx)); setItemBatches(itemBatches.filter((_, i) => i !== idx)); };
+
+  // v1.7.0 multi-select handlers
+  const toggleNotaSelect = (id) => {
+    setSelectedNotaIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAllVisible = (visibleOrders) => {
+    setSelectedNotaIds(prev => {
+      const visibleIds = visibleOrders.map(o => o.id);
+      const allSelected = visibleIds.length > 0 && visibleIds.every(id => prev.has(id));
+      if (allSelected) {
+        const next = new Set(prev);
+        visibleIds.forEach(id => next.delete(id));
+        return next;
+      }
+      return new Set([...prev, ...visibleIds]);
+    });
+  };
+  const handleExportPdfLaporan = async () => {
+    if (selectedNotaIds.size === 0) return;
+    setExportingPdf(true);
+    try {
+      const selected = orders.filter(o => selectedNotaIds.has(o.id));
+      generateLaporanPDF(selected, {
+        companyName: 'HABIL SUPERAPP',
+        filterInfo: `${selected.length} nota dipilih`,
+        dateRange: 'Custom selection',
+      });
+    } catch (e) {
+      setSaveError('Export PDF gagal: ' + e.message);
+    } finally { setExportingPdf(false); }
+  };
   const updateItem = async (idx, field, value) => {
     const newItems = [...items];
     let updated = { ...newItems[idx], [field]: value };
@@ -381,9 +420,15 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
         updated._product_id = match.id;
         updated._product = match; // v1.6.0: cache product (pack info) untuk dropdown unit + konversi
 
-        // Fetch available batches for dropdown
+        // Fetch available batches + tiers (v1.7.0 parallel) for dropdown
         try {
-          const { data: batches } = await inventoryAPI.getAvailableBatches(match.id);
+          const [batchesResp, tiersResp] = await Promise.all([
+            inventoryAPI.getAvailableBatches(match.id),
+            inventoryAPI.getProductTiers(match.id).catch(() => ({ data: [] })),
+          ]);
+          const batches = batchesResp.data || [];
+          const tiers = tiersResp.data || [];
+          updated._product = { ...match, price_tiers: tiers }; // v1.7.0: cache tiers di item
           const newBatches = [...itemBatches];
           newBatches[idx] = batches;
           setItemBatches(newBatches);
@@ -440,6 +485,22 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       }
     }
 
+    // v1.7.0: Auto-resolve tier price saat qty/unit/product berubah
+    if (['qty', 'unit', 'product_name'].includes(field)) {
+      const productWithTiers = updated._product;
+      if (productWithTiers?.price_tiers?.length && updated.qty > 0) {
+        const tierPrice = resolveTierPrice(updated.qty, updated.unit, productWithTiers.price_tiers);
+        if (tierPrice !== null) {
+          updated.unit_price = tierPrice;
+          updated._tier_applied = true;
+        } else {
+          updated._tier_applied = false;
+        }
+      } else {
+        updated._tier_applied = false;
+      }
+    }
+
     newItems[idx] = updated;
     setItems(newItems);
   };
@@ -475,36 +536,69 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
             style={{ ...inputStyle, paddingLeft: '36px' }} />
         </div>
         
-        <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ ...inputStyle, width: '140px' }}>
+        {/* v1.7.0 filter selects: ellipsis + adequate paddingRight untuk chevron native */}
+        <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ ...inputStyle, minWidth: '150px', paddingRight: '32px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
           <option value="all">Semua Bulan</option>
           {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((m, i) => (
             <option key={m} value={i + 1}>{m}</option>
           ))}
         </select>
 
-        <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{ ...inputStyle, width: '100px' }}>
+        <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{ ...inputStyle, minWidth: '120px', paddingRight: '32px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
           <option value="all">Semua Tahun</option>
           {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => <option key={y} value={y}>{y}</option>)}
         </select>
 
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, width: '140px' }}>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, minWidth: '160px', paddingRight: '32px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
           <option value="all">Semua Status</option>
           <option value="unpaid">Belum Bayar</option>
           <option value="paid">Sudah Lunas</option>
         </select>
 
-        <select value={filterChannel} onChange={e => setFilterChannel(e.target.value)} style={{ ...inputStyle, width: '150px' }}>
+        <select value={filterChannel} onChange={e => setFilterChannel(e.target.value)} style={{ ...inputStyle, minWidth: '160px', paddingRight: '32px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
           <option value="all">Semua Saluran</option>
           <option value="offline">🏪 Offline</option>
           <option value="online">🛒 Online</option>
         </select>
       </div>
 
+      {/* v1.7.0 Multi-select action bar */}
+      {selectedNotaIds.size > 0 && (
+        <div style={{
+          position: 'sticky', top: '10px', zIndex: 10, marginBottom: '10px',
+          padding: '12px 16px', background: '#007AFF', color: '#FFF',
+          borderRadius: '10px', boxShadow: '0 4px 12px rgba(0, 122, 255, 0.3)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px',
+        }}>
+          <span style={{ fontSize: '13px', fontWeight: '700' }}>
+            📊 {selectedNotaIds.size} nota dipilih
+          </span>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => setSelectedNotaIds(new Set())} disabled={exportingPdf} style={{
+              padding: '8px 14px', background: 'rgba(255,255,255,0.2)', color: '#FFF',
+              border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px',
+            }}>Batal</button>
+            <button onClick={handleExportPdfLaporan} disabled={exportingPdf} style={{
+              padding: '8px 16px', background: '#FFF', color: '#007AFF',
+              border: 'none', borderRadius: '8px', cursor: exportingPdf ? 'wait' : 'pointer',
+              fontWeight: '700', fontSize: '12px', opacity: exportingPdf ? 0.7 : 1,
+            }}>{exportingPdf ? 'Generating...' : '📄 Export Laporan PDF'}</button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '640px' }}>
           <thead>
             <tr style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}>
+              <th style={{ padding: '12px 8px', textAlign: 'center', width: '36px', borderBottom: `1px solid ${border}` }}>
+                <input type="checkbox"
+                  checked={filtered.length > 0 && filtered.every(o => selectedNotaIds.has(o.id))}
+                  onChange={() => toggleSelectAllVisible(filtered)}
+                  title="Select all visible"
+                  style={{ cursor: 'pointer' }} />
+              </th>
               {[
                 { label: 'No. Nota', key: 'order_number', sortable: true },
                 { label: 'Tanggal', key: 'sale_date', sortable: true },
@@ -541,6 +635,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
             {loading ? (
               [...Array(5)].map((_, i) => (
                 <tr key={i} style={{ borderBottom: `1px solid ${border}` }}>
+                  <td style={{ padding: '12px 8px' }}><Skeleton width="16px" height="16px" /></td>
                   <td style={{ padding: '12px 14px' }}><Skeleton width="80px" height="16px" /></td>
                   <td style={{ padding: '12px 14px' }}><Skeleton width="90px" height="16px" /></td>
                   <td style={{ padding: '12px 14px' }}><Skeleton width="120px" height="16px" /></td>
@@ -553,7 +648,10 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
             ) : (
               filtered.map(o => (
                 <React.Fragment key={o.id}>
-                  <tr style={{ borderBottom: `1px solid ${border}`, cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}>
+                  <tr style={{ borderBottom: `1px solid ${border}`, cursor: 'pointer', backgroundColor: selectedNotaIds.has(o.id) ? (isDarkMode ? '#007AFF15' : '#007AFF08') : 'transparent' }} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}>
+                    <td style={{ padding: '12px 8px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" checked={selectedNotaIds.has(o.id)} onChange={() => toggleNotaSelect(o.id)} style={{ cursor: 'pointer' }} />
+                    </td>
                     <td style={{ padding: '12px 14px', fontWeight: '600', color: '#007AFF' }}>{o.order_number}</td>
                     <td style={{ padding: '12px 14px', color: text }}>{fmtDate(o.sale_date)}</td>
                     <td style={{ padding: '12px 14px', color: text }}>
@@ -610,7 +708,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                   </tr>
                   {expandedId === o.id && o.items?.length > 0 && (
                     <tr>
-                      <td colSpan={7} style={{ padding: '0 14px 14px', backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
+                      <td colSpan={8} style={{ padding: '0 14px 14px', backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', fontSize: '12px' }}>
                           <thead><tr>
                             {['Produk', 'Qty', 'Satuan', 'HPP', 'Harga', 'Subtotal'].map(h => (
@@ -638,7 +736,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
               ))
             )}
             {!loading && !filtered.length && (
-              <tr><td colSpan={7} style={{ padding: '2.5rem 1rem', textAlign: 'center', color: sub }}>
+              <tr><td colSpan={8} style={{ padding: '2.5rem 1rem', textAlign: 'center', color: sub }}>
                 {search || filterMonth !== 'all' || filterYear !== 'all' || filterStatus !== 'all' || filterChannel !== 'all'
                   ? 'Tidak ada nota yang cocok dengan filter.'
                   : 'Belum ada nota penjualan.'}
@@ -833,6 +931,9 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                       </div>
                       {showConversion && (
                         <p style={{ margin: '4px 0 0 4px', fontSize: '11px', color: sub }}>📐 {formatQtyWithConversion(it.qty, it.unit, product)}</p>
+                      )}
+                      {it._tier_applied && (
+                        <p style={{ margin: '4px 0 0 4px', fontSize: '11px', color: '#34C759', fontWeight: '600' }}>🏷️ Harga grosir tier diaplikasikan</p>
                       )}
                       {batches.length > 0 && (
                         <div style={{ marginTop: '4px', paddingLeft: '2px' }}>

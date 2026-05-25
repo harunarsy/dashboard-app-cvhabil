@@ -47,12 +47,13 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   const [batchesLoading, setBatchesLoading] = useState({});
   const [drawerProductId, setDrawerProductId] = useState(null);
 
-  // Product form (v1.6.0 multi-unit: base_unit + pack_unit + pack_size + sell_price_pack)
-  const [pForm, setPForm] = useState({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5, base_unit: 'pcs', pack_unit: '', pack_size: 1, sell_price_pack: 0 });
+  // Product form (v1.6.0 multi-unit: base_unit + pack_unit + pack_size + sell_price_pack; v1.7.0 tiers)
+  const [pForm, setPForm] = useState({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5, base_unit: 'pcs', pack_unit: '', pack_size: 1, sell_price_pack: 0, price_tiers: [] });
   // Stock in form
   const [siForm, setSiForm] = useState({ product_name: '', batch_no: '', expired_date: '', qty: 1, hna: 0 });
-  // Stock out form
-  const [soForm, setSoForm] = useState({ product_id: '', qty: 1, notes: '' });
+  // Stock out form (v1.7.0: selected_batch_id untuk manual batch override)
+  const [soForm, setSoForm] = useState({ product_id: '', qty: 1, notes: '', selected_batch_id: '' });
+  const [soBatches, setSoBatches] = useState([]);
   // Modal save loading flags
   const [modalSaving, setModalSaving] = useState(false);
 
@@ -138,15 +139,37 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' };
 
   // ─── Product CRUD ─────────────────────────────────────────────────────
-  const openAddProduct = () => { setEditId(null); setPForm({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5, base_unit: 'pcs', pack_unit: '', pack_size: 1, sell_price_pack: 0 }); setModalError(''); setShowModal('product'); };
-  const openEditProduct = (p) => { setEditId(p.id); setPForm({ code: p.code || '', name: p.name, unit: p.unit || 'pcs', hna: parseFloat(p.hna) || 0, sell_price: parseFloat(p.sell_price) || 0, category: p.category || '', min_stock: p.min_stock || 5, base_unit: p.base_unit || p.unit || 'pcs', pack_unit: p.pack_unit || '', pack_size: parseInt(p.pack_size) || 1, sell_price_pack: parseFloat(p.sell_price_pack) || 0 }); setModalError(''); setShowModal('product'); };
+  const openAddProduct = () => { setEditId(null); setPForm({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5, base_unit: 'pcs', pack_unit: '', pack_size: 1, sell_price_pack: 0, price_tiers: [] }); setModalError(''); setShowModal('product'); };
+  const openEditProduct = async (p) => {
+    setEditId(p.id);
+    setPForm({ code: p.code || '', name: p.name, unit: p.unit || 'pcs', hna: parseFloat(p.hna) || 0, sell_price: parseFloat(p.sell_price) || 0, category: p.category || '', min_stock: p.min_stock || 5, base_unit: p.base_unit || p.unit || 'pcs', pack_unit: p.pack_unit || '', pack_size: parseInt(p.pack_size) || 1, sell_price_pack: parseFloat(p.sell_price_pack) || 0, price_tiers: [] });
+    setModalError(''); setShowModal('product');
+    // v1.7.0: fetch tiers async
+    try {
+      const { data } = await inventoryAPI.getProductTiers(p.id);
+      setPForm(prev => ({ ...prev, price_tiers: data || [] }));
+    } catch (e) { /* tiers optional, skip silently */ }
+  };
+  // v1.7.0 tier handlers
+  const addTier = () => setPForm(p => ({ ...p, price_tiers: [...(p.price_tiers || []), { unit: p.base_unit || 'pcs', min_qty: 1, max_qty: '', price: 0 }] }));
+  const updateTier = (idx, field, value) => setPForm(p => { const n = [...(p.price_tiers || [])]; n[idx] = { ...n[idx], [field]: value }; return { ...p, price_tiers: n }; });
+  const removeTier = (idx) => setPForm(p => ({ ...p, price_tiers: (p.price_tiers || []).filter((_, i) => i !== idx) }));
   const saveProduct = async () => {
     if (!pForm.name.trim()) { setModalError('Nama produk wajib diisi'); return; }
     setModalError('');
     setModalSaving(true);
     try {
-      if (editId) { await inventoryAPI.updateProduct(editId, pForm); flashSuccess('Produk diperbarui'); }
-      else { await inventoryAPI.createProduct(pForm); flashSuccess('Produk ditambahkan'); }
+      let productId = editId;
+      if (editId) { await inventoryAPI.updateProduct(editId, pForm); }
+      else {
+        const { data: created } = await inventoryAPI.createProduct(pForm);
+        productId = created?.id;
+      }
+      // v1.7.0: PUT tiers (bulk replace) — kalau ada perubahan
+      if (productId) {
+        await inventoryAPI.updateProductTiers(productId, pForm.price_tiers || []);
+      }
+      flashSuccess(editId ? 'Produk diperbarui' : 'Produk ditambahkan');
       setShowModal(null); fetchProducts();
     } catch (e) {
       const msg = e.response?.data?.error || e.message;
@@ -193,13 +216,28 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   };
 
   // ─── Stock Out ────────────────────────────────────────────────────────
-  const openStockOut = (p) => { setSoForm({ product_id: p?.id || '', qty: 1, notes: '' }); setModalError(''); setShowModal('stockOut'); };
+  const loadStockOutBatches = useCallback(async (productId) => {
+    if (!productId) { setSoBatches([]); return; }
+    try {
+      const { data } = await inventoryAPI.getProductBatches(productId);
+      setSoBatches((data || []).filter(b => b.qty_current > 0));
+    } catch (e) { setSoBatches([]); }
+  }, []);
+  const openStockOut = (p) => {
+    setSoForm({ product_id: p?.id || '', qty: 1, notes: '', selected_batch_id: '' });
+    setModalError('');
+    setShowModal('stockOut');
+    if (p?.id) loadStockOutBatches(p.id);
+    else setSoBatches([]);
+  };
   const saveStockOut = async () => {
     if (!soForm.product_id || !soForm.qty) { setModalError('Pilih produk dan qty'); return; }
     setModalSaving(true);
     try {
-      await inventoryAPI.stockOut(soForm);
-      flashSuccess('Stok keluar berhasil (FEFO)');
+      const payload = { ...soForm };
+      if (!payload.selected_batch_id) delete payload.selected_batch_id; // kirim hanya kalau ada override
+      await inventoryAPI.stockOut(payload);
+      flashSuccess(payload.selected_batch_id ? 'Stok keluar berhasil (manual batch)' : 'Stok keluar berhasil (FEFO)');
       setShowModal(null);
       refreshAfterChange(soForm.product_id);
     } catch (e) {
@@ -492,6 +530,36 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
               )}
             </div>
 
+            {/* v1.7.0 Tiered Pricing (Grosir) — optional */}
+            <div style={{ background: surface, border: `1px dashed ${border}`, borderRadius: '10px', padding: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: text }}>
+                  💰 Harga Grosir (Tier) — opsional
+                </p>
+                <button onClick={addTier} type="button" style={{ background: '#007AFF', color: '#FFF', border: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}>+ Tier</button>
+              </div>
+              {(pForm.price_tiers || []).length === 0 && (
+                <p style={{ margin: 0, fontSize: '11px', color: sub, fontStyle: 'italic' }}>Belum ada tier. Klik "+ Tier" untuk tambah harga grosir per qty.</p>
+              )}
+              {(pForm.price_tiers || []).map((tier, idx) => (
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1.1fr 70px 70px 1fr 28px', gap: '6px', marginBottom: '6px', alignItems: 'center' }}>
+                  <select value={tier.unit} onChange={e => updateTier(idx, 'unit', e.target.value)} style={{ ...inputStyle, fontSize: '12px', padding: '8px' }}>
+                    <option value={pForm.base_unit || 'pcs'}>{pForm.base_unit || 'pcs'}</option>
+                    {pForm.pack_unit && <option value={pForm.pack_unit}>{pForm.pack_unit}</option>}
+                  </select>
+                  <input type="number" min="1" placeholder="Min" value={tier.min_qty} onChange={e => updateTier(idx, 'min_qty', parseInt(e.target.value) || 1)} style={{ ...inputStyle, fontSize: '12px', padding: '8px' }} />
+                  <input type="number" placeholder="Max" value={tier.max_qty || ''} onChange={e => updateTier(idx, 'max_qty', e.target.value)} title="Kosongkan = tanpa batas atas" style={{ ...inputStyle, fontSize: '12px', padding: '8px' }} />
+                  <input type="number" placeholder="Harga (Rp)" value={tier.price} onChange={e => updateTier(idx, 'price', parseFloat(e.target.value) || 0)} style={{ ...inputStyle, fontSize: '12px', padding: '8px' }} />
+                  <button onClick={() => removeTier(idx)} type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>
+                </div>
+              ))}
+              {(pForm.price_tiers || []).length > 0 && (
+                <p style={{ margin: '6px 0 0', fontSize: '11px', color: sub }}>
+                  💡 Auto-apply ke Nota saat qty matches range. Tier dengan <code>min_qty</code> tertinggi yang match = menang.
+                </p>
+              )}
+            </div>
+
             <div><label style={labelStyle}>Stok Minimum (di {pForm.base_unit || pForm.unit || 'pcs'})</label><input type="number" value={pForm.min_stock} onChange={e => setPForm(p => ({ ...p, min_stock: parseInt(e.target.value) || 0 }))} style={inputStyle} /></div>
             {editId && (
               <div style={{ background: '#007AFF10', border: '1px solid #007AFF30', padding: '10px 12px', borderRadius: '10px', fontSize: '12px', color: text, display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
@@ -559,14 +627,37 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
               <label style={labelStyle}>Produk *</label>
-              <select value={soForm.product_id} onChange={e => setSoForm(p => ({ ...p, product_id: parseInt(e.target.value) }))} style={inputStyle}>
+              <select value={soForm.product_id} onChange={e => {
+                const newId = parseInt(e.target.value) || '';
+                setSoForm(p => ({ ...p, product_id: newId, selected_batch_id: '' }));
+                if (newId) loadStockOutBatches(newId); else setSoBatches([]);
+              }} style={inputStyle}>
                 <option value="">Pilih produk...</option>
                 {products.map(p => <option key={p.id} value={p.id}>{p.name} (stok: {p.total_stock})</option>)}
               </select>
             </div>
+            {/* v1.7.0: Batch dropdown — FEFO default + manual override */}
+            {soForm.product_id && soBatches.length > 0 && (
+              <div>
+                <label style={labelStyle}>Pilih Batch (override FEFO)</label>
+                <select value={soForm.selected_batch_id} onChange={e => setSoForm(p => ({ ...p, selected_batch_id: e.target.value }))} style={inputStyle}>
+                  <option value="">🤖 Auto FEFO — pilih batch dengan ED terdekat</option>
+                  {soBatches.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.batch_no || '(tanpa no)'} · ED: {b.expired_date ? fmtDate(b.expired_date) : '-'} · Stok: {b.qty_current}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div><label style={labelStyle}>Qty *</label><input type="number" value={soForm.qty} min="1" onChange={e => setSoForm(p => ({ ...p, qty: parseInt(e.target.value) || 0 }))} style={inputStyle} /></div>
             <div><label style={labelStyle}>Catatan</label><input value={soForm.notes} onChange={e => setSoForm(p => ({ ...p, notes: e.target.value }))} placeholder="Alasan stok keluar" style={inputStyle} /></div>
-            <p style={{ margin: 0, fontSize: '11px', color: sub }}>ℹ️ Stok akan diambil otomatis dari batch dengan ED terdekat (FEFO).</p>
+            {!soForm.selected_batch_id && (
+              <p style={{ margin: 0, fontSize: '11px', color: sub }}>ℹ️ Stok akan diambil otomatis dari batch dengan ED terdekat (FEFO).</p>
+            )}
+            {soForm.selected_batch_id && (
+              <p style={{ margin: 0, fontSize: '11px', color: '#FF9500', fontWeight: '600' }}>⚠️ Mode manual — qty akan dipotong dari batch yang dipilih saja.</p>
+            )}
             {modalError && (
               <div style={{ backgroundColor: '#FFF5F5', border: '1px solid #FFE5E5', borderRadius: '10px', padding: '10px 14px', color: '#FF3B30', fontSize: '13px', fontWeight: '600', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} /> <span>{modalError}</span>

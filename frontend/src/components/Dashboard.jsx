@@ -6,7 +6,18 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.6.0-stable', date: '25 Mei 2026', status: 'latest',
+    version: 'v1.7.0-stable', date: '25 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'feat', text: '💰 Tiered Pricing (Grosir): set harga per qty range per produk (contoh: 1-4 karton @212k, 5-9 @208k, 10+ @204k). Auto-apply ke Nota saat qty match — tampil tag "🏷️ Harga grosir tier" untuk transparency.' },
+      { type: 'feat', text: '📊 Multi-Select Nota Penjualan → Export PDF Laporan: checkbox column di list nota + sticky action bar saat ada selection. Export PDF landscape A4 berisi tabel ringkasan, Grand Total, breakdown Lunas vs Belum Bayar.' },
+      { type: 'feat', text: '📦 Stok Keluar Batch Picker: dropdown batch di modal Stok Keluar (default FEFO terdekat, bisa override pilih batch tertentu). Backend single-batch deduction kalau manual override.' },
+      { type: 'feat', text: 'PDF Nota item: tampil batch_no + ED snapshot per item (kalau ada di sales_items snapshot). Audit trail clear di nota cetak.' },
+      { type: 'fix', text: 'Filter textbox Nota: text tidak kepotong lagi (ellipsis + paddingRight adequate untuk chevron + minWidth sesuai opsi terpanjang).' },
+      { type: 'fix', text: 'Hapus footer "Business Management System" di root level — gak ikut dark mode + redundant dengan version di Sidebar/Login/Dashboard.' },
+    ]
+  },
+  {
+    version: 'v1.6.0-stable', date: '25 Mei 2026', status: 'stable',
     changes: [
       { type: 'feat', text: '📦 Multi-Unit Packaging (Carton ↔ Pcs): produk kini support dual unit — eceran (pcs/btl/sachet) + kemasan (karton/dus/box). Set pack_size + harga jual per kemasan di Produk form. Auto-konversi qty di Faktur Masukan, Surat Pesanan, dan Nota Penjualan.' },
       { type: 'feat', text: 'Dual Pricing: sell_price (per eceran) + sell_price_pack (per kemasan) independent — allow diskon grosir per karton vs harga eceran. Auto-fill di Nota saat user pilih unit.' },
@@ -456,7 +467,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.6.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.7.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -508,7 +519,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.6.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.7.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -602,7 +613,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.6.0-stable — 2026
+            HABIL SUPERAPP v1.7.0-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

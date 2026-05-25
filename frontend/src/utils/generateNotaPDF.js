@@ -131,15 +131,23 @@ export function generateNotaPDF(order, options = {}) {
     const unitShow = item.unit || 'pcs';
     return `${qtyShow} ${unitShow}`;
   };
+  const fmtItemDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : null;
   const formatProductName = (item) => {
     const packSize = parseInt(item.pack_size_at_sale) || 1;
     const qtyInUnit = item.qty_in_unit !== undefined && item.qty_in_unit !== null ? parseFloat(item.qty_in_unit) : null;
     const qtyBase = item.qty || 0;
-    // Append "(= N pcs)" hanya kalau pack unit dipakai (pack_size > 1 dan ada qty_in_unit)
+    const lines = [item.product_name];
+    // Sub-line 1: konversi pack→base kalau pack unit dipakai
     if (packSize > 1 && qtyInUnit !== null && qtyInUnit !== qtyBase) {
-      return `${item.product_name}\n  (= ${qtyBase} ${item.unit_base || 'pcs'})`;
+      lines.push(`  (= ${qtyBase} ${item.unit_base || 'pcs'})`);
     }
-    return item.product_name;
+    // v1.7.0 Sub-line 2: batch + ED snapshot (kalau ada — skip silently kalau both NULL)
+    const meta = [];
+    if (item.batch_no_snapshot) meta.push(`Batch: ${item.batch_no_snapshot}`);
+    const edStr = fmtItemDate(item.expired_date_snapshot);
+    if (edStr) meta.push(`ED: ${edStr}`);
+    if (meta.length) lines.push(`  ${meta.join(' · ')}`);
+    return lines.join('\n');
   };
   let tableData = items.map((item, index) => {
     if (type === 'terima') {

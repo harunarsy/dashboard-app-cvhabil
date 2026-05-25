@@ -65,3 +65,19 @@ export const formatQtyWithConversion = (qty, unit, product) => {
   const baseUnit = product.base_unit || product.unit || 'pcs';
   return `${qty} ${unit} (= ${qty * packSize} ${baseUnit})`;
 };
+
+// v1.7.0 Tiered pricing resolver (mirror backend/utils/pricing.js)
+// Convention: highest matching min_qty wins
+export const resolveTierPrice = (qty, unit, tiers) => {
+  if (!Array.isArray(tiers) || !tiers.length || !qty) return null;
+  const q = parseFloat(qty);
+  if (!q || q <= 0) return null;
+  const matches = tiers
+    .filter(t =>
+      String(t.unit).toLowerCase() === String(unit).toLowerCase()
+      && parseInt(t.min_qty) <= q
+      && (t.max_qty === null || t.max_qty === undefined || t.max_qty === '' || parseInt(t.max_qty) >= q)
+    )
+    .sort((a, b) => parseInt(b.min_qty) - parseInt(a.min_qty));
+  return matches.length ? parseFloat(matches[0].price) : null;
+};
