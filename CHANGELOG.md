@@ -2,6 +2,29 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.5.1-stable] - 2026-05-25
+
+### Added (UX Enhancement: OpnameModal Inline Batch CRUD)
+- **Add Batch dari Modal Opname**: Tombol "+ Batch Baru" di header produk di sisi kanan modal Stok Opname per-Batch. Buka `BatchFormModal` (mode 'add') secara nested (zIndex 2100 > opname 2000). Tidak perlu close modal opname lalu navigate ke ProductDrawer.
+- **Edit + Delete + Adjust per Batch**: Setiap batch card kini punya icon row (Sliders/Pencil/Trash2) di pojok kanan atas. Adjust qty inline dengan alasan audit (wajib diisi). Delete soft (`is_active=FALSE`) dengan guard `qty_current = 0` di backend — error message muncul kalau qty > 0.
+- **Empty State CTA**: Produk tanpa batch kini tampilkan tombol "+ Tambah Batch Pertama" (CTA inline biru) — bukan pesan static "Lakukan Stok Masuk dulu".
+
+### Fixed (Backend Safety: Deleted Batch Tidak Bocor ke Nota)
+- Audit menemukan 4 query backend yang baca `inventory_batches` dengan filter `qty_current > 0` TANPA filter `is_active`. Kalau ada batch soft-deleted dengan qty residual > 0 (race-condition edge case), bisa bocor ke flow stock-out/FEFO.
+- **Patches**:
+  - `backend/routes/inventory.js:205-207` — `/stock-out` FEFO query
+  - `backend/routes/inventory.js:431` — opname legacy fallback FEFO
+  - `backend/routes/inventory.js:538-543` — `/batches-by-product/:productId` (dropdown batch di nota)
+  - `backend/routes/sales.js:157-163` — POST nota auto-stock-out FEFO
+- Semua tambah `AND COALESCE(is_active, TRUE) = TRUE` (fail-safe untuk legacy NULL rows pre-v1.4.0).
+
+### Infrastructure
+- **Git tag `v1.5.0-pre-opname-crud`** di-push sebelum rework — rollback aman via `git checkout` atau `git revert`.
+- **Reuse `BatchFormModal` & `inventoryAPI`** — zero duplikasi component/method. `stockIn`, `deleteBatch`, `adjustBatch`, `updateBatch`, `getProductBatches` sudah ada.
+- **CI build pre-check** per `feedback_cra_ci_build_check.md` — `CI=true npm run build` lulus sebelum push.
+
+---
+
 ## [v1.5.0-stable] - 2026-05-25
 
 ### Added (Major Feature: Liquid Glass Theme)

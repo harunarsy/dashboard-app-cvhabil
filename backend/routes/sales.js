@@ -156,6 +156,7 @@ router.post('/', auth, async (req, res) => {
         const { rows: batches } = await client.query(
           `SELECT * FROM inventory_batches
            WHERE product_id = $1 AND qty_current > 0
+           AND COALESCE(is_active, TRUE) = TRUE
            AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
            ORDER BY expired_date ASC NULLS LAST
            FOR UPDATE`,

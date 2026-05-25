@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { X, Search, ClipboardCheck, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { X, Search, ClipboardCheck, ChevronRight, CheckCircle2, Plus, Sliders, Pencil, Trash2 } from 'lucide-react';
 import { inventoryAPI } from '../../services/api';
+import BatchFormModal from './BatchFormModal';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
@@ -23,12 +24,22 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
   const [loadingBatches, setLoadingBatches] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // CRUD batch (Phase v1.5.1) — Add/Delete/Adjust inline tanpa keluar modal
+  const [batchModal, setBatchModal] = useState(null); // { mode: 'add' | 'edit', batch?: ... }
+  const [adjustFor, setAdjustFor] = useState(null);
+  const [adjustForm, setAdjustForm] = useState({ new_qty: 0, reason: '' });
+  const [actionError, setActionError] = useState('');
 
   const bg = isDarkMode ? '#1C1C1E' : '#FFF';
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = '#86868B';
   const surface = isDarkMode ? '#2C2C2E' : '#F5F5F7';
+  const iconBtnStyle = {
+    width: '28px', height: '28px', background: 'transparent', border: `1px solid ${border}`,
+    borderRadius: '6px', cursor: 'pointer', color: sub,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  };
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -58,6 +69,49 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
   useEffect(() => {
     if (selectedProductId) loadBatches(selectedProductId);
   }, [selectedProductId, loadBatches]);
+
+  // CRUD helpers — refetch (force, skip cache) + delete + adjust
+  const refetchBatches = useCallback(async (productId) => {
+    if (!productId) return;
+    try {
+      const { data } = await inventoryAPI.getProductBatches(productId);
+      setBatchesByProduct(prev => ({ ...prev, [productId]: data }));
+    } catch (e) {
+      setActionError(e.response?.data?.error || e.message);
+    }
+  }, []);
+
+  const handleDelete = async (batch) => {
+    if (!window.confirm(`Hapus batch "${batch.batch_no || '(tanpa no)'}"? (qty harus 0)`)) return;
+    setActionError('');
+    try {
+      await inventoryAPI.deleteBatch(batch.id);
+      await refetchBatches(selectedProductId);
+      setInputs(prev => {
+        const next = { ...prev };
+        delete next[batch.id];
+        return next;
+      });
+    } catch (e) {
+      setActionError(e.response?.data?.error || e.message);
+    }
+  };
+
+  const handleAdjustSubmit = async () => {
+    if (!adjustForm.reason.trim()) { setActionError('Alasan adjustment wajib diisi'); return; }
+    try {
+      await inventoryAPI.adjustBatch(adjustFor.id, {
+        new_qty: parseInt(adjustForm.new_qty),
+        reason: adjustForm.reason,
+      });
+      setAdjustFor(null);
+      setAdjustForm({ new_qty: 0, reason: '' });
+      setActionError('');
+      await refetchBatches(selectedProductId);
+    } catch (e) {
+      setActionError(e.response?.data?.error || e.message);
+    }
+  };
 
   const handleInput = (batch, product, value) => {
     const v = value === '' ? '' : parseInt(value);
@@ -199,16 +253,43 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
             )}
             {selectedProduct && (
               <>
-                <div style={{ marginBottom: '16px' }}>
-                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '700' }}>{selectedProduct.name}</h3>
-                  <p style={{ margin: '2px 0 0', fontSize: '12px', color: sub }}>
-                    {selectedProduct.code || '—'} · Total sistem: {selectedProduct.total_stock || 0} {selectedProduct.unit}
-                  </p>
+                <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '700' }}>{selectedProduct.name}</h3>
+                    <p style={{ margin: '2px 0 0', fontSize: '12px', color: sub }}>
+                      {selectedProduct.code || '—'} · Total sistem: {selectedProduct.total_stock || 0} {selectedProduct.unit}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setActionError(''); setBatchModal({ mode: 'add' }); }}
+                    title="Tambah batch baru untuk produk ini"
+                    style={{
+                      padding: '8px 14px', background: '#007AFF', color: '#FFF',
+                      border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Plus size={14} /> Batch Baru
+                  </button>
                 </div>
+                {actionError && (
+                  <p style={{ margin: '0 0 10px', color: '#FF3B30', fontSize: '12px' }}>{actionError}</p>
+                )}
                 {loadingBatches && <p style={{ color: sub, fontSize: '13px' }}>Memuat batch...</p>}
                 {!loadingBatches && currentBatches.length === 0 && (
                   <div style={{ padding: '24px', background: surface, borderRadius: '12px', textAlign: 'center', color: sub, fontSize: '13px' }}>
-                    Belum ada batch untuk produk ini. Lakukan Stok Masuk dulu.
+                    <p style={{ margin: '0 0 12px' }}>Belum ada batch untuk produk ini.</p>
+                    <button
+                      onClick={() => { setActionError(''); setBatchModal({ mode: 'add' }); }}
+                      style={{
+                        padding: '8px 16px', background: '#007AFF', color: '#FFF', border: 'none',
+                        borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                      }}
+                    >
+                      <Plus size={14} /> Tambah Batch Pertama
+                    </button>
                   </div>
                 )}
                 <div style={{ display: 'grid', gap: '10px' }}>
@@ -223,8 +304,8 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                       <div key={b.id} style={{
                         padding: '12px', background: surface, borderRadius: '12px', border: `1px solid ${border}`,
                       }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                          <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', gap: '8px' }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
                             <p style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>
                               {b.batch_no || <em style={{ color: sub }}>(tanpa no. batch)</em>}
                             </p>
@@ -233,11 +314,28 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                               background: eb.bg, color: eb.color, fontSize: '11px', fontWeight: '600',
                             }}>{eb.text}</span>
                           </div>
-                          {hasInput && diff !== 0 && (
-                            <span style={{ fontSize: '13px', fontWeight: '700', color: diffColor }}>
-                              {diff > 0 ? '+' : ''}{diff}
-                            </span>
-                          )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                            {hasInput && diff !== 0 && (
+                              <span style={{ fontSize: '13px', fontWeight: '700', color: diffColor, marginRight: '4px' }}>
+                                {diff > 0 ? '+' : ''}{diff}
+                              </span>
+                            )}
+                            <button
+                              onClick={() => { setActionError(''); setAdjustFor(b); setAdjustForm({ new_qty: b.qty_current, reason: '' }); }}
+                              title="Adjust qty (dengan alasan audit)"
+                              style={iconBtnStyle}
+                            ><Sliders size={13} /></button>
+                            <button
+                              onClick={() => { setActionError(''); setBatchModal({ mode: 'edit', batch: b }); }}
+                              title="Edit metadata batch (no/ED/HNA/notes)"
+                              style={iconBtnStyle}
+                            ><Pencil size={13} /></button>
+                            <button
+                              onClick={() => handleDelete(b)}
+                              title="Hapus batch (qty harus 0 dulu)"
+                              style={{ ...iconBtnStyle, color: '#FF3B30', borderColor: '#FF3B3033' }}
+                            ><Trash2 size={13} /></button>
+                          </div>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: '8px', alignItems: 'end' }}>
                           <div>
@@ -306,6 +404,72 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
           }}>{saving ? 'Menyimpan...' : 'Simpan Opname'}</button>
         </div>
       </div>
+
+      {/* Nested: BatchFormModal (add/edit metadata) — zIndex 2100 above OpnameModal 2000 */}
+      {batchModal && selectedProduct && (
+        <BatchFormModal
+          mode={batchModal.mode}
+          batch={batchModal.batch}
+          productId={selectedProduct.id}
+          productName={selectedProduct.name}
+          isDarkMode={isDarkMode}
+          onClose={() => setBatchModal(null)}
+          onSaved={async () => {
+            await refetchBatches(selectedProduct.id);
+            setBatchModal(null);
+          }}
+        />
+      )}
+
+      {/* Nested: Adjust qty dialog — zIndex 2100 sibling */}
+      {adjustFor && (
+        <div onClick={(e) => e.target === e.currentTarget && setAdjustFor(null)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
+        }}>
+          <div className="glass-target glass-target--clear" style={{
+            background: bg, color: text, borderRadius: '16px', padding: '20px',
+            width: '100%', maxWidth: '380px', boxShadow: '0 32px 64px rgba(0,0,0,0.35)',
+          }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: '700' }}>
+              Adjust Qty Batch
+            </h3>
+            <p style={{ margin: '0 0 14px', fontSize: '12px', color: sub }}>
+              {adjustFor.batch_no || '(tanpa no. batch)'} · sistem saat ini: <strong style={{ color: text }}>{adjustFor.qty_current}</strong>
+            </p>
+            <label style={{ display: 'block', fontSize: '11px', color: sub, marginBottom: '4px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Qty Baru</label>
+            <input type="number" min="0" value={adjustForm.new_qty}
+              onChange={(e) => setAdjustForm({ ...adjustForm, new_qty: e.target.value })}
+              style={{
+                width: '100%', padding: '10px 12px', border: `1px solid ${border}`,
+                borderRadius: '10px', background: bg, color: text, fontSize: '14px', fontWeight: '600',
+                outline: 'none', marginBottom: '12px', boxSizing: 'border-box',
+              }} />
+            <label style={{ display: 'block', fontSize: '11px', color: sub, marginBottom: '4px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Alasan *</label>
+            <input type="text" value={adjustForm.reason}
+              onChange={(e) => setAdjustForm({ ...adjustForm, reason: e.target.value })}
+              placeholder="contoh: koreksi data, rusak, hilang"
+              style={{
+                width: '100%', padding: '10px 12px', border: `1px solid ${border}`,
+                borderRadius: '10px', background: bg, color: text, fontSize: '13px',
+                outline: 'none', marginBottom: '14px', boxSizing: 'border-box',
+              }} />
+            {actionError && (
+              <p style={{ color: '#FF3B30', fontSize: '12px', margin: '0 0 10px' }}>{actionError}</p>
+            )}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => { setAdjustFor(null); setActionError(''); }} style={{
+                flex: 1, padding: '10px', background: surface, color: text, border: `1px solid ${border}`,
+                borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+              }}>Batal</button>
+              <button onClick={handleAdjustSubmit} style={{
+                flex: 1, padding: '10px', background: '#007AFF', color: '#FFF', border: 'none',
+                borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+              }}>Simpan</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

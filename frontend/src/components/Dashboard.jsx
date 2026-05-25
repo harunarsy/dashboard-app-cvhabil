@@ -6,7 +6,15 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.5.0-stable', date: '25 Mei 2026', status: 'latest',
+    version: 'v1.5.1-stable', date: '25 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'feat', text: '🔧 OpnameModal CRUD Inline: Tambah/Edit/Hapus/Adjust batch langsung dari modal Stok Opname per-Batch. Tombol "+ Batch Baru" di header produk; per-batch action icons (Sliders/Pencil/Trash2) dengan tooltip. Zero context switch ke ProductDrawer.' },
+      { type: 'fix', text: '🛡️ Backend Safety — Deleted Batch Tidak Bocor ke Nota: 4 query backend di-patch dengan filter COALESCE(is_active, TRUE) = TRUE. Dropdown batch nota + FEFO stock-out (stock-out, nota, opname legacy) semua skip batch yang sudah di-hapus.' },
+      { type: 'ui', text: 'Empty State Polish: Produk tanpa batch kini tampilkan tombol "+ Tambah Batch Pertama" (CTA inline) — bukan pesan static "Lakukan Stok Masuk dulu".' },
+    ]
+  },
+  {
+    version: 'v1.5.0-stable', date: '25 Mei 2026', status: 'stable',
     changes: [
       { type: 'feat', text: '🪟 Liquid Glass Theme (Beta): Tema visual Apple-style (WWDC25) — sidebar/modal/drawer/cards berubah jadi semi-transparent dengan backdrop blur + saturate + inner glow. Toggle di Login page sebelah Dark Mode (icon Sparkles).' },
       { type: 'feat', text: 'Toggle Glass dari Login: Tombol di pojok kanan atas Login page. First-time enable tampil warning + auto-detect device <4GB RAM. Persist via localStorage habil_glass_mode.' },
@@ -437,7 +445,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.5.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.5.1-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -489,7 +497,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.5.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.5.1-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -583,7 +591,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.5.0-stable — 2026
+            HABIL SUPERAPP v1.5.1-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
