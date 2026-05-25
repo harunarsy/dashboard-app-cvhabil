@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Trash2, Edit2, X, CheckCircle, FileText } from 'lucide-react';
 import { purchaseOrdersAPI, distributorsAPI, inventoryAPI, countersAPI, printSettingsAPI } from '../services/api';
+import { getProductUnits, formatQtyWithConversion } from '../constants/units';
 import { generateSPPDF } from '../utils/generateSPPDF';
 import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
@@ -9,7 +10,7 @@ import Breadcrumb from './common/Breadcrumb';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
-const blankItem = () => ({ product_name: '', qty: 1, unit: 'pcs', unit_price: 0 });
+const blankItem = () => ({ product_name: '', qty: 1, unit: 'pcs', unit_price: 0, _custom_unit: false });
 
 const statusColors = {
   draft: { bg: '#FF950018', color: '#FF9500', label: 'Draft' },
@@ -459,15 +460,31 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
               </div>
               <div>
                 <label style={labelStyle}>Produk</label>
-                {items.map((it, idx) => (
-                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 60px 70px 1fr 30px', gap: '6px', marginBottom: '6px', alignItems: 'center' }}>
-                    <input list="inv-product-list" value={it.product_name} onChange={e => updateItem(idx, 'product_name', e.target.value)} placeholder="Produk" style={{ ...inputStyle, fontSize: '13px', padding: '8px 10px' }} />
-                    <input type="number" value={it.qty} onChange={e => updateItem(idx, 'qty', parseInt(e.target.value) || 0)} min="1" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
-                    <input value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} placeholder="pcs" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px' }} />
-                    <input type="number" value={it.unit_price} onChange={e => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} min="0" placeholder="Harga" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px' }} />
-                    {items.length > 1 && <button onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>}
+                {items.map((it, idx) => {
+                  const product = products.find(p => p.name?.toLowerCase() === it.product_name?.toLowerCase());
+                  const unitOptions = getProductUnits(product);
+                  const showPreview = product && product.pack_unit && (parseInt(product.pack_size) || 1) > 1;
+                  return (
+                  <div key={idx} style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 60px 90px 1fr 30px', gap: '6px', alignItems: 'center' }}>
+                      <input list="inv-product-list" value={it.product_name} onChange={e => {
+                        updateItem(idx, 'product_name', e.target.value);
+                        const p = products.find(x => x.name?.toLowerCase() === e.target.value?.toLowerCase());
+                        if (p) updateItem(idx, 'unit', p.base_unit || p.unit || 'pcs');
+                      }} placeholder="Produk" style={{ ...inputStyle, fontSize: '13px', padding: '8px 10px' }} />
+                      <input type="number" value={it.qty} onChange={e => updateItem(idx, 'qty', parseInt(e.target.value) || 0)} min="1" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
+                      <select value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px' }}>
+                        {unitOptions.map((u, i) => <option key={`${u.value}-${i}`} value={u.value}>{u.label}</option>)}
+                      </select>
+                      <input type="number" value={it.unit_price} onChange={e => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} min="0" placeholder="Harga" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px' }} />
+                      {items.length > 1 && <button onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>}
+                    </div>
+                    {showPreview && it.qty > 0 && (
+                      <p style={{ margin: '4px 0 0 8px', fontSize: '11px', color: sub }}>📐 {formatQtyWithConversion(it.qty, it.unit, product)}</p>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
                 <datalist id="inv-product-list">{products.map(p => <option key={p.id} value={p.name} />)}</datalist>
                 <button onClick={addItem} style={{ fontSize: '13px', color: '#5856D6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', marginTop: '4px' }}>+ Tambah Produk</button>
               </div>

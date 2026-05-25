@@ -124,16 +124,34 @@ export function generateNotaPDF(order, options = {}) {
 
   // ─── Table ────────────────────────────────────────────────────────────
   const items = order.items || [];
+  // v1.6.0 multi-unit: prefer qty_in_unit + unit (snapshot at sale time) untuk display user-friendly
+  // Tampilkan "1 karton" instead of "12 pcs" kalau pack unit dipakai. Append conversion ke nama produk untuk transparency.
+  const formatQtyDisplay = (item) => {
+    const qtyShow = item.qty_in_unit !== undefined && item.qty_in_unit !== null ? parseFloat(item.qty_in_unit) : (item.qty || 0);
+    const unitShow = item.unit || 'pcs';
+    return `${qtyShow} ${unitShow}`;
+  };
+  const formatProductName = (item) => {
+    const packSize = parseInt(item.pack_size_at_sale) || 1;
+    const qtyInUnit = item.qty_in_unit !== undefined && item.qty_in_unit !== null ? parseFloat(item.qty_in_unit) : null;
+    const qtyBase = item.qty || 0;
+    // Append "(= N pcs)" hanya kalau pack unit dipakai (pack_size > 1 dan ada qty_in_unit)
+    if (packSize > 1 && qtyInUnit !== null && qtyInUnit !== qtyBase) {
+      return `${item.product_name}\n  (= ${qtyBase} ${item.unit_base || 'pcs'})`;
+    }
+    return item.product_name;
+  };
   let tableData = items.map((item, index) => {
     if (type === 'terima') {
-      return [index + 1, item.product_name, item.qty || 0, item.unit || 'pcs'];
+      return [index + 1, formatProductName(item), formatQtyDisplay(item), item.unit || 'pcs'];
     }
+    const qtyForCalc = item.qty_in_unit !== undefined && item.qty_in_unit !== null ? parseFloat(item.qty_in_unit) : (item.qty || 0);
     return [
       index + 1,
-      item.product_name,
-      item.qty || 0,
+      formatProductName(item),
+      formatQtyDisplay(item),
       fmtRp(item.unit_price),
-      fmtRp((item.qty || 0) * (item.unit_price || 0))
+      fmtRp(qtyForCalc * (item.unit_price || 0))
     ];
   });
 

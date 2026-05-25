@@ -98,13 +98,20 @@ export function generateSPPDF(order, options = {}) {
 
   // ─── Table ────────────────────────────────────────────────────────────
   const items = order.items || [];
+  // v1.6.0 multi-unit: prefer qty_in_unit (snapshot user-input qty di unit pack/eceran) untuk display
+  const formatQtyForSP = (item) => {
+    const qtyShow = item.qty_in_unit !== undefined && item.qty_in_unit !== null
+      ? parseFloat(item.qty_in_unit)
+      : (item.qty || 0);
+    return qtyShow;
+  };
   let tableData = items.map((item, index) => {
     return [
-      index + 1, 
-      item.product_name, 
-      item.qty || 0, 
+      index + 1,
+      item.product_name,
+      formatQtyForSP(item),
       item.unit || 'pcs',
-      item.keterangan || '-' // If there's no keterangan on item, just '-'
+      item.keterangan || '-'
     ];
   });
 

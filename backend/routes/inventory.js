@@ -71,6 +71,20 @@ const ensureSchema = async () => {
     ALTER TABLE stock_opname ADD COLUMN IF NOT EXISTS batch_id INT REFERENCES inventory_batches(id);
     CREATE INDEX IF NOT EXISTS idx_opname_batch ON stock_opname(batch_id);
   `);
+  // v1.6.0 multi-unit packaging: product_master dual-unit + dual-price, batch source snapshot, mutation unit context
+  await pool.query(`
+    ALTER TABLE product_master ADD COLUMN IF NOT EXISTS base_unit VARCHAR(30) DEFAULT 'pcs';
+    ALTER TABLE product_master ADD COLUMN IF NOT EXISTS pack_unit VARCHAR(30);
+    ALTER TABLE product_master ADD COLUMN IF NOT EXISTS pack_size INT DEFAULT 1;
+    ALTER TABLE product_master ADD COLUMN IF NOT EXISTS sell_price_pack DECIMAL(15,2) DEFAULT 0;
+    ALTER TABLE inventory_batches ADD COLUMN IF NOT EXISTS source_qty_value DECIMAL(15,4);
+    ALTER TABLE inventory_batches ADD COLUMN IF NOT EXISTS source_qty_unit VARCHAR(30);
+    ALTER TABLE inventory_batches ADD COLUMN IF NOT EXISTS source_pack_size INT;
+    ALTER TABLE inventory_mutations ADD COLUMN IF NOT EXISTS qty_unit VARCHAR(30);
+    ALTER TABLE inventory_mutations ADD COLUMN IF NOT EXISTS qty_in_unit DECIMAL(15,4);
+  `);
+  // Backfill base_unit dari kolom existing `unit` (existing rows compat) — hanya kalau base_unit masih default
+  await pool.query(`UPDATE product_master SET base_unit = unit WHERE (base_unit IS NULL OR base_unit = 'pcs') AND unit IS NOT NULL AND unit != ''`);
   // Resync SERIAL sequences supaya tidak tabrakan dengan data hasil migration/import (fix duplicate key constraint violation)
   await pool.query(`SELECT setval('product_master_id_seq', COALESCE((SELECT MAX(id) FROM product_master), 0) + 1, false)`);
   await pool.query(`SELECT setval('inventory_batches_id_seq', COALESCE((SELECT MAX(id) FROM inventory_batches), 0) + 1, false)`);
@@ -118,13 +132,16 @@ router.get('/products/:id', auth, async (req, res) => {
 
 // CREATE product
 router.post('/products', auth, async (req, res) => {
-  const { code, name, unit, hna, sell_price, category, min_stock } = req.body;
+  const { code, name, unit, hna, sell_price, category, min_stock, base_unit, pack_unit, pack_size, sell_price_pack } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Nama produk wajib diisi' });
   try {
+    const resolvedBaseUnit = base_unit || unit || 'pcs';
+    const resolvedPackSize = parseInt(pack_size) || 1;
     const { rows } = await pool.query(
-      `INSERT INTO product_master (code, name, unit, hna, sell_price, category, min_stock)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [code || null, name.trim(), unit || 'pcs', hna || 0, sell_price || 0, category || '', min_stock || 5]
+      `INSERT INTO product_master (code, name, unit, hna, sell_price, category, min_stock, base_unit, pack_unit, pack_size, sell_price_pack)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [code || null, name.trim(), resolvedBaseUnit, hna || 0, sell_price || 0, category || '', min_stock || 5,
+       resolvedBaseUnit, pack_unit || null, resolvedPackSize, sell_price_pack || 0]
     );
     res.status(201).json(rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -132,13 +149,17 @@ router.post('/products', auth, async (req, res) => {
 
 // UPDATE product
 router.put('/products/:id', auth, async (req, res) => {
-  const { code, name, unit, hna, sell_price, category, min_stock } = req.body;
+  const { code, name, unit, hna, sell_price, category, min_stock, base_unit, pack_unit, pack_size, sell_price_pack } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Nama produk wajib diisi' });
   try {
+    const resolvedBaseUnit = base_unit || unit || 'pcs';
+    const resolvedPackSize = parseInt(pack_size) || 1;
     const { rows } = await pool.query(
-      `UPDATE product_master SET code=$1, name=$2, unit=$3, hna=$4, sell_price=$5, category=$6, min_stock=$7, updated_at=NOW()
-       WHERE id=$8 RETURNING *`,
-      [code || null, name.trim(), unit || 'pcs', hna || 0, sell_price || 0, category || '', min_stock || 5, req.params.id]
+      `UPDATE product_master SET code=$1, name=$2, unit=$3, hna=$4, sell_price=$5, category=$6, min_stock=$7,
+        base_unit=$8, pack_unit=$9, pack_size=$10, sell_price_pack=$11, updated_at=NOW()
+       WHERE id=$12 RETURNING *`,
+      [code || null, name.trim(), resolvedBaseUnit, hna || 0, sell_price || 0, category || '', min_stock || 5,
+       resolvedBaseUnit, pack_unit || null, resolvedPackSize, sell_price_pack || 0, req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Product not found' });
     res.json(rows[0]);

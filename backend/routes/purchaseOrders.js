@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const uom = require('../utils/uom');
 
 // ─── Auto-create tables ─────────────────────────────────────────────────────
 const ensureSchema = async () => {
@@ -42,6 +43,13 @@ const ensureSchema = async () => {
   await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_po_number_active
       ON purchase_orders(po_number) WHERE is_deleted = FALSE
+  `);
+  // v1.6.0 multi-unit packaging: snapshot qty di pack unit + pack_size saat PO + partial receive in pack
+  await pool.query(`
+    ALTER TABLE purchase_order_items
+      ADD COLUMN IF NOT EXISTS qty_in_unit DECIMAL(15,4),
+      ADD COLUMN IF NOT EXISTS pack_size_at_po INT,
+      ADD COLUMN IF NOT EXISTS received_qty_in_unit DECIMAL(15,4)
   `);
 };
 ensureSchema().catch(e => console.error('purchase_orders ensureSchema:', e));
@@ -133,11 +141,27 @@ router.post('/', auth, async (req, res) => {
       [poNumber, distributor_name.trim(), distributor_address || '', req.body.pic_name || null, order_date || new Date(), expected_date || null, notes || '', total, req.user?.id || null]
     );
 
+    // v1.6.0 multi-unit: resolve product (pack info) untuk konversi qty input → base unit
+    const productMap = new Map();
     for (const item of items) {
-      const sub = (item.qty || 0) * (item.unit_price || 0);
+      if (productMap.has(item.product_name)) continue;
+      const { rows: [p] } = await client.query(
+        'SELECT id, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
+        [item.product_name]
+      );
+      if (p) productMap.set(item.product_name, p);
+    }
+
+    for (const item of items) {
+      const product = productMap.get(item.product_name);
+      const qtyInUnit = parseFloat(item.qty) || 1;
+      const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
+      const packSize = product?.pack_size || 1;
+      const sub = qtyInUnit * (item.unit_price || 0);
       await client.query(
-        `INSERT INTO purchase_order_items (po_id, product_name, qty, unit, unit_price, subtotal) VALUES ($1,$2,$3,$4,$5,$6)`,
-        [po.id, item.product_name, item.qty || 1, item.unit || 'pcs', item.unit_price || 0, sub]
+        `INSERT INTO purchase_order_items (po_id, product_name, qty, unit, unit_price, subtotal, qty_in_unit, pack_size_at_po)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [po.id, item.product_name, qtyBase, item.unit || 'pcs', item.unit_price || 0, sub, qtyInUnit, packSize]
       );
     }
     await client.query('COMMIT');
@@ -167,11 +191,28 @@ router.put('/:id', auth, async (req, res) => {
     );
     if (items) {
       await client.query('DELETE FROM purchase_order_items WHERE po_id = $1', [req.params.id]);
+      // v1.6.0 multi-unit: resolve products + convert qty to base
+      const productMap = new Map();
       for (const item of items) {
-        const sub = (item.qty || 0) * (item.unit_price || 0);
+        if (productMap.has(item.product_name)) continue;
+        const { rows: [p] } = await client.query(
+          'SELECT id, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
+          [item.product_name]
+        );
+        if (p) productMap.set(item.product_name, p);
+      }
+      for (const item of items) {
+        const product = productMap.get(item.product_name);
+        const qtyInUnit = parseFloat(item.qty) || 1;
+        const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
+        const recvInUnit = parseFloat(item.received_qty_in_unit) || 0;
+        const recvBase = product ? uom.toBase(recvInUnit || (item.received_qty || 0), item.unit, product) : (item.received_qty || 0);
+        const packSize = product?.pack_size || 1;
+        const sub = qtyInUnit * (item.unit_price || 0);
         await client.query(
-          `INSERT INTO purchase_order_items (po_id, product_name, qty, unit, unit_price, subtotal, received_qty) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-          [req.params.id, item.product_name, item.qty || 1, item.unit || 'pcs', item.unit_price || 0, sub, item.received_qty || 0]
+          `INSERT INTO purchase_order_items (po_id, product_name, qty, unit, unit_price, subtotal, received_qty, qty_in_unit, pack_size_at_po, received_qty_in_unit)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+          [req.params.id, item.product_name, qtyBase, item.unit || 'pcs', item.unit_price || 0, sub, recvBase, qtyInUnit, packSize, recvInUnit]
         );
       }
     }
@@ -206,44 +247,61 @@ router.post('/:id/receive', auth, async (req, res) => {
     await client.query('BEGIN');
 
     for (const item of items) {
-      const recvQty = parseInt(item.received_qty) || 0;
-      if (recvQty <= 0) continue;
+      // v1.6.0: receive qty bisa dikirim di unit asal PO (e.g., 5 karton) atau base unit (60 pcs)
+      // Frontend convention: kirim received_qty_in_unit (di unit PO) + received_qty (di base unit) untuk clarity
+      // Backward compat: kalau cuma `received_qty` dikirim (assumed base unit by old frontend)
+      const recvInUnit = parseFloat(item.received_qty_in_unit) || 0;
 
-      // Validate over-receive
+      // Get PO item (incl unit + pack_size_at_po snapshot) + product (for fallback conversion)
       const { rows: [current] } = await client.query(
-        'SELECT qty, received_qty FROM purchase_order_items WHERE id = $1 FOR UPDATE',
+        'SELECT product_name, qty, received_qty, unit, pack_size_at_po FROM purchase_order_items WHERE id = $1 FOR UPDATE',
         [item.po_item_id]
       );
       if (!current) continue;
-      if (current.received_qty + recvQty > current.qty) {
+      const { rows: [product] } = await client.query(
+        'SELECT id, hna, base_unit, pack_unit, pack_size FROM product_master WHERE name = $1 AND is_active = TRUE', [current.product_name]
+      );
+
+      // Determine recv qty di BASE unit
+      let recvBase;
+      if (item.received_qty_in_unit !== undefined && item.received_qty_in_unit !== null && product) {
+        recvBase = uom.toBase(recvInUnit, current.unit || product.base_unit, product);
+      } else {
+        recvBase = parseInt(item.received_qty) || 0;
+      }
+      if (recvBase <= 0) continue;
+
+      // Validate over-receive (di base unit — qty stored sudah di base post-v1.6.0)
+      if (current.received_qty + recvBase > current.qty) {
         await client.query('ROLLBACK');
-        return res.status(400).json({ error: `Jumlah diterima melebihi jumlah pesanan (maks: ${current.qty - current.received_qty})` });
+        return res.status(400).json({ error: `Jumlah diterima melebihi jumlah pesanan (maks: ${current.qty - current.received_qty} ${product?.base_unit || 'pcs'})` });
       }
 
-      // Update PO item received_qty
-      await client.query('UPDATE purchase_order_items SET received_qty = received_qty + $1 WHERE id = $2', [recvQty, item.po_item_id]);
-
-      // Get the product name from PO item
-      const { rows: [poItem] } = await client.query('SELECT product_name FROM purchase_order_items WHERE id = $1', [item.po_item_id]);
-      if (!poItem) continue;
-
-      // Find matching product in product_master
-      const { rows: [product] } = await client.query(
-        'SELECT id FROM product_master WHERE name = $1 AND is_active = TRUE', [poItem.product_name]
+      // Update PO item received_qty (base) + received_qty_in_unit (pack unit running total)
+      await client.query(
+        `UPDATE purchase_order_items
+         SET received_qty = received_qty + $1,
+             received_qty_in_unit = COALESCE(received_qty_in_unit, 0) + $2
+         WHERE id = $3`,
+        [recvBase, recvInUnit || 0, item.po_item_id]
       );
 
       if (product) {
-        // Auto stock-in to inventory
+        const packSize = product.pack_size || current.pack_size_at_po || 1;
+        const displayUnit = current.unit || product.base_unit || 'pcs';
+        // Auto stock-in to inventory (qty_current di base unit + source snapshot)
         const { rows: [batch] } = await client.query(
-          `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref)
-           VALUES ($1,$2,$3,$4,$5,'purchase',$6) RETURNING *`,
-          [product.id, item.batch_no || null, item.expired_date || null, recvQty, product.hna || 0, `PO-${req.params.id}`]
+          `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size)
+           VALUES ($1,$2,$3,$4,$5,'purchase',$6,$7,$8,$9) RETURNING *`,
+          [product.id, item.batch_no || null, item.expired_date || null, recvBase, product.hna || 0, `PO-${req.params.id}`,
+           recvInUnit || recvBase, displayUnit, packSize]
         );
-        // Record mutation
         await client.query(
-          `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by)
-           VALUES ($1,$2,'in',$3,'purchase',$4,$5,$6)`,
-          [product.id, batch.id, recvQty, parseInt(req.params.id), `Terima dari SP #${req.params.id}`, req.user?.id || null]
+          `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by, qty_unit, qty_in_unit)
+           VALUES ($1,$2,'in',$3,'purchase',$4,$5,$6,$7,$8)`,
+          [product.id, batch.id, recvBase, parseInt(req.params.id),
+           `Terima dari SP #${req.params.id}${displayUnit !== product.base_unit ? ` (${recvInUnit || recvBase} ${displayUnit})` : ''}`,
+           req.user?.id || null, displayUnit, recvInUnit || recvBase]
         );
       }
     }

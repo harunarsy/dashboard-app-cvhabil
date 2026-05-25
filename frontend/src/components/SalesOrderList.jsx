@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Trash2, Edit2, X, FileText, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { salesAPI, customersAPI, inventoryAPI, printSettingsAPI, countersAPI } from '../services/api';
+import { getProductUnits, formatQtyWithConversion, isPackUnit } from '../constants/units';
 import { generateNotaPDF } from '../utils/generateNotaPDF';
 import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
@@ -376,8 +377,9 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       const match = products.find(p => p.name.toLowerCase() === value.toLowerCase());
       if (match) {
         updated.unit_price = parseFloat(match.sell_price) || 0;
-        updated.unit = match.unit || 'pcs';
+        updated.unit = match.base_unit || match.unit || 'pcs';
         updated._product_id = match.id;
+        updated._product = match; // v1.6.0: cache product (pack info) untuk dropdown unit + konversi
 
         // Fetch available batches for dropdown
         try {
@@ -400,6 +402,29 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
         const newBatches = [...itemBatches];
         newBatches[idx] = [];
         setItemBatches(newBatches);
+        updated._product = null;
+      }
+    }
+
+    // v1.6.0: When unit changes (base → pack atau sebaliknya), recalc unit_price + unit_hpp
+    if (field === 'unit') {
+      const match = newItems[idx]._product || products.find(p => p.name?.toLowerCase() === newItems[idx].product_name?.toLowerCase());
+      if (match) {
+        const wasPackUnit = isPackUnit(newItems[idx].unit, match);
+        const isPack = isPackUnit(value, match);
+        const packSize = parseInt(match.pack_size) || 1;
+        const currentHppBase = wasPackUnit ? (newItems[idx].unit_hpp / packSize) : newItems[idx].unit_hpp;
+        if (isPack) {
+          // Switch ke pack unit → price per pack
+          updated.unit_price = parseFloat(match.sell_price_pack) > 0
+            ? parseFloat(match.sell_price_pack)
+            : (parseFloat(match.sell_price) || 0) * packSize;
+          updated.unit_hpp = currentHppBase * packSize;
+        } else {
+          // Switch ke base unit → price per pcs
+          updated.unit_price = parseFloat(match.sell_price) || 0;
+          updated.unit_hpp = currentHppBase;
+        }
       }
     }
 
@@ -408,7 +433,10 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       const batches = itemBatches[idx] || [];
       const batch = batches.find(b => b.batch_no === value);
       if (batch) {
-        updated.unit_hpp = parseFloat(batch.hna) || 0;
+        const match = newItems[idx]._product || products.find(p => p.name?.toLowerCase() === newItems[idx].product_name?.toLowerCase());
+        const isPack = match && isPackUnit(newItems[idx].unit, match);
+        const packSize = parseInt(match?.pack_size) || 1;
+        updated.unit_hpp = (parseFloat(batch.hna) || 0) * (isPack ? packSize : 1);
       }
     }
 
@@ -777,9 +805,12 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                 
                 {items.map((it, idx) => {
                   const batches = itemBatches[idx] || [];
+                  const product = it._product || products.find(p => p.name?.toLowerCase() === it.product_name?.toLowerCase());
+                  const unitOptions = getProductUnits(product);
+                  const showConversion = product && isPackUnit(it.unit, product) && it.qty > 0;
                   return (
                     <div key={idx} style={{ marginBottom: '10px' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 60px 45px 80px 100px 30px', gap: '6px', alignItems: 'center' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 60px 70px 80px 100px 30px', gap: '6px', alignItems: 'center' }}>
                         <MasterSelect
                           value={it.product_name}
                           onChange={v => updateItem(idx, 'product_name', v)}
@@ -791,13 +822,18 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                           placeholder="Nama produk"
                         />
                         <input type="number" value={it.qty} onChange={e => updateItem(idx, 'qty', parseInt(e.target.value) || 0)} min="1" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
-                        <input value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} placeholder="pcs" style={{ ...inputStyle, fontSize: '13px', padding: '8px 4px', textAlign: 'center' }} />
+                        <select value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} style={{ ...inputStyle, fontSize: '12px', padding: '8px 4px' }}>
+                          {unitOptions.map((u, i) => <option key={`${u.value}-${i}`} value={u.value}>{u.value}</option>)}
+                        </select>
                         <input type="number" value={it.unit_hpp} onChange={e => updateItem(idx, 'unit_hpp', parseFloat(e.target.value) || 0)} min="0" placeholder="0" style={{ ...inputStyle, fontSize: '12px', padding: '8px 6px', backgroundColor: isDarkMode ? '#1C1C1E' : '#EBEBEB', border: `1px dashed ${border}`, textAlign: 'center' }} />
                         <input type="number" value={it.unit_price} onChange={e => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} min="0" placeholder="0" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
                         {items.length > 1 && (
                           <button onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>
                         )}
                       </div>
+                      {showConversion && (
+                        <p style={{ margin: '4px 0 0 4px', fontSize: '11px', color: sub }}>📐 {formatQtyWithConversion(it.qty, it.unit, product)}</p>
+                      )}
                       {batches.length > 0 && (
                         <div style={{ marginTop: '4px', paddingLeft: '2px' }}>
                           <select value={it._selected_batch || ''} onChange={e => updateItem(idx, '_selected_batch', e.target.value)}

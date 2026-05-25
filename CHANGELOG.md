@@ -2,6 +2,39 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.6.0-stable] - 2026-05-25
+
+### Added (Major Feature: Multi-Unit Packaging — Carton ↔ Pcs)
+- **product_master Dual-Unit + Dual-Price**: schema additions `base_unit` (canonical pcs/btl/sachet), `pack_unit` (karton/dus/box, optional), `pack_size` (1 pack = N base, default 1 = backward compat), `sell_price_pack` (harga per kemasan independent dari `sell_price` per eceran). Allow user kasih diskon grosir per karton vs eceran.
+- **Backend Conversion Utility** (`backend/utils/uom.js`): `toBase()` / `fromBase()` / `pricePerBase()` — single source of truth untuk konversi unit. Dipakai di 4 backend flow.
+- **Inflow Backend**: POST `/api/invoices` + POST `/api/purchase-orders` + receive endpoint auto-convert qty input → base unit + snapshot fields (`qty_in_unit`, `pack_size_at_*`, `source_qty_value/unit/pack_size` di inventory_batches) untuk audit trail lengkap.
+- **Outflow Backend**: POST `/api/sales` convert qty → base sebelum FEFO deduct + sales_items snapshot. inventory_mutations tambah `qty_unit` + `qty_in_unit` untuk audit context.
+- **invoice_items.unit column** (sebelumnya **MISSING** sama sekali): distributor invoice unit kini tersimpan. Kritis untuk multi-unit accuracy.
+- **purchase_order_items**: tambah `qty_in_unit` + `pack_size_at_po` + `received_qty_in_unit` snapshot. Receive flow preserve unit (sebelumnya unit di-drop, qty dianggap pcs).
+
+### Added (Frontend)
+- **`frontend/src/constants/units.js`**: `BASE_UNITS` + `PACK_UNITS` lists + utility mirrors (`toBase`, `fromBase`, `isPackUnit`, `getProductUnits`, `formatQtyWithConversion`).
+- **Product Form Modal** (InventoryDashboard): 4 field baru — Base Unit dropdown, Pack Unit dropdown (optional), Pack Size, Sell Price per Pack. UI hint live preview "1 karton (12 pcs) — Per pcs: Rp 20.833".
+- **SalesOrderList**: unit dropdown smart (product-aware) + auto-fill price/HPP saat unit berubah (base ↔ pack) + conversion preview "📐 1 karton = 12 pcs" + auto-pickup `sell_price_pack` saat pack unit dipilih.
+- **PurchaseOrderList**: unit dropdown + conversion preview.
+- **InvoiceList**: ADD kolom Satuan (sebelumnya MISSING di UI) — dropdown dengan optgroup Eceran vs Kemasan.
+
+### Display Updates
+- **InventoryDashboard batch row**: append "240 pcs (= 20 karton)" preview kalau pack_size > 1.
+- **PDF Nota Penjualan** (`generateNotaPDF.js`): qty cell display user-friendly form (qty_in_unit + unit), append "(= N pcs)" sub-line di product_name kalau pack dipakai. Audit transparency.
+- **PDF Surat Pesanan** (`generateSPPDF.js`): qty cell pakai qty_in_unit snapshot.
+
+### Backward Compatibility
+- Schema migrations 100% additive (`ALTER TABLE ... IF NOT EXISTS` dgn sensible defaults `pack_size=1`). Existing data unchanged — `pack_size=1` artinya `qty == qty_in_unit` (no conversion).
+- Existing nota/faktur lama tetap behave normal — snapshot fields default NULL = treat as base unit.
+- Backfill `base_unit` dari kolom `unit` existing (one-time UPDATE di ensureSchema).
+
+### Infrastructure
+- **Git tag** `v1.5.1-pre-multi-unit` di-push sebelum overhaul — rollback aman.
+- **Neon snapshot manual** dibuat user sebelum migration (33.51 MB di "production" branch).
+
+---
+
 ## [v1.5.1-stable] - 2026-05-25
 
 ### Added (UX Enhancement: OpnameModal Inline Batch CRUD)

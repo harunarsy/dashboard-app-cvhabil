@@ -5,6 +5,7 @@ import {
   Eye, AlertCircle,
 } from 'lucide-react';
 import { inventoryAPI } from '../services/api';
+import { BASE_UNITS, PACK_UNITS } from '../constants/units';
 import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
 import ConfirmModal from './common/ConfirmModal';
@@ -46,8 +47,8 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   const [batchesLoading, setBatchesLoading] = useState({});
   const [drawerProductId, setDrawerProductId] = useState(null);
 
-  // Product form
-  const [pForm, setPForm] = useState({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5 });
+  // Product form (v1.6.0 multi-unit: base_unit + pack_unit + pack_size + sell_price_pack)
+  const [pForm, setPForm] = useState({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5, base_unit: 'pcs', pack_unit: '', pack_size: 1, sell_price_pack: 0 });
   // Stock in form
   const [siForm, setSiForm] = useState({ product_name: '', batch_no: '', expired_date: '', qty: 1, hna: 0 });
   // Stock out form
@@ -137,8 +138,8 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' };
 
   // ─── Product CRUD ─────────────────────────────────────────────────────
-  const openAddProduct = () => { setEditId(null); setPForm({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5 }); setModalError(''); setShowModal('product'); };
-  const openEditProduct = (p) => { setEditId(p.id); setPForm({ code: p.code || '', name: p.name, unit: p.unit || 'pcs', hna: parseFloat(p.hna) || 0, sell_price: parseFloat(p.sell_price) || 0, category: p.category || '', min_stock: p.min_stock || 5 }); setModalError(''); setShowModal('product'); };
+  const openAddProduct = () => { setEditId(null); setPForm({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5, base_unit: 'pcs', pack_unit: '', pack_size: 1, sell_price_pack: 0 }); setModalError(''); setShowModal('product'); };
+  const openEditProduct = (p) => { setEditId(p.id); setPForm({ code: p.code || '', name: p.name, unit: p.unit || 'pcs', hna: parseFloat(p.hna) || 0, sell_price: parseFloat(p.sell_price) || 0, category: p.category || '', min_stock: p.min_stock || 5, base_unit: p.base_unit || p.unit || 'pcs', pack_unit: p.pack_unit || '', pack_size: parseInt(p.pack_size) || 1, sell_price_pack: parseFloat(p.sell_price_pack) || 0 }); setModalError(''); setShowModal('product'); };
   const saveProduct = async () => {
     if (!pForm.name.trim()) { setModalError('Nama produk wajib diisi'); return; }
     setModalError('');
@@ -377,6 +378,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                             <td colSpan={8} style={{ padding: '8px 14px 16px' }}>
                               <ExpandedBatches
                                 productId={p.id}
+                                product={p}
                                 batches={batchesCache[p.id]}
                                 loading={batchesLoading[p.id]}
                                 sub={sub} text={text} border={border} cardBg={cardBg} isDarkMode={isDarkMode}
@@ -448,11 +450,49 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
             </div>
             <div><label style={labelStyle}>Nama Produk *</label><input value={pForm.name} onChange={e => { setPForm(p => ({ ...p, name: e.target.value })); setModalError(''); }} placeholder="Paracetamol 500mg" style={inputStyle} /></div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-              <div><label style={labelStyle}>Satuan</label><input value={pForm.unit} onChange={e => setPForm(p => ({ ...p, unit: e.target.value }))} placeholder="pcs" style={inputStyle} /></div>
-              <div><label style={labelStyle}>HNA</label><input type="number" value={pForm.hna} onChange={e => setPForm(p => ({ ...p, hna: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
-              <div><label style={labelStyle}>Harga Jual</label><input type="number" value={pForm.sell_price} onChange={e => setPForm(p => ({ ...p, sell_price: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
+              <div>
+                <label style={labelStyle}>Satuan Eceran *</label>
+                <select value={pForm.base_unit || pForm.unit || 'pcs'} onChange={e => setPForm(p => ({ ...p, base_unit: e.target.value, unit: e.target.value }))} style={inputStyle}>
+                  {BASE_UNITS.map((u, i) => <option key={`${u.value}-${i}`} value={u.value}>{u.label}</option>)}
+                </select>
+              </div>
+              <div><label style={labelStyle}>HNA / eceran</label><input type="number" value={pForm.hna} onChange={e => setPForm(p => ({ ...p, hna: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
+              <div><label style={labelStyle}>Jual / eceran</label><input type="number" value={pForm.sell_price} onChange={e => setPForm(p => ({ ...p, sell_price: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
             </div>
-            <div><label style={labelStyle}>Stok Minimum</label><input type="number" value={pForm.min_stock} onChange={e => setPForm(p => ({ ...p, min_stock: parseInt(e.target.value) || 0 }))} style={inputStyle} /></div>
+
+            {/* v1.6.0 Multi-Unit Packaging — optional */}
+            <div style={{ background: surface, border: `1px dashed ${border}`, borderRadius: '10px', padding: '12px' }}>
+              <p style={{ margin: '0 0 10px', fontSize: '12px', fontWeight: '700', color: text }}>
+                📦 Kemasan (opsional) — kalau barang juga dijual per karton/dus
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '12px' }}>
+                <div>
+                  <label style={labelStyle}>Satuan Kemasan</label>
+                  <select value={pForm.pack_unit || ''} onChange={e => setPForm(p => ({ ...p, pack_unit: e.target.value, pack_size: e.target.value ? (p.pack_size > 1 ? p.pack_size : 12) : 1 }))} style={inputStyle}>
+                    <option value="">— Tidak ada —</option>
+                    {PACK_UNITS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Isi per {pForm.pack_unit || 'kemasan'}</label>
+                  <input type="number" min="1" disabled={!pForm.pack_unit} value={pForm.pack_size || 1} onChange={e => setPForm(p => ({ ...p, pack_size: parseInt(e.target.value) || 1 }))} style={{ ...inputStyle, opacity: pForm.pack_unit ? 1 : 0.5 }} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Jual / {pForm.pack_unit || 'kemasan'}</label>
+                  <input type="number" disabled={!pForm.pack_unit} value={pForm.sell_price_pack || 0} onChange={e => setPForm(p => ({ ...p, sell_price_pack: parseFloat(e.target.value) || 0 }))} style={{ ...inputStyle, opacity: pForm.pack_unit ? 1 : 0.5 }} />
+                </div>
+              </div>
+              {pForm.pack_unit && pForm.pack_size > 1 && (
+                <p style={{ margin: '8px 0 0', fontSize: '11px', color: sub }}>
+                  📐 1 {pForm.pack_unit} = {pForm.pack_size} {pForm.base_unit || pForm.unit || 'pcs'}
+                  {pForm.sell_price_pack > 0 && pForm.pack_size > 0 && (
+                    <> · Per {pForm.base_unit || pForm.unit || 'pcs'}: {fmtRp(pForm.sell_price_pack / pForm.pack_size)}</>
+                  )}
+                </p>
+              )}
+            </div>
+
+            <div><label style={labelStyle}>Stok Minimum (di {pForm.base_unit || pForm.unit || 'pcs'})</label><input type="number" value={pForm.min_stock} onChange={e => setPForm(p => ({ ...p, min_stock: parseInt(e.target.value) || 0 }))} style={inputStyle} /></div>
             {editId && (
               <div style={{ background: '#007AFF10', border: '1px solid #007AFF30', padding: '10px 12px', borderRadius: '10px', fontSize: '12px', color: text, display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <AlertCircle size={14} style={{ color: '#007AFF', flexShrink: 0, marginTop: '1px' }} />
@@ -624,7 +664,10 @@ function IconBtn({ onClick, label, Icon, color }) {
   );
 }
 
-function ExpandedBatches({ productId, batches, loading, sub, text, border, cardBg, isDarkMode, onAddBatch, onOpenDrawer }) {
+function ExpandedBatches({ productId, product, batches, loading, sub, text, border, cardBg, isDarkMode, onAddBatch, onOpenDrawer }) {
+  const packSize = parseInt(product?.pack_size) || 1;
+  const packUnit = product?.pack_unit;
+  const baseUnit = product?.base_unit || product?.unit || 'pcs';
   if (loading) return <p style={{ color: sub, fontSize: '12px', padding: '8px 0' }}>Memuat batch...</p>;
   if (!batches || batches.length === 0) {
     return (
@@ -668,7 +711,14 @@ function ExpandedBatches({ productId, batches, loading, sub, text, border, cardB
                     )
                   ) : <span style={{ color: sub }}>—</span>}
                 </td>
-                <td style={{ padding: '8px 14px', textAlign: 'right', color: text, fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{b.qty_current}</td>
+                <td style={{ padding: '8px 14px', textAlign: 'right', color: text, fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>
+                  {b.qty_current} {baseUnit}
+                  {packUnit && packSize > 1 && (
+                    <div style={{ fontSize: '10px', color: sub, fontWeight: '500' }}>
+                      = {(b.qty_current / packSize).toFixed(b.qty_current % packSize === 0 ? 0 : 1)} {packUnit}
+                    </div>
+                  )}
+                </td>
                 <td style={{ padding: '8px 14px', textAlign: 'right', color: sub, fontVariantNumeric: 'tabular-nums' }}>{fmtRp(b.hna)}</td>
               </tr>
             );

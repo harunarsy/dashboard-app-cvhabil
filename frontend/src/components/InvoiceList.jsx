@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { invoicesAPI, distributorsAPI, productsAPI, auditAPI } from '../services/api';
+import { BASE_UNITS, PACK_UNITS } from '../constants/units';
 import { Plus, X, Trash2, RotateCcw, Search, AlertTriangle, Clock, FileText, ChevronLeft, ChevronRight, History } from 'lucide-react';
 import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
@@ -72,6 +73,7 @@ const blankItem = () => ({
   _id: Math.random().toString(36).slice(2),
   product_name: '', batch_number: '', expired_date: '', quantity: '', hna: '',
   hna_times_qty: 0, disc_percent: '', disc_nominal: 0, hna_baru: 0, hna_per_item: 0,
+  unit: 'pcs', // v1.6.0 multi-unit: unit input dari distributor (pcs/karton/dus/etc)
 });
 const blankForm = () => ({
   invoice_number: '', purchase_date: '', distributor_name: '',
@@ -388,6 +390,8 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
           disc_cod_per_item: withCod.disc_cod_per_item || 0,
           hna_after_cod: withCod.hna_after_cod || i.hna_baru,
           hpp_inc_ppn: withCod.hpp_inc_ppn || (i.hna_per_item || 0) * 1.11,
+          unit: i.unit || 'pcs', // v1.6.0: pass unit ke backend untuk konversi qty → base
+          batch_number: i.batch_number || null,
         };
       }),
     };
@@ -451,7 +455,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
         status: invoice.status,
       });
       setItems(invItems.length > 0
-        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', batch_number: i.batch_number||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0 }))
+        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', batch_number: i.batch_number||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0, unit: i.unit||'pcs' }))
         : [blankItem()]
       );
       setEditingId(existingId);
@@ -474,7 +478,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
         status: invoice.status,
       });
       setItems(invItems.length > 0
-        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', batch_number: i.batch_number||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0 }))
+        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', batch_number: i.batch_number||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0, unit: i.unit||'pcs' }))
         : [blankItem()]
       );
       setEditingId(inv.id); setShowModal(true);
@@ -1185,9 +1189,20 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                   <div><label style={S.label}>Expired Date</label><input type="date" style={S.input} value={item.expired_date} onChange={e => updateItem(idx, 'expired_date', e.target.value)} /></div>
                   <div />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '0.7fr 0.8fr 1fr 0.7fr', gap: '10px', marginBottom: '10px' }}>
                   <div><label style={S.label}>QTY</label><input style={S.input} type="number" min="0" value={item.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} placeholder="0" /></div>
-                  <div><label style={S.label}>HNA</label>
+                  <div>
+                    <label style={S.label}>Satuan</label>
+                    <select style={S.input} value={item.unit || 'pcs'} onChange={e => updateItem(idx, 'unit', e.target.value)}>
+                      <optgroup label="Eceran">
+                        {BASE_UNITS.map((u, i) => <option key={`b-${u.value}-${i}`} value={u.value}>{u.label}</option>)}
+                      </optgroup>
+                      <optgroup label="Kemasan">
+                        {PACK_UNITS.map(u => <option key={`p-${u.value}`} value={u.value}>{u.label}</option>)}
+                      </optgroup>
+                    </select>
+                  </div>
+                  <div><label style={S.label}>HNA / {item.unit || 'pcs'}</label>
                     <input style={S.input} value={item.hna === '' ? '' : formatRpInput(parseNum(item.hna))}
                       onChange={e => { const raw = e.target.value.replace(/\./g, '').replace(/[^0-9]/g, ''); updateItem(idx, 'hna', raw); }} placeholder="Rp 0" />
                   </div>

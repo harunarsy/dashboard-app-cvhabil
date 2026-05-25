@@ -116,7 +116,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const txt = isDarkMode ? '#FFF' : '#000';
   const sub = isDarkMode ? '#86868B' : '#6B7280';
-  const appVersion = 'v1.5.1-stable';
+  const appVersion = 'v1.6.0-stable';
 
   const closeMobileDrawer = () => setMobileOpen(false);
 

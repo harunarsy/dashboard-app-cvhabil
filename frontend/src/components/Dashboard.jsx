@@ -6,7 +6,18 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.5.1-stable', date: '25 Mei 2026', status: 'latest',
+    version: 'v1.6.0-stable', date: '25 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'feat', text: '📦 Multi-Unit Packaging (Carton ↔ Pcs): produk kini support dual unit — eceran (pcs/btl/sachet) + kemasan (karton/dus/box). Set pack_size + harga jual per kemasan di Produk form. Auto-konversi qty di Faktur Masukan, Surat Pesanan, dan Nota Penjualan.' },
+      { type: 'feat', text: 'Dual Pricing: sell_price (per eceran) + sell_price_pack (per kemasan) independent — allow diskon grosir per karton vs harga eceran. Auto-fill di Nota saat user pilih unit.' },
+      { type: 'feat', text: 'Unit Dropdown Universal: replace free-text unit input dengan dropdown smart di 4 form (Produk, PO, Faktur, Nota). Options dinamis berdasarkan product.base_unit + pack_unit.' },
+      { type: 'fix', text: 'Faktur Masukan: tambah kolom Satuan (sebelumnya MISSING) — distributor invoice unit kini tersimpan.' },
+      { type: 'fix', text: 'SP Receive: unit asal PO kini dipertahankan saat receive → inventory_batches (sebelumnya unit di-drop, qty selalu dianggap pcs).' },
+      { type: 'ui', text: 'Inventory batch display: append "240 pcs (= 20 karton)" preview untuk produk dengan pack_size > 1. PDF Nota & SP juga tampil unit user-friendly.' },
+    ]
+  },
+  {
+    version: 'v1.5.1-stable', date: '25 Mei 2026', status: 'stable',
     changes: [
       { type: 'feat', text: '🔧 OpnameModal CRUD Inline: Tambah/Edit/Hapus/Adjust batch langsung dari modal Stok Opname per-Batch. Tombol "+ Batch Baru" di header produk; per-batch action icons (Sliders/Pencil/Trash2) dengan tooltip. Zero context switch ke ProductDrawer.' },
       { type: 'fix', text: '🛡️ Backend Safety — Deleted Batch Tidak Bocor ke Nota: 4 query backend di-patch dengan filter COALESCE(is_active, TRUE) = TRUE. Dropdown batch nota + FEFO stock-out (stock-out, nota, opname legacy) semua skip batch yang sudah di-hapus.' },
@@ -445,7 +456,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.5.1-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.6.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -497,7 +508,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.5.1-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.6.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -591,7 +602,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.5.1-stable — 2026
+            HABIL SUPERAPP v1.6.0-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

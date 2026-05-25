@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const uom = require('../utils/uom');
 
 // ─── Auto-create tables ─────────────────────────────────────────────────────
 const ensureSchema = async () => {
@@ -46,6 +47,9 @@ const ensureSchema = async () => {
     await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS unit_hpp DECIMAL(15,2) DEFAULT 0`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'unpaid'`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP`);
+    // v1.6.0 multi-unit packaging: snapshot qty di unit input + pack_size saat sale
+    await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS qty_in_unit DECIMAL(15,4)`);
+    await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS pack_size_at_sale INT`);
 };
 ensureSchema().catch(e => console.error('sales ensureSchema:', e));
 
@@ -137,22 +141,36 @@ router.post('/', auth, async (req, res) => {
     );
     const order = rows[0];
 
+    // v1.6.0 multi-unit: resolve product (pack info) per item ke Map untuk reuse di items insert + FEFO
+    const productMap = new Map();
     for (const it of items) {
-      const subtotal = (it.qty || 1) * (it.unit_price || 0);
+      if (productMap.has(it.product_name)) continue;
+      const { rows: [p] } = await client.query(
+        'SELECT id, name, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
+        [it.product_name]
+      );
+      if (p) productMap.set(it.product_name, p);
+    }
+
+    for (const it of items) {
+      const product = productMap.get(it.product_name);
+      const qtyInUnit = parseFloat(it.qty) || 1;
+      const qtyBase = product ? uom.toBase(qtyInUnit, it.unit, product) : qtyInUnit;
+      const packSize = product?.pack_size || 1;
+      const subtotal = qtyInUnit * (it.unit_price || 0);
       await client.query(
-        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, subtotal)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [order.id, it.product_name, it.qty || 1, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, subtotal]
+        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, subtotal, qty_in_unit, pack_size_at_sale)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [order.id, it.product_name, qtyBase, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, subtotal, qtyInUnit, packSize]
       );
     }
 
     // ─── Auto Stock-Out (FEFO): Nota Penjualan → Inventory ──────────────
     for (const it of items) {
-      const { rows: [product] } = await client.query(
-        'SELECT id, name FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
-        [it.product_name]
-      );
-      if (product && (it.qty || 0) > 0) {
+      const product = productMap.get(it.product_name);
+      const qtyInUnit = parseFloat(it.qty) || 0;
+      const qtyBase = product ? uom.toBase(qtyInUnit, it.unit, product) : qtyInUnit;
+      if (product && qtyBase > 0) {
         const { rows: batches } = await client.query(
           `SELECT * FROM inventory_batches
            WHERE product_id = $1 AND qty_current > 0
@@ -162,22 +180,25 @@ router.post('/', auth, async (req, res) => {
            FOR UPDATE`,
           [product.id]
         );
-        let remaining = it.qty || 0;
+        let remaining = qtyBase;
+        const displayUnit = it.unit || product.base_unit || 'pcs';
         for (const batch of batches) {
           if (remaining <= 0) break;
           const deduct = Math.min(batch.qty_current, remaining);
           await client.query('UPDATE inventory_batches SET qty_current = qty_current - $1 WHERE id = $2', [deduct, batch.id]);
           await client.query(
-            `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes)
-             VALUES ($1, $2, 'out', $3, 'nota', $4, $5)`,
-            [product.id, batch.id, deduct, order.id, `Stok keluar FEFO dari nota ${orderNumber}`]
+            `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
+             VALUES ($1, $2, 'out', $3, 'nota', $4, $5, $6, $7)`,
+            [product.id, batch.id, deduct, order.id,
+             `Stok keluar FEFO dari nota ${orderNumber}${displayUnit !== product.base_unit ? ` (${qtyInUnit} ${displayUnit})` : ''}`,
+             displayUnit, qtyInUnit]
           );
           remaining -= deduct;
         }
         if (remaining > 0) {
           await client.query('ROLLBACK');
           client.release();
-          return res.status(400).json({ error: `Stok ${product.name} tidak mencukupi (kurang: ${remaining})` });
+          return res.status(400).json({ error: `Stok ${product.name} tidak mencukupi (kurang: ${remaining} ${product.base_unit || 'pcs'})` });
         }
       }
     }
@@ -232,12 +253,26 @@ router.put('/:id', auth, async (req, res) => {
 
     // Replace items
     await client.query('DELETE FROM sales_items WHERE sales_order_id = $1', [req.params.id]);
+    // v1.6.0: resolve products untuk konversi qty ke base unit
+    const productMap = new Map();
     for (const it of items) {
-      const subtotal = (it.qty || 1) * (it.unit_price || 0);
+      if (productMap.has(it.product_name)) continue;
+      const { rows: [p] } = await client.query(
+        'SELECT id, name, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
+        [it.product_name]
+      );
+      if (p) productMap.set(it.product_name, p);
+    }
+    for (const it of items) {
+      const product = productMap.get(it.product_name);
+      const qtyInUnit = parseFloat(it.qty) || 1;
+      const qtyBase = product ? uom.toBase(qtyInUnit, it.unit, product) : qtyInUnit;
+      const packSize = product?.pack_size || 1;
+      const subtotal = qtyInUnit * (it.unit_price || 0);
       await client.query(
-        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, subtotal)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [req.params.id, it.product_name, it.qty || 1, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, subtotal]
+        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, subtotal, qty_in_unit, pack_size_at_sale)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [req.params.id, it.product_name, qtyBase, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, subtotal, qtyInUnit, packSize]
       );
     }
 

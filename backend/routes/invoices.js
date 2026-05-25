@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const uom = require('../utils/uom');
 
 // Auto-migrate schema
 const ensureSchema = async () => {
@@ -49,6 +50,13 @@ const ensureSchema = async () => {
     ALTER TABLE invoice_items
       ADD COLUMN IF NOT EXISTS hpp_inc_ppn DECIMAL(15,2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS batch_number VARCHAR(100)
+  `);
+  // v1.6.0 multi-unit packaging: unit column (kritis — sebelumnya MISSING) + snapshot qty di unit input + pack_size saat invoice
+  await pool.query(`
+    ALTER TABLE invoice_items
+      ADD COLUMN IF NOT EXISTS unit VARCHAR(30) DEFAULT 'pcs',
+      ADD COLUMN IF NOT EXISTS qty_in_unit DECIMAL(15,4),
+      ADD COLUMN IF NOT EXISTS pack_size_at_invoice INT
   `);
 
   // Data Migration: Populate missing hpp_inc_ppn and hna_per_item for old records
@@ -232,21 +240,37 @@ router.post('/', auth, async (req, res) => {
     }
 
     await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
+    // v1.6.0 multi-unit: resolve product (pack info) untuk konversi qty input → base unit
+    const productMap = new Map();
     if (items && items.length > 0) {
       for (const item of items) {
+        if (productMap.has(item.product_name)) continue;
+        const { rows: [p] } = await client.query(
+          'SELECT id, hna, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
+          [item.product_name]
+        );
+        if (p) productMap.set(item.product_name, p);
+      }
+    }
+    if (items && items.length > 0) {
+      for (const item of items) {
+        const product = productMap.get(item.product_name);
+        const qtyInUnit = parseFloat(item.quantity) || 0;
+        const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
+        const packSize = product?.pack_size || 1;
         await client.query(
           `INSERT INTO invoice_items
             (invoice_id, product_name, quantity, unit_price, total_price,
              expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
-             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
-          [invoiceId, item.product_name, item.quantity||0,
+             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
+          [invoiceId, item.product_name, qtyBase,
            item.unit_price||item.hna||0, item.total_price||item.hna_times_qty||0,
            item.expired_date||null, item.hna||0, item.hna_times_qty||0,
            item.disc_percent||0, item.disc_nominal||0, item.hna_baru||0,
            item.hna_per_item||0, item.margin||0,
            item.disc_cod_per_item||0, item.hna_after_cod||0, item.hpp_inc_ppn||0,
-           item.batch_number||null]
+           item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize]
         );
       }
     }
@@ -254,27 +278,27 @@ router.post('/', auth, async (req, res) => {
     await client.query('DELETE FROM invoices WHERE id = $1 AND is_draft = TRUE', [invoiceId]);
 
     // ─── Auto Stock-In: Faktur → Inventory ──────────────────────────────
-    // Each invoice item gets added to inventory_batches + inventory_mutations
+    // Each invoice item gets added to inventory_batches + inventory_mutations (qty in base unit + source snapshot)
     if (items && items.length > 0) {
       for (const item of items) {
-        // Find product in product_master by name
-        const { rows: [product] } = await client.query(
-          'SELECT id, hna FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
-          [item.product_name]
-        );
-        if (product && (item.quantity || 0) > 0) {
-          // Create inventory batch with HNA from invoice item (or fallback to product HNA)
+        const product = productMap.get(item.product_name);
+        const qtyInUnit = parseFloat(item.quantity) || 0;
+        const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
+        const packSize = product?.pack_size || 1;
+        const displayUnit = item.unit || product?.base_unit || 'pcs';
+        if (product && qtyBase > 0) {
           const batchHna = item.hna || product.hna || 0;
           const { rows: [batch] } = await client.query(
-            `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref)
-             VALUES ($1, $2, $3, $4, $5, 'faktur', $6) RETURNING id`,
-            [product.id, item.batch_number || invoice_number, item.expired_date || null, item.quantity, batchHna, `invoice-${invoiceId}`]
+            `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size)
+             VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9) RETURNING id`,
+            [product.id, item.batch_number || invoice_number, item.expired_date || null, qtyBase, batchHna, `invoice-${invoiceId}`, qtyInUnit, displayUnit, packSize]
           );
-          // Record mutation
           await client.query(
-            `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes)
-             VALUES ($1, $2, 'in', $3, 'faktur', $4, $5)`,
-            [product.id, batch.id, item.quantity, invoiceId, `Stok masuk dari faktur ${invoice_number}`]
+            `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
+             VALUES ($1, $2, 'in', $3, 'faktur', $4, $5, $6, $7)`,
+            [product.id, batch.id, qtyBase, invoiceId,
+             `Stok masuk dari faktur ${invoice_number}${displayUnit !== product.base_unit ? ` (${qtyInUnit} ${displayUnit})` : ''}`,
+             displayUnit, qtyInUnit]
           );
         } else if (!product) {
           console.warn(`[Invoice ${invoice_number}] Produk "${item.product_name}" tidak ditemukan di product_master — stok tidak dibuat otomatis`);
