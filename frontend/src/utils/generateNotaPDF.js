@@ -162,8 +162,18 @@ export function generateNotaPDF(order, options = {}) {
     ? [['No', 'Nama Barang', 'Qty', 'Satuan']]
     : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']];
 
-  // v1.8.5.1: theme 'striped' + outer roundedRect 3mm + no inner row borders (hilangin lancip)
+  // v1.8.5.2: rounded corner clipping — autoTable square header bg di-mask via clip path
   const tableStartY = margin + 30;
+  const tableRadius = isA6 ? 2 : 3;
+  const tableW = pageWidth - margin * 2;
+
+  // Establish clipping path: rounded outer area. autoTable cells rendered di dalam akan ke-clip ke rounded curve.
+  // Generous height estimate biar pasti cover seluruh tabel sebelum finalY dihitung.
+  doc.saveGraphicsState();
+  doc.roundedRect(margin, tableStartY, tableW, 250, tableRadius, tableRadius);
+  doc.clip();
+  doc.discardPath();
+
   autoTable(doc, {
     startY: tableStartY,
     head: tableHead,
@@ -178,7 +188,7 @@ export function generateNotaPDF(order, options = {}) {
       lineWidth: 0,
     },
     bodyStyles: {
-      lineWidth: 0, // no inner row border — hindari lancip overlap dgn outer rounded
+      lineWidth: 0,
       fillColor: [255, 255, 255],
     },
     alternateRowStyles: { fillColor: [248, 248, 250] },
@@ -195,13 +205,15 @@ export function generateNotaPDF(order, options = {}) {
     },
     margin: { left: margin, right: margin },
   });
-  // v1.8.5.1: outer rounded border radius 3mm (sebelumnya 2mm hampir gak keliatan)
+
+  doc.restoreGraphicsState();
+
+  // Outer rounded border (no longer clipped — full visible)
   if (doc.lastAutoTable?.finalY) {
-    const tblW = pageWidth - margin * 2;
     const tblH = doc.lastAutoTable.finalY - tableStartY;
     doc.setDrawColor(...accentColor);
     doc.setLineWidth(0.4);
-    doc.roundedRect(margin, tableStartY, tblW, tblH, 3, 3, 'S');
+    doc.roundedRect(margin, tableStartY, tableW, tblH, tableRadius, tableRadius, 'S');
   }
 
   // ─── Summary ──────────────────────────────────────────────────────────
@@ -248,11 +260,10 @@ export function generateNotaPDF(order, options = {}) {
     doc.setTextColor(0);
   }
 
-  // v1.8.5.1: ADAPTIVE + compact sig — fix A5 landscape edge case yg masih split.
-  // Root cause v1.8.5 split: tailGroupH double-count footerReserve (footer absolute-positioned di pageHeight-4,
-  // bukan finalY-relative). Plus sigBlockH 26mm kebesaran. Real footprint sig = sigGap(3) + sigNameOffset(14) = 17mm.
+  // v1.8.5.2: A4/A5 sig spacious (ada ruang TTD + stempel ~7mm). A6 tetap compact (page kecil).
+  // sigBlockH = sigGap + sigNameOffset (lihat render constants di bawah).
   const lineH = isA6 ? 3.5 : 4;
-  const sigBlockH = isA6 ? 14 : 17; // compact: sigGap + sigNameOffset (lihat render constants di bawah)
+  const sigBlockH = isA6 ? 14 : 24; // A4/A5: 24mm (room TTD+stempel), A6: 14mm compact
   const footerGap = 4; // gap antara sig bottom dan footer text (footer absolute di pageHeight-4)
 
   let bankH = 0;
@@ -276,7 +287,8 @@ export function generateNotaPDF(order, options = {}) {
   }
 
   // ─── Ketentuan / Notes (adaptive line-by-line) ────────────────────────
-  if (ketentuan && type !== 'terima') {
+  // v1.8.5.2: A6 skip ketentuan (page kecil, gak muat 1-page kalau include — bank+sig prioritas)
+  if (ketentuan && type !== 'terima' && !isA6) {
     const ketentuanLines = ketentuan.split('\n').filter(l => l.trim());
     finalY += 3;
     ensureSpace(4);
@@ -314,11 +326,11 @@ export function generateNotaPDF(order, options = {}) {
     }
   }
 
-  // ─── Signatures (compact — kurangi footprint untuk hindari false-split A5L) ──
-  // v1.8.5.1: gap 7→3, lineOffset 14→9, nameOffset 19→14. Cukup legible + 9mm hemat.
-  const sigGap = isA6 ? 3 : 3;
-  const sigLineOffset = isA6 ? 7 : 9;
-  const sigNameOffset = isA6 ? 11 : 14;
+  // ─── Signatures ──────────────────────────────────────────────────────
+  // v1.8.5.2: A4/A5 spacious (room TTD + stempel ~8mm). A6 tetap compact (page kecil).
+  const sigGap = isA6 ? 2 : 3;
+  const sigLineOffset = isA6 ? 7 : 16; // jarak label "Penerima," ke garis tanda tangan
+  const sigNameOffset = isA6 ? 11 : 21; // posisi nama di bawah garis (=sigBlockH consumer)
   const sigHalfWidth = isA6 ? 30 : 45;
   const sigCenter = isA6 ? 15 : 22;
   const sigY = finalY + sigGap;
