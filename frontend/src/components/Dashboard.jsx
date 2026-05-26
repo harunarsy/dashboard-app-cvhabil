@@ -18,6 +18,11 @@ const RELEASES = [
         text: 'Habis hapus nota, nomor baru otomatis ikut nomor yang baru kehapus — gak perlu refresh halaman manual lagi.',
         dev: 'FE refetch counter di `openAdd()` saat klik tombol Buat Nota + di `confirmDelete()` success branch. Sebelumnya `notaCounter` state cuma fetch sekali di mount, jadi setelah delete preview stale sampai user F5.'
       },
+      {
+        type: 'fix',
+        text: 'Nomor nota yang udah dihapus sekarang bisa dipakai ulang — sebelumnya muncul error "Nomor Nota sudah digunakan" padahal nota nya udah didelete.',
+        dev: 'Soft-delete (is_deleted=TRUE) tetap leave `order_number` di table → UNIQUE constraint full-table conflict. Fix: DROP `sales_orders_order_number_key` + CREATE partial unique index `WHERE is_deleted = FALSE`. Constraint cuma enforce uniqueness untuk row aktif. Migration idempotent di `ensureSchema()`, auto-apply saat backend start.'
+      },
     ]
   },
   {

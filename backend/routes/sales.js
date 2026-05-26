@@ -55,6 +55,13 @@ const ensureSchema = async () => {
     await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS expired_date_snapshot DATE`);
     // v1.8.1: counter YYMM dynamic — track bulan terakhir generate untuk auto-reset tiap bulan baru
     await pool.query(`ALTER TABLE document_counters ADD COLUMN IF NOT EXISTS last_yymm VARCHAR(4)`);
+    // v1.8.3 hotfix: soft-deleted nota TETAP nge-block unique constraint → nomor gak bisa re-use.
+    // Drop full UNIQUE, replace dengan partial UNIQUE INDEX (hanya enforce kalau is_deleted=FALSE).
+    try {
+      await pool.query(`ALTER TABLE sales_orders DROP CONSTRAINT IF EXISTS sales_orders_order_number_key`);
+    } catch (e) { /* sudah didrop, abaikan */ }
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS sales_orders_order_number_active_idx
+                      ON sales_orders(order_number) WHERE is_deleted = FALSE`);
 };
 ensureSchema().catch(e => console.error('sales ensureSchema:', e));
 

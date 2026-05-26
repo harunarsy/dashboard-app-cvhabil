@@ -9,6 +9,8 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
   - _Detail teknis_: PostgreSQL `SUBSTRING(text FROM $param)` ternyata treat parameter sebagai **REGEX pattern** (bukan numeric position). Param `14` → match literal "14" di string → MAX kebaca `14` dari `HSB-NOTA-2605014`. Fix: ganti ke `REPLACE(order_number, $prefix, '')` parameter-safe. Affect: `backend/routes/settings.js` + `backend/routes/sales.js`.
 - **🔄 Habis hapus nota, nomor baru auto-update**: gak perlu refresh manual lagi.
   - _Detail teknis_: FE refetch `notaCounter` di `openAdd()` (klik Buat Nota) + `confirmDelete()` success branch. Sebelumnya state fetch sekali di mount.
+- **♻️ Nomor nota yang udah dihapus bisa dipakai ulang**: sebelumnya muncul error "Nomor Nota sudah digunakan" padahal nota udah didelete.
+  - _Detail teknis_: Soft-delete tetap leave `order_number` di table → UNIQUE constraint full-table block re-use. Fix: DROP `sales_orders_order_number_key`, CREATE partial unique index `ON sales_orders(order_number) WHERE is_deleted = FALSE`. Migration idempotent di `ensureSchema()`, auto-apply saat backend start.
 
 ### Changed (UX)
 - **📝 Changelog modal sekarang dual-language**: tiap baris perubahan tampil bahasa user-friendly default, dengan toggle "▶ Detail teknis (developer)" untuk expand penjelasan code-level. Goal: Fivin/Ferry/Ayah baca tanpa pusing istilah dev, tim dev tetap punya context lengkap.
