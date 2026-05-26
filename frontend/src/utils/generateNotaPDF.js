@@ -112,11 +112,11 @@ export function generateNotaPDF(order, options = {}) {
     doc.text(`Telp: ${String(order.customer_phone)}`, margin + (isA6 ? 18 : 22), addressY);
   }
 
-  // Payment Method info
+  // Payment Method info — A6 push lebih bawah biar gak collide dgn JT (margin+17 untuk A6)
   if (type !== 'terima') {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(baseFontSize);
-    doc.text(`Metode: ${String(order.payment_method || 'Tunai')}`, infoX, margin + (isA6 ? 20 : 25), { align: 'right' });
+    doc.text(`Metode: ${String(order.payment_method || 'Tunai')}`, infoX, margin + (isA6 ? 22 : 25), { align: 'right' });
   }
 
   // ─── Table ────────────────────────────────────────────────────────────
@@ -254,14 +254,14 @@ export function generateNotaPDF(order, options = {}) {
     doc.setTextColor(0);
   }
 
-  // v1.8.5.5: A6 brutal compress — lineH 2.5, sigBlockH 13, bankH 6.
+  // v1.8.5.6: A6 sigBlockH 15 (sigGap 4 + sigNameOffset 11). lineH 2.5 keep.
   const lineH = isA6 ? 2.5 : 4;
-  const sigBlockH = isA6 ? 13 : 24;
+  const sigBlockH = isA6 ? 15 : 24;
   const footerGap = isA6 ? 2 : 4;
 
   let bankH = 0;
   if (bankInfo && type !== 'terima') {
-    bankH = isA6 ? 6 : 10;
+    bankH = isA6 ? 9 : 10; // pad(3) + REK text(3) + advance(3) = 9 for A6
     if (qrisText) bankH += isA6 ? 3 : 5;
   }
   const tailGroupH = bankH + sigBlockH + footerGap;
@@ -313,15 +313,16 @@ export function generateNotaPDF(order, options = {}) {
     doc.setTextColor(0);
     doc.setFont('helvetica', 'bold');
     doc.text(`REK ${bankInfo}`, pageWidth / 2, finalY, { align: 'center' });
+    finalY += isA6 ? 3 : 4; // v1.8.5.6: explicit advance past REK text height biar gak collide sig
     if (qrisText) {
-      finalY += isA6 ? 3 : 5;
       doc.text(qrisText, pageWidth / 2, finalY, { align: 'center' });
+      finalY += isA6 ? 3 : 4;
     }
   }
 
   // ─── Signatures ──────────────────────────────────────────────────────
-  // v1.8.5.5: A6 brutal compress sig (8mm TTD space cukup tanda tangan ringkas).
-  const sigGap = isA6 ? 1.5 : 3;
+  // v1.8.5.6: sigGap A6 4mm (clear REK text). Sig footprint masih compact 11mm total.
+  const sigGap = isA6 ? 4 : 3;
   const sigLineOffset = isA6 ? 7 : 16;
   const sigNameOffset = isA6 ? 11 : 21;
   const sigHalfWidth = isA6 ? 30 : 45;
