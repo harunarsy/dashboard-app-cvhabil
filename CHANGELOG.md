@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.8.3-stable] - 2026-05-26
+
+### Fixed (Hotfix-of-Hotfix — Counter SQL Regex Bug)
+- **🔢 PostgreSQL `SUBSTRING(... FROM $param)` parameter binding glitch**: ternyata `SUBSTRING(text FROM $X)` di PostgreSQL treat parameter sebagai **REGEX pattern** (bukan numeric position!). Pas kita pass `14` (= monthPrefix.length + 1), PG match literal substring "14" di order_number → MAX kebaca `14` (dari `HSB-NOTA-2605014`) padahal harusnya `25` (dari `HSB-NOTA-2605025`). Akibatnya counter preview tampil `2605015`, bukan `2605026`.
+- **Fix**: ganti SQL pattern ke `REPLACE(order_number, $1, '')` — strip monthPrefix langsung lewat string-replace yang parameter-safe + literal-clean. Affect 2 file:
+  - `backend/routes/settings.js` (GET /counters next_preview)
+  - `backend/routes/sales.js` (generateOrderNumber sync-to-MAX)
+- Verified via local Neon query: query baru return correct max=25 untuk current data Mei 2026.
+
+---
+
 ## [v1.8.2-stable] - 2026-05-26
 
 ### Fixed (Hotfix)

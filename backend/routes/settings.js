@@ -18,10 +18,12 @@ router.get('/counters', async (req, res) => {
         return { ...counter, next_preview: null };
       }
       const monthPrefix = `HSB-NOTA-${currentYymm}`;
+      // v1.8.3 fix: SUBSTRING(... FROM $param) treats param as REGEX pattern, bukan position
+      // (matches literal digits di string → MAX salah). Pakai REPLACE prefix → cast INT.
       const { rows: [maxRow] } = await pool.query(
-        `SELECT COALESCE(MAX(CAST(SUBSTRING(order_number FROM $2) AS INTEGER)), 0) AS max_num
-         FROM sales_orders WHERE is_deleted = FALSE AND order_number LIKE $1`,
-        [`${monthPrefix}%`, monthPrefix.length + 1]
+        `SELECT COALESCE(MAX(CAST(REPLACE(order_number, $1, '') AS INTEGER)), 0) AS max_num
+         FROM sales_orders WHERE is_deleted = FALSE AND order_number LIKE $2`,
+        [monthPrefix, `${monthPrefix}%`]
       );
       const nextNum = (parseInt(maxRow.max_num) || 0) + 1;
       const nextPreview = `${monthPrefix}${String(nextNum).padStart(3, '0')}`;

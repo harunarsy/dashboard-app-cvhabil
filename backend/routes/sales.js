@@ -69,15 +69,17 @@ const generateOrderNumber = async (client) => {
   const monthPrefix = `HSB-NOTA-${currentYymm}`;
 
   // Sync counter ke MAX active nota YYMM bulan ini (NNN segment after monthPrefix)
+  // v1.8.3 fix: SUBSTRING(... FROM $param) treat param as REGEX (matches literal digits → MAX salah).
+  // Pakai REPLACE prefix yang safe + parameterized.
   await client.query(
     `UPDATE document_counters
      SET last_number = COALESCE((
-       SELECT MAX(CAST(SUBSTRING(order_number FROM $2) AS INTEGER))
+       SELECT MAX(CAST(REPLACE(order_number, $1, '') AS INTEGER))
        FROM sales_orders
-       WHERE is_deleted = FALSE AND order_number LIKE $1
+       WHERE is_deleted = FALSE AND order_number LIKE $2
      ), 0)
      WHERE doc_type = 'NOTA'`,
-    [`${monthPrefix}%`, monthPrefix.length + 1]
+    [monthPrefix, `${monthPrefix}%`]
   );
 
   // Cek apakah bulan berubah → reset counter
