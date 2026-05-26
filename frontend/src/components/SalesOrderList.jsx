@@ -536,26 +536,26 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
             style={{ ...inputStyle, paddingLeft: '36px' }} />
         </div>
         
-        {/* v1.7.0 filter selects: ellipsis + adequate paddingRight untuk chevron native */}
-        <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ ...inputStyle, minWidth: '150px', paddingRight: '32px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+        {/* v1.7.1 filter selects: fixed width override inputStyle's width:100% (sebelumnya stack vertical) + ellipsis */}
+        <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ ...inputStyle, width: '170px', flex: '0 0 auto', paddingRight: '32px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
           <option value="all">Semua Bulan</option>
           {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((m, i) => (
             <option key={m} value={i + 1}>{m}</option>
           ))}
         </select>
 
-        <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{ ...inputStyle, minWidth: '120px', paddingRight: '32px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+        <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{ ...inputStyle, width: '130px', flex: '0 0 auto', paddingRight: '32px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
           <option value="all">Semua Tahun</option>
           {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => <option key={y} value={y}>{y}</option>)}
         </select>
 
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, minWidth: '160px', paddingRight: '32px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, width: '170px', flex: '0 0 auto', paddingRight: '32px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
           <option value="all">Semua Status</option>
           <option value="unpaid">Belum Bayar</option>
           <option value="paid">Sudah Lunas</option>
         </select>
 
-        <select value={filterChannel} onChange={e => setFilterChannel(e.target.value)} style={{ ...inputStyle, minWidth: '160px', paddingRight: '32px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+        <select value={filterChannel} onChange={e => setFilterChannel(e.target.value)} style={{ ...inputStyle, width: '170px', flex: '0 0 auto', paddingRight: '32px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
           <option value="all">Semua Saluran</option>
           <option value="offline">🏪 Offline</option>
           <option value="online">🛒 Online</option>

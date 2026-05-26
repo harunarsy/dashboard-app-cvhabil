@@ -57,6 +57,17 @@ const ensureSchema = async () => {
 ensureSchema().catch(e => console.error('sales ensureSchema:', e));
 
 const generateOrderNumber = async (client) => {
+  // v1.7.1: sync counter ke MAX active nota number sebelum increment.
+  // Kalau nota terakhir dihapus → MAX bergeser turun → next create akan re-use nomor yang dihapus.
+  // (Mirror SP pattern di purchaseOrders.js, tapi tanpa GREATEST supaya counter bisa decrease.)
+  await client.query(`
+    UPDATE document_counters
+    SET last_number = COALESCE((
+      SELECT MAX(CAST(REGEXP_REPLACE(order_number, '[^0-9]', '', 'g') AS INT))
+      FROM sales_orders WHERE is_deleted = FALSE
+    ), 0)
+    WHERE doc_type = 'NOTA'
+  `);
   const { rows } = await client.query(
     "UPDATE document_counters SET last_number = last_number + 1 WHERE doc_type = 'NOTA' RETURNING prefix, last_number"
   );
@@ -307,17 +318,49 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-// DELETE (soft)
+// DELETE (soft) — v1.7.1: reverse stock (return ke batch asal) + soft-delete nota
 router.delete('/:id', auth, async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { rowCount } = await pool.query(
-      'UPDATE sales_orders SET is_deleted = TRUE, updated_at = NOW() WHERE id = $1 AND is_deleted = FALSE', [req.params.id]
+    await client.query('BEGIN');
+    // Cek nota exists + active
+    const { rows: [existing] } = await client.query(
+      'SELECT id, order_number FROM sales_orders WHERE id = $1 AND is_deleted = FALSE', [req.params.id]
     );
-    if (!rowCount) return res.status(404).json({ error: 'Nota not found' });
-    res.json({ message: 'Nota deleted' });
+    if (!existing) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
+
+    // Reverse stock: fetch semua mutations type='out' untuk nota ini, return qty ke batch
+    const { rows: outMutations } = await client.query(
+      `SELECT batch_id, product_id, qty FROM inventory_mutations
+       WHERE reference_type = 'nota' AND reference_id = $1 AND type = 'out' AND batch_id IS NOT NULL`,
+      [req.params.id]
+    );
+    for (const m of outMutations) {
+      await client.query(
+        'UPDATE inventory_batches SET qty_current = qty_current + $1 WHERE id = $2',
+        [m.qty, m.batch_id]
+      );
+      await client.query(
+        `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by)
+         VALUES ($1, $2, 'in', $3, 'nota-cancelled', $4, $5, $6)`,
+        [m.product_id, m.batch_id, m.qty, req.params.id,
+         `Reversal dari nota ${existing.order_number} dihapus`, req.user?.id || null]
+      );
+    }
+
+    // Soft-delete nota
+    await client.query(
+      'UPDATE sales_orders SET is_deleted = TRUE, updated_at = NOW() WHERE id = $1', [req.params.id]
+    );
+    await client.query('COMMIT');
+    res.json({
+      message: `Nota ${existing.order_number} dihapus + ${outMutations.length} mutasi stok dikembalikan`,
+      reverted_mutations: outMutations.length,
+    });
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
-  }
+  } finally { client.release(); }
 });
 
 // PATCH pdf status
