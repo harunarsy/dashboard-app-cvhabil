@@ -34,9 +34,9 @@ export function generateNotaPDF(order, options = {}) {
   const isA6 = format.toUpperCase() === 'A6';
   const isA5 = format.toUpperCase() === 'A5';
 
-  // Scaling factors for landscape A5/A6
-  const baseFontSize = isA6 ? 8 : (isA5 ? 9 : 10);
-  const margin = isA6 ? 7 : (isA5 ? 10 : 12);
+  // v1.8.5.5: A6 brutal compress (font 7 + margin 6)
+  const baseFontSize = isA6 ? 7 : (isA5 ? 9 : 10);
+  const margin = isA6 ? 6 : (isA5 ? 10 : 12);
   const accentColor = [0, 122, 255]; // Premium Blue
 
   // ─── Header Section ───────────────────────────────────────────────────
@@ -81,21 +81,23 @@ export function generateNotaPDF(order, options = {}) {
     doc.setFont('helvetica', 'normal');
   }
 
-  // Blue Line Divider
+  // Blue Line Divider (A6 lebih dekat)
+  const dividerY = margin + (isA6 ? 17 : 22);
   doc.setDrawColor(...accentColor);
   doc.setLineWidth(0.4);
-  doc.line(margin, margin + 22, pageWidth - margin, margin + 22);
+  doc.line(margin, dividerY, pageWidth - margin, dividerY);
 
   // ─── Customer & Payment ───────────────────────────────────────────────
+  const customerY = margin + (isA6 ? 22 : 29);
   doc.setFontSize(baseFontSize);
   doc.setTextColor(0);
   doc.setFont('helvetica', 'normal');
-  doc.text('Kepada Yth:', margin, margin + 29);
+  doc.text('Kepada Yth:', margin, customerY);
   doc.setFont('helvetica', 'bold');
-  doc.text(String(order.customer_name || '-'), margin + (isA6 ? 18 : 22), margin + 29);
+  doc.text(String(order.customer_name || '-'), margin + (isA6 ? 16 : 22), customerY);
 
   // Customer address (if available)
-  let addressY = margin + 29;
+  let addressY = customerY;
   if (order.customer_address) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(baseFontSize - 2);
@@ -114,7 +116,7 @@ export function generateNotaPDF(order, options = {}) {
   if (type !== 'terima') {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(baseFontSize);
-    doc.text(`Metode: ${String(order.payment_method || 'Tunai')}`, infoX, margin + 25, { align: 'right' });
+    doc.text(`Metode: ${String(order.payment_method || 'Tunai')}`, infoX, margin + (isA6 ? 20 : 25), { align: 'right' });
   }
 
   // ─── Table ────────────────────────────────────────────────────────────
@@ -163,9 +165,8 @@ export function generateNotaPDF(order, options = {}) {
     ? [['No', 'Nama Barang', 'Qty']]
     : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']];
 
-  // v1.8.5.4: kill rounded entirely (triangle mask cause white notch bug, clip cause vertical-line bug).
-  // Clean square table: blue header bg + striped body, no outer border. Cukup elegant tanpa bug visual.
-  const tableStartY = margin + 30;
+  // v1.8.5.5: A6 tableStartY compressed. Rounded back via thick outer stroke (mask square corners visually).
+  const tableStartY = margin + (isA6 ? 24 : 30);
   autoTable(doc, {
     startY: tableStartY,
     head: tableHead,
@@ -186,17 +187,28 @@ export function generateNotaPDF(order, options = {}) {
     alternateRowStyles: { fillColor: [248, 248, 250] },
     styles: {
       fontSize: baseFontSize - 1.5,
-      cellPadding: isA6 ? 1 : 1.8,
+      cellPadding: isA6 ? 0.7 : 1.8,
       lineWidth: 0,
     },
     columnStyles: {
-      0: { halign: 'center', cellWidth: isA6 ? 8 : 10 },
-      2: { halign: 'center', cellWidth: isA6 ? 15 : 20 },
+      0: { halign: 'center', cellWidth: isA6 ? 7 : 10 },
+      2: { halign: 'center', cellWidth: isA6 ? 14 : 20 },
       3: { halign: 'right' },
       4: { halign: 'right' },
     },
     margin: { left: margin, right: margin },
   });
+
+  // v1.8.5.5: rounded back — thick outer stroke (1mm) mask square header fill corners visually
+  if (doc.lastAutoTable?.finalY) {
+    const tblW = pageWidth - margin * 2;
+    const tblH = doc.lastAutoTable.finalY - tableStartY;
+    doc.setDrawColor(...accentColor);
+    doc.setLineWidth(1.0);
+    doc.setLineCap('round');
+    doc.roundedRect(margin, tableStartY, tblW, tblH, 3, 3, 'S');
+    doc.setLineCap('butt'); // reset
+  }
 
   // ─── Summary ──────────────────────────────────────────────────────────
   const tableEndY = (doc.lastAutoTable?.finalY || 0);
@@ -215,22 +227,22 @@ export function generateNotaPDF(order, options = {}) {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 80, 80);
     doc.text(`Subtotal (DPP): ${fmtRp(dpp)}`, rightX, finalY, { align: 'right' });
-    finalY += isA6 ? 3.5 : 4.5;
+    finalY += isA6 ? 2.8 : 4.5;
     doc.text(`PPN 11%: ${fmtRp(ppn)}`, rightX, finalY, { align: 'right' });
-    finalY += isA6 ? 4 : 5;
+    finalY += isA6 ? 3 : 5;
 
     doc.setFontSize(baseFontSize + 1);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0);
     doc.text(`GRAND TOTAL: ${fmtRp(grandTotal)}`, rightX, finalY, { align: 'right' });
 
-    finalY += isA6 ? 4 : 5;
+    finalY += isA6 ? 3 : 5;
     doc.setFontSize(baseFontSize - 2);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100);
     const words = (angkaKeTerbilang(grandTotal) + " Rupiah").trim();
     doc.text(`Terbilang: ${words}`, margin, finalY);
-    finalY += (isA6 ? 4 : 6);
+    finalY += (isA6 ? 3 : 6);
     doc.setTextColor(0);
   }
 
@@ -242,16 +254,15 @@ export function generateNotaPDF(order, options = {}) {
     doc.setTextColor(0);
   }
 
-  // v1.8.5.4: A4/A5 sig spacious + A6 juga decent (consistent UX TTD + stempel).
-  // sigBlockH = sigGap + sigNameOffset (lihat render constants di bawah).
-  const lineH = isA6 ? 3.5 : 4;
-  const sigBlockH = isA6 ? 18 : 24; // A4/A5: 24mm, A6: 18mm (still room TTD)
-  const footerGap = 4; // gap antara sig bottom dan footer text (footer absolute di pageHeight-4)
+  // v1.8.5.5: A6 brutal compress — lineH 2.5, sigBlockH 13, bankH 6.
+  const lineH = isA6 ? 2.5 : 4;
+  const sigBlockH = isA6 ? 13 : 24;
+  const footerGap = isA6 ? 2 : 4;
 
   let bankH = 0;
   if (bankInfo && type !== 'terima') {
-    bankH = 10; // 5mm top pad + 5mm bank text row
-    if (qrisText) bankH += 5;
+    bankH = isA6 ? 6 : 10;
+    if (qrisText) bankH += isA6 ? 3 : 5;
   }
   const tailGroupH = bankH + sigBlockH + footerGap;
   const tailThreshold = pageHeight - margin;
@@ -272,13 +283,13 @@ export function generateNotaPDF(order, options = {}) {
   // v1.8.5.4: A6 include ketentuan kembali. Kalau overflow → fallback addPage acceptable.
   if (ketentuan && type !== 'terima') {
     const ketentuanLines = ketentuan.split('\n').filter(l => l.trim());
-    finalY += 3;
-    ensureSpace(4);
-    doc.setFontSize(baseFontSize - 2);
+    finalY += isA6 ? 1.5 : 3;
+    ensureSpace(isA6 ? 3 : 4);
+    doc.setFontSize(isA6 ? baseFontSize - 2 : baseFontSize - 2);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(255, 59, 48);
     doc.text('NOTE:', margin, finalY);
-    finalY += 4;
+    finalY += isA6 ? 3 : 4;
     doc.setFont('helvetica', 'normal');
     ketentuanLines.forEach((line, i) => {
       const wrapped = doc.splitTextToSize(`${i + 1}. ${line}`, pageWidth - margin * 2);
@@ -297,22 +308,22 @@ export function generateNotaPDF(order, options = {}) {
 
   // ─── Bank Info ────────────────────────────────────────────────────────
   if (bankInfo && type !== 'terima') {
-    finalY += 5;
+    finalY += isA6 ? 3 : 5;
     doc.setFontSize(baseFontSize - 1);
     doc.setTextColor(0);
     doc.setFont('helvetica', 'bold');
     doc.text(`REK ${bankInfo}`, pageWidth / 2, finalY, { align: 'center' });
     if (qrisText) {
-      finalY += 5;
+      finalY += isA6 ? 3 : 5;
       doc.text(qrisText, pageWidth / 2, finalY, { align: 'center' });
     }
   }
 
   // ─── Signatures ──────────────────────────────────────────────────────
-  // v1.8.5.4: A6 sig juga decent (room TTD walaupun page kecil). A4/A5 tetep spacious.
-  const sigGap = isA6 ? 2 : 3;
-  const sigLineOffset = isA6 ? 12 : 16; // jarak label "Penerima," ke garis TTD
-  const sigNameOffset = isA6 ? 16 : 21; // posisi nama di bawah garis
+  // v1.8.5.5: A6 brutal compress sig (8mm TTD space cukup tanda tangan ringkas).
+  const sigGap = isA6 ? 1.5 : 3;
+  const sigLineOffset = isA6 ? 7 : 16;
+  const sigNameOffset = isA6 ? 11 : 21;
   const sigHalfWidth = isA6 ? 30 : 45;
   const sigCenter = isA6 ? 15 : 22;
   const sigY = finalY + sigGap;
