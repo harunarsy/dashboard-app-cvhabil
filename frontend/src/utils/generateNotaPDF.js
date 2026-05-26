@@ -162,13 +162,13 @@ export function generateNotaPDF(order, options = {}) {
     ? [['No', 'Nama Barang', 'Qty', 'Satuan']]
     : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']];
 
-  // v1.8.5: theme 'plain' + manual outer roundedRect (autoTable native gak support border-radius)
+  // v1.8.5.1: theme 'striped' + outer roundedRect 3mm + no inner row borders (hilangin lancip)
   const tableStartY = margin + 30;
   autoTable(doc, {
     startY: tableStartY,
     head: tableHead,
     body: tableData,
-    theme: 'plain',
+    theme: 'striped',
     headStyles: {
       fillColor: accentColor,
       textColor: 255,
@@ -178,12 +178,14 @@ export function generateNotaPDF(order, options = {}) {
       lineWidth: 0,
     },
     bodyStyles: {
-      lineColor: [229, 229, 234],
-      lineWidth: 0.1,
+      lineWidth: 0, // no inner row border — hindari lancip overlap dgn outer rounded
+      fillColor: [255, 255, 255],
     },
+    alternateRowStyles: { fillColor: [248, 248, 250] },
     styles: {
       fontSize: baseFontSize - 1.5,
-      cellPadding: isA6 ? 1 : 1.8
+      cellPadding: isA6 ? 1 : 1.8,
+      lineWidth: 0,
     },
     columnStyles: {
       0: { halign: 'center', cellWidth: isA6 ? 8 : 10 },
@@ -193,13 +195,13 @@ export function generateNotaPDF(order, options = {}) {
     },
     margin: { left: margin, right: margin },
   });
-  // v1.8.5: outer rounded border — mirror preview HTML (PrintSettings.jsx borderRadius 6px)
+  // v1.8.5.1: outer rounded border radius 3mm (sebelumnya 2mm hampir gak keliatan)
   if (doc.lastAutoTable?.finalY) {
     const tblW = pageWidth - margin * 2;
     const tblH = doc.lastAutoTable.finalY - tableStartY;
     doc.setDrawColor(...accentColor);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(margin, tableStartY, tblW, tblH, 2, 2, 'S');
+    doc.setLineWidth(0.4);
+    doc.roundedRect(margin, tableStartY, tblW, tblH, 3, 3, 'S');
   }
 
   // ─── Summary ──────────────────────────────────────────────────────────
@@ -246,31 +248,31 @@ export function generateNotaPDF(order, options = {}) {
     doc.setTextColor(0);
   }
 
-  // v1.8.5: ADAPTIVE per-block page-break (ganti pre-calc bundle yg false-positive split).
-  // Strategi: render ketentuan inkremental (per wrapped line cek space), lalu jaga bank+sig+footer
-  // tetap bareng di page yg sama (kalau gak fit → addPage sekali sebelum bank).
+  // v1.8.5.1: ADAPTIVE + compact sig — fix A5 landscape edge case yg masih split.
+  // Root cause v1.8.5 split: tailGroupH double-count footerReserve (footer absolute-positioned di pageHeight-4,
+  // bukan finalY-relative). Plus sigBlockH 26mm kebesaran. Real footprint sig = sigGap(3) + sigNameOffset(14) = 17mm.
   const lineH = isA6 ? 3.5 : 4;
-  // sigBlockH = sigGap + sigNameOffset (actual render footprint). Sebelumnya overestimate +4mm safety.
-  const sigBlockH = isA6 ? 20 : 26;
-  const footerReserve = footerText ? 8 : 4;
+  const sigBlockH = isA6 ? 14 : 17; // compact: sigGap + sigNameOffset (lihat render constants di bawah)
+  const footerGap = 4; // gap antara sig bottom dan footer text (footer absolute di pageHeight-4)
 
   let bankH = 0;
   if (bankInfo && type !== 'terima') {
     bankH = 10; // 5mm top pad + 5mm bank text row
     if (qrisText) bankH += 5;
   }
-  const tailGroupH = bankH + sigBlockH + footerReserve;
+  const tailGroupH = bankH + sigBlockH + footerGap;
+  const tailThreshold = pageHeight - margin;
 
   const ensureSpace = (heightNeeded) => {
-    if (finalY + heightNeeded > pageHeight - margin) {
+    if (finalY + heightNeeded > tailThreshold) {
       doc.addPage();
       finalY = margin + 5;
     }
   };
 
-  // Debug behind localStorage flag — hapus / nonaktifkan setelah confirmed
+  // Debug behind localStorage flag — set `localStorage.pdfDebug = '1'` di console untuk lihat values
   if (typeof window !== 'undefined' && window.localStorage?.getItem('pdfDebug')) {
-    console.log('[generateNotaPDF DEBUG]', { format, pageHeight, margin, finalY, tailGroupH, threshold: pageHeight - margin });
+    console.log('[generateNotaPDF DEBUG]', { format, pageHeight, margin, finalY, bankH, sigBlockH, tailGroupH, threshold: tailThreshold });
   }
 
   // ─── Ketentuan / Notes (adaptive line-by-line) ────────────────────────
@@ -312,10 +314,11 @@ export function generateNotaPDF(order, options = {}) {
     }
   }
 
-  // ─── Signatures (relative to content, not fixed) ──────────────────────
-  const sigGap = isA6 ? 5 : 7;
-  const sigLineOffset = isA6 ? 10 : 14;
-  const sigNameOffset = isA6 ? 14 : 19;
+  // ─── Signatures (compact — kurangi footprint untuk hindari false-split A5L) ──
+  // v1.8.5.1: gap 7→3, lineOffset 14→9, nameOffset 19→14. Cukup legible + 9mm hemat.
+  const sigGap = isA6 ? 3 : 3;
+  const sigLineOffset = isA6 ? 7 : 9;
+  const sigNameOffset = isA6 ? 11 : 14;
   const sigHalfWidth = isA6 ? 30 : 45;
   const sigCenter = isA6 ? 15 : 22;
   const sigY = finalY + sigGap;

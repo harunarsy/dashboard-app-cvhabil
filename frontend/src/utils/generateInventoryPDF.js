@@ -27,21 +27,26 @@ export const generateInventoryPDF = (products, options = {}) => {
 
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
   doc.setTextColor(0, 0, 0);
-  doc.text('TEMPLATE STOK OPNAME', pageWidth - margin, margin + 4, { align: 'right' });
+  doc.text('STOK OPNAME', pageWidth - margin, margin + 4, { align: 'right' });
 
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
   doc.setTextColor(80, 80, 80);
   const meta = [
-    `Tanggal Cetak: ${fmtDate(new Date())}`,
     `Total Produk: ${products.length}`,
     `Total Stok Sistem: ${products.reduce((s, p) => s + (parseFloat(p.total_stock) || 0), 0)}`,
   ];
   doc.text(meta.join('  |  '), margin, margin + 10);
 
+  // Tanggal opname (untuk diisi tangan)
+  doc.setFontSize(9); doc.setTextColor(0, 0, 0);
+  doc.text('Tanggal Opname:', margin, margin + 16);
+  doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.3);
+  doc.line(margin + 30, margin + 16, margin + 90, margin + 16);
+
   // Divider
   doc.setDrawColor(...accentColor);
   doc.setLineWidth(0.4);
-  doc.line(margin, margin + 13, pageWidth - margin, margin + 13);
+  doc.line(margin, margin + 19, pageWidth - margin, margin + 19);
 
   // ─── Tabel Template ─────────────────────────────────────────────────
   const head = [[
@@ -63,7 +68,7 @@ export const generateInventoryPDF = (products, options = {}) => {
   ]);
 
   autoTable(doc, {
-    startY: margin + 16,
+    startY: margin + 22,
     head,
     body,
     theme: 'grid',
@@ -93,27 +98,29 @@ export const generateInventoryPDF = (products, options = {}) => {
       7: { halign: 'center', cellWidth: 22, fillColor: [250, 250, 250] },
       8: { halign: 'left', fillColor: [250, 250, 250] },
     },
-    margin: { left: margin, right: margin },
-    didDrawPage: (data) => {
-      // Footer per page
-      const pageCount = doc.internal.getNumberOfPages();
-      const pageNum = data.pageNumber;
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
-      doc.setTextColor(120, 120, 120);
-      doc.text(`Halaman ${pageNum} dari ${pageCount}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
-
-      // Signature line di footer last page
-      if (pageNum === pageCount) {
-        const sigY = pageHeight - 18;
-        doc.setFontSize(8); doc.setTextColor(60, 60, 60);
-        doc.text('Diperiksa oleh:', margin, sigY);
-        doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.2);
-        doc.line(margin + 28, sigY, margin + 78, sigY);
-        doc.text('Disetujui oleh:', pageWidth - margin - 80, sigY);
-        doc.line(pageWidth - margin - 52, sigY, pageWidth - margin, sigY);
-      }
-    },
+    // v1.8.5.1: bottom margin 28mm reserve buat sig + page# (auto-paginate kalau row gak fit)
+    margin: { left: margin, right: margin, bottom: 28 },
   });
+
+  // v1.8.5.1: post-loop render — page# pakai actual final pageCount + sig HANYA di last page bottom
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
+    doc.setTextColor(120, 120, 120);
+    doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+  }
+
+  // Sig di last page bottom (positioned aman karena autoTable reserve bottom 28mm)
+  doc.setPage(totalPages);
+  const sigY = pageHeight - 16;
+  doc.setFontSize(8); doc.setTextColor(60, 60, 60);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Diperiksa oleh:', margin, sigY);
+  doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.2);
+  doc.line(margin + 28, sigY, margin + 95, sigY);
+  doc.text('Disetujui oleh:', pageWidth - margin - 95, sigY);
+  doc.line(pageWidth - margin - 65, sigY, pageWidth - margin, sigY);
 
   return doc;
 };
