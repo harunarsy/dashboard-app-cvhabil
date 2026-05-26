@@ -81,14 +81,14 @@ export function generateNotaPDF(order, options = {}) {
     doc.setFont('helvetica', 'normal');
   }
 
-  // Blue Line Divider (A6 lebih dekat)
-  const dividerY = margin + (isA6 ? 17 : 22);
+  // Blue Line Divider — push 2mm A4/A5 (kasih clearance dari JT text descender)
+  const dividerY = margin + (isA6 ? 18 : 24);
   doc.setDrawColor(...accentColor);
   doc.setLineWidth(0.4);
   doc.line(margin, dividerY, pageWidth - margin, dividerY);
 
   // ─── Customer & Payment ───────────────────────────────────────────────
-  const customerY = margin + (isA6 ? 22 : 29);
+  const customerY = margin + (isA6 ? 23 : 30);
   doc.setFontSize(baseFontSize);
   doc.setTextColor(0);
   doc.setFont('helvetica', 'normal');
@@ -112,11 +112,11 @@ export function generateNotaPDF(order, options = {}) {
     doc.text(`Telp: ${String(order.customer_phone)}`, margin + (isA6 ? 18 : 22), addressY);
   }
 
-  // Payment Method info — A6 push lebih bawah biar gak collide dgn JT (margin+17 untuk A6)
+  // Payment Method info — pindah ke bawah divider (clear dari JT row)
   if (type !== 'terima') {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(baseFontSize);
-    doc.text(`Metode: ${String(order.payment_method || 'Tunai')}`, infoX, margin + (isA6 ? 22 : 25), { align: 'right' });
+    doc.text(`Metode: ${String(order.payment_method || 'Tunai')}`, infoX, margin + (isA6 ? 23 : 30), { align: 'right' });
   }
 
   // ─── Table ────────────────────────────────────────────────────────────
@@ -165,8 +165,8 @@ export function generateNotaPDF(order, options = {}) {
     ? [['No', 'Nama Barang', 'Qty']]
     : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']];
 
-  // v1.8.5.5: A6 tableStartY compressed. Rounded back via thick outer stroke (mask square corners visually).
-  const tableStartY = margin + (isA6 ? 24 : 30);
+  // v1.8.5.8: tableStartY pushed below customerY (margin+23 A6, margin+30 A4/A5) +3mm
+  const tableStartY = margin + (isA6 ? 26 : 33);
   autoTable(doc, {
     startY: tableStartY,
     head: tableHead,
@@ -199,15 +199,13 @@ export function generateNotaPDF(order, options = {}) {
     margin: { left: margin, right: margin },
   });
 
-  // v1.8.5.7: elegant rounded outer — thin stroke 0.5mm + butt cap (gak nyebar ke sig line)
-  if (doc.lastAutoTable?.finalY) {
-    const tblW = pageWidth - margin * 2;
-    const tblH = doc.lastAutoTable.finalY - tableStartY;
-    doc.setDrawColor(...accentColor);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(margin, tableStartY, tblW, tblH, 3, 3, 'S');
-  }
-  // Reset lineWidth supaya gak inherit ke sig line (sebelumnya 1.0 + round cap nyebar)
+  // v1.8.5.8: hapus outer rounded PERMANENT. jsPDF native gak support true rounded:
+  // - clip API: roundedRect tanpa style default 'S' = stroke vertical-line bug
+  // - triangle mask: putih notch visible jelek
+  // - thick outer stroke: nyebar ke garis TTD inherit + tebel berlebihan
+  // HTML preview pakai CSS overflow:hidden — gak ada equivalent di jsPDF.
+  // Match preview style sebisanya: theme striped + blue header bg + body white/gray stripe.
+  // Reset lineWidth standar buat sig line + dividers.
   doc.setLineWidth(0.2);
 
   // ─── Summary ──────────────────────────────────────────────────────────
