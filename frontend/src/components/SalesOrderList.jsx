@@ -8,6 +8,7 @@ import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
 import ConfirmModal from './common/ConfirmModal';
 import Breadcrumb from './common/Breadcrumb';
+import NotaPreview from './common/NotaPreview';
 
 if (typeof document !== 'undefined' && !document.getElementById('habil-pulse-style')) {
   const s = document.createElement('style'); s.id = 'habil-pulse-style';
@@ -781,15 +782,15 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       {/* Modal */}
       {showModal && (
         <div onClick={() => setShowModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div onClick={e => e.stopPropagation()} className="glass-target glass-target--clear" style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
+          <div onClick={e => e.stopPropagation()} className="glass-target glass-target--clear" style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: 'min(1200px, calc(100vw - 32px))', maxHeight: '92vh', overflow: 'auto', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             {/* Header */}
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: cardBg, zIndex: 1 }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>{editId ? '✏️ Edit Nota' : '🧾 Buat Nota Baru'}</h3>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
             </div>
 
-            <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              
+            <div style={{ padding: '20px 22px', display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '24px', alignItems: 'start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
               {!editId && (
                 <div>
                   <label style={labelStyle}>Nomor Nota *</label>
@@ -1027,6 +1028,22 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                 <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
                   Batal
                 </button>
+              </div>
+              </div>
+              <div style={{ position: 'sticky', top: '0', alignSelf: 'start' }}>
+                <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: sub, marginBottom: '8px', letterSpacing: '0.05em' }}>📄 Preview Live</div>
+                <NotaPreview
+                  form={{
+                    ...form,
+                    order_number: editId
+                      ? form.order_number
+                      : (isAutoNota
+                          ? (notaCounter.next_preview || `${notaCounter.prefix || 'HSB-NOTA-'}${String((notaCounter.month_max || 0) + 1).padStart(3, '0')}`)
+                          : `${notaCounter.prefix || 'HSB-NOTA-'}${manualNumber}`)
+                  }}
+                  items={items}
+                  settings={layoutSettings || {}}
+                />
               </div>
             </div>
           </div>

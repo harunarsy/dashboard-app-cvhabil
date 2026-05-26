@@ -6,7 +6,32 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.8.3-stable', date: '26 Mei 2026', status: 'latest',
+    version: 'v1.8.5-stable', date: '26 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'fix',
+        text: 'Nota PDF cetak gak split ke 2 halaman lagi kalau cuma sedikit item — sekarang muat di 1 halaman sesuai expected.',
+        dev: 'Refactor pre-calc page-break di `generateNotaPDF.js`. Hapus single-decision bundle (totalNeeded) yg false-positive trigger split. Ganti adaptive per-block: ketentuan render per wrapped line dgn ensureSpace(), bank+sig+footer kept-together via 1 conditional addPage check. SigBlockH recalibrate 30→26 (A4/A5) — actual sigGap+sigNameOffset render footprint. Debug log behind `localStorage.pdfDebug` flag.'
+      },
+      {
+        type: 'fix',
+        text: 'Tabel nota sekarang punya border rounded — match preview Dokumen di Pengaturan.',
+        dev: 'jspdf-autotable v5 gak support border-radius native. Approach: theme `plain` (hapus default grid border), set `lineWidth: 0` di headStyles + bodyStyles `lineColor [229,229,234] lineWidth 0.1` untuk inner separator halus. Manual `doc.roundedRect(margin, startY, w, h, 2, 2, "S")` untuk outer border 2mm radius. Sweet-spot tradeoff: outer-only rounded (~30 baris kode) vs full per-cell rounded (~100+ baris complex).'
+      },
+      {
+        type: 'feat',
+        text: 'Modal Buat Nota Baru sekarang ada preview live di samping form — bisa lihat hasil nota real-time saat ngetik customer/produk/harga sebelum klik Simpan.',
+        dev: 'Component baru `frontend/src/components/common/NotaPreview.jsx` — pure JSX presentational mirror layout `PrintSettings.jsx:194-284` tapi terima props live (form/items/settings). Extract helper `angkaKeTerbilang` ke `utils/angkaKeTerbilang.js` untuk shared use. Modal `SalesOrderList.jsx` width 640→`min(1200px, calc(100vw-32px))`, content layout `flex-col` → `grid 1.1fr 1fr` (form kiri + preview sticky kanan). Order number auto-compute dgn `notaCounter.next_preview` fallback.'
+      },
+      {
+        type: 'feat',
+        text: 'Halaman Inventory sekarang punya tombol "Cetak Template" — generate PDF list produk dgn kolom Stok Fisik/Selisih/Catatan kosong untuk dicetak A4, dicoret manual saat opname, lalu balik input ke app.',
+        dev: 'File baru `frontend/src/utils/generateInventoryPDF.js` — jsPDF landscape A4, autoTable theme grid 9 kolom (No/Kode/Nama/Satuan/StokSistem/EDTerdekat/StokFisik/Selisih/Catatan). MinCellHeight 8mm cukup tulisan tangan. Fill greybox di kolom kosong utk highlight area input manual. Footer per page: page N of M + signature lines "Diperiksa/Disetujui oleh" di last page. Tombol di `InventoryDashboard.jsx` header pakai `headerBtn` helper existing + handler `handleExportOpnameTemplate` fetch printSettings + save PDF dgn timestamp filename.'
+      },
+    ]
+  },
+  {
+    version: 'v1.8.3-stable', date: '26 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'fix',
@@ -520,7 +545,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.8.3-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.5-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -572,7 +597,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.8.3-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.5-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -666,7 +691,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.8.3-stable — 2026
+            HABIL SUPERAPP v1.8.5-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

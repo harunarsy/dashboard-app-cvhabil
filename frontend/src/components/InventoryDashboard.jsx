@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Plus, Search, AlertTriangle, Clock, Trash2, Edit2, X,
   ArrowDownCircle, ArrowUpCircle, ClipboardCheck, ChevronRight, ChevronDown,
-  Eye, AlertCircle,
+  Eye, AlertCircle, FileDown,
 } from 'lucide-react';
-import { inventoryAPI } from '../services/api';
+import { inventoryAPI, printSettingsAPI } from '../services/api';
+import { generateInventoryPDF } from '../utils/generateInventoryPDF';
 import { BASE_UNITS, PACK_UNITS } from '../constants/units';
 import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
@@ -247,6 +248,19 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
     } finally { setModalSaving(false); }
   };
 
+  const handleExportOpnameTemplate = async () => {
+    try {
+      let settings = {};
+      try { const { data } = await printSettingsAPI.get(); settings = data?.nota_layout || data || {}; } catch (_) { /* fallback default */ }
+      const doc = generateInventoryPDF(products, { settings });
+      const stamp = new Date().toISOString().slice(0, 10);
+      doc.save(`Template_Opname_${stamp}.pdf`);
+      flashSuccess('Template opname berhasil diunduh');
+    } catch (e) {
+      flashError(`Gagal generate PDF: ${e.message}`);
+    }
+  };
+
   const totalAlerts = alerts.expiring.length + alerts.lowStock.length;
   const headerBtn = (color, Icon, label, onClick) => (
     <button onClick={onClick} style={{
@@ -276,6 +290,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
           {headerBtn('#34C759', ArrowDownCircle, 'Stok Masuk', () => openStockIn(null))}
           {headerBtn('#FF9500', ArrowUpCircle, 'Stok Keluar', () => openStockOut(null))}
           {headerBtn('#5E5CE6', ClipboardCheck, 'Opname', () => setShowModal('opname'))}
+          {headerBtn('#8E8E93', FileDown, 'Cetak Template', handleExportOpnameTemplate)}
         </div>
       </div>
 

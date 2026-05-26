@@ -1,22 +1,8 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { angkaKeTerbilang } from './angkaKeTerbilang';
 
 const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
-
-// Helper for Indonesian "Terbilang" (Amount in words)
-function angkaKeTerbilang(n) {
-  const bilangan = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
-  let temp = "";
-  if (n < 12) temp = " " + bilangan[n];
-  else if (n < 20) temp = angkaKeTerbilang(n - 10) + " Belas";
-  else if (n < 100) temp = angkaKeTerbilang(Math.floor(n / 10)) + " Puluh" + angkaKeTerbilang(n % 10);
-  else if (n < 200) temp = " Seratus" + angkaKeTerbilang(n - 100);
-  else if (n < 1000) temp = angkaKeTerbilang(Math.floor(n / 100)) + " Ratus" + angkaKeTerbilang(n % 100);
-  else if (n < 2000) temp = " Seribu" + angkaKeTerbilang(n - 1000);
-  else if (n < 1000000) temp = angkaKeTerbilang(Math.floor(n / 1000)) + " Ribu" + angkaKeTerbilang(n % 1000);
-  else if (n < 1000000000) temp = angkaKeTerbilang(Math.floor(n / 1000000)) + " Juta" + angkaKeTerbilang(n % 1000000);
-  return temp;
-}
 
 export function generateNotaPDF(order, options = {}) {
   try {
@@ -176,17 +162,24 @@ export function generateNotaPDF(order, options = {}) {
     ? [['No', 'Nama Barang', 'Qty', 'Satuan']]
     : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']];
 
+  // v1.8.5: theme 'plain' + manual outer roundedRect (autoTable native gak support border-radius)
+  const tableStartY = margin + 30;
   autoTable(doc, {
-    startY: margin + 30,
+    startY: tableStartY,
     head: tableHead,
     body: tableData,
-    theme: 'grid',
+    theme: 'plain',
     headStyles: {
       fillColor: accentColor,
       textColor: 255,
       fontStyle: 'bold',
       fontSize: baseFontSize - 1.5,
       halign: 'center',
+      lineWidth: 0,
+    },
+    bodyStyles: {
+      lineColor: [229, 229, 234],
+      lineWidth: 0.1,
     },
     styles: {
       fontSize: baseFontSize - 1.5,
@@ -200,6 +193,14 @@ export function generateNotaPDF(order, options = {}) {
     },
     margin: { left: margin, right: margin },
   });
+  // v1.8.5: outer rounded border — mirror preview HTML (PrintSettings.jsx borderRadius 6px)
+  if (doc.lastAutoTable?.finalY) {
+    const tblW = pageWidth - margin * 2;
+    const tblH = doc.lastAutoTable.finalY - tableStartY;
+    doc.setDrawColor(...accentColor);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, tableStartY, tblW, tblH, 2, 2, 'S');
+  }
 
   // ─── Summary ──────────────────────────────────────────────────────────
   const tableEndY = (doc.lastAutoTable?.finalY || 0);
@@ -245,46 +246,38 @@ export function generateNotaPDF(order, options = {}) {
     doc.setTextColor(0);
   }
 
-  // ─── Pre-calculate space for all remaining elements ───────────────────
-  // v1.8.1: sigBlockH dihitung lebih akurat dari sigGap + sigLineOffset + sigNameOffset + bottom buffer
-  // Sebelumnya undercount (cuma 20/26) padahal actual 26/40+ → bikin page split misjudge.
+  // v1.8.5: ADAPTIVE per-block page-break (ganti pre-calc bundle yg false-positive split).
+  // Strategi: render ketentuan inkremental (per wrapped line cek space), lalu jaga bank+sig+footer
+  // tetap bareng di page yg sama (kalau gak fit → addPage sekali sebelum bank).
   const lineH = isA6 ? 3.5 : 4;
-  const sigGapCalc = isA6 ? 5 : 7;
-  const sigNameOffsetCalc = isA6 ? 14 : 19;
-  const sigBottomBuffer = 4;
-  const sigBlockH = sigGapCalc + sigNameOffsetCalc + sigBottomBuffer; // = 23 (A6) atau 30 (A5/A4)
+  // sigBlockH = sigGap + sigNameOffset (actual render footprint). Sebelumnya overestimate +4mm safety.
+  const sigBlockH = isA6 ? 20 : 26;
   const footerReserve = footerText ? 8 : 4;
-
-  let ketentuanLines = [];
-  let ketentuanH = 0;
-  if (ketentuan && type !== 'terima') {
-    ketentuanLines = ketentuan.split('\n').filter(l => l.trim());
-    ketentuanH = 3 + 4; // top padding + NOTE: label row
-    ketentuanLines.forEach((line, i) => {
-      const wrapped = doc.splitTextToSize(`${i + 1}. ${line}`, pageWidth - margin * 2);
-      ketentuanH += wrapped.length * lineH;
-    });
-  }
 
   let bankH = 0;
   if (bankInfo && type !== 'terima') {
-    bankH = 5 + 5; // top padding + bank text row
+    bankH = 10; // 5mm top pad + 5mm bank text row
     if (qrisText) bankH += 5;
   }
+  const tailGroupH = bankH + sigBlockH + footerReserve;
 
-  // v1.8.1: safety buffer 5mm untuk hindari edge-case overflow
-  const safetyBuffer = 5;
-  const totalNeeded = ketentuanH + bankH + sigBlockH + footerReserve + safetyBuffer;
+  const ensureSpace = (heightNeeded) => {
+    if (finalY + heightNeeded > pageHeight - margin) {
+      doc.addPage();
+      finalY = margin + 5;
+    }
+  };
 
-  // Single page-break decision — move ALL remaining content together
-  if (finalY + totalNeeded > pageHeight - margin) {
-    doc.addPage();
-    finalY = margin + 5;
+  // Debug behind localStorage flag — hapus / nonaktifkan setelah confirmed
+  if (typeof window !== 'undefined' && window.localStorage?.getItem('pdfDebug')) {
+    console.log('[generateNotaPDF DEBUG]', { format, pageHeight, margin, finalY, tailGroupH, threshold: pageHeight - margin });
   }
 
-  // ─── Ketentuan / Notes ────────────────────────────────────────────────
+  // ─── Ketentuan / Notes (adaptive line-by-line) ────────────────────────
   if (ketentuan && type !== 'terima') {
+    const ketentuanLines = ketentuan.split('\n').filter(l => l.trim());
     finalY += 3;
+    ensureSpace(4);
     doc.setFontSize(baseFontSize - 2);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(255, 59, 48);
@@ -293,10 +286,17 @@ export function generateNotaPDF(order, options = {}) {
     doc.setFont('helvetica', 'normal');
     ketentuanLines.forEach((line, i) => {
       const wrapped = doc.splitTextToSize(`${i + 1}. ${line}`, pageWidth - margin * 2);
+      ensureSpace(wrapped.length * lineH);
       doc.text(wrapped, margin, finalY);
       finalY += wrapped.length * lineH;
     });
     doc.setTextColor(0);
+  }
+
+  // Jaga bank + sig + footer satu page (kalau gak fit → addPage SEKALI sebelum bank)
+  if (finalY + tailGroupH > pageHeight - margin) {
+    doc.addPage();
+    finalY = margin + 5;
   }
 
   // ─── Bank Info ────────────────────────────────────────────────────────

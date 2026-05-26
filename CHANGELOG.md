@@ -2,6 +2,26 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.8.5-stable] - 2026-05-26
+
+### Fixed
+- **📄 Nota PDF gak split halaman lagi kalau cuma sedikit item**: nota Albert (1 item DIANERAL 180G) yang sebelumnya split jadi 2 halaman (page 1 stop di Terbilang, page 2 cuma NOTE + signatures dgn ~150mm whitespace) sekarang muat di 1 halaman sesuai expected.
+  - _Detail teknis_: Refactor pre-calc page-break di `frontend/src/utils/generateNotaPDF.js`. Hapus single-decision bundle (`totalNeeded = ketentuanH + bankH + sigBlockH + footerReserve + safetyBuffer`) yg false-positive trigger split. Ganti dengan adaptive per-block: ketentuan render per wrapped line dgn helper `ensureSpace()`, bank+sig+footer dijaga together via 1 conditional addPage check sebelum bank. SigBlockH recalibrate 30→26 (A4/A5) — actual sigGap(7)+sigNameOffset(19)=26 footprint. Debug log behind `localStorage.pdfDebug` flag.
+- **🎨 Tabel nota sekarang punya border rounded**: match preview Dokumen di halaman Pengaturan.
+  - _Detail teknis_: jspdf-autotable v5 gak support border-radius native. Approach: `theme: 'plain'` + headStyles `lineWidth: 0` + bodyStyles `lineColor [229,229,234] lineWidth 0.1` untuk inner separator halus. Manual `doc.roundedRect(margin, startY, w, h, 2, 2, 'S')` post-autoTable untuk outer border 2mm radius. Sweet-spot tradeoff: outer-only rounded vs full per-cell rounded (~100+ baris complex via didDrawCell hook).
+
+### Added
+- **👁️ Live preview di modal Buat Nota Baru**: split modal jadi 2 kolom — form di kiri, preview real-time di kanan. Bisa lihat hasil nota saat ngetik customer/produk/harga/tempo sebelum klik Simpan. Mirror pattern preview di halaman Pengaturan.
+  - _Detail teknis_: Component baru `frontend/src/components/common/NotaPreview.jsx` — pure JSX presentational. Mirror layout `PrintSettings.jsx:194-284` tapi terima props live (form/items/settings). Extract `angkaKeTerbilang` ke `utils/angkaKeTerbilang.js` untuk shared use. Modal `SalesOrderList.jsx`: width `640px` → `min(1200px, calc(100vw - 32px))`, content layout `flex-col` → `grid 1.1fr 1fr` (form kiri + preview sticky kanan). Order number auto-compute dgn `notaCounter.next_preview` fallback. Preview update via React re-render (single source of truth: form/items state).
+- **🖨️ Cetak Template Opname dari halaman Inventory**: tombol baru di header Inventory "Cetak Template" → generate PDF list produk dgn kolom Stok Fisik/Selisih/Catatan kosong untuk dicetak A4 → operator coret-coret di kertas saat opname → balik input ke app. Unblock workflow opname offline.
+  - _Detail teknis_: File baru `frontend/src/utils/generateInventoryPDF.js` — jsPDF landscape A4, autoTable theme grid 9 kolom (No/Kode/Nama/Satuan/StokSistem/EDTerdekat/StokFisik/Selisih/Catatan). MinCellHeight 8mm cukup untuk tulisan tangan. Fill greybox di kolom kosong untuk highlight area input manual. Footer per page: page N of M + signature lines "Diperiksa/Disetujui oleh" di last page. Tombol di `InventoryDashboard.jsx` header pakai `headerBtn` helper existing + handler `handleExportOpnameTemplate` fetch printSettings + save PDF dgn filename timestamp.
+
+### Migration safety
+- Git tag rollback: `v1.8.4-pre-pdf-fix`
+- No schema changes (frontend-only release).
+
+---
+
 ## [v1.8.3-stable] - 2026-05-26
 
 ### Fixed
