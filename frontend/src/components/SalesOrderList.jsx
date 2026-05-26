@@ -798,10 +798,14 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                     />
                     <input
                       ref={numberInputRef}
-                      value={isAutoNota ? String(notaCounter.last_number + 1).padStart(4, '0') : manualNumber}
+                      value={isAutoNota
+                        ? (notaCounter.next_preview
+                            ? notaCounter.next_preview.replace(notaCounter.prefix, '')
+                            : String((notaCounter.month_max || 0) + 1).padStart(3, '0'))
+                        : manualNumber}
                       onChange={e => !isAutoNota && setManualNumber(e.target.value.replace(/\D/g, ''))}
                       disabled={isAutoNota}
-                      placeholder="0001"
+                      placeholder="2605001"
                       style={{ ...inputStyle, flex: 1, backgroundColor: isAutoNota ? (isDarkMode ? '#333' : '#F5F5F7') : cardBg, opacity: isAutoNota ? 0.7 : 1 }}
                     />
                     <button
@@ -810,7 +814,11 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                         const newMode = !isAutoNota;
                         setIsAutoNota(newMode);
                         if (!newMode) {
-                          setManualNumber(String(notaCounter.last_number + 1).padStart(4, '0'));
+                          // v1.8.2: kalau switch ke manual, prefill dgn next_preview YYMM logic
+                          const previewNum = notaCounter.next_preview
+                            ? notaCounter.next_preview.replace(notaCounter.prefix, '')
+                            : String((notaCounter.month_max || 0) + 1).padStart(3, '0');
+                          setManualNumber(previewNum);
                           setTimeout(() => {
                             if (numberInputRef.current) {
                               numberInputRef.current.focus();

@@ -3,10 +3,31 @@ const router = express.Router();
 const pool = require('../config/database');
 
 // GET /api/settings/counters
+// v1.8.2: untuk doc_type NOTA, compute next_preview dengan YYMM dynamic per current month.
+// Sync last_number ke MAX active nota bulan ini supaya preview accurate dgn historical state.
 router.get('/counters', async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM document_counters ORDER BY id ASC');
-    res.json(rows);
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const currentYymm = `${yy}${mm}`;
+
+    const enriched = await Promise.all(rows.map(async (counter) => {
+      if (counter.doc_type !== 'NOTA') {
+        return { ...counter, next_preview: null };
+      }
+      const monthPrefix = `HSB-NOTA-${currentYymm}`;
+      const { rows: [maxRow] } = await pool.query(
+        `SELECT COALESCE(MAX(CAST(SUBSTRING(order_number FROM $2) AS INTEGER)), 0) AS max_num
+         FROM sales_orders WHERE is_deleted = FALSE AND order_number LIKE $1`,
+        [`${monthPrefix}%`, monthPrefix.length + 1]
+      );
+      const nextNum = (parseInt(maxRow.max_num) || 0) + 1;
+      const nextPreview = `${monthPrefix}${String(nextNum).padStart(3, '0')}`;
+      return { ...counter, next_preview: nextPreview, current_yymm: currentYymm, month_max: maxRow.max_num };
+    }));
+    res.json(enriched);
   } catch (err) {
     console.error('Error fetching counters:', err);
     res.status(500).json({ error: 'Failed to fetch counters' });

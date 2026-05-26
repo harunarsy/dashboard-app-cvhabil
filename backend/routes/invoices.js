@@ -281,6 +281,7 @@ router.post('/', auth, async (req, res) => {
 
     // ─── Auto Stock-In: Faktur → Inventory ──────────────────────────────
     // Each invoice item gets added to inventory_batches + inventory_mutations (qty in base unit + source snapshot)
+    // v1.8.2: Auto-sync product_master.hna ke RAW HNA per pcs dari item.hna (faktur terbaru = source of truth)
     if (items && items.length > 0) {
       for (const item of items) {
         const product = productMap.get(item.product_name);
@@ -289,7 +290,7 @@ router.post('/', auth, async (req, res) => {
         const packSize = product?.pack_size || 1;
         const displayUnit = item.unit || product?.base_unit || 'pcs';
         if (product && qtyBase > 0) {
-          const batchHna = item.hna || product.hna || 0;
+          const batchHna = parseFloat(item.hna) || parseFloat(product.hna) || 0;
           const { rows: [batch] } = await client.query(
             `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size)
              VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9) RETURNING id`,
@@ -302,6 +303,13 @@ router.post('/', auth, async (req, res) => {
              `Stok masuk dari faktur ${invoice_number}${displayUnit !== product.base_unit ? ` (${qtyInUnit} ${displayUnit})` : ''}`,
              displayUnit, qtyInUnit]
           );
+          // v1.8.2: sync product_master.hna ke RAW HNA per pcs dari faktur terbaru (keep konsisten dgn batch latest)
+          if (parseFloat(item.hna) > 0) {
+            await client.query(
+              `UPDATE product_master SET hna = $1, updated_at = NOW() WHERE id = $2`,
+              [parseFloat(item.hna), product.id]
+            );
+          }
         } else if (!product) {
           console.warn(`[Invoice ${invoice_number}] Produk "${item.product_name}" tidak ditemukan di product_master — stok tidak dibuat otomatis`);
         }
@@ -385,6 +393,14 @@ router.put('/:id', auth, async (req, res) => {
            item.disc_cod_per_item||0, item.hna_after_cod||0, item.hpp_inc_ppn||0,
            item.batch_number||null]
         );
+        // v1.8.2: sync product_master.hna ke RAW HNA per pcs dari faktur edit (mirror POST behavior)
+        if (parseFloat(item.hna) > 0) {
+          await pool.query(
+            `UPDATE product_master SET hna = $1, updated_at = NOW()
+             WHERE LOWER(name) = LOWER($2) AND is_active = TRUE`,
+            [parseFloat(item.hna), item.product_name]
+          );
+        }
       }
     }
 

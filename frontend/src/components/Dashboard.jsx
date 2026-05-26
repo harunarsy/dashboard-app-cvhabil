@@ -6,7 +6,14 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.8.1-stable', date: '26 Mei 2026', status: 'latest',
+    version: 'v1.8.2-stable', date: '26 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: '🔢 Counter preview Auto field fix — modal Buat Nota Baru sekarang tampil `HSB-NOTA-{YYMM}{NNN}` real-time (sebelumnya masih tampil format lama dari last_number stale). Backend `/counters` enrich response dengan `next_preview` per doc_type (compute MAX per current month + YYMM).' },
+      { type: 'fix', text: '🔄 product_master.hna auto-sync — saat faktur create/edit, `product_master.hna` otomatis ke-update ke RAW HNA per pcs dari item faktur terbaru. Hilangin drift antara product.hna vs batch.hna. Existing data: edit & save 1 faktur per produk untuk trigger sync, ATAU jalanin `node backend/scripts/backfill-hna-raw.js` (sekali).' },
+    ]
+  },
+  {
+    version: 'v1.8.1-stable', date: '26 Mei 2026', status: 'stable',
     changes: [
       { type: 'fix', text: '🔢 Counter nomor nota fix — sebelumnya nyantol di bulan lama (mis. 2603 padahal Mei). Sekarang dynamic per-bulan: `HSB-NOTA-{YYMM}{NNN}` reset counter ke 001 tiap bulan baru. Sync to MAX active nota per current month.' },
       { type: 'fix', text: '🔄 Edit Nota stock sync: edit qty di nota sekarang reverse-old + apply-new ke inventory_batches (sebelumnya stock gak ke-update). Mirror DELETE behavior — transactional safe.' },
@@ -492,7 +499,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.8.1-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.2-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -544,7 +551,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.8.1-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.2-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -638,7 +645,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.8.1-stable — 2026
+            HABIL SUPERAPP v1.8.2-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

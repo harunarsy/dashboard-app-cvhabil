@@ -2,6 +2,19 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.8.2-stable] - 2026-05-26
+
+### Fixed (Hotfix)
+- **🔢 Counter preview Auto field**: modal "Buat Nota Baru" Auto field sebelumnya tampil format lama (mis. `HSB-NOTA-26030003`) karena baca `last_number` raw dari `document_counters` (stale dari pattern lama). Sekarang backend `GET /api/settings/counters` (settings.js) enrich response dengan `next_preview` per doc_type — apply YYMM dynamic logic + MAX active nota per current month. Frontend `SalesOrderList` pakai `notaCounter.next_preview` untuk display.
+- **🔄 product_master.hna auto-sync ke RAW HNA**: drift bug — `product_master.hna` stale (nilai lama dari user input manual di Edit Produk sebelum v1.8.0 label fix). Saat ini batch.hna = 288.289 (raw, benar) tapi product.hna = 301.720 (HPP lama). Fix forward: `backend/routes/invoices.js` POST + PUT sekarang auto-UPDATE `product_master.hna = item.hna` (RAW HNA per pcs) tiap kali faktur create/edit. Source of truth = faktur terbaru.
+
+### Backfill instruction (existing data)
+Untuk fix product.hna stale di data existing tanpa menunggu faktur baru:
+- **Option A** (per produk): buka faktur existing untuk produk tsb → klik "Update Faktur" tanpa edit apa-apa → trigger auto-sync.
+- **Option B** (bulk): jalanin sekali `node backend/scripts/backfill-hna-raw.js` dari `backend/` dir dengan DATABASE_URL pointing ke prod. Script log report perubahan per produk.
+
+---
+
 ## [v1.8.1-stable] - 2026-05-26
 
 ### Fixed (Critical Bugs)
