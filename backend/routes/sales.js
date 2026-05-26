@@ -53,31 +53,68 @@ const ensureSchema = async () => {
     // v1.7.0: batch_no + ED snapshot per item (untuk display di PDF Nota — Image #17 feedback)
     await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS batch_no_snapshot VARCHAR(100)`);
     await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS expired_date_snapshot DATE`);
+    // v1.8.1: counter YYMM dynamic — track bulan terakhir generate untuk auto-reset tiap bulan baru
+    await pool.query(`ALTER TABLE document_counters ADD COLUMN IF NOT EXISTS last_yymm VARCHAR(4)`);
 };
 ensureSchema().catch(e => console.error('sales ensureSchema:', e));
 
 const generateOrderNumber = async (client) => {
-  // v1.7.1: sync counter ke MAX active nota number sebelum increment.
-  // Kalau nota terakhir dihapus → MAX bergeser turun → next create akan re-use nomor yang dihapus.
-  // (Mirror SP pattern di purchaseOrders.js, tapi tanpa GREATEST supaya counter bisa decrease.)
-  await client.query(`
-    UPDATE document_counters
-    SET last_number = COALESCE((
-      SELECT MAX(CAST(REGEXP_REPLACE(order_number, '[^0-9]', '', 'g') AS INT))
-      FROM sales_orders WHERE is_deleted = FALSE
-    ), 0)
-    WHERE doc_type = 'NOTA'
-  `);
-  const { rows } = await client.query(
-    "UPDATE document_counters SET last_number = last_number + 1 WHERE doc_type = 'NOTA' RETURNING prefix, last_number"
+  // v1.8.1: format HSB-NOTA-{YYMM}{NNN} dengan reset per bulan + sync to MAX per current month.
+  // Kalau bulan berubah dari last_yymm → reset last_number=0 + update last_yymm.
+  // Kalau nota terakhir bulan ini dihapus → MAX bergeser turun → re-use nomor (mirror v1.7.1 behavior).
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const currentYymm = `${yy}${mm}`;
+  const monthPrefix = `HSB-NOTA-${currentYymm}`;
+
+  // Sync counter ke MAX active nota YYMM bulan ini (NNN segment after monthPrefix)
+  await client.query(
+    `UPDATE document_counters
+     SET last_number = COALESCE((
+       SELECT MAX(CAST(SUBSTRING(order_number FROM $2) AS INTEGER))
+       FROM sales_orders
+       WHERE is_deleted = FALSE AND order_number LIKE $1
+     ), 0)
+     WHERE doc_type = 'NOTA'`,
+    [`${monthPrefix}%`, monthPrefix.length + 1]
   );
-  if (!rows.length) {
-    // Fallback if counter missing
-    const today = new Date();
-    const prefix = `NT${String(today.getFullYear()).slice(-2)}${String(today.getMonth() + 1).padStart(2, '0')}`;
-    return `${prefix}0001`;
+
+  // Cek apakah bulan berubah → reset counter
+  const { rows: [counter] } = await client.query(
+    `SELECT last_number, last_yymm FROM document_counters WHERE doc_type = 'NOTA'`
+  );
+  if (!counter) {
+    // Fallback kalau counter missing
+    await client.query(
+      `INSERT INTO document_counters (doc_type, prefix, last_number, last_yymm, is_active)
+       VALUES ('NOTA', 'HSB-NOTA-', 1, $1, TRUE)
+       ON CONFLICT (doc_type) DO UPDATE SET last_number = 1, last_yymm = EXCLUDED.last_yymm`,
+      [currentYymm]
+    );
+    return `${monthPrefix}001`;
   }
-  return `${rows[0].prefix}${rows[0].last_number.toString().padStart(4, '0')}`;
+
+  let nextNumber;
+  if (counter.last_yymm && counter.last_yymm !== currentYymm) {
+    // Bulan baru → reset ke 1
+    nextNumber = 1;
+    await client.query(
+      `UPDATE document_counters SET last_number = $1, last_yymm = $2 WHERE doc_type = 'NOTA'`,
+      [nextNumber, currentYymm]
+    );
+  } else {
+    // Bulan sama (atau last_yymm NULL untuk row legacy) → increment + ensure last_yymm set
+    const { rows: [updated] } = await client.query(
+      `UPDATE document_counters SET last_number = last_number + 1, last_yymm = $1
+       WHERE doc_type = 'NOTA' RETURNING last_number`,
+      [currentYymm]
+    );
+    nextNumber = updated.last_number;
+  }
+
+  const padded = String(nextNumber).padStart(3, '0');
+  return `${monthPrefix}${padded}`;
 };
 
 // GET all (excluding soft-deleted)
@@ -276,9 +313,29 @@ router.put('/:id', auth, async (req, res) => {
     );
     if (!rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
 
+    // v1.8.1: STOCK SYNC — reverse-old + apply-new pattern (mirror DELETE behavior).
+    // 1) Reverse semua mutations type='out' untuk nota ini → return qty ke batch.
+    const { rows: outMutations } = await client.query(
+      `SELECT batch_id, product_id, qty FROM inventory_mutations
+       WHERE reference_type = 'nota' AND reference_id = $1 AND type = 'out' AND batch_id IS NOT NULL`,
+      [req.params.id]
+    );
+    for (const m of outMutations) {
+      await client.query(
+        'UPDATE inventory_batches SET qty_current = qty_current + $1 WHERE id = $2',
+        [m.qty, m.batch_id]
+      );
+    }
+    // 2) Hapus mutations lama (out + nota-cancelled in) supaya gak duplicate audit trail
+    await client.query(
+      `DELETE FROM inventory_mutations WHERE reference_type IN ('nota', 'nota-cancelled') AND reference_id = $1`,
+      [req.params.id]
+    );
+
     // Replace items
     await client.query('DELETE FROM sales_items WHERE sales_order_id = $1', [req.params.id]);
-    // v1.6.0: resolve products untuk konversi qty ke base unit
+    // v1.6.0 multi-unit + v1.7.0 batch snapshot: resolve product + peek first FEFO batch per item
+    // v1.8.1: re-snapshot batch_no/expired_date on edit (sebelumnya PUT gak update snapshot)
     const productMap = new Map();
     for (const it of items) {
       if (productMap.has(it.product_name)) continue;
@@ -286,7 +343,15 @@ router.put('/:id', auth, async (req, res) => {
         'SELECT id, name, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
         [it.product_name]
       );
-      if (p) productMap.set(it.product_name, p);
+      if (!p) continue;
+      const { rows: [firstBatch] } = await client.query(
+        `SELECT batch_no, expired_date FROM inventory_batches
+         WHERE product_id = $1 AND qty_current > 0 AND COALESCE(is_active, TRUE) = TRUE
+         AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
+         ORDER BY expired_date ASC NULLS LAST LIMIT 1`,
+        [p.id]
+      );
+      productMap.set(it.product_name, { ...p, firstBatch });
     }
     for (const it of items) {
       const product = productMap.get(it.product_name);
@@ -294,11 +359,52 @@ router.put('/:id', auth, async (req, res) => {
       const qtyBase = product ? uom.toBase(qtyInUnit, it.unit, product) : qtyInUnit;
       const packSize = product?.pack_size || 1;
       const subtotal = qtyInUnit * (it.unit_price || 0);
+      const fb = product?.firstBatch;
       await client.query(
-        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, subtotal, qty_in_unit, pack_size_at_sale)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-        [req.params.id, it.product_name, qtyBase, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, subtotal, qtyInUnit, packSize]
+        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, subtotal, qty_in_unit, pack_size_at_sale, batch_no_snapshot, expired_date_snapshot)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        [req.params.id, it.product_name, qtyBase, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, subtotal, qtyInUnit, packSize,
+         fb?.batch_no || null, fb?.expired_date || null]
       );
+    }
+
+    // 3) Apply-new stock-out: FEFO deduct + INSERT mutations (mirror POST flow)
+    for (const it of items) {
+      const product = productMap.get(it.product_name);
+      const qtyInUnit = parseFloat(it.qty) || 0;
+      const qtyBase = product ? uom.toBase(qtyInUnit, it.unit, product) : qtyInUnit;
+      if (product && qtyBase > 0) {
+        const { rows: batches } = await client.query(
+          `SELECT * FROM inventory_batches
+           WHERE product_id = $1 AND qty_current > 0
+           AND COALESCE(is_active, TRUE) = TRUE
+           AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
+           ORDER BY expired_date ASC NULLS LAST
+           FOR UPDATE`,
+          [product.id]
+        );
+        let remaining = qtyBase;
+        const displayUnit = it.unit || product.base_unit || 'pcs';
+        const { rows: [orderInfo] } = await client.query('SELECT order_number FROM sales_orders WHERE id = $1', [req.params.id]);
+        const orderNumber = orderInfo?.order_number || `#${req.params.id}`;
+        for (const batch of batches) {
+          if (remaining <= 0) break;
+          const deduct = Math.min(batch.qty_current, remaining);
+          await client.query('UPDATE inventory_batches SET qty_current = qty_current - $1 WHERE id = $2', [deduct, batch.id]);
+          await client.query(
+            `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
+             VALUES ($1, $2, 'out', $3, 'nota', $4, $5, $6, $7)`,
+            [product.id, batch.id, deduct, req.params.id,
+             `Stok keluar FEFO dari nota ${orderNumber} (edit-resync)${displayUnit !== product.base_unit ? ` (${qtyInUnit} ${displayUnit})` : ''}`,
+             displayUnit, qtyInUnit]
+          );
+          remaining -= deduct;
+        }
+        if (remaining > 0) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: `Stok ${product.name} tidak mencukupi (kurang: ${remaining} ${product.base_unit || 'pcs'})` });
+        }
+      }
     }
 
     await client.query('COMMIT');

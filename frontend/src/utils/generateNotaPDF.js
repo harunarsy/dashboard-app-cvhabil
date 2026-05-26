@@ -85,6 +85,15 @@ export function generateNotaPDF(order, options = {}) {
     ? new Date(order.sale_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
     : '-';
   doc.text(saleDateStr, infoX, titleY + 9, { align: 'right' });
+  // v1.8.1: tampilkan Jatuh Tempo di header kalau ada AND non-cash
+  if (order.due_date && order.payment_method !== 'Tunai' && type !== 'terima') {
+    const dueStr = new Date(order.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    doc.setTextColor(255, 59, 48);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`JT: ${dueStr}`, infoX, titleY + 13, { align: 'right' });
+    doc.setTextColor(60, 60, 60);
+    doc.setFont('helvetica', 'normal');
+  }
 
   // Blue Line Divider
   doc.setDrawColor(...accentColor);
@@ -197,15 +206,32 @@ export function generateNotaPDF(order, options = {}) {
   let finalY = tableEndY > 0 ? tableEndY + 5 : margin + (isA6 ? 30 : 50);
 
   if (type !== 'terima') {
-    doc.setFontSize(baseFontSize);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`GRAND TOTAL: ${fmtRp(order.total || 0)}`, pageWidth - margin, finalY, { align: 'right' });
+    // v1.8.1: tax-friendly breakdown — DPP (subtotal exc PPN) + PPN 11% + Grand Total
+    // Indo practice: harga jual customer = gross (inc PPN). Decompose: GT = DPP + PPN.
+    const grandTotal = parseFloat(order.total) || 0;
+    const PPN_RATE = 0.11;
+    const dpp = grandTotal / (1 + PPN_RATE);
+    const ppn = grandTotal - dpp;
+    const rightX = pageWidth - margin;
 
-    finalY += 5;
+    doc.setFontSize(baseFontSize - 1);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Subtotal (DPP): ${fmtRp(dpp)}`, rightX, finalY, { align: 'right' });
+    finalY += isA6 ? 3.5 : 4.5;
+    doc.text(`PPN 11%: ${fmtRp(ppn)}`, rightX, finalY, { align: 'right' });
+    finalY += isA6 ? 4 : 5;
+
+    doc.setFontSize(baseFontSize + 1);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0);
+    doc.text(`GRAND TOTAL: ${fmtRp(grandTotal)}`, rightX, finalY, { align: 'right' });
+
+    finalY += isA6 ? 4 : 5;
     doc.setFontSize(baseFontSize - 2);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100);
-    const words = (angkaKeTerbilang(order.total || 0) + " Rupiah").trim();
+    const words = (angkaKeTerbilang(grandTotal) + " Rupiah").trim();
     doc.text(`Terbilang: ${words}`, margin, finalY);
     finalY += (isA6 ? 4 : 6);
     doc.setTextColor(0);
@@ -220,8 +246,13 @@ export function generateNotaPDF(order, options = {}) {
   }
 
   // ─── Pre-calculate space for all remaining elements ───────────────────
+  // v1.8.1: sigBlockH dihitung lebih akurat dari sigGap + sigLineOffset + sigNameOffset + bottom buffer
+  // Sebelumnya undercount (cuma 20/26) padahal actual 26/40+ → bikin page split misjudge.
   const lineH = isA6 ? 3.5 : 4;
-  const sigBlockH = isA6 ? 20 : 26; // label + gap + line + name
+  const sigGapCalc = isA6 ? 5 : 7;
+  const sigNameOffsetCalc = isA6 ? 14 : 19;
+  const sigBottomBuffer = 4;
+  const sigBlockH = sigGapCalc + sigNameOffsetCalc + sigBottomBuffer; // = 23 (A6) atau 30 (A5/A4)
   const footerReserve = footerText ? 8 : 4;
 
   let ketentuanLines = [];
@@ -241,12 +272,14 @@ export function generateNotaPDF(order, options = {}) {
     if (qrisText) bankH += 5;
   }
 
-  const totalNeeded = ketentuanH + bankH + sigBlockH + footerReserve + 8;
+  // v1.8.1: safety buffer 5mm untuk hindari edge-case overflow
+  const safetyBuffer = 5;
+  const totalNeeded = ketentuanH + bankH + sigBlockH + footerReserve + safetyBuffer;
 
   // Single page-break decision — move ALL remaining content together
-  if (finalY + totalNeeded > pageHeight - 4) {
+  if (finalY + totalNeeded > pageHeight - margin) {
     doc.addPage();
-    finalY = margin + 10;
+    finalY = margin + 5;
   }
 
   // ─── Ketentuan / Notes ────────────────────────────────────────────────

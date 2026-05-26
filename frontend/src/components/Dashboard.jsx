@@ -6,7 +6,20 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.8.0-stable', date: '26 Mei 2026', status: 'latest',
+    version: 'v1.8.1-stable', date: '26 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'fix', text: '🔢 Counter nomor nota fix — sebelumnya nyantol di bulan lama (mis. 2603 padahal Mei). Sekarang dynamic per-bulan: `HSB-NOTA-{YYMM}{NNN}` reset counter ke 001 tiap bulan baru. Sync to MAX active nota per current month.' },
+      { type: 'fix', text: '🔄 Edit Nota stock sync: edit qty di nota sekarang reverse-old + apply-new ke inventory_batches (sebelumnya stock gak ke-update). Mirror DELETE behavior — transactional safe.' },
+      { type: 'fix', text: '🎯 Edit Nota batch picker pre-fill: dropdown batch sekarang tampil + auto-select batch yang sebelumnya dipilih (dari batch_no_snapshot). Sebelumnya kosong setiap buka Edit.' },
+      { type: 'fix', text: '📋 PUT /sales re-snapshot batch + ED: edit nota update batch_no_snapshot + expired_date_snapshot ke FEFO terbaru (sebelumnya tetap NULL).' },
+      { type: 'fix', text: '📄 PDF print page-split A5/A6: pre-calc page-break safety buffer + sigBlockH dihitung lebih akurat. 5-10 items nota A5 sekarang fit 1 page tanpa split.' },
+      { type: 'feat', text: '💰 PDF Nota tax-friendly breakdown: tampilkan Subtotal (DPP), PPN 11%, Grand Total. Untuk laporan SPT customer-facing.' },
+      { type: 'feat', text: '📅 PDF Nota tampilkan Jatuh Tempo di header kalau payment non-Tunai (Transfer/QRIS).' },
+      { type: 'feat', text: '💵 Form nota: payment Tunai → field Tempo Pembayaran auto-hidden + auto-clear. Cash tidak pakai jatuh tempo.' },
+    ]
+  },
+  {
+    version: 'v1.8.0-stable', date: '26 Mei 2026', status: 'stable',
     changes: [
       { type: 'feat', text: '🏷️ HNA / HPP Consistency: kolom Inventory split jadi 2 — "HNA (exc PPN)" (raw cost) + "HPP (inc PPN)" (raw × 1.11). Edit Produk + Edit Batch + Stok Masuk semua tampil chip HPP computed auto. Bedain mana harga kulak sebenarnya vs harga raw.' },
       { type: 'feat', text: '💰 Decimal Precision: input HNA / Disc COD / Stok Masuk kini support 2 digit desimal dengan format Indo "Rp 288.288,25" (titik ribuan + koma desimal). Lebih akurat untuk faktur masukan.' },
@@ -479,7 +492,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.8.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.1-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -531,7 +544,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.8.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.1-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -625,7 +638,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.8.0-stable — 2026
+            HABIL SUPERAPP v1.8.1-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

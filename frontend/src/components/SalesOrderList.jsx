@@ -276,7 +276,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
     setShowModal(true);
   };
 
-  const openEdit = (order) => {
+  const openEdit = async (order) => {
     setEditId(order.id);
     setForm({
       order_number: order.order_number,
@@ -290,16 +290,45 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       due_date: order.due_date ? order.due_date.split('T')[0] : '',
       payment_terms: order.payment_terms || null,
     });
-    setItems(order.items?.length 
-      ? order.items.map(i => ({ 
-          product_name: i.product_name, 
-          qty: i.qty, 
-          unit: i.unit || 'pcs', 
+    // v1.8.1: include batch snapshot fields supaya batch picker bisa pre-fill
+    const editItems = order.items?.length
+      ? order.items.map(i => ({
+          product_name: i.product_name,
+          qty: i.qty,
+          unit: i.unit || 'pcs',
           unit_price: parseFloat(i.unit_price) || 0,
-          unit_hpp: parseFloat(i.unit_hpp) || 0
-        })) 
-      : [blankItem()]);
+          unit_hpp: parseFloat(i.unit_hpp) || 0,
+          _selected_batch: i.batch_no_snapshot || '',
+          batch_no_snapshot: i.batch_no_snapshot,
+          expired_date_snapshot: i.expired_date_snapshot,
+        }))
+      : [blankItem()];
+    setItems(editItems);
+    setItemBatches(editItems.map(() => []));
     setShowModal(true);
+
+    // v1.8.1: re-fetch batches per item supaya dropdown bisa render + match snapshot
+    if (order.items?.length) {
+      for (let idx = 0; idx < order.items.length; idx++) {
+        const item = order.items[idx];
+        const prod = products.find(p => p.name?.toLowerCase() === item.product_name?.toLowerCase());
+        if (!prod) continue;
+        try {
+          const { data: batches } = await inventoryAPI.getAvailableBatches(prod.id);
+          setItemBatches(prev => {
+            const n = [...prev];
+            n[idx] = batches || [];
+            return n;
+          });
+          // Cache product reference di item (untuk consistency dgn updateItem product flow)
+          setItems(prev => {
+            const n = [...prev];
+            if (n[idx]) n[idx] = { ...n[idx], _product: prod };
+            return n;
+          });
+        } catch (e) { /* batch fetch failed, dropdown akan kosong → fallback Auto FEFO */ }
+      }
+    }
   };
 
   const handleSave = async () => {
@@ -848,7 +877,15 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                 </div>
                 <div>
                   <label style={labelStyle}>Metode Pembayaran</label>
-                  <select value={form.payment_method} onChange={e => setForm(p => ({ ...p, payment_method: e.target.value }))} style={inputStyle}>
+                  <select value={form.payment_method} onChange={e => {
+                    const v = e.target.value;
+                    setForm(p => ({
+                      ...p,
+                      payment_method: v,
+                      // v1.8.1: Tunai → auto-clear due_date (gak ada tempo untuk cash)
+                      ...(v === 'Tunai' ? { due_date: '', payment_terms: null } : {})
+                    }));
+                  }} style={inputStyle}>
                     <option value="Tunai">Tunai</option>
                     <option value="Transfer">Transfer</option>
                     <option value="QRIS">QRIS</option>
@@ -856,28 +893,32 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
                 </div>
               </div>
 
-              {/* Tempo Pembayaran */}
-              <div>
-                <label style={labelStyle}>Tempo Pembayaran (Jatuh Tempo)</label>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                  {[7,14,30].map(n => {
-                    const target = addDays(form.sale_date, n);
-                    const active = form.due_date === target && form.payment_terms === n;
-                    return (
-                      <button key={n} type="button"
-                        onClick={() => setForm(p => ({ ...p, due_date: target, payment_terms: n }))}
-                        style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '700', borderRadius: '8px', border: `1px solid ${active ? '#007AFF' : (isDarkMode ? '#3A3A3C' : '#D1D1D6')}`, backgroundColor: active ? '#007AFF' : 'transparent', color: active ? '#FFF' : (isDarkMode ? '#ABABAB' : '#555'), cursor: 'pointer' }}>
-                        {n} hari
-                      </button>
-                    );
-                  })}
-                  <button type="button" onClick={() => setForm(p => ({ ...p, due_date: '', payment_terms: null }))}
-                    style={{ padding: '6px 10px', fontSize: '11px', borderRadius: '8px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, backgroundColor: 'transparent', color: '#86868B', cursor: 'pointer' }}>
-                    Tunai
-                  </button>
+              {/* Tempo Pembayaran — v1.8.1: hide kalau Tunai (cash gak ada tempo) */}
+              {form.payment_method !== 'Tunai' ? (
+                <div>
+                  <label style={labelStyle}>Tempo Pembayaran (Jatuh Tempo)</label>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                    {[7,14,30].map(n => {
+                      const target = addDays(form.sale_date, n);
+                      const active = form.due_date === target && form.payment_terms === n;
+                      return (
+                        <button key={n} type="button"
+                          onClick={() => setForm(p => ({ ...p, due_date: target, payment_terms: n }))}
+                          style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '700', borderRadius: '8px', border: `1px solid ${active ? '#007AFF' : (isDarkMode ? '#3A3A3C' : '#D1D1D6')}`, backgroundColor: active ? '#007AFF' : 'transparent', color: active ? '#FFF' : (isDarkMode ? '#ABABAB' : '#555'), cursor: 'pointer' }}>
+                          {n} hari
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input type="date" value={form.due_date} onChange={e => setForm(p => ({ ...p, due_date: e.target.value, payment_terms: null }))} style={{ ...inputStyle, fontSize: '12px' }} placeholder="Atau pilih tanggal manual" />
                 </div>
-                <input type="date" value={form.due_date} onChange={e => setForm(p => ({ ...p, due_date: e.target.value, payment_terms: null }))} style={{ ...inputStyle, fontSize: '12px' }} placeholder="Atau pilih tanggal manual" />
-              </div>
+              ) : (
+                <div style={{ padding: '10px 12px', background: isDarkMode ? '#1C1C1E' : '#F5F5F7', borderRadius: '10px', border: `1px dashed ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}` }}>
+                  <p style={{ margin: 0, fontSize: '11px', color: sub }}>
+                    Pembayaran <strong>Tunai</strong> — tidak ada tempo. Ganti metode (Transfer / QRIS) kalau perlu jatuh tempo.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label style={labelStyle}>Saluran Penjualan</label>

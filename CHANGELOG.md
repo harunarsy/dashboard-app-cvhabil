@@ -2,6 +2,26 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.8.1-stable] - 2026-05-26
+
+### Fixed (Critical Bugs)
+- **🔢 Counter nomor nota dynamic per bulan**: sebelumnya nyantol di YYMM bulan lama (mis. nota Mei tapi format `2603xxx`). Sekarang `generateOrderNumber()` di `backend/routes/sales.js` deteksi current YYMM, reset counter ke 001 tiap bulan baru via `last_yymm` column. Sync to MAX active nota per current month untuk handle delete + re-use. Schema additive: `ALTER TABLE document_counters ADD COLUMN IF NOT EXISTS last_yymm VARCHAR(4)`.
+- **🔄 Edit Nota stock sync (PUT /sales)**: sebelumnya PUT cuma DELETE+INSERT sales_items tanpa sentuh inventory → edit qty 5→12, stock di batch gak update. Sekarang implement reverse-old + apply-new pattern (mirror DELETE): fetch old 'out' mutations → reverse qty ke batch → DELETE mutations lama → FEFO re-deduct + INSERT mutations baru. Transactional safe.
+- **🎯 Edit Nota batch picker pre-fill**: `openEdit()` di `SalesOrderList.jsx` sekarang include `batch_no_snapshot` + `expired_date_snapshot` di items + re-fetch batches per item via `getAvailableBatches()` + set `_selected_batch` dari snapshot. Dropdown tampil + auto-select batch yang dipilih sebelumnya.
+- **📋 PUT /sales re-snapshot batch + ED**: PUT handler peek first FEFO batch + update `batch_no_snapshot` + `expired_date_snapshot` di sales_items (mirror POST). PDF nota print sekarang tampil batch/ED sub-line walaupun nota di-edit.
+- **📄 PDF Nota page-split A5/A6 fix**: `generateNotaPDF.js` sigBlockH dihitung lebih akurat dari `sigGap + sigNameOffset + bottomBuffer` (sebelumnya undercount 14mm). Safety buffer 5mm + page-fit check pakai `pageHeight - margin` (sebelumnya cuma `-4`). 5-10 items A5 sekarang fit 1 page tanpa split.
+
+### Added (Nota Tax-Friendly + UX)
+- **💰 PDF Nota tax-friendly breakdown**: tampilkan Subtotal (DPP) + PPN 11% + Grand Total decompose dari `order.total` (Grand Total = DPP × 1.11, asumsi harga jual gross/inc PPN). Untuk laporan SPT customer-facing.
+- **📅 PDF Nota Jatuh Tempo header**: kalau `due_date` ada AND payment_method non-Tunai → tampil "JT: 09 Jun 2026" di header info kanan (merah, bold).
+- **💵 Form nota conditional due_date**: pilih `payment_method='Tunai'` → field Tempo Pembayaran auto-hidden + auto-clear (`due_date=''`, `payment_terms=null`). Tampil hint "Pembayaran Tunai — tidak ada tempo". Switch ke Transfer/QRIS → field muncul kembali.
+
+### Migration safety
+- Git tag rollback: `v1.8.0-pre-nota-fix`
+- Schema additive only — `ALTER TABLE document_counters ADD COLUMN IF NOT EXISTS last_yymm` safe re-run.
+
+---
+
 ## [v1.8.0-stable] - 2026-05-26
 
 ### Added (Major Features)
