@@ -4,7 +4,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
+const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 
 export const generateLaporanPDF = (orders, options = {}) => {
@@ -51,7 +51,7 @@ export const generateLaporanPDF = (orders, options = {}) => {
         ? parseFloat(it.qty_in_unit)
         : (it.qty || 0);
       const unit = it.unit || 'pcs';
-      const hppStr = parseFloat(it.unit_hpp) > 0 ? `HPP ${fmtRp(it.unit_hpp)}` : '';
+      const hppStr = parseFloat(it.unit_hpp) > 0 ? `HPP/pcs (inc PPN): ${fmtRp(it.unit_hpp, 2)}` : '';
       const subStyle = { fillColor: SUBROW_BG, fontSize: 8 };
       bodyRows.push([
         { content: '', styles: subStyle },

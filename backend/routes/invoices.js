@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const uom = require('../utils/uom');
+const tax = require('../utils/tax');
 
 // Auto-migrate schema
 const ensureSchema = async () => {
@@ -60,11 +61,12 @@ const ensureSchema = async () => {
   `);
 
   // Data Migration: Populate missing hpp_inc_ppn and hna_per_item for old records
+  // PPN_RATE constant via tax.js (sengaja inline literal di SQL karena query-side)
   await pool.query(`
-    UPDATE invoice_items 
-    SET 
+    UPDATE invoice_items
+    SET
       hna_per_item = CASE WHEN quantity > 0 AND hna_baru > 0 THEN hna_baru / quantity ELSE hna_per_item END,
-      hpp_inc_ppn = CASE WHEN quantity > 0 AND hna_baru > 0 THEN (hna_baru / quantity) * 1.11 ELSE hpp_inc_ppn END
+      hpp_inc_ppn = CASE WHEN quantity > 0 AND hna_baru > 0 THEN (hna_baru / quantity) * ${1 + tax.PPN_RATE} ELSE hpp_inc_ppn END
     WHERE (hpp_inc_ppn = 0 OR hna_per_item = 0) AND quantity > 0 AND hna_baru > 0
   `);
 };

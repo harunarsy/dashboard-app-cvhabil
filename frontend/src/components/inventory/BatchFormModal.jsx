@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { inventoryAPI } from '../../services/api';
+import { hppFromHna, formatRupiah, parseRupiah } from '../../utils/rupiah';
+import RupiahInput from '../common/RupiahInput';
 
 // Modal untuk add (qty initial via stockIn) atau edit metadata batch.
 // Mode 'add' → POST stock-in (membuat batch baru + mutation). Mode 'edit' → PUT batch (metadata only).
@@ -54,7 +56,7 @@ export default function BatchFormModal({ mode, batch, productId, productName, on
         await inventoryAPI.updateBatch(batch.id, {
           batch_no: form.batch_no || null,
           expired_date: form.expired_date || null,
-          hna: parseFloat(form.hna) || 0,
+          hna: parseRupiah(form.hna),
           notes: form.notes || null,
         });
         onSaved?.();
@@ -73,7 +75,7 @@ export default function BatchFormModal({ mode, batch, productId, productName, on
           batch_no: form.batch_no || null,
           expired_date: form.expired_date || null,
           qty,
-          hna: parseFloat(form.hna) || 0,
+          hna: parseRupiah(form.hna),
           source_type: 'manual',
           notes: form.notes || `Batch baru: ${form.batch_no || '(no batch no)'}`,
         });
@@ -141,9 +143,14 @@ export default function BatchFormModal({ mode, batch, productId, productName, on
               </div>
             )}
             <div>
-              <label style={labelStyle}>HNA per pcs (Rp)</label>
-              <input type="number" min="0" step="0.01" value={form.hna}
-                onChange={(e) => setForm({ ...form, hna: e.target.value })} style={inputStyle} />
+              <label style={labelStyle}>HNA per pcs (exc PPN)</label>
+              <RupiahInput value={form.hna} decimals={2}
+                onChange={(v) => setForm({ ...form, hna: v })} style={inputStyle} />
+              {parseFloat(form.hna) > 0 && (
+                <p style={{ margin: '6px 0 0', fontSize: '11px', color: sub, lineHeight: 1.4 }}>
+                  HPP per pcs (inc PPN 11%): <strong style={{ color: text }}>{formatRupiah(hppFromHna(form.hna), 2)}</strong>
+                </p>
+              )}
             </div>
           </div>
           <div>

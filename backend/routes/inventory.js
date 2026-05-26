@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const pricing = require('../utils/pricing');
+const tax = require('../utils/tax');
 
 // ─── Auto-create tables ─────────────────────────────────────────────────────
 const ensureSchema = async () => {
@@ -634,9 +635,10 @@ router.get('/fefo-hna/:productId', auth, async (req, res) => {
 // GET all available batches for a product (for batch dropdown in sales/nota)
 router.get('/batches-by-product/:productId', auth, async (req, res) => {
   try {
+    // batch.hna sudah per-pcs (RAW, exc PPN) — HPP per pcs = hna * (1 + PPN_RATE)
     const { rows } = await pool.query(`
       SELECT batch_no, expired_date, qty_current, hna,
-             CASE WHEN qty_current > 0 AND hna > 0 THEN (hna / qty_current) * 1.11 ELSE 0 END AS hpp_inc_ppn
+             CASE WHEN hna > 0 THEN hna * ${1 + tax.PPN_RATE} ELSE 0 END AS hpp_inc_ppn
       FROM inventory_batches
       WHERE product_id = $1 AND qty_current > 0
       AND COALESCE(is_active, TRUE) = TRUE

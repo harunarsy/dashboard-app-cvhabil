@@ -6,7 +6,19 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.7.0-stable', date: '25 Mei 2026', status: 'latest',
+    version: 'v1.8.0-stable', date: '26 Mei 2026', status: 'latest',
+    changes: [
+      { type: 'feat', text: '🏷️ HNA / HPP Consistency: kolom Inventory split jadi 2 — "HNA (exc PPN)" (raw cost) + "HPP (inc PPN)" (raw × 1.11). Edit Produk + Edit Batch + Stok Masuk semua tampil chip HPP computed auto. Bedain mana harga kulak sebenarnya vs harga raw.' },
+      { type: 'feat', text: '💰 Decimal Precision: input HNA / Disc COD / Stok Masuk kini support 2 digit desimal dengan format Indo "Rp 288.288,25" (titik ribuan + koma desimal). Lebih akurat untuk faktur masukan.' },
+      { type: 'feat', text: '✂️ Edit Faktur Simplified: hide cascade fields (HNA × QTY, Disc Nominal, HNA Baru, HNA/Item, COD Bagian, HNA After COD) by default. Tampil HPP final highlight + tombol "Detail kalkulasi" untuk yang mau verify breakdown.' },
+      { type: 'feat', text: '📐 Karton UX Sync: Faktur form tampil conversion preview "20 karton (= 240 pcs)" mirror SalesOrderList. SP PDF tambah sub-line "(= X pcs)" konsisten dengan Nota PDF.' },
+      { type: 'fix', text: 'Backend /batches-by-product: HPP computation salah formula (hna/qty × 1.11) — sekarang fix ke hna × 1.11 (hna sudah per-pcs).' },
+      { type: 'fix', text: 'PPN rate konsolidasi via konstanta (backend/utils/tax.js + frontend/utils/rupiah.js) — gak hardcoded 1.11 di banyak tempat lagi.' },
+      { type: 'fix', text: 'PDF Laporan: HPP sub-row label eksplisit "HPP/pcs (inc PPN)" + 2 decimal digit untuk akurasi.' },
+    ]
+  },
+  {
+    version: 'v1.7.0-stable', date: '25 Mei 2026', status: 'stable',
     changes: [
       { type: 'feat', text: '💰 Tiered Pricing (Grosir): set harga per qty range per produk (contoh: 1-4 karton @212k, 5-9 @208k, 10+ @204k). Auto-apply ke Nota saat qty match — tampil tag "🏷️ Harga grosir tier" untuk transparency.' },
       { type: 'feat', text: '📊 Multi-Select Nota Penjualan → Export PDF Laporan: checkbox column di list nota + sticky action bar saat ada selection. Export PDF landscape A4 berisi tabel ringkasan, Grand Total, breakdown Lunas vs Belum Bayar.' },
@@ -467,7 +479,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [loading, setLoading] = useState(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.7.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -519,7 +531,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.7.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -613,7 +625,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.7.0-stable — 2026
+            HABIL SUPERAPP v1.8.0-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

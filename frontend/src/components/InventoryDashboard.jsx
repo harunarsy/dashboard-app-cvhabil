@@ -12,8 +12,10 @@ import ConfirmModal from './common/ConfirmModal';
 import Breadcrumb from './common/Breadcrumb';
 import ProductDrawer from './inventory/ProductDrawer';
 import OpnameModal from './inventory/OpnameModal';
+import { hppFromHna, formatRupiah } from '../utils/rupiah';
+import RupiahInput from './common/RupiahInput';
 
-const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
+const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
 
@@ -317,7 +319,8 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                   <th style={thStyle(sub, border)}>Kode</th>
                   <th style={thStyle(sub, border)}>Nama Produk</th>
                   <th style={thStyle(sub, border)}>Satuan</th>
-                  <th style={{ ...thStyle(sub, border), textAlign: 'right' }}>HNA</th>
+                  <th style={{ ...thStyle(sub, border), textAlign: 'right' }} title="Harga Netto Apotek - raw, sebelum PPN 11%">HNA<br/><span style={{ fontSize: '10px', fontWeight: '400', color: sub }}>(exc PPN)</span></th>
+                  <th style={{ ...thStyle(sub, border), textAlign: 'right' }} title="Harga Pokok Penjualan = HNA + PPN 11%">HPP<br/><span style={{ fontSize: '10px', fontWeight: '400', color: sub }}>(inc PPN)</span></th>
                   <th style={{ ...thStyle(sub, border), textAlign: 'right' }}>Harga Jual</th>
                   <th style={{ ...thStyle(sub, border), textAlign: 'center' }}>Stok</th>
                   <th style={thStyle(sub, border)}>Exp Terdekat</th>
@@ -332,6 +335,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                       <td style={tdStyle}><Skeleton width="60px" height="14px" /></td>
                       <td style={tdStyle}><Skeleton width="150px" height="14px" /></td>
                       <td style={tdStyle}><Skeleton width="40px" height="14px" /></td>
+                      <td style={tdStyle}><Skeleton width="80px" height="14px" /></td>
                       <td style={tdStyle}><Skeleton width="80px" height="14px" /></td>
                       <td style={tdStyle}><Skeleton width="80px" height="14px" /></td>
                       <td style={tdStyle}><Skeleton width="40px" height="14px" /></td>
@@ -373,6 +377,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                           </td>
                           <td style={{ ...tdStyle, color: sub }}>{p.unit}</td>
                           <td style={{ ...tdStyle, color: text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtRp(p.hna)}</td>
+                          <td style={{ ...tdStyle, color: text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtRp(hppFromHna(p.hna))}</td>
                           <td style={{ ...tdStyle, color: text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtRp(p.sell_price)}</td>
                           <td style={{ ...tdStyle, textAlign: 'center', verticalAlign: 'middle' }}>
                             <div
@@ -494,9 +499,17 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                   {BASE_UNITS.map((u, i) => <option key={`${u.value}-${i}`} value={u.value}>{u.label}</option>)}
                 </select>
               </div>
-              <div><label style={labelStyle}>HNA / eceran</label><input type="number" value={pForm.hna} onChange={e => setPForm(p => ({ ...p, hna: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
+              <div>
+                <label style={labelStyle} title="Harga Netto Apotek (raw, exc PPN)">HNA / eceran (exc PPN)</label>
+                <RupiahInput value={pForm.hna} decimals={2} onChange={v => setPForm(p => ({ ...p, hna: v }))} style={inputStyle} />
+              </div>
               <div><label style={labelStyle}>Jual / eceran</label><input type="number" value={pForm.sell_price} onChange={e => setPForm(p => ({ ...p, sell_price: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
             </div>
+            {parseFloat(pForm.hna) > 0 && (
+              <p style={{ margin: '0 0 4px', fontSize: '11px', color: sub, padding: '6px 10px', background: surface, borderRadius: '8px' }}>
+                HPP per {pForm.base_unit || pForm.unit || 'pcs'} (inc PPN 11%): <strong style={{ color: text }}>{formatRupiah(hppFromHna(pForm.hna), 2)}</strong> · Margin: <strong style={{ color: (pForm.sell_price - hppFromHna(pForm.hna)) > 0 ? '#34C759' : '#FF3B30' }}>{formatRupiah(pForm.sell_price - hppFromHna(pForm.hna), 0)}</strong>
+              </p>
+            )}
 
             {/* v1.6.0 Multi-Unit Packaging — optional */}
             <div style={{ background: surface, border: `1px dashed ${border}`, borderRadius: '10px', padding: '12px' }}>
@@ -605,9 +618,17 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
               <div><label style={labelStyle}>Qty *</label><input type="number" value={siForm.qty} min="1" onChange={e => setSiForm(p => ({ ...p, qty: parseInt(e.target.value) || 0 }))} style={inputStyle} /></div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div><label style={labelStyle}>HNA / HPP</label><input type="number" step="0.01" value={siForm.hna} onChange={e => setSiForm(p => ({ ...p, hna: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
+              <div>
+                <label style={labelStyle} title="Harga raw per pcs sebelum PPN 11%">HNA / pcs (exc PPN)</label>
+                <RupiahInput value={siForm.hna} decimals={2} onChange={v => setSiForm(p => ({ ...p, hna: v }))} style={inputStyle} />
+              </div>
               <div><label style={labelStyle}>Tanggal Expired</label><input type="date" value={siForm.expired_date} onChange={e => setSiForm(p => ({ ...p, expired_date: e.target.value }))} style={inputStyle} /></div>
             </div>
+            {parseFloat(siForm.hna) > 0 && (
+              <p style={{ margin: '-4px 0 0', fontSize: '11px', color: sub, padding: '6px 10px', background: surface, borderRadius: '8px' }}>
+                HPP per pcs (inc PPN 11%): <strong style={{ color: text }}>{formatRupiah(hppFromHna(siForm.hna), 2)}</strong>
+              </p>
+            )}
             {modalError && (
               <div style={{ backgroundColor: '#FFF5F5', border: '1px solid #FFE5E5', borderRadius: '10px', padding: '10px 14px', color: '#FF3B30', fontSize: '13px', fontWeight: '600', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} /> <span>{modalError}</span>
@@ -784,7 +805,8 @@ function ExpandedBatches({ productId, product, batches, loading, sub, text, bord
             <th style={{ ...thStyle(sub, border), borderBottom: 'none', padding: '8px 14px' }}>No. Batch</th>
             <th style={{ ...thStyle(sub, border), borderBottom: 'none', padding: '8px 14px' }}>ED</th>
             <th style={{ ...thStyle(sub, border), borderBottom: 'none', padding: '8px 14px', textAlign: 'right' }}>Qty</th>
-            <th style={{ ...thStyle(sub, border), borderBottom: 'none', padding: '8px 14px', textAlign: 'right' }}>HNA</th>
+            <th style={{ ...thStyle(sub, border), borderBottom: 'none', padding: '8px 14px', textAlign: 'right' }} title="HNA per pcs (raw, exc PPN)">HNA<br/><span style={{ fontSize: '9px', fontWeight: '400', color: sub }}>(exc PPN)</span></th>
+            <th style={{ ...thStyle(sub, border), borderBottom: 'none', padding: '8px 14px', textAlign: 'right' }} title="HPP per pcs = HNA + PPN 11%">HPP<br/><span style={{ fontSize: '9px', fontWeight: '400', color: sub }}>(inc PPN)</span></th>
           </tr>
         </thead>
         <tbody>
@@ -810,7 +832,8 @@ function ExpandedBatches({ productId, product, batches, loading, sub, text, bord
                     </div>
                   )}
                 </td>
-                <td style={{ padding: '8px 14px', textAlign: 'right', color: sub, fontVariantNumeric: 'tabular-nums' }}>{fmtRp(b.hna)}</td>
+                <td style={{ padding: '8px 14px', textAlign: 'right', color: sub, fontVariantNumeric: 'tabular-nums' }}>{fmtRp(b.hna, 2)}</td>
+                <td style={{ padding: '8px 14px', textAlign: 'right', color: sub, fontVariantNumeric: 'tabular-nums' }}>{fmtRp(hppFromHna(b.hna), 2)}</td>
               </tr>
             );
           })}

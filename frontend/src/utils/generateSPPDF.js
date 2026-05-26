@@ -105,10 +105,21 @@ export function generateSPPDF(order, options = {}) {
       : (item.qty || 0);
     return qtyShow;
   };
+  // v1.8.0 karton consistency: tampilkan sub-line conversion "(= X pcs)" kalau pack unit dipakai
+  const formatProductNameSP = (item) => {
+    const qtyInUnit = parseFloat(item.qty_in_unit);
+    const qtyBase = parseFloat(item.qty);
+    const packSize = parseInt(item.pack_size_at_po) || 1;
+    const baseUnit = item.unit_base || 'pcs';
+    if (packSize > 1 && !isNaN(qtyInUnit) && !isNaN(qtyBase) && qtyBase !== qtyInUnit) {
+      return `${item.product_name}\n(= ${qtyBase} ${baseUnit})`;
+    }
+    return item.product_name;
+  };
   let tableData = items.map((item, index) => {
     return [
       index + 1,
-      item.product_name,
+      formatProductNameSP(item),
       formatQtyForSP(item),
       item.unit || 'pcs',
       item.keterangan || '-'

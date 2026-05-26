@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { invoicesAPI, distributorsAPI, productsAPI, auditAPI } from '../services/api';
-import { BASE_UNITS, PACK_UNITS } from '../constants/units';
+import { BASE_UNITS, PACK_UNITS, formatQtyWithConversion, isPackUnit } from '../constants/units';
 import { Plus, X, Trash2, RotateCcw, Search, AlertTriangle, Clock, FileText, ChevronLeft, ChevronRight, History } from 'lucide-react';
 import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
 import Breadcrumb from './common/Breadcrumb';
+import { PPN_RATE } from '../utils/rupiah';
+import RupiahInput from './common/RupiahInput';
 
 const OVERDUE_PULSE_CSS = `@keyframes habil-pulse{0%,100%{opacity:1}50%{opacity:0.35}}`;
 if (typeof document !== 'undefined' && !document.getElementById('habil-pulse-style')) {
@@ -13,9 +15,13 @@ if (typeof document !== 'undefined' && !document.getElementById('habil-pulse-sty
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+// parseNum: Indo decimal aware. "288.288,25" → 288288.25; "288288" → 288288; "288288.25" → 288288.25
 const parseNum = (v) => {
   if (v === '' || v == null) return 0;
-  return parseFloat(String(v).replace(/[^0-9.]/g, '')) || 0;
+  let s = String(v).trim().replace(/Rp\s?/gi, '').replace(/\s/g, '');
+  if (!s) return 0;
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  return parseFloat(s) || 0;
 };
 const formatRp = (n, cents = false) => {
   if (!n && n !== 0) return 'Rp 0';
@@ -25,10 +31,12 @@ const formatRp = (n, cents = false) => {
     maximumFractionDigits: cents ? 2 : 0,
   }).format(parseFloat(n));
 };
+// formatRpInput: display dengan koma desimal kalau ada (max 2 digit). Integer = no decimal.
 const formatRpInput = (n) => {
-  const x = Math.floor(parseFloat(n));
-  if (isNaN(x) || n === '' || n == null) return '';
-  return x.toLocaleString('id-ID');
+  const num = parseFloat(n);
+  if (isNaN(num) || n === '' || n == null) return '';
+  if (!num) return '';
+  return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 };
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return null;
@@ -89,7 +97,7 @@ const calcItem = (item, disc_cod_per_item = 0) => {
   const hna_baru = hna_times_qty - disc_nominal;
   const hna_after_cod = hna_baru - disc_cod_per_item;
   const hna_per_item = qty > 0 ? hna_baru / qty : 0;
-  const hpp_inc_ppn = qty > 0 ? (hna_after_cod / qty) * 1.11 : 0;
+  const hpp_inc_ppn = qty > 0 ? (hna_after_cod / qty) * (1 + PPN_RATE) : 0;
   return { ...item, hna_times_qty, disc_nominal, hna_baru, hna_per_item, disc_cod_per_item, hna_after_cod, hpp_inc_ppn };
 };
 const calcTotals = (items, form) => {
@@ -111,7 +119,7 @@ const calcTotals = (items, form) => {
     return calcItem(i, disc_cod_per_item);
   });
   const hna_final = hna_baru_total - disc_cod_amount;
-  const ppn_masukan = hna_final * 0.11;
+  const ppn_masukan = hna_final * PPN_RATE;
   const ppn_pembulatan = Math.floor(ppn_masukan);
   const hna_plus_ppn = hna_final + ppn_masukan;
   const totalQty = items.reduce((s, i) => s + parseNum(i.quantity), 0);
@@ -373,7 +381,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
   };
 
   const buildPayload = () => {
-    const itemsWithCod = totals.items_with_cod || items.map(i => ({...i, disc_cod_per_item: 0, hna_after_cod: i.hna_baru, hpp_inc_ppn: i.hna_per_item * 1.11}));
+    const itemsWithCod = totals.items_with_cod || items.map(i => ({...i, disc_cod_per_item: 0, hna_after_cod: i.hna_baru, hpp_inc_ppn: i.hna_per_item * (1 + PPN_RATE)}));
     return {
       ...form,
       ...totals,
@@ -389,7 +397,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
           hna_per_item: i.hna_per_item, margin: 0,
           disc_cod_per_item: withCod.disc_cod_per_item || 0,
           hna_after_cod: withCod.hna_after_cod || i.hna_baru,
-          hpp_inc_ppn: withCod.hpp_inc_ppn || (i.hna_per_item || 0) * 1.11,
+          hpp_inc_ppn: withCod.hpp_inc_ppn || (i.hna_per_item || 0) * (1 + PPN_RATE),
           unit: i.unit || 'pcs', // v1.6.0: pass unit ke backend untuk konversi qty → base
           batch_number: i.batch_number || null,
         };
@@ -1111,7 +1119,7 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
           <div style={{ fontSize: '13px', color: '#FF9500' }}>{item.disc_cod_per_item > 0 ? formatRp(item.disc_cod_per_item) : <span style={{color:'#C7C7CC'}}>—</span>}</div>
           <div style={{ fontSize: '13px', fontWeight: '600', color: '#34C759' }}>{item.hna_after_cod > 0 ? formatRp(item.hna_after_cod) : (item.hna_baru > 0 ? formatRp(item.hna_baru) : formatRp(item.total_price))}</div>
           <div style={{ fontSize: '13px', fontWeight: '700', color: '#AF52DE' }}>
-            {formatRp(item.hpp_inc_ppn > 0 ? item.hpp_inc_ppn : ((item.hna_per_item > 0 ? item.hna_per_item : (parseNum(item.hna||item.unit_price))) * 1.11))}
+            {formatRp(item.hpp_inc_ppn > 0 ? item.hpp_inc_ppn : ((item.hna_per_item > 0 ? item.hna_per_item : (parseNum(item.hna||item.unit_price))) * (1 + PPN_RATE)))}
           </div>
         </div>
       ))}
@@ -1126,6 +1134,11 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
   const sec = { marginBottom: '1.75rem', paddingBottom: '1.75rem', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}` };
   const secTitle = { fontSize: '11px', fontWeight: '700', marginBottom: '14px', color: isDarkMode ? '#EBEBF0' : '#1C1C1E', letterSpacing: '0.05em', textTransform: 'uppercase' };
   const r2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' };
+  // v1.8.0: collapsible "Detail kalkulasi" per row — default hidden (clean UX, on-demand transparency)
+  const [showDetailRows, setShowDetailRows] = useState(new Set());
+  const toggleDetail = (id) => setShowDetailRows(prev => {
+    const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n;
+  });
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, padding: '2rem 1rem', overflowY: 'auto' }}>
@@ -1189,6 +1202,15 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                   <div><label style={S.label}>Expired Date</label><input type="date" style={S.input} value={item.expired_date} onChange={e => updateItem(idx, 'expired_date', e.target.value)} /></div>
                   <div />
                 </div>
+                {(() => {
+                  const prod = products.find(p => p.name?.toLowerCase() === item.product_name?.toLowerCase());
+                  const showConv = prod && isPackUnit(item.unit, prod) && parseNum(item.quantity) > 0;
+                  return showConv ? (
+                    <div style={{ marginBottom: '6px', fontSize: '11px', color: '#007AFF', fontWeight: '600', padding: '4px 10px', background: isDarkMode ? '#0A2540' : '#E8F2FF', borderRadius: '6px', display: 'inline-block' }}>
+                      📐 {formatQtyWithConversion(parseNum(item.quantity), item.unit, prod)}
+                    </div>
+                  ) : null;
+                })()}
                 <div style={{ display: 'grid', gridTemplateColumns: '0.7fr 0.8fr 1fr 0.7fr', gap: '10px', marginBottom: '10px' }}>
                   <div><label style={S.label}>QTY</label><input style={S.input} type="number" min="0" value={item.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} placeholder="0" /></div>
                   <div>
@@ -1202,34 +1224,53 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                       </optgroup>
                     </select>
                   </div>
-                  <div><label style={S.label}>HNA / {item.unit || 'pcs'}</label>
-                    <input style={S.input} value={item.hna === '' ? '' : formatRpInput(parseNum(item.hna))}
-                      onChange={e => { const raw = e.target.value.replace(/\./g, '').replace(/[^0-9]/g, ''); updateItem(idx, 'hna', raw); }} placeholder="Rp 0" />
+                  <div><label style={S.label} title="HNA per pcs (raw, sebelum PPN). Support koma desimal: 288.288,25">HNA / {item.unit || 'pcs'} (exc PPN)</label>
+                    <RupiahInput style={S.input} value={parseNum(item.hna)} decimals={2}
+                      onChange={v => updateItem(idx, 'hna', v)} placeholder="Rp 0,00" />
                   </div>
                   <div><label style={S.label}>Disc %</label><input style={S.input} type="number" min="0" max="100" step="0.01" value={item.disc_percent} onChange={e => updateItem(idx, 'disc_percent', e.target.value)} placeholder="0" /></div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '8px' }}>
-                  <div><label style={{ ...S.label, color: '#86868B' }}>HNA × QTY</label><input style={S.computed} value={formatRpInput(item.hna_times_qty)} readOnly /></div>
-                  <div><label style={{ ...S.label, color: '#FF3B30' }}>Disc Nominal</label><input style={{ ...S.inputDis, color: '#FF3B30', fontWeight: '600' }} value={formatRpInput(item.disc_nominal)} readOnly /></div>
-                  <div><label style={{ ...S.label, color: isDarkMode ? '#30D158' : '#1C7C2A' }}>HNA Baru</label><input style={S.computed} value={formatRpInput(item.hna_baru)} readOnly /></div>
-                  <div><label style={{ ...S.label, color: '#AF52DE' }}>HNA/Item</label><input style={{ ...S.computed, color: '#AF52DE' }} value={formatRpInput(item.hna_per_item)} readOnly /></div>
-                </div>
-                {totals.disc_cod_amount > 0 && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', padding: '10px', backgroundColor: isDarkMode ? '#2C1A00' : '#FFF8F0', borderRadius: '10px', border: `1px solid #FF950040` }}>
-                    <div>
-                      <label style={{ ...S.label, color: '#FF9500', fontSize: '10px' }}>Disc COD Bagian</label>
-                      <input style={{ ...S.inputDis, color: '#FF9500', fontWeight: '600' }} value={formatRpInput(totals.items_with_cod?.find(x => x._id === item._id)?.disc_cod_per_item || 0)} readOnly />
-                    </div>
-                    <div>
-                      <label style={{ ...S.label, color: isDarkMode ? '#30D158' : '#1C7C2A', fontSize: '10px' }}>HNA After COD</label>
-                      <input style={S.computed} value={formatRpInput(totals.items_with_cod?.find(x => x._id === item._id)?.hna_after_cod || 0)} readOnly />
-                    </div>
-                    <div>
-                      <label style={{ ...S.label, color: '#AF52DE', fontSize: '10px' }}>HPP inc. PPN</label>
-                      <input style={{ ...S.computed, color: '#AF52DE' }} value={formatRpInput(totals.items_with_cod?.find(x => x._id === item._id)?.hpp_inc_ppn || 0)} readOnly />
-                    </div>
-                  </div>
-                )}
+                {/* HPP Final highlight + Detail toggle (v1.8.0 simplified) */}
+                {(() => {
+                  const withCod = totals.items_with_cod?.find(x => x._id === item._id);
+                  const hppFinal = (withCod?.hpp_inc_ppn || item.hpp_inc_ppn || (item.hna_per_item || 0) * (1 + PPN_RATE)) || 0;
+                  const expanded = showDetailRows.has(item._id);
+                  return (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', backgroundColor: isDarkMode ? '#1A2A1A' : '#F0F9F0', borderRadius: '10px', border: `1px solid ${isDarkMode ? '#30D15840' : '#34C75940'}`, marginBottom: expanded ? '10px' : 0 }}>
+                        <div>
+                          <span style={{ fontSize: '11px', color: '#86868B', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HPP final per pcs (inc PPN 11%)</span>
+                          <div style={{ fontSize: '17px', fontWeight: '700', color: isDarkMode ? '#30D158' : '#1C7C2A', fontVariantNumeric: 'tabular-nums', marginTop: '2px' }}>{formatRp(hppFinal, true)}</div>
+                        </div>
+                        <button type="button" onClick={() => toggleDetail(item._id)} style={{ background: 'transparent', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, color: isDarkMode ? '#EBEBF0' : '#1C1C1E', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
+                          {expanded ? '▲ Sembunyikan' : '▼ Detail kalkulasi'}
+                        </button>
+                      </div>
+                      {expanded && (
+                        <div style={{ padding: '12px', background: isDarkMode ? '#1A1A1C' : '#FAFAFC', borderRadius: '10px', border: `1px dashed ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}` }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: totals.disc_cod_amount > 0 ? '10px' : 0 }}>
+                            <div><label style={{ ...S.label, color: '#86868B' }}>HNA × QTY</label><input style={S.computed} value={formatRpInput(item.hna_times_qty)} readOnly /></div>
+                            <div><label style={{ ...S.label, color: '#FF3B30' }}>Disc Nominal</label><input style={{ ...S.inputDis, color: '#FF3B30', fontWeight: '600' }} value={formatRpInput(item.disc_nominal)} readOnly /></div>
+                            <div><label style={{ ...S.label, color: isDarkMode ? '#30D158' : '#1C7C2A' }}>HNA Baru</label><input style={S.computed} value={formatRpInput(item.hna_baru)} readOnly /></div>
+                            <div><label style={{ ...S.label, color: '#AF52DE' }}>HNA / Item</label><input style={{ ...S.computed, color: '#AF52DE' }} value={formatRpInput(item.hna_per_item)} readOnly /></div>
+                          </div>
+                          {totals.disc_cod_amount > 0 && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', padding: '10px', backgroundColor: isDarkMode ? '#2C1A00' : '#FFF8F0', borderRadius: '8px', border: `1px solid #FF950040` }}>
+                              <div>
+                                <label style={{ ...S.label, color: '#FF9500', fontSize: '10px' }}>Disc COD Bagian (proporsional)</label>
+                                <input style={{ ...S.inputDis, color: '#FF9500', fontWeight: '600' }} value={formatRpInput(withCod?.disc_cod_per_item || 0)} readOnly />
+                              </div>
+                              <div>
+                                <label style={{ ...S.label, color: isDarkMode ? '#30D158' : '#1C7C2A', fontSize: '10px' }}>HNA After COD</label>
+                                <input style={S.computed} value={formatRpInput(withCod?.hna_after_cod || 0)} readOnly />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             ))}
           </div>
@@ -1262,10 +1303,9 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                     </div>
                     <div>
                       <label style={{ ...S.label, fontSize: '10px' }}>Atau Nominal</label>
-                      <input style={S.input}
-                        value={form.disc_cod_amount === '' ? '' : formatRpInput(parseNum(form.disc_cod_amount))}
-                        onChange={e => { const raw = e.target.value.replace(/\./g, '').replace(/[^0-9]/g, ''); onFormChange('disc_cod_amount', raw); onFormChange('disc_cod_percent', ''); }}
-                        placeholder="Rp 0" />
+                      <RupiahInput style={S.input} value={parseNum(form.disc_cod_amount)} decimals={2}
+                        onChange={v => { onFormChange('disc_cod_amount', v); onFormChange('disc_cod_percent', ''); }}
+                        placeholder="Rp 0,00" />
                     </div>
                   </div>
                 )}

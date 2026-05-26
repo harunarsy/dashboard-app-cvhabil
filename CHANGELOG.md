@@ -2,6 +2,28 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.8.0-stable] - 2026-05-26
+
+### Added (Major Features)
+- **🏷️ HNA / HPP Consistency Refactor**: Inventory list split kolom "HNA (exc PPN)" + "HPP (inc PPN)" yang computed `hna × 1.11`. Edit Produk + Edit Batch + Stok Masuk semua tampil chip computed HPP. Bedain mana harga raw vs harga kulak dengan PPN. **Konvensi storage**: `product_master.hna` dan `inventory_batches.hna` = RAW HNA per pcs (exc PPN). HPP dihitung di display layer.
+- **💰 Decimal Precision Input (Indo format)**: `frontend/src/utils/rupiah.js` (`formatRupiah`/`parseRupiah`/`hppFromHna`) + `frontend/src/components/common/RupiahInput.jsx` (dual-mode focus=edit/blur=format). Input HNA / Disc COD / Stok Masuk support 2 digit desimal dengan format Indo "Rp 288.288,25" (titik ribuan + koma desimal). Backend `DECIMAL(15,2)` sudah support, frontend kini gak truncate ke integer.
+- **✂️ Edit Faktur Simplification**: Per row sembunyikan cascade fields (HNA × QTY, Disc Nominal, HNA Baru, HNA/Item, COD Bagian, HNA After COD) by default. Tampil HPP final highlight (green chip) + tombol "Detail kalkulasi" expandable untuk yang mau verify breakdown.
+- **📐 Karton UX Consistency**: Faktur form tambah conversion preview "20 karton (= 240 pcs)" mirror SalesOrderList. SP PDF tambah sub-line `(= X pcs)` konsisten dengan Nota PDF.
+- **🧮 Tax Helper Konsolidasi**: `backend/utils/tax.js` (`PPN_RATE`/`hppFromHna`/`hnaFromHpp`) + `frontend/src/utils/rupiah.js` mirror. Replace `* 1.11` hardcoded di 4+ lokasi (backend invoices.js, backend inventory.js, frontend InvoiceList.jsx ×3).
+
+### Fixed
+- **Backend `/batches-by-product` HPP formula salah**: sebelumnya `(hna / qty_current) * 1.11` — `hna` di batch sudah per-pcs jadi pembagian salah. Fix ke `hna * 1.11`.
+- **PDF Laporan HPP label**: sub-row sebelumnya cuma `HPP Rp X` — sekarang eksplisit `HPP/pcs (inc PPN): Rp X,XX` dengan 2 decimal digit.
+
+### Backfill
+- **Script `backend/scripts/backfill-hna-raw.js`**: one-time sync `product_master.hna` → RAW HNA dari latest active batch. Run manual: `node backend/scripts/backfill-hna-raw.js`. Log report perubahan (before/after/delta) per produk. Skip produk tanpa active batch.
+
+### Migration safety
+- Git tag rollback: `v1.7.0-pre-hna-hpp-refactor`
+- Schema additive only — no DROP, no rename existing column.
+
+---
+
 ## [v1.7.0-stable] - 2026-05-25
 
 ### Added (Major Features)

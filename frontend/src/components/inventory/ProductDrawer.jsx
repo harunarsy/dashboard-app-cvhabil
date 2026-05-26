@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { X, Edit2, Trash2, Plus, Sliders, ArrowDownCircle, ArrowUpCircle, ClipboardCheck, Package } from 'lucide-react';
 import { inventoryAPI } from '../../services/api';
 import BatchFormModal from './BatchFormModal';
+import { hppFromHna } from '../../utils/rupiah';
 
-const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
+const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
 const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
@@ -176,7 +177,8 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <Field label="Kategori" value={data.category || '-'} sub={sub} text={text} />
                 <Field label="Satuan" value={data.unit || '-'} sub={sub} text={text} />
-                <Field label="HNA Master" value={fmtRp(data.hna)} sub={sub} text={text} />
+                <Field label="HNA per pcs (exc PPN)" value={fmtRp(data.hna, 2)} sub={sub} text={text} />
+                <Field label="HPP per pcs (inc PPN 11%)" value={fmtRp(hppFromHna(data.hna), 2)} sub={sub} text={text} />
                 <Field label="Harga Jual" value={fmtRp(data.sell_price)} sub={sub} text={text} />
               </div>
 
@@ -237,9 +239,10 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
                           </button>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: sub }}>
+                      <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: sub, flexWrap: 'wrap' }}>
                         <span>Qty: <strong style={{ color: text, fontSize: '14px' }}>{b.qty_current}</strong></span>
-                        <span>HNA: <strong style={{ color: text }}>{fmtRp(b.hna)}</strong></span>
+                        <span>HNA (exc PPN): <strong style={{ color: text }}>{fmtRp(b.hna, 2)}</strong></span>
+                        <span>HPP (inc PPN): <strong style={{ color: text }}>{fmtRp(hppFromHna(b.hna), 2)}</strong></span>
                       </div>
                       {b.notes && <p style={{ margin: '6px 0 0', fontSize: '11px', color: sub, fontStyle: 'italic' }}>{b.notes}</p>}
                     </div>
