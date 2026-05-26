@@ -163,12 +163,9 @@ export function generateNotaPDF(order, options = {}) {
     ? [['No', 'Nama Barang', 'Qty']]
     : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']];
 
-  // v1.8.5.3: backtrack clip (cause vertical-line 108mm stroke bug). Pakai triangle mask
-  // di 4 corner buat "round" header/body bg square edges + outer rounded stroke.
+  // v1.8.5.4: kill rounded entirely (triangle mask cause white notch bug, clip cause vertical-line bug).
+  // Clean square table: blue header bg + striped body, no outer border. Cukup elegant tanpa bug visual.
   const tableStartY = margin + 30;
-  const tableRadius = isA6 ? 2 : 3;
-  const tableW = pageWidth - margin * 2;
-
   autoTable(doc, {
     startY: tableStartY,
     head: tableHead,
@@ -200,23 +197,6 @@ export function generateNotaPDF(order, options = {}) {
     },
     margin: { left: margin, right: margin },
   });
-
-  // v1.8.5.3: triangle mask 4 corners utk approximate rounded (mask square header/body bg)
-  if (doc.lastAutoTable?.finalY) {
-    const tblH = doc.lastAutoTable.finalY - tableStartY;
-    const r = tableRadius;
-    const cx = margin, cy = tableStartY;
-    doc.setFillColor(255, 255, 255);
-    // TL, TR, BL, BR — triangle cut at each corner to simulate rounded curve
-    doc.triangle(cx, cy + r, cx, cy, cx + r, cy, 'F');
-    doc.triangle(cx + tableW - r, cy, cx + tableW, cy, cx + tableW, cy + r, 'F');
-    doc.triangle(cx, cy + tblH - r, cx, cy + tblH, cx + r, cy + tblH, 'F');
-    doc.triangle(cx + tableW - r, cy + tblH, cx + tableW, cy + tblH, cx + tableW, cy + tblH - r, 'F');
-    // Outer rounded stroke on top
-    doc.setDrawColor(...accentColor);
-    doc.setLineWidth(0.4);
-    doc.roundedRect(cx, cy, tableW, tblH, r, r, 'S');
-  }
 
   // ─── Summary ──────────────────────────────────────────────────────────
   const tableEndY = (doc.lastAutoTable?.finalY || 0);
@@ -262,10 +242,10 @@ export function generateNotaPDF(order, options = {}) {
     doc.setTextColor(0);
   }
 
-  // v1.8.5.2: A4/A5 sig spacious (ada ruang TTD + stempel ~7mm). A6 tetap compact (page kecil).
+  // v1.8.5.4: A4/A5 sig spacious + A6 juga decent (consistent UX TTD + stempel).
   // sigBlockH = sigGap + sigNameOffset (lihat render constants di bawah).
   const lineH = isA6 ? 3.5 : 4;
-  const sigBlockH = isA6 ? 14 : 24; // A4/A5: 24mm (room TTD+stempel), A6: 14mm compact
+  const sigBlockH = isA6 ? 18 : 24; // A4/A5: 24mm, A6: 18mm (still room TTD)
   const footerGap = 4; // gap antara sig bottom dan footer text (footer absolute di pageHeight-4)
 
   let bankH = 0;
@@ -289,8 +269,8 @@ export function generateNotaPDF(order, options = {}) {
   }
 
   // ─── Ketentuan / Notes (adaptive line-by-line) ────────────────────────
-  // v1.8.5.2: A6 skip ketentuan (page kecil, gak muat 1-page kalau include — bank+sig prioritas)
-  if (ketentuan && type !== 'terima' && !isA6) {
+  // v1.8.5.4: A6 include ketentuan kembali. Kalau overflow → fallback addPage acceptable.
+  if (ketentuan && type !== 'terima') {
     const ketentuanLines = ketentuan.split('\n').filter(l => l.trim());
     finalY += 3;
     ensureSpace(4);
@@ -329,10 +309,10 @@ export function generateNotaPDF(order, options = {}) {
   }
 
   // ─── Signatures ──────────────────────────────────────────────────────
-  // v1.8.5.2: A4/A5 spacious (room TTD + stempel ~8mm). A6 tetap compact (page kecil).
+  // v1.8.5.4: A6 sig juga decent (room TTD walaupun page kecil). A4/A5 tetep spacious.
   const sigGap = isA6 ? 2 : 3;
-  const sigLineOffset = isA6 ? 7 : 16; // jarak label "Penerima," ke garis tanda tangan
-  const sigNameOffset = isA6 ? 11 : 21; // posisi nama di bawah garis (=sigBlockH consumer)
+  const sigLineOffset = isA6 ? 12 : 16; // jarak label "Penerima," ke garis TTD
+  const sigNameOffset = isA6 ? 16 : 21; // posisi nama di bawah garis
   const sigHalfWidth = isA6 ? 30 : 45;
   const sigCenter = isA6 ? 15 : 22;
   const sigY = finalY + sigGap;
