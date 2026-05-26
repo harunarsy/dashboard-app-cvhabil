@@ -8,7 +8,16 @@ const RELEASES = [
   {
     version: 'v1.8.3-stable', date: '26 Mei 2026', status: 'latest',
     changes: [
-      { type: 'fix', text: '🔢 Counter preview SQL bug fix — `SUBSTRING(order_number FROM $param)` di PostgreSQL ternyata treat parameter sebagai REGEX pattern (bukan numeric position!), jadi MAX nyangkut di nomor lama (mis. preview tampil `2605015` padahal latest `HSB-NOTA-2605025`). Ganti ke `REPLACE(order_number, prefix, "")` — parameter-safe + literal-clean. Affect: backend `settings.js` (preview) + `sales.js` (generateOrderNumber).' },
+      {
+        type: 'fix',
+        text: 'Nomor nota di modal Buat Nota Baru sekarang nampil benar — sebelumnya nyangkut di nomor lama (misal nampil 2605015 padahal harusnya 2605026). Sekarang otomatis ikut nota terbaru.',
+        dev: 'PostgreSQL `SUBSTRING(order_number FROM $param)` ternyata treat parameter as REGEX pattern, bukan numeric position. Param 14 → match literal "14" di string → MAX kebaca 14 dari `HSB-NOTA-2605014`. Fix: ganti ke `REPLACE(order_number, prefix, "")` parameter-safe. Affect `backend/routes/settings.js` (preview) + `backend/routes/sales.js` (generateOrderNumber).'
+      },
+      {
+        type: 'fix',
+        text: 'Habis hapus nota, nomor baru otomatis ikut nomor yang baru kehapus — gak perlu refresh halaman manual lagi.',
+        dev: 'FE refetch counter di `openAdd()` saat klik tombol Buat Nota + di `confirmDelete()` success branch. Sebelumnya `notaCounter` state cuma fetch sekali di mount, jadi setelah delete preview stale sampai user F5.'
+      },
     ]
   },
   {
@@ -503,6 +512,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [showModal, setShowModal] = useState(false);
   const [showDevNotes, setShowDevNotes] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
     const latestVersion = RELEASES[0]?.version || 'v1.8.3-stable';
@@ -762,12 +772,38 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
                           rel.changes.map((c, ci) => {
                             try {
                               const cfg = typeConfig[c.type] || typeConfig.fix;
+                              const expandKey = `${ri}-${ci}`;
+                              const isExpanded = expandedChanges.has(expandKey);
                               return (
                                 <div key={ci} className="flex gap-3 items-start">
                                   <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase mt-0.5 shrink-0" style={{ backgroundColor: cfg.bg, color: cfg.color }}>
                                     {cfg.label}
                                   </span>
-                                  <span className="text-sm leading-relaxed" style={{ color: isDarkMode ? '#EBEBF0' : '#3A3A3C' }}>{c.text}</span>
+                                  <div className="flex-1">
+                                    <span className="text-sm leading-relaxed block" style={{ color: isDarkMode ? '#EBEBF0' : '#3A3A3C' }}>{c.text}</span>
+                                    {c.dev && (
+                                      <>
+                                        <button
+                                          onClick={() => {
+                                            setExpandedChanges(prev => {
+                                              const next = new Set(prev);
+                                              if (next.has(expandKey)) next.delete(expandKey); else next.add(expandKey);
+                                              return next;
+                                            });
+                                          }}
+                                          className="text-[11px] font-semibold mt-1 hover:underline"
+                                          style={{ color: '#007AFF', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                                        >
+                                          {isExpanded ? '▼ Sembunyikan detail teknis' : '▶ Detail teknis (developer)'}
+                                        </button>
+                                        {isExpanded && (
+                                          <div className="text-xs mt-2 p-3 rounded-lg" style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7', color: isDarkMode ? '#AEAEB2' : '#48484A', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', lineHeight: 1.6 }}>
+                                            {c.dev}
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
                               );
                             } catch (err) {

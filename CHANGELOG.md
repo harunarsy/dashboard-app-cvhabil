@@ -4,12 +4,14 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
 ## [v1.8.3-stable] - 2026-05-26
 
-### Fixed (Hotfix-of-Hotfix — Counter SQL Regex Bug)
-- **🔢 PostgreSQL `SUBSTRING(... FROM $param)` parameter binding glitch**: ternyata `SUBSTRING(text FROM $X)` di PostgreSQL treat parameter sebagai **REGEX pattern** (bukan numeric position!). Pas kita pass `14` (= monthPrefix.length + 1), PG match literal substring "14" di order_number → MAX kebaca `14` (dari `HSB-NOTA-2605014`) padahal harusnya `25` (dari `HSB-NOTA-2605025`). Akibatnya counter preview tampil `2605015`, bukan `2605026`.
-- **Fix**: ganti SQL pattern ke `REPLACE(order_number, $1, '')` — strip monthPrefix langsung lewat string-replace yang parameter-safe + literal-clean. Affect 2 file:
-  - `backend/routes/settings.js` (GET /counters next_preview)
-  - `backend/routes/sales.js` (generateOrderNumber sync-to-MAX)
-- Verified via local Neon query: query baru return correct max=25 untuk current data Mei 2026.
+### Fixed
+- **🔢 Nomor nota di Buat Nota Baru sekarang akurat**: sebelumnya preview nyangkut di nomor lama (mis. tampil `2605015` padahal latest `HSB-NOTA-2605025`).
+  - _Detail teknis_: PostgreSQL `SUBSTRING(text FROM $param)` ternyata treat parameter sebagai **REGEX pattern** (bukan numeric position). Param `14` → match literal "14" di string → MAX kebaca `14` dari `HSB-NOTA-2605014`. Fix: ganti ke `REPLACE(order_number, $prefix, '')` parameter-safe. Affect: `backend/routes/settings.js` + `backend/routes/sales.js`.
+- **🔄 Habis hapus nota, nomor baru auto-update**: gak perlu refresh manual lagi.
+  - _Detail teknis_: FE refetch `notaCounter` di `openAdd()` (klik Buat Nota) + `confirmDelete()` success branch. Sebelumnya state fetch sekali di mount.
+
+### Changed (UX)
+- **📝 Changelog modal sekarang dual-language**: tiap baris perubahan tampil bahasa user-friendly default, dengan toggle "▶ Detail teknis (developer)" untuk expand penjelasan code-level. Goal: Fivin/Ferry/Ayah baca tanpa pusing istilah dev, tim dev tetap punya context lengkap.
 
 ---
 
