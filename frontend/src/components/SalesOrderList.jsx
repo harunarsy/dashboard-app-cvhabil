@@ -256,6 +256,8 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
     });
 
   const openAdd = () => {
+    // v1.8.4: refetch counter biar preview Auto field selalu fresh (handle delete/concurrent)
+    fetchCounters();
     setIsAutoNota(true);
     setManualNumber('');
     setEditId(null);
@@ -371,6 +373,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
       await salesAPI.remove(deleteConfirmId);
       flash('Nota dihapus');
       fetchOrders();
+      fetchCounters(); // v1.8.4: re-sync preview ke MAX setelah delete
     } catch (e) { flash(e.response?.data?.error || e.message); }
     finally { setDeleteConfirmId(null); }
   };
