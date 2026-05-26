@@ -146,7 +146,8 @@ export function generateNotaPDF(order, options = {}) {
   };
   let tableData = items.map((item, index) => {
     if (type === 'terima') {
-      return [index + 1, formatProductName(item), formatQtyDisplay(item), item.unit || 'pcs'];
+      // v1.8.5.3: drop Satuan col (formatQtyDisplay sudah include unit "12 pcs")
+      return [index + 1, formatProductName(item), formatQtyDisplay(item)];
     }
     const qtyForCalc = item.qty_in_unit !== undefined && item.qty_in_unit !== null ? parseFloat(item.qty_in_unit) : (item.qty || 0);
     return [
@@ -159,20 +160,14 @@ export function generateNotaPDF(order, options = {}) {
   });
 
   const tableHead = type === 'terima'
-    ? [['No', 'Nama Barang', 'Qty', 'Satuan']]
+    ? [['No', 'Nama Barang', 'Qty']]
     : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']];
 
-  // v1.8.5.2: rounded corner clipping — autoTable square header bg di-mask via clip path
+  // v1.8.5.3: backtrack clip (cause vertical-line 108mm stroke bug). Pakai triangle mask
+  // di 4 corner buat "round" header/body bg square edges + outer rounded stroke.
   const tableStartY = margin + 30;
   const tableRadius = isA6 ? 2 : 3;
   const tableW = pageWidth - margin * 2;
-
-  // Establish clipping path: rounded outer area. autoTable cells rendered di dalam akan ke-clip ke rounded curve.
-  // Generous height estimate biar pasti cover seluruh tabel sebelum finalY dihitung.
-  doc.saveGraphicsState();
-  doc.roundedRect(margin, tableStartY, tableW, 250, tableRadius, tableRadius);
-  doc.clip();
-  doc.discardPath();
 
   autoTable(doc, {
     startY: tableStartY,
@@ -206,14 +201,21 @@ export function generateNotaPDF(order, options = {}) {
     margin: { left: margin, right: margin },
   });
 
-  doc.restoreGraphicsState();
-
-  // Outer rounded border (no longer clipped — full visible)
+  // v1.8.5.3: triangle mask 4 corners utk approximate rounded (mask square header/body bg)
   if (doc.lastAutoTable?.finalY) {
     const tblH = doc.lastAutoTable.finalY - tableStartY;
+    const r = tableRadius;
+    const cx = margin, cy = tableStartY;
+    doc.setFillColor(255, 255, 255);
+    // TL, TR, BL, BR — triangle cut at each corner to simulate rounded curve
+    doc.triangle(cx, cy + r, cx, cy, cx + r, cy, 'F');
+    doc.triangle(cx + tableW - r, cy, cx + tableW, cy, cx + tableW, cy + r, 'F');
+    doc.triangle(cx, cy + tblH - r, cx, cy + tblH, cx + r, cy + tblH, 'F');
+    doc.triangle(cx + tableW - r, cy + tblH, cx + tableW, cy + tblH, cx + tableW, cy + tblH - r, 'F');
+    // Outer rounded stroke on top
     doc.setDrawColor(...accentColor);
     doc.setLineWidth(0.4);
-    doc.roundedRect(margin, tableStartY, tableW, tblH, tableRadius, tableRadius, 'S');
+    doc.roundedRect(cx, cy, tableW, tblH, r, r, 'S');
   }
 
   // ─── Summary ──────────────────────────────────────────────────────────
