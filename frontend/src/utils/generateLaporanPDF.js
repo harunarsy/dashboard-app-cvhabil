@@ -27,10 +27,10 @@ export const generateLaporanPDF = (orders, options = {}) => {
   metaParts.push(`Total: ${orders.length} nota`);
   doc.text(metaParts.join(' | '), 14, 21);
 
-  // ─── Tabel Ringkasan + Inline Item Sub-rows ────────────────────────
-  // Per request: items detail INLINE di tabel utama (bukan halaman terpisah).
-  // Pattern: per nota = 1 main row + N item sub-rows (colSpan 6, lighter style)
-  const SUBROW_BG = [250, 250, 252];
+  // ─── Tabel Ringkasan + Inline Item Sub-rows (v1.7.1: layout structured columns) ─
+  // Per request: items detail INLINE + tampilan lebih clean (column-aligned, bukan 1 line wrap)
+  // Sub-row pakai 5 cells distinct: empty(3) | produk | qty | harga | HPP(colSpan2) | subtotal
+  const SUBROW_BG = [248, 249, 252];
   const bodyRows = [];
   orders.forEach((o, i) => {
     // Main row
@@ -45,27 +45,33 @@ export const generateLaporanPDF = (orders, options = {}) => {
       o.payment_status === 'paid' ? 'Lunas' : 'Belum Bayar',
       o.status === 'final' ? 'Final' : 'Draft',
     ]);
-    // Item sub-rows — 3 empty leading + colSpan 5 product line + 1 subtotal
     const items = Array.isArray(o.items) ? o.items : [];
     items.forEach(it => {
       const qtyShow = it.qty_in_unit !== undefined && it.qty_in_unit !== null
         ? parseFloat(it.qty_in_unit)
         : (it.qty || 0);
       const unit = it.unit || 'pcs';
-      const priceStr = fmtRp(it.unit_price);
-      const hppStr = parseFloat(it.unit_hpp) > 0 ? `  HPP ${fmtRp(it.unit_hpp)}` : '';
-      const lineText = `> ${it.product_name || '-'}   |   ${qtyShow} ${unit} @ ${priceStr}${hppStr}`;
+      const hppStr = parseFloat(it.unit_hpp) > 0 ? `HPP ${fmtRp(it.unit_hpp)}` : '';
+      const subStyle = { fillColor: SUBROW_BG, fontSize: 8 };
       bodyRows.push([
-        { content: '', styles: { fillColor: SUBROW_BG } },
-        { content: '', styles: { fillColor: SUBROW_BG } },
-        { content: '', styles: { fillColor: SUBROW_BG } },
-        { content: lineText, colSpan: 5, styles: {
-          fillColor: SUBROW_BG, textColor: [80, 80, 80], fontSize: 7.5,
-          halign: 'left', cellPadding: { top: 2, right: 4, bottom: 2, left: 6 },
+        { content: '', styles: subStyle },
+        { content: '', styles: subStyle },
+        { content: '', styles: subStyle },
+        { content: it.product_name || '-', styles: {
+          ...subStyle, textColor: [40, 40, 40], halign: 'left',
+          cellPadding: { top: 2.5, right: 4, bottom: 2.5, left: 8 },
+        } },
+        { content: `${qtyShow} ${unit}`, styles: {
+          ...subStyle, textColor: [80, 80, 80], halign: 'center',
+        } },
+        { content: fmtRp(it.unit_price), styles: {
+          ...subStyle, textColor: [80, 80, 80], halign: 'right',
+        } },
+        { content: hppStr, colSpan: 2, styles: {
+          ...subStyle, fontSize: 7.5, textColor: [140, 140, 140], halign: 'right', fontStyle: 'italic',
         } },
         { content: fmtRp(it.subtotal), styles: {
-          fillColor: SUBROW_BG, textColor: [40, 40, 40], fontSize: 7.5,
-          halign: 'right', fontStyle: 'bold',
+          ...subStyle, textColor: [0, 122, 255], halign: 'right', fontStyle: 'bold',
         } },
       ]);
     });
@@ -79,18 +85,18 @@ export const generateLaporanPDF = (orders, options = {}) => {
     headStyles: { fillColor: [0, 122, 255], textColor: 255, fontStyle: 'bold', fontSize: 9, halign: 'center' },
     bodyStyles: { fontSize: 9, valign: 'middle' },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 9 },
+      0: { halign: 'center', cellWidth: 8 },
       1: { fontStyle: 'bold', textColor: [0, 122, 255], cellWidth: 38 },
-      2: { cellWidth: 22 },
-      3: { cellWidth: 55 },
-      4: { halign: 'center', cellWidth: 20 },
-      5: { halign: 'right', cellWidth: 30, fontStyle: 'bold' },
-      6: { cellWidth: 22 },
-      7: { halign: 'center', cellWidth: 24 },
-      8: { halign: 'center', cellWidth: 17 },
+      2: { cellWidth: 20 },
+      3: { cellWidth: 50 },
+      4: { halign: 'center', cellWidth: 22 },
+      5: { halign: 'right', cellWidth: 28, fontStyle: 'bold' },
+      6: { halign: 'center', cellWidth: 22 },
+      7: { halign: 'center', cellWidth: 22 },
+      8: { halign: 'center', cellWidth: 30 },
     },
     didParseCell: (data) => {
-      // Style Bayar column (only for main rows where cell is plain string, not sub-row object)
+      // Style Bayar column (only for main rows where cell.raw is string)
       if (data.column.index === 7 && data.section === 'body' && typeof data.cell.raw === 'string') {
         data.cell.styles.textColor = data.cell.raw === 'Lunas' ? [52, 199, 89] : [255, 59, 48];
         data.cell.styles.fontStyle = 'bold';
