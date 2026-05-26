@@ -199,16 +199,16 @@ export function generateNotaPDF(order, options = {}) {
     margin: { left: margin, right: margin },
   });
 
-  // v1.8.5.5: rounded back — thick outer stroke (1mm) mask square header fill corners visually
+  // v1.8.5.7: elegant rounded outer — thin stroke 0.5mm + butt cap (gak nyebar ke sig line)
   if (doc.lastAutoTable?.finalY) {
     const tblW = pageWidth - margin * 2;
     const tblH = doc.lastAutoTable.finalY - tableStartY;
     doc.setDrawColor(...accentColor);
-    doc.setLineWidth(1.0);
-    doc.setLineCap('round');
+    doc.setLineWidth(0.5);
     doc.roundedRect(margin, tableStartY, tblW, tblH, 3, 3, 'S');
-    doc.setLineCap('butt'); // reset
   }
+  // Reset lineWidth supaya gak inherit ke sig line (sebelumnya 1.0 + round cap nyebar)
+  doc.setLineWidth(0.2);
 
   // ─── Summary ──────────────────────────────────────────────────────────
   const tableEndY = (doc.lastAutoTable?.finalY || 0);
