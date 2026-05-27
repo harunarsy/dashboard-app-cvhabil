@@ -1,3 +1,25 @@
+/* ─── Vanta animated background (v1.8.6) ───────────────────────
+   Container fixed di belakang seluruh UI. Saat enabled, hook
+   `useVantaBackground` mount canvas Three.js ke #vanta-bg.
+   ────────────────────────────────────────────────────────────── */
+#vanta-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none; /* tidak intercept klik UI */
+}
+.app-content {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+/* Saat Vanta active, body bg jadi transparent supaya canvas tembus.
+   Solid bg cuma di-apply oleh card/sidebar/topbar — readability terjaga. */
+body.vanta-active { background-color: transparent !important; }
+body.vanta-active.dark { background-color: transparent !important; }
+/* Saat Vanta + Glass combine, body fully transparent, sebagian surface
+   pakai backdrop-filter (via class glass-target di komponen lain). */
+
 .login-container {
   min-height: 100vh;
   display: flex;

@@ -1,9 +1,9 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Lock, User, AlertCircle, Building2, Sun, Moon, Sparkles } from 'lucide-react';
+import { Lock, User, AlertCircle, Building2, Sun, Moon, Sparkles, Wind } from 'lucide-react';
 
-export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode = false, setIsGlassMode }) {
+export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode = false, setIsGlassMode, isVantaMode = false, setIsVantaMode }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -73,8 +73,30 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
       className="min-h-screen flex flex-col justify-center items-center p-4 font-sans transition-colors duration-300"
       style={{ backgroundColor: bg, color: text }}
     >
-      {/* Theme toggles (floating top-right) — Glass + Dark Mode */}
+      {/* Theme toggles (floating top-right) — Vanta + Glass + Dark Mode */}
       <div style={{ position: 'fixed', top: '20px', right: '20px', display: 'flex', gap: '8px', zIndex: 50 }}>
+        {setIsVantaMode && (
+          <button
+            onClick={() => setIsVantaMode((v) => !v)}
+            aria-label={isVantaMode ? 'Matikan animated background' : 'Aktifkan animated background'}
+            aria-pressed={isVantaMode}
+            title={isVantaMode ? 'Animated background aktif' : 'Animated background (Vanta FOG)'}
+            style={{
+              width: '40px', height: '40px', borderRadius: '12px',
+              background: isVantaMode ? 'linear-gradient(135deg, #007AFF, #5AC8FA)' : card,
+              border: `1px solid ${isVantaMode ? 'rgba(0, 122, 255, 0.4)' : cardBorder}`,
+              color: isVantaMode ? '#FFFFFF' : text,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: isVantaMode
+                ? '0 4px 16px rgba(0, 122, 255, 0.3)'
+                : (isDarkMode ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.06)'),
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <Wind size={18} />
+          </button>
+        )}
         {setIsGlassMode && (
           <button
             onClick={toggleGlass}
@@ -195,7 +217,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
             <Building2 size={32} />
           </div>
           <h1 className="text-3xl font-bold tracking-tight" style={{ color: text }}>HABIL SUPERAPP</h1>
-          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.8.5-stable — 2026</p>
+          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.8.6-stable — 2026</p>
         </div>
 
         <div

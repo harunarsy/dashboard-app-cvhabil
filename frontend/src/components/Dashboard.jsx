@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.8.5-stable', date: '26 Mei 2026', status: 'latest',
+    version: 'v1.8.6-stable', date: '27 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Background dashboard sekarang punya efek fog animasi yg adem — bisa di-toggle on/off via tombol angin di sidebar atau di halaman Login.',
+        dev: 'Integrasi Vanta.js FOG (three.js based WebGL) via hook custom `useVantaBackground.js`. Theme-aware: color scheme swap otomatis saat dark/light mode toggle. Performance guards: auto-disable kalau `prefers-reduced-motion: reduce`, atau `navigator.deviceMemory < 4` (low-spec device), atau URL kill switch `?vanta=off`. State persist via localStorage `habil_vanta_mode` (default ON). Container fixed `inset:0 z-index:0 pointer-events:none` di `App.js` root, content wrapper `z-index:1`. Cards/sidebar/topbar tetap solid bg → readability terjaga. Compose dgn Liquid Glass mode (translucent surface tembus ke Vanta = bagus). Toggle UI: tombol `Wind` icon di Login top-right + Sidebar bottom (sebelah Dark Mode).'
+      },
+    ]
+  },
+  {
+    version: 'v1.8.5-stable', date: '26 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'fix',
@@ -545,7 +555,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.8.5-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.6-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -597,7 +607,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.8.5-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.6-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -691,7 +701,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.8.5-stable — 2026
+            HABIL SUPERAPP v1.8.6-stable — 2026
           </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>

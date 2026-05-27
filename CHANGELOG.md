@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.8.6-stable] - 2026-05-27
+
+### Added
+- **🌫️ Animated background fog di seluruh app**: efek fog animasi (Vanta.js WebGL) di belakang konten seluruh halaman — bisa di-toggle on/off via tombol angin (Wind icon) di sidebar bawah atau di pojok kanan atas halaman Login. Default ON tapi otomatis OFF kalau device low-spec atau OS user prefer reduced motion.
+  - _Detail teknis_: Integrasi `vanta@latest` + `three@latest` via custom hook `frontend/src/hooks/useVantaBackground.js`. Resolution order: (1) URL kill switch `?vanta=off|on`, (2) `prefers-reduced-motion: reduce`, (3) `navigator.deviceMemory < 4` low-spec auto-disable, (4) localStorage `habil_vanta_mode` (default ON). Theme-aware color scheme — light: highlightColor `#5AC8FA` midtone `#007AFF` lowlight `#FFFFFF` base `#F5F5F7` blurFactor 0.6 speed 0.5; dark: lowlight `#1C1C1E` base `#000000` blurFactor 0.75. Re-init effect saat isDarkMode change. Container `<div id="vanta-bg">` di `App.js` root dgn CSS `position:fixed inset:0 z-index:0 pointer-events:none` — canvas tidak intercept klik UI. App content `.app-content` `position:relative z-index:1`. Body `vanta-active` class drive `background:transparent` agar canvas tembus. Cards/sidebar/topbar tetap solid bg → readability terjaga. Compose well dgn Liquid Glass mode (translucent surface tembus ke Vanta). Toggle UI: `<Wind>` icon button — Login top-right (sebelah Glass + Dark mode), Sidebar bottom (sebelah Dark Mode). Cleanup `effectRef.destroy()` di unmount + saat enabled→false.
+
 ## [v1.8.5-stable] - 2026-05-26
 
 ### Fixed
