@@ -700,9 +700,6 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
             className="glass-target glass-target--clear w-full max-w-lg overflow-hidden rounded-3xl shadow-2xl flex flex-col transform transition-all scale-100"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
-            <div style={{ color: sub, fontSize: '11px', fontWeight: 'bold', marginTop: '1.5rem', opacity: 0.5 }}>
-            HABIL SUPERAPP v1.8.6-stable — 2026
-          </div>
             {/* Spotlight Header */}
             <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
               <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4 shadow-inner backdrop-blur-sm">

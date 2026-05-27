@@ -15,10 +15,22 @@
 }
 /* Saat Vanta active, body bg jadi transparent supaya canvas tembus.
    Solid bg cuma di-apply oleh card/sidebar/topbar — readability terjaga. */
-body.vanta-active { background-color: transparent !important; }
-body.vanta-active.dark { background-color: transparent !important; }
-/* Saat Vanta + Glass combine, body fully transparent, sebagian surface
-   pakai backdrop-filter (via class glass-target di komponen lain). */
+body.vanta-active,
+body.vanta-active.dark,
+html:has(body.vanta-active) { background-color: transparent !important; }
+
+/* v1.8.6.1 hotfix: page-level wrappers di komponen pakai inline
+   `backgroundColor: bg` solid (Login, Dashboard line 624, etc) yg nutup
+   Vanta canvas. Force transparent via !important — beats inline style.
+   Card-level surface (.glass-target inner, sidebar items, topbar) tetap
+   pertahankan solid bg dari style mereka sendiri → readability terjaga. */
+body.vanta-active div.min-h-screen,
+body.vanta-active div.dashboard-container,
+body.vanta-active main,
+body.vanta-active .page-shell {
+  background-color: transparent !important;
+  background: transparent !important;
+}
 
 .login-container {
   min-height: 100vh;

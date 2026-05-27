@@ -79,6 +79,9 @@ export default function useVantaBackground(isDarkMode = false) {
       effectRef.current = null;
     }
 
+    // v1.8.6.1: light mode colors di-boost — baseColor sebelumnya #F5F5F7 (sama
+    // dengan body bg) bikin washed out. Sekarang pakai base biru-pucat + lowlight
+    // soft blue (bukan pure white) supaya fog clearly visible di main area.
     const colors = isDarkMode
       ? {
           highlightColor: 0x5AC8FA,
@@ -90,13 +93,13 @@ export default function useVantaBackground(isDarkMode = false) {
           zoom: 0.8,
         }
       : {
-          highlightColor: 0x5AC8FA,
-          midtoneColor: 0x007AFF,
-          lowlightColor: 0xFFFFFF,
-          baseColor: 0xF5F5F7,
-          blurFactor: 0.6,
-          speed: 0.5,
-          zoom: 0.9,
+          highlightColor: 0x007AFF,
+          midtoneColor: 0xAF52DE,
+          lowlightColor: 0xC7DFFC,
+          baseColor: 0xE5F0FF,
+          blurFactor: 0.7,
+          speed: 0.4,
+          zoom: 0.7,
         };
 
     try {

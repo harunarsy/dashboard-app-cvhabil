@@ -1,10 +1,10 @@
 import React, { useState, useContext, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, Package, DollarSign, Users, ChevronLeft, ChevronRight, Sun, LogOut, Bug, X, Moon, FileText, BarChart3, Briefcase, Printer, Menu, Wind } from 'lucide-react';
+import { Home, ShoppingCart, Package, DollarSign, Users, ChevronLeft, ChevronRight, Sun, LogOut, Bug, X, Moon, FileText, BarChart3, Briefcase, Printer, Menu } from 'lucide-react';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 
-export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen, isVantaMode, setIsVantaMode }) {
+export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useContext(AuthContext);
@@ -374,14 +374,6 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
             <Bug size={20} style={{ minWidth: '20px' }} />
             {(isMobile || isSidebarOpen) && <span>Bug / Saran Fitur</span>}
           </button>
-
-          {setIsVantaMode && (
-            <button onClick={() => { setIsVantaMode((v) => !v); if (isMobile) closeMobileDrawer(); }} title={isVantaMode ? 'Matikan animated background' : 'Aktifkan animated background'}
-              style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', background: isVantaMode ? 'linear-gradient(135deg, #007AFF, #5AC8FA)' : (isDarkMode ? '#1C1C1E' : '#F5F5F7'), color: isVantaMode ? '#FFFFFF' : txt, fontSize: '0.875rem', fontWeight: '600' }}>
-              <Wind size={20} style={{ minWidth: '20px' }} />
-              {(isMobile || isSidebarOpen) && <span>{isVantaMode ? 'Background Aktif' : 'Animated Background'}</span>}
-            </button>
-          )}
 
           <button onClick={() => { setIsDarkMode(!isDarkMode); if (isMobile) closeMobileDrawer(); }} title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
             style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7', color: txt, fontSize: '0.875rem', fontWeight: '600' }}>
