@@ -6,7 +6,32 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.8.7-stable', date: '27 Mei 2026', status: 'latest',
+    version: 'v1.8.8-stable', date: '27 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'ui',
+        text: 'Kanban Manajemen Tugas sekarang BENAR-benar glass — wrapper container gak lagi solid putih override class.',
+        dev: 'Root cause Dashboard.jsx:672 punya `<div className="glass-target" style={{ backgroundColor: cardBg, ... }}>` — inline style win specificity vs CSS `glass-target` var-set `!important`. Fix: hapus inline `backgroundColor` property total, biarin CSS var apply tint. Sama untuk stats cards (line 684) + Version badge button (line 663). Plus TasksKanban root wrapper (line 210) hapus inline `backgroundColor: bg`.'
+      },
+      {
+        type: 'ui',
+        text: 'Liquid Glass akhirnya konsisten di seluruh UI: Faktur Pembelian, Surat Pesanan, Buku Besar, Toko Online, Pengaturan Cetak, Bug Reports — sebelumnya 0% glass adoption (solid putih).',
+        dev: 'Audit komprehensif: 6 page components hardcoded `backgroundColor: cardBg` dgn `cardBg = #FFF` solid. Strategi: (1) translucent cardBg jadi `rgba(255,255,255,0.7)` light / `rgba(28,28,30,0.7)` dark, (2) inject `backdropFilter: blur(12px)` + `-webkit-backdrop-filter` inline ke semua card consumer (4-7 per file). InvoiceList khusus: hapus solid bg dari S.card style object, tambah `className="glass-target"` ke 6 consumer JSX wrappers.'
+      },
+      {
+        type: 'fix',
+        text: 'Modal "Apa Yang Baru" content area gak hardcoded white lagi.',
+        dev: 'Dashboard.jsx:754 sebelumnya `<div className="bg-white dark:bg-gray-800 ...">` hardcoded Tailwind. Ganti jadi `<div className="glass-target glass-target--ultra ...">` — pakai theme-aware tint dari CSS var.'
+      },
+      {
+        type: 'ui',
+        text: 'Sidebar translucent saat Vanta + Glass nyala — gak solid putih lagi.',
+        dev: 'Sidebar.jsx:250-255 inline `backgroundColor: bg` solid (`#FBFBFD` light / `#000` dark) override glass tint. Ganti jadi `rgba(255,255,255,0.7)` / `rgba(0,0,0,0.7)` + inject `backdropFilter: blur(16px)` inline. Compose dgn glass-target class dari CSS = layered glass effect.'
+      },
+    ]
+  },
+  {
+    version: 'v1.8.7-stable', date: '27 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -580,7 +605,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.8.7-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.8-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -633,7 +658,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.8.7-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.8-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -659,8 +684,8 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
         {/* Version Badge & Changelog Trigger */}
         <button 
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-full border transition-colors hover:shadow-sm"
-          style={{ backgroundColor: cardBg, borderColor: border, color: text }}
+          className="glass-target glass-target--ultra flex items-center gap-2 px-4 py-2 rounded-full border transition-colors hover:shadow-sm"
+          style={{ borderColor: border, color: text }}
         >
           <Info size={16} className="text-blue-500" />
           <span className="text-sm font-semibold">Version {RELEASES[0]?.version}</span>
@@ -668,8 +693,8 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
         </button>
       </div>
 
-      {/* Kanban Tasks Section - MOVED TO TOP */}
-      <div className="glass-target mb-10 rounded-3xl p-8 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+      {/* Kanban Tasks Section - MOVED TO TOP. v1.8.8: hapus inline bg supaya CSS glass-target tint apply */}
+      <div className="glass-target mb-10 rounded-3xl p-8 border shadow-sm" style={{ borderColor: border }}>
         <TasksKanban isDarkMode={isDarkMode} isMobile={isMobile} />
       </div>
 
@@ -681,7 +706,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
           { label: 'Surat Pesanan Aktif', value: stats.suratPesananAktif, type: 'number', tint: 'orange', icon: <ShoppingCart size={24} className="text-orange-500"/> },
           { label: 'Stok Low/Expired', value: stats.stokLowExpired, type: 'number', tint: 'purple', icon: <Package size={24} className="text-red-500"/> },
         ].map((stat, i) => (
-          <div key={i} className={`glass-target glass-target--tint-${stat.tint} rounded-2xl p-6 border shadow-sm`} style={{ backgroundColor: cardBg, borderColor: border }}>
+          <div key={i} className={`glass-target glass-target--tint-${stat.tint} rounded-2xl p-6 border shadow-sm`} style={{ borderColor: border }}>
             <div className="flex justify-between items-start mb-4">
               <div className="p-3 bg-gray-50 rounded-xl dark:bg-gray-800">{stat.icon}</div>
             </div>
@@ -751,7 +776,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                   const heading = rest.length ? headLine : headLine.length > 60 ? headLine.slice(0, 60) + '…' : headLine;
                   const body = rest.length ? rest.join(':').trim() : '';
                   return (
-                    <div key={idx} className="flex gap-3 items-start p-3.5 rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div key={idx} className="glass-target glass-target--ultra flex gap-3 items-start p-3.5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
                       <div className={`p-2 rounded-xl ${typeMeta.bg} ${typeMeta.fg} flex-shrink-0`}>
                         <TypeIcon size={18} />
                       </div>

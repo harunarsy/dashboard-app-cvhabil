@@ -22,7 +22,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
   const [loading, setLoading] = useState(true);
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
-  const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
+  const cardBg = isDarkMode ? 'rgba(28,28,30,0.7)' : 'rgba(255,255,255,0.7)';
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = '#86868B';
@@ -76,15 +76,15 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
 
       {/* Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+        <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
           <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Total Debit</p>
           <p style={{ margin: '6px 0 0', fontSize: '22px', fontWeight: '800', color: '#34C759' }}>{fmtRp(summary.totals?.total_debit)}</p>
         </div>
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+        <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
           <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Total Credit</p>
           <p style={{ margin: '6px 0 0', fontSize: '22px', fontWeight: '800', color: '#FF3B30' }}>{fmtRp(summary.totals?.total_credit)}</p>
         </div>
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+        <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
           <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Saldo Bersih</p>
           <p style={{ margin: '6px 0 0', fontSize: '22px', fontWeight: '800', color: '#007AFF' }}>{fmtRp(summary.totals?.net_balance)}</p>
         </div>
@@ -101,7 +101,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
 
       {/* Entries Tab */}
       {tab === 'entries' && (
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
+        <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '600px' }}>
             <thead>
               <tr style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}>
@@ -155,7 +155,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
       {tab === 'categories' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
           {summary.byCategory.map((c, i) => (
-            <div key={i} style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+            <div key={i} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
               <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '700', color: text }}>{c.category || 'Umum'}</h4>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <span style={{ fontSize: '13px', color: sub }}>Debit</span>
@@ -178,7 +178,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
       {/* Create/Edit Modal */}
       {showModal && (
         <div onClick={() => setShowModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '480px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '480px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>{editId ? '✏️ Edit Entry' : '➕ Entry Baru'}</h3>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>

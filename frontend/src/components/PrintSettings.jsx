@@ -67,7 +67,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
   };
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
-  const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
+  const cardBg = isDarkMode ? 'rgba(28,28,30,0.7)' : 'rgba(255,255,255,0.7)';
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = isDarkMode ? '#86868B' : '#6B7280';
@@ -78,7 +78,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
       <Breadcrumb title="Pengaturan Cetak" isMobile={isMobile} isDarkMode={isDarkMode} />
       <Skeleton width="200px" height="32px" style={{ marginBottom: '24px' }} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-        <div style={{ backgroundColor: cardBg, borderRadius: '16px', padding: '24px', border: `1px solid ${border}` }}>
+        <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', padding: '24px', border: `1px solid ${border}` }}>
           <Skeleton width="100%" height="20px" style={{ marginBottom: '16px' }} />
           <Skeleton width="100%" height="20px" style={{ marginBottom: '16px' }} />
           <Skeleton width="80%" height="20px" style={{ marginBottom: '16px' }} />
@@ -127,7 +127,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px', alignItems: 'start' }}>
 
           {/* LEFT — Form Inputs */}
-          <div style={{ backgroundColor: cardBg, borderRadius: '16px', padding: '24px', border: `1px solid ${border}`, boxShadow: isDarkMode ? 'none' : '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', padding: '24px', border: `1px solid ${border}`, boxShadow: isDarkMode ? 'none' : '0 1px 3px rgba(0,0,0,0.05)' }}>
             <h3 style={{ fontSize: '15px', fontWeight: '700', color: text, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Printer size={18} color="#007AFF" /> Identitas Toko
             </h3>
@@ -184,7 +184,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
 
           {/* RIGHT — Live Preview */}
           <div style={{ position: 'sticky', top: '24px' }}>
-            <div style={{ backgroundColor: cardBg, borderRadius: '16px', padding: '20px', border: `1px solid ${border}`, boxShadow: isDarkMode ? 'none' : '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', padding: '20px', border: `1px solid ${border}`, boxShadow: isDarkMode ? 'none' : '0 1px 3px rgba(0,0,0,0.05)' }}>
               <h3 style={{ fontSize: '15px', fontWeight: '700', color: text, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Monitor size={18} color="#FF9500" /> Preview Dokumen
               </h3>

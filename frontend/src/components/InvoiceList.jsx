@@ -546,7 +546,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
   const distSummary = Object.values(rekapMap).sort((a,b) => b.total - a.total);
 
   const S = {
-    card: { backgroundColor: isDarkMode ? '#1C1C1E' : '#FFFFFF', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, borderRadius: '12px' },
+    card: { border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, borderRadius: '12px' },
     input: { width: '100%', padding: '10px 12px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: isDarkMode ? '#FFF' : '#000', fontSize: '14px', outline: 'none', boxSizing: 'border-box' },
     inputDis: { width: '100%', padding: '10px 12px', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#1C1C1E' : '#E5E5EA', color: isDarkMode ? '#636366' : '#8E8E93', cursor: 'not-allowed', fontSize: '14px', boxSizing: 'border-box' },
     label: { display: 'block', fontSize: '11px', fontWeight: '700', marginBottom: '6px', color: isDarkMode ? '#EBEBF0' : '#3A3A3C', letterSpacing: '0.05em', textTransform: 'uppercase' },
@@ -582,7 +582,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
 
       {/* Draft Banner */}
       {draftBanner && savedDraft && (
-        <div style={{ ...S.card, padding: '14px 18px', marginBottom: '1.25rem', backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF9E6', borderColor: '#FF9500', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="glass-target" style={{ ...S.card, padding: "14px 18px", marginBottom: "1.25rem", backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF9E6', borderColor: '#FF9500', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <FileText size={18} color="#FF9500" />
           <div style={{ flex: 1 }}>
             <span style={{ fontWeight: '700', fontSize: '14px', color: isDarkMode ? '#FFF' : '#000' }}>Ada draft tersimpan</span>
@@ -601,7 +601,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
           { label: 'HNA Final', value: formatRp(sumFinal), icon: '📈', color: '#34C759' },
           { label: 'Jumlah Faktur', value: `${filteredInvoices.length} faktur`, icon: '📋', color: '#AF52DE' },
         ].map((m, i) => (
-          <div key={i} style={{ ...S.card, padding: '1.25rem' }}>
+          <div key={i} className="glass-target" style={{ ...S.card, padding: "1.25rem" }}>
             <div style={{ fontSize: '1.5rem', marginBottom: '6px' }}>{m.icon}</div>
             <p style={{ margin: '0 0 4px', fontSize: '11px', fontWeight: '700', color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.label}</p>
             {loading ? (
@@ -615,7 +615,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
 
       {/* Per-distributor summary */}
       {distSummary.length > 1 && (
-        <div style={{ ...S.card, padding: '1rem 1.25rem', marginBottom: '1.25rem' }}>
+        <div className="glass-target" style={{ ...S.card, padding: "1rem 1.25rem", marginBottom: "1.25rem" }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px', flexWrap: 'wrap' }}>
             <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>📦 Rekap per Distributor</p>
             {/* Month filter for rekap */}
@@ -691,7 +691,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       </div>
 
       {/* Search + Filter */}
-      <div style={{ ...S.card, padding: '1rem', marginBottom: '1rem' }}>
+      <div className="glass-target" style={{ ...S.card, padding: "1rem", marginBottom: "1rem" }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: showFilters ? '12px' : '0' }}>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', borderRadius: '10px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}` }}>
             <Search size={16} color="#86868B" />
@@ -741,7 +741,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
 
       {/* Trash Panel */}
       {showTrash && (
-        <div style={{ ...S.card, padding: '1.25rem', marginBottom: '1.25rem', borderColor: '#FF3B30' }}>
+        <div className="glass-target" style={{ ...S.card, padding: "1.25rem", marginBottom: "1.25rem", borderColor: '#FF3B30' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <p style={{ margin: 0, fontWeight: '700', fontSize: '14px', color: '#FF3B30', display: 'flex', alignItems: 'center', gap: '6px' }}><Trash2 size={16} /> Sampah ({trashItems.length})</p>
             <button onClick={() => setShowTrash(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} color="#86868B" /></button>
@@ -766,7 +766,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       )}
 
       {/* Invoice Table */}
-      <div style={{ ...S.card, overflow: 'hidden' }}>
+      <div className="glass-target" style={{ ...S.card, overflow: "hidden" }}>
         {/* Table header — sortable */}
         <div style={{ display: 'grid', gridTemplateColumns: '110px 140px 1fr 130px 130px 150px 120px 100px', padding: '12px 16px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', borderBottom: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}` }}>
           {[

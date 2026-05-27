@@ -137,7 +137,7 @@ export default function BugReports({ isDarkMode, isSidebarOpen, isMobile, isVant
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
   const txt = isDarkMode ? '#FFF' : '#000';
-  const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
+  const cardBg = isDarkMode ? 'rgba(28,28,30,0.7)' : 'rgba(255,255,255,0.7)';
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
 
   return (
@@ -164,7 +164,7 @@ export default function BugReports({ isDarkMode, isSidebarOpen, isMobile, isVant
             ))}
           </div>
           <button onClick={fetchBugs}
-            style={{ padding: '9px 14px', backgroundColor: cardBg, border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: txt, fontSize: '13px', fontWeight: '600' }}>
+            style={{ padding: '9px 14px', backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: txt, fontSize: '13px', fontWeight: '600' }}>
             <RefreshCw size={14} /> Refresh
           </button>
         </div>
@@ -175,7 +175,7 @@ export default function BugReports({ isDarkMode, isSidebarOpen, isMobile, isVant
           const Icon = cfg.icon;
           const count = filtered.filter(b => b.status === key).length;
           return (
-            <div key={key} style={{ backgroundColor: cardBg, borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: isDarkMode ? 'none' : '0 1px 4px rgba(0,0,0,0.06)' }}>
+            <div key={key} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: isDarkMode ? 'none' : '0 1px 4px rgba(0,0,0,0.06)' }}>
               <Icon size={20} color={cfg.color} />
               <div>
                 <div style={{ fontSize: '22px', fontWeight: '700', color: cfg.color, lineHeight: 1 }}>{count}</div>
@@ -189,7 +189,7 @@ export default function BugReports({ isDarkMode, isSidebarOpen, isMobile, isVant
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {[1, 2, 3].map(i => (
-            <div key={i} style={{ backgroundColor: cardBg, borderRadius: '12px', padding: '20px', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}` }}>
+            <div key={i} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '12px', padding: '20px', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}` }}>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <Skeleton width="36px" height="36px" borderRadius="9px" />
                 <div style={{ flex: 1 }}>
@@ -202,7 +202,7 @@ export default function BugReports({ isDarkMode, isSidebarOpen, isMobile, isVant
           ))}
         </div>
       ) : bugs.length === 0 ? (
-        <div style={{ padding: '60px 20px', textAlign: 'center', backgroundColor: cardBg, borderRadius: '16px', border: `1px dashed ${border}` }}>
+        <div style={{ padding: '60px 20px', textAlign: 'center', backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', border: `1px dashed ${border}` }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>✨</div>
           <p style={{ fontSize: '16px', fontWeight: '700', color: txt, margin: '0 0 8px' }}>Belum Ada Laporan</p>
           <p style={{ fontSize: '14px', color: '#86868B', margin: 0 }}>Semua sistem berjalan lancar. Tidak ada bug atau saran yang terdaftar.</p>

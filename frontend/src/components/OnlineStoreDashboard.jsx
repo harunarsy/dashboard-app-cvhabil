@@ -18,7 +18,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
   const [loading, setLoading] = useState(true);
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
-  const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
+  const cardBg = isDarkMode ? 'rgba(28,28,30,0.7)' : 'rgba(255,255,255,0.7)';
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = '#86868B';
@@ -103,15 +103,15 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
         <div>
           {/* Overview Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-            <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+            <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
               <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Total Revenue</p>
               {loading ? <Skeleton width="120px" height="28px" marginTop="6px" /> : <p style={{ margin: '6px 0 0', fontSize: '24px', fontWeight: '800', color: '#34C759' }}>{fmtRp(totalGross)}</p>}
             </div>
-            <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+            <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
               <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Net Profit</p>
               {loading ? <Skeleton width="120px" height="28px" marginTop="6px" /> : <p style={{ margin: '6px 0 0', fontSize: '24px', fontWeight: '800', color: '#007AFF' }}>{fmtRp(totalNet)}</p>}
             </div>
-            <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+            <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
               <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Total Orders</p>
               {loading ? <Skeleton width="60px" height="28px" marginTop="6px" /> : <p style={{ margin: '6px 0 0', fontSize: '24px', fontWeight: '800', color: text }}>{totalOrders}</p>}
             </div>
@@ -123,7 +123,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
             {summary.platforms.length ? summary.platforms.map((p, i) => (
-              <div key={i} style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+              <div key={i} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <span style={{ fontSize: '16px', fontWeight: '700', color: platformColors[p.platform] || text, textTransform: 'capitalize' }}>{p.platform}</span>
                   <span style={{ fontSize: '12px', color: sub }}>{p.total_orders} pesanan</span>
@@ -148,7 +148,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
 
       {/* Transactions Tab */}
       {tab === 'sales' && (
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', overflow: 'hidden' }}>
+        <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}>
@@ -196,7 +196,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
       {/* Import Modal */}
       {showImport && (
         <div onClick={() => setShowImport(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '520px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '520px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#EE4D2D' }}>📄 Import CSV</h3>
               <button onClick={() => setShowImport(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
@@ -225,7 +225,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
       {/* Withdrawal Modal */}
       {showWithdrawal && (
         <div onClick={() => setShowWithdrawal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#34C759' }}>💰 Tarik Saldo</h3>
               <button onClick={() => setShowWithdrawal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>

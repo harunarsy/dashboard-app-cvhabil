@@ -2,6 +2,20 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.8.8-stable] - 2026-05-27
+
+### Fixed
+- **🪟 Kanban Manajemen Tugas BENAR-benar glass**: wrapper container gak lagi solid putih override class. Sebelumnya v1.8.7 cuma fix token internal Kanban, tapi outer wrapper di Dashboard masih punya inline bg yang menang spec vs CSS glass-target.
+  - _Detail teknis_: Root cause Dashboard.jsx:672 punya `<div className="glass-target" style={{ backgroundColor: cardBg, ... }}>`. CSS `.liquid-glass-active .glass-target { background-color: var(...) !important }` kalah specificity vs inline style. Fix: hapus inline `backgroundColor` property total dari Kanban container + stats cards (line 684) + Version badge button (line 663). Plus TasksKanban root wrapper (line 210) hapus inline `backgroundColor: bg` dan biarkan parent glass.
+- **🎨 Modal "Apa Yang Baru" content area gak hardcoded white lagi**: card per-item changelog sebelumnya `bg-white dark:bg-gray-800` Tailwind hardcoded yang override glass.
+  - _Detail teknis_: Dashboard.jsx:754 ganti dari `<div className="bg-white dark:bg-gray-800 ...">` ke `<div className="glass-target glass-target--ultra ...">`. CSS var theme-aware tint apply, gak perlu Tailwind class hardcoded.
+
+### Changed
+- **🌫️ Liquid Glass akhirnya konsisten di seluruh UI**: Faktur Pembelian, Surat Pesanan, Buku Besar, Toko Online, Pengaturan Cetak, Bug Reports — semua sekarang translucent dgn backdrop blur. Sebelumnya 0% glass adoption (solid putih).
+  - _Detail teknis_: 6 page components audit ulang. Strategi: (1) translucent `cardBg = isDarkMode ? 'rgba(28,28,30,0.7)' : 'rgba(255,255,255,0.7)'` di setiap file, (2) inject inline `backdropFilter: 'blur(12px)'` + `-webkit-backdrop-filter` ke semua card consumer (4-7 per file). InvoiceList khusus: hapus solid bg dari `S.card` style object def line 549, tambah `className="glass-target"` ke 6 consumer JSX wrappers via batch sed. Total 24+ surface translucent + blur effect.
+- **🧱 Sidebar translucent saat Vanta + Glass nyala**: sebelumnya solid `#FBFBFD` light / `#000` dark override glass tint walaupun ada class `glass-target`.
+  - _Detail teknis_: Sidebar.jsx:250-255 inline bg ganti jadi `rgba(255,255,255,0.7)` / `rgba(0,0,0,0.7)` + inject `backdropFilter: blur(16px)` inline. Compose dgn glass-target class dari CSS = layered glass effect dgn stronger blur (16px > default 18px).
+
 ## [v1.8.7-stable] - 2026-05-27
 
 ### Added

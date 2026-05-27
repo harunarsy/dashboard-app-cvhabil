@@ -207,7 +207,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
   };
 
   return (
-    <div className="flex flex-col h-full p-0 overflow-hidden" style={{ backgroundColor: bg, color: text }}>
+    <div className="flex flex-col h-full p-0 overflow-hidden" style={{ color: text }}>
       {/* Header */}
       <div className="flex justify-between items-end mb-6 flex-wrap gap-3">
         <div>

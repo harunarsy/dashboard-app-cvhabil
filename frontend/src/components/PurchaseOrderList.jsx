@@ -45,7 +45,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
   const [receiveItems, setReceiveItems] = useState([]);
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
-  const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
+  const cardBg = isDarkMode ? 'rgba(28,28,30,0.7)' : 'rgba(255,255,255,0.7)';
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = '#86868B';
@@ -266,7 +266,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
       </div>
 
       {/* Table */}
-      <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
+      <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '640px' }}>
           <thead>
             <tr style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}>
@@ -365,7 +365,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
       {/* Create/Edit Modal */}
       {showModal === 'create' && (
         <div onClick={() => setShowModal(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: cardBg, zIndex: 1 }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>{editId ? '✏️ Edit SP' : '📋 Buat SP Baru'}</h3>
               <button onClick={() => setShowModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
@@ -508,7 +508,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
       {/* Receive Modal */}
       {showModal === 'receive' && (
         <div onClick={() => setShowModal(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: cardBg, zIndex: 1 }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#34C759' }}>✅ Terima Barang</h3>
               <button onClick={() => setShowModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
@@ -554,7 +554,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
       {/* Edit Distributor Modal */}
       {showModal === 'distributor' && (
         <div onClick={() => setShowModal('create')} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '1rem' }}>
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '480px', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '480px', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>🏢 Master Data Distributor</h3>
               <button onClick={() => setShowModal('create')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
