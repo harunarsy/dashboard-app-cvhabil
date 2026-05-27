@@ -2,6 +2,20 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.8.7-stable] - 2026-05-27
+
+### Added
+- **🌫️ Vanta fog tembus di semua halaman**: sebelumnya cuma Dashboard yang punya background fog visible. Sekarang Nota Penjualan, Customer, Faktur Pembelian, Surat Pesanan, Inventory, Toko Online, Buku Besar, Pengaturan, Login, Bug Reports — semua halaman fog visible behind content.
+  - _Detail teknis_: Plumb prop `isVantaMode` dari `App.js` → `ProtectedRoute` → `AppRoutes` → 11 page component. Setiap wrapper div: `backgroundColor: isVantaMode ? 'transparent' : bg`. Pendekatan prop-based dipilih karena inline style menang specificity vs CSS `!important`. Hapus CSS rule `body.vanta-active div.min-h-screen { background: transparent !important }` (v1.8.6.1) yang gak match pages tanpa class `min-h-screen` (mayoritas pages pakai `minHeight: '100vh'` inline). Pattern repeat di SalesOrderList:550, CustomerList:109, PurchaseOrderList:244, PrintSettings:77/103, InventoryDashboard:277, OnlineStoreDashboard:73, LedgerPage:63, BugReports:144, InvoiceList:564 (variant dgn inline `isDarkMode ? '#000' : '#F5F5F7'`), Dashboard:624, Login:74.
+- **🪟 Liquid Glass enable by default**: sebelumnya OFF default, user perlu toggle manual. Sekarang Glass ON for fresh visitor — text tetap readable walaupun Vanta nyala karena backdrop-blur shield di cards/surfaces.
+  - _Detail teknis_: `useGlassMode.js` line 31 fallback flip dari `localStorage === '1'` jadi `stored === null ? true : stored === '1'`. Backward compat: user yang sebelumnya toggle OFF (localStorage `"0"`) tetap OFF respected. User ON (`"1"`) tetap ON. Cuma `localStorage === null` (never toggled) dapat default `true`.
+
+### Changed
+- **🎨 Kanban Manajemen Tugas translucent**: gak ada blok putih solid besar lagi. Column + task card sekarang translucent dgn backdrop blur effect — Vanta visible behind, text contrast tetep tinggi (WCAG AA passed).
+  - _Detail teknis_: TasksKanban.jsx tokens: `cardBg` `rgba(255,255,255,0.85)` light / `rgba(28,28,30,0.85)` dark, `columnBg` `rgba(...,0.45)`, `surface` `rgba(...,0.7)`. Column container tambah `backdropFilter: blur(14px)`, card `backdropFilter: blur(10px)` + `-webkit-backdrop-filter` fallback Safari. Contrast `#1D1D1F` text di `rgba(255,255,255,0.85)` ≈ 14:1 ✅.
+- **🌗 Dark mode layering depth**: sebelumnya card `#1C1C1E` di atas bg `#000` = kontras 1.08:1 (flat). Sekarang bg `#0A0A0C` + cardBg translucent `rgba(28,28,30,0.85)` + border softer `rgba(60,60,67,0.6)` — kasih depth + Vanta-friendly.
+  - _Detail teknis_: Dashboard.jsx color tokens line 563-566 update. Translucent cardBg otomatis benefit dari Liquid Glass mode backdrop-blur.
+
 ## [v1.8.6-stable] - 2026-05-27
 
 ### Added

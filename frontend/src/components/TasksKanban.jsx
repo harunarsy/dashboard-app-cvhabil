@@ -58,9 +58,10 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
 
   // ─── Theme tokens (Apple HIG, mirror Dashboard) ───────────────────────────
   const bg = isDarkMode ? '#000000' : '#fbfbfd';
-  const cardBg = isDarkMode ? '#1C1C1E' : '#FFFFFF';
-  const surface = isDarkMode ? '#2C2C2E' : '#F5F5F7';
-  const columnBg = isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)';
+  // v1.8.7: translucent — Vanta tembus + backdrop-blur shield untuk text readability
+  const cardBg = isDarkMode ? 'rgba(28,28,30,0.85)' : 'rgba(255,255,255,0.85)';
+  const surface = isDarkMode ? 'rgba(44,44,46,0.7)' : 'rgba(245,245,247,0.7)';
+  const columnBg = isDarkMode ? 'rgba(28,28,30,0.45)' : 'rgba(255,255,255,0.45)';
   const border = isDarkMode ? '#2C2C2E' : 'rgba(0,0,0,0.06)';
   const subtleBorder = isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
   const text = isDarkMode ? '#FFFFFF' : '#1D1D1F';
@@ -367,7 +368,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
               </div>
             </div>
 
-            <div className="rounded-2xl p-2 flex flex-col gap-2 overflow-y-auto custom-scrollbar h-[320px]" style={{ backgroundColor: columnBg, border: `1px solid ${subtleBorder}` }}>
+            <div className="rounded-2xl p-2 flex flex-col gap-2 overflow-y-auto custom-scrollbar h-[320px]" style={{ backgroundColor: columnBg, border: `1px solid ${subtleBorder}`, backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}>
               {loading ? (
                 [1, 2, 3].map(i => (
                   <div key={i} className="p-3 rounded-xl" style={{ backgroundColor: cardBg, border: `1px solid ${subtleBorder}` }}>
@@ -389,7 +390,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                         onDragStart={(e) => onDragStart(e, task.id)}
                         onClick={() => setEditingTask(task)}
                         className="p-3 rounded-xl shadow-sm hover:shadow-md transition-all group cursor-pointer active:scale-95"
-                        style={{ backgroundColor: cardBg, border: `1px solid ${subtleBorder}` }}
+                        style={{ backgroundColor: cardBg, border: `1px solid ${subtleBorder}`, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
                       >
                         <div className="flex justify-between items-start mb-1.5">
                           <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ backgroundColor: pBg, color: pFg }}>

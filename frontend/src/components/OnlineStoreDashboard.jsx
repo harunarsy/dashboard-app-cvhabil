@@ -6,7 +6,7 @@ import Skeleton from './common/Skeleton';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 
-export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobile }) {
+export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
   const [tab, setTab] = useState('summary');
   const [summary, setSummary] = useState({ platforms: [], monthly: [] });
   const [sales, setSales] = useState([]);
@@ -70,7 +70,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
   const platformColors = { shopee: '#EE4D2D', tiktok: '#000000' };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       <Breadcrumb title="Toko Online & CSV" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header */}

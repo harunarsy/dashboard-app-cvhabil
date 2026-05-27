@@ -196,7 +196,7 @@ const sortData = (data, key, dir) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
+export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
   const [invoices, setInvoices] = useState([]);
   const [filteredInvoices, setFilteredInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -561,7 +561,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile }) {
   };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isDarkMode ? '#000' : '#F5F5F7', minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : (isDarkMode ? '#000' : '#F5F5F7'), minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       <Breadcrumb title="Faktur Pembelian" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Toast */}

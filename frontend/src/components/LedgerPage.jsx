@@ -10,7 +10,7 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-dig
 
 const CATEGORIES = ['Penjualan', 'Pembelian', 'Operasional', 'Gaji', 'Toko Online', 'Lain-lain'];
 
-export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
+export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
   const [entries, setEntries] = useState([]);
   const [summary, setSummary] = useState({ byCategory: [], monthly: [], totals: { total_debit: 0, total_credit: 0, net_balance: 0 } });
   const [tab, setTab] = useState('entries');
@@ -60,7 +60,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
   };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       <Breadcrumb title="Buku Besar" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header */}

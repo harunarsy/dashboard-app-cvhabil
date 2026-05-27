@@ -19,18 +19,10 @@ body.vanta-active,
 body.vanta-active.dark,
 html:has(body.vanta-active) { background-color: transparent !important; }
 
-/* v1.8.6.1 hotfix: page-level wrappers di komponen pakai inline
-   `backgroundColor: bg` solid (Login, Dashboard line 624, etc) yg nutup
-   Vanta canvas. Force transparent via !important — beats inline style.
-   Card-level surface (.glass-target inner, sidebar items, topbar) tetap
-   pertahankan solid bg dari style mereka sendiri → readability terjaga. */
-body.vanta-active div.min-h-screen,
-body.vanta-active div.dashboard-container,
-body.vanta-active main,
-body.vanta-active .page-shell {
-  background-color: transparent !important;
-  background: transparent !important;
-}
+/* v1.8.7: rule .min-h-screen v1.8.6.1 dihapus — sekarang pakai prop-based
+   `isVantaMode` di setiap page component yang set backgroundColor inline ke
+   transparent saat Vanta aktif. Inline style menang spec vs CSS !important,
+   jadi prop-based pendekatan lebih reliable + per-component control. */
 
 .login-container {
   min-height: 100vh;

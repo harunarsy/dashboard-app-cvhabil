@@ -27,8 +27,9 @@ export default function useGlassMode() {
       }
       // 2. OS preference wins
       if (window.matchMedia?.('(prefers-reduced-transparency: reduce)').matches) return false;
-      // 3. localStorage
-      return localStorage.getItem(STORAGE_KEY) === '1';
+      // 3. localStorage — v1.8.7: default ON kalau user belum pernah toggle
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored === null ? true : stored === '1';
     } catch {
       return false;
     }

@@ -31,7 +31,7 @@ function expirySeverity(date, isDarkMode) {
   return { color: '#34C759', bg: 'transparent', label: fmtDate(date), plain: true };
 }
 
-export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile }) {
+export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
   const [tab, setTab] = useState('products');
   const [products, setProducts] = useState([]);
   const [alerts, setAlerts] = useState({ expiring: [], lowStock: [] });
@@ -274,7 +274,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   );
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       <Breadcrumb title="Inventory" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header */}

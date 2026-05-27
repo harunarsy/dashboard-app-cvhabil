@@ -109,7 +109,7 @@ function StatusSection({ statusKey, bugs, isDark, onStatusChange, defaultOpen })
   );
 }
 
-export default function BugReports({ isDarkMode, isSidebarOpen, isMobile }) {
+export default function BugReports({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
   const [bugs, setBugs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all');
@@ -141,7 +141,7 @@ export default function BugReports({ isDarkMode, isSidebarOpen, isMobile }) {
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       <Breadcrumb title="Bug Reports & Feedback" isMobile={isMobile} isDarkMode={isDarkMode} />
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>

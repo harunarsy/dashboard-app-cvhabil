@@ -6,7 +6,32 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.8.6-stable', date: '27 Mei 2026', status: 'latest',
+    version: 'v1.8.7-stable', date: '27 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Background fog Vanta sekarang tembus di semua halaman (Nota, Customer, Faktur, Surat Pesanan, Inventory, Toko Online, Buku Besar, Pengaturan) — gak cuma Dashboard.',
+        dev: 'Plumb prop `isVantaMode` dari App.js → ProtectedRoute → AppRoutes → 11 page component (Dashboard, SalesOrderList, CustomerList, InvoiceList, PurchaseOrderList, PrintSettings, InventoryDashboard, OnlineStoreDashboard, LedgerPage, Login, BugReports). Setiap page wrapper div: `backgroundColor: isVantaMode ? "transparent" : bg`. Pendekatan prop-based vs CSS `!important` karena inline style menang specificity. Hapus CSS rule `.min-h-screen` v1.8.6.1 yang sudah obsolete.'
+      },
+      {
+        type: 'ui',
+        text: 'Kanban Manajemen Tugas gak ada blok putih solid lagi — column + card sekarang translucent dgn backdrop blur effect.',
+        dev: 'TasksKanban.jsx color tokens: cardBg `rgba(255,255,255,0.85)` light / `rgba(28,28,30,0.85)` dark, columnBg `rgba(...,0.45)`. Column container tambah `backdropFilter: blur(14px)`, card tambah `backdropFilter: blur(10px)`. Vanta tembus tanpa bikin teks gak readable karena backdrop blur = shield.'
+      },
+      {
+        type: 'ui',
+        text: 'Dark mode card sekarang punya layering depth + Vanta-friendly translucent (sebelumnya flat #1C1C1E di atas #000 = kontras 1.08:1).',
+        dev: 'Dashboard.jsx color tokens dark mode: bg `#0A0A0C` (bukan pure 000), cardBg `rgba(28,28,30,0.85)` translucent, border `rgba(60,60,67,0.6)` softer. Cards otomatis benefit dari Liquid Glass mode backdrop-blur kalau aktif.'
+      },
+      {
+        type: 'feat',
+        text: 'Liquid Glass theme sekarang AKTIF by default — text tetep readable walaupun Vanta nyala karena ada blur shield.',
+        dev: 'useGlassMode.js line 31: fallback default flip dari `false` jadi `true` kalau localStorage empty. Backward compat: user yang sudah pernah toggle OFF (`"0"`) tetap OFF — respect choice. User existing yang ON (`"1"`) tetap ON. Cuma fresh visitor + user yang gak pernah toggle dapat ON default.'
+      },
+    ]
+  },
+  {
+    version: 'v1.8.6-stable', date: '27 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -548,21 +573,22 @@ const upcoming = [
   { priority: 'low', title: 'TypeScript Migration', desc: 'Full type safety untuk seluruh codebase' },
 ];
 
-export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
+export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
   const [showModal, setShowModal] = useState(false);
   const [showDevNotes, setShowDevNotes] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.8.6-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.7-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
 
-  const bg = isDarkMode ? '#000' : '#F5F5F7';
-  const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
-  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
+  // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)
+  const bg = isDarkMode ? '#0A0A0C' : '#F5F5F7';
+  const cardBg = isDarkMode ? 'rgba(28,28,30,0.85)' : 'rgba(255,255,255,0.92)';
+  const border = isDarkMode ? 'rgba(60,60,67,0.6)' : '#E5E5EA';
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = '#86868B';
 
@@ -607,7 +633,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.8.6-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.7-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -621,7 +647,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile }) {
 
 
   return (
-    <div className="font-sans min-h-screen transition-all duration-300" style={{ padding: isMobile ? '1rem' : '2.5rem', paddingTop: isMobile ? '4rem' : '2.5rem', backgroundColor: bg }}>
+    <div className="font-sans min-h-screen transition-all duration-300" style={{ padding: isMobile ? '1rem' : '2.5rem', paddingTop: isMobile ? '4rem' : '2.5rem', backgroundColor: isVantaMode ? 'transparent' : bg }}>
       
       {/* Header Section */}
       <div className="flex justify-between items-center mb-10">

@@ -29,12 +29,12 @@ function useIsMobile(breakpoint = 768) {
   return isMobile;
 }
 
-function ProtectedRoute({ children, isDarkMode, setIsDarkMode, isGlassMode, isSidebarOpen, setIsSidebarOpen, isMobile }) {
+function ProtectedRoute({ children, isDarkMode, setIsDarkMode, isGlassMode, isVantaMode, isSidebarOpen, setIsSidebarOpen, isMobile }) {
   const { token } = useContext(AuthContext);
   if (!token) return <Navigate to="/login" />;
   return (
     <div className="flex">
-      <Sidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
+      <Sidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} isVantaMode={isVantaMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
       <div className="flex-1" style={{ marginLeft: isMobile ? 0 : (isSidebarOpen ? '256px' : '80px'), transition: 'margin-left 0.3s ease-in-out' }}>{children}</div>
     </div>
   );
@@ -45,18 +45,18 @@ function PageTitleWrapper({ title, children }) {
   return children;
 }
 
-function AppRoutes({ isDarkMode, setIsDarkMode, isGlassMode, setIsGlassMode, isSidebarOpen, setIsSidebarOpen, isMobile }) {
+function AppRoutes({ isDarkMode, setIsDarkMode, isGlassMode, setIsGlassMode, isVantaMode, isSidebarOpen, setIsSidebarOpen, isMobile }) {
   const { token } = useContext(AuthContext);
   const wrap = (Component, title) => (
-    <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isMobile={isMobile}>
+    <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} isVantaMode={isVantaMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isMobile={isMobile}>
       <PageTitleWrapper title={title}>
-        <Component isDarkMode={isDarkMode} isGlassMode={isGlassMode} isSidebarOpen={isSidebarOpen} isMobile={isMobile} />
+        <Component isDarkMode={isDarkMode} isGlassMode={isGlassMode} isVantaMode={isVantaMode} isSidebarOpen={isSidebarOpen} isMobile={isMobile} />
       </PageTitleWrapper>
     </ProtectedRoute>
   );
   return (
     <Routes>
-      <Route path="/login" element={<PageTitleWrapper title="Login"><Login isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} setIsGlassMode={setIsGlassMode} /></PageTitleWrapper>} />
+      <Route path="/login" element={<PageTitleWrapper title="Login"><Login isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} setIsGlassMode={setIsGlassMode} isVantaMode={isVantaMode} /></PageTitleWrapper>} />
       <Route path="/dashboard" element={wrap(Dashboard, 'Dashboard')} />
       <Route path="/invoices" element={wrap(InvoiceList, 'Nota Penjualan')} />
       <Route path="/sales" element={wrap(SalesOrderList, 'Nota Penjualan')} />
@@ -104,7 +104,7 @@ function App() {
         {/* Vanta canvas behind everything — pointer-events: none di CSS */}
         <div ref={vantaRef} id="vanta-bg" />
         <div className={`app-content transition-colors duration-300 ${isDarkMode ? 'dark' : ''}`} style={{ backgroundColor: isVantaMode ? 'transparent' : (isDarkMode ? '#000000' : '#FFFFFF') }}>
-          <AppRoutes isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} setIsGlassMode={setIsGlassMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isMobile={isMobile} />
+          <AppRoutes isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} setIsGlassMode={setIsGlassMode} isVantaMode={isVantaMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isMobile={isMobile} />
         </div>
       </Router>
     </AuthProvider>

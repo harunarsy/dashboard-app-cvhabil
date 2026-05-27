@@ -8,7 +8,7 @@ import Breadcrumb from './common/Breadcrumb';
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(parseFloat(n) || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 
-export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
+export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('name_asc'); // name_asc | name_desc | most_active | top_spender | oldest
@@ -106,7 +106,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile }) {
   };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s', color: text }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s', color: text }}>
       <Breadcrumb title="Master Customer" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header */}

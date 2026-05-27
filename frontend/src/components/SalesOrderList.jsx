@@ -32,7 +32,7 @@ const notaDaysDiff = (dateStr) => {
 
 const blankItem = () => ({ product_name: '', qty: 1, unit: 'pcs', unit_price: 0, unit_hpp: 0 });
 
-export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) {
+export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
 
   const [orders, setOrders] = useState([]);
   // v1.7.0 multi-select bulk export
@@ -547,7 +547,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile }) 
   };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       <Breadcrumb title="Nota Penjualan" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header */}

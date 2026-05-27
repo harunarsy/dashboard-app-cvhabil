@@ -19,7 +19,7 @@ const statusColors = {
   received: { bg: '#34C75918', color: '#34C759', label: 'Diterima' },
 };
 
-export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile }) {
+export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
   const [orders, setOrders] = useState([]);
   const [distributors, setDistributors] = useState([]);
   const [products, setProducts] = useState([]);
@@ -241,7 +241,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile 
   };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       <Breadcrumb title="Surat Pesanan" isMobile={isMobile} isDarkMode={isDarkMode} />
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>

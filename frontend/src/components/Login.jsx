@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Lock, User, AlertCircle, Building2, Sun, Moon, Sparkles } from 'lucide-react';
 
-export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode = false, setIsGlassMode }) {
+export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode = false, setIsGlassMode, isVantaMode = false }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -71,7 +71,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
   return (
     <div
       className="min-h-screen flex flex-col justify-center items-center p-4 font-sans transition-colors duration-300"
-      style={{ backgroundColor: bg, color: text }}
+      style={{ backgroundColor: isVantaMode ? 'transparent' : bg, color: text }}
     >
       {/* Theme toggles (floating top-right) — Glass + Dark Mode (Vanta selalu ON, no toggle) */}
       <div style={{ position: 'fixed', top: '20px', right: '20px', display: 'flex', gap: '8px', zIndex: 50 }}>
@@ -195,7 +195,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
             <Building2 size={32} />
           </div>
           <h1 className="text-3xl font-bold tracking-tight" style={{ color: text }}>HABIL SUPERAPP</h1>
-          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.8.6-stable — 2026</p>
+          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.8.7-stable — 2026</p>
         </div>
 
         <div

@@ -4,7 +4,7 @@ import Skeleton from './common/Skeleton';
 import { printSettingsAPI } from '../services/api';
 import Breadcrumb from './common/Breadcrumb';
 
-export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile }) {
+export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -74,7 +74,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile }) {
   const inputBg = isDarkMode ? '#2C2C2E' : '#F5F5F7';
 
   if (loading) return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       <Breadcrumb title="Pengaturan Cetak" isMobile={isMobile} isDarkMode={isDarkMode} />
       <Skeleton width="200px" height="32px" style={{ marginBottom: '24px' }} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
@@ -100,7 +100,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile }) {
   const labelStyle = { display: 'block', fontSize: '12px', color: sub, marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase' };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
         {/* Page Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
