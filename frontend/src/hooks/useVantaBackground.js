@@ -79,28 +79,18 @@ export default function useVantaBackground(isDarkMode = false) {
       effectRef.current = null;
     }
 
-    // v1.8.6.1: light mode colors di-boost — baseColor sebelumnya #F5F5F7 (sama
-    // dengan body bg) bikin washed out. Sekarang pakai base biru-pucat + lowlight
-    // soft blue (bukan pure white) supaya fog clearly visible di main area.
-    const colors = isDarkMode
-      ? {
-          highlightColor: 0x5AC8FA,
-          midtoneColor: 0x007AFF,
-          lowlightColor: 0x1C1C1E,
-          baseColor: 0x000000,
-          blurFactor: 0.75,
-          speed: 0.6,
-          zoom: 0.8,
-        }
-      : {
-          highlightColor: 0x007AFF,
-          midtoneColor: 0xAF52DE,
-          lowlightColor: 0xC7DFFC,
-          baseColor: 0xE5F0FF,
-          blurFactor: 0.7,
-          speed: 0.4,
-          zoom: 0.7,
-        };
+    // v1.8.6.2: persis setting dari vantajs.com preset (per request user) —
+    // static fog (speed 0) dgn highlight blue + midtone red + base pink.
+    // Apply sama untuk light + dark mode.
+    const colors = {
+      highlightColor: 0x1e00ff,
+      midtoneColor: 0xff1f00,
+      lowlightColor: 0xffffff,
+      baseColor: 0xffebeb,
+      blurFactor: 0.70,
+      speed: 0.00,
+      zoom: 0.20,
+    };
 
     try {
       effectRef.current = FOG({
