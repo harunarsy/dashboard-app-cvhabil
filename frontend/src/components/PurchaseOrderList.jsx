@@ -8,7 +8,6 @@ import Skeleton from './common/Skeleton';
 import ConfirmModal from './common/ConfirmModal';
 import Breadcrumb from './common/Breadcrumb';
 
-const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 const blankItem = () => ({ product_name: '', qty: 1, unit: 'pcs', unit_price: 0, _custom_unit: false });
 
@@ -250,7 +249,6 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
     n[idx] = updated;
     setItems(n);
   };
-  const grandTotal = items.reduce((s, i) => s + (i.qty || 0) * (i.unit_price || 0), 0);
   const selectedDistributorInfo = distributors.find(d => d.name === form.distributor_name);
 
   const handlePrintSP = async (o) => {
@@ -306,7 +304,6 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                 { label: 'No. SP', field: 'po_number' },
                 { label: 'Tanggal', field: 'order_date' },
                 { label: 'Distributor', field: 'distributor_name' },
-                { label: 'Total', field: 'total' },
                 { label: 'Status', field: 'status' },
                 { label: 'Aksi', field: null },
               ].map(({ label, field }) => {
@@ -328,7 +325,6 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                   <td style={{ padding: '12px 14px' }}><Skeleton width="80px" height="14px" /></td>
                   <td style={{ padding: '12px 14px' }}><Skeleton width="90px" height="14px" /></td>
                   <td style={{ padding: '12px 14px' }}><Skeleton width="150px" height="14px" /></td>
-                  <td style={{ padding: '12px 14px' }}><Skeleton width="70px" height="14px" /></td>
                   <td style={{ padding: '12px 14px' }}><Skeleton width="60px" height="18px" /></td>
                   <td style={{ padding: '12px 14px' }}><Skeleton width="80px" height="20px" /></td>
                 </tr>
@@ -342,7 +338,6 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                       <td style={{ padding: '12px 14px', fontWeight: '600', color: '#5856D6' }}>{o.po_number}</td>
                       <td style={{ padding: '12px 14px', color: text }}>{fmtDate(o.order_date)}</td>
                       <td style={{ padding: '12px 14px', color: text }}>{o.distributor_name}</td>
-                      <td style={{ padding: '12px 14px', fontWeight: '600', color: text }}>{fmtRp(o.total)}</td>
                       <td style={{ padding: '12px 14px' }}>
                         <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span>
                       </td>
@@ -357,11 +352,11 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                     </tr>
                     {expandedId === o.id && o.items?.length > 0 && (
                       <tr>
-                        <td colSpan={6} style={{ padding: '0 14px 14px', backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
+                        <td colSpan={5} style={{ padding: '0 14px 14px', backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
                           <div style={{ overflowX: 'auto' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', fontSize: '12px', minWidth: '400px' }}>
                             <thead><tr>
-                              {['Produk', 'Qty', 'Satuan', 'Harga', 'Subtotal', 'Diterima'].map(h => (
+                              {['Produk', 'Qty', 'Satuan', 'Diterima'].map(h => (
                                 <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: '600', color: sub, borderBottom: `1px solid ${border}` }}>{h}</th>
                               ))}
                             </tr></thead>
@@ -371,8 +366,6 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                                   <td style={{ padding: '6px 10px', color: text }}>{it.product_name}</td>
                                   <td style={{ padding: '6px 10px', color: text }}>{it.qty}</td>
                                   <td style={{ padding: '6px 10px', color: sub }}>{it.unit}</td>
-                                  <td style={{ padding: '6px 10px', color: text }}>{fmtRp(it.unit_price)}</td>
-                                  <td style={{ padding: '6px 10px', fontWeight: '600', color: text }}>{fmtRp(it.subtotal)}</td>
                                   <td style={{ padding: '6px 10px', fontWeight: '600', color: (it.received_qty || 0) >= it.qty ? '#34C759' : '#FF9500' }}>
                                     {it.received_qty || 0}/{it.qty}
                                   </td>
@@ -389,7 +382,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                 );
               })
             )}
-            {!loading && !sorted.length && <tr><td colSpan={6} style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', textAlign: 'center', color: sub }}>Belum ada Surat Pesanan.</td></tr>}
+            {!loading && !sorted.length && <tr><td colSpan={5} style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', textAlign: 'center', color: sub }}>Belum ada Surat Pesanan.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -498,7 +491,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                   const showPreview = product && product.pack_unit && (parseInt(product.pack_size) || 1) > 1;
                   return (
                   <div key={idx} style={{ marginBottom: '8px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 60px 90px 1fr 30px', gap: '6px', alignItems: 'center' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 70px 110px 30px', gap: '6px', alignItems: 'center' }}>
                       <MasterSelect
                         value={it.product_name}
                         onChange={v => updateItem(idx, 'product_name', v)}
@@ -513,7 +506,6 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                       <select value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px' }}>
                         {unitOptions.map((u, i) => <option key={`${u.value}-${i}`} value={u.value}>{u.label}</option>)}
                       </select>
-                      <input type="number" value={it.unit_price} onChange={e => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} min="0" placeholder="Harga" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px' }} />
                       {items.length > 1 && <button onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>}
                     </div>
                     {showPreview && it.qty > 0 && (
@@ -525,10 +517,6 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                 <button onClick={addItem} style={{ fontSize: '13px', color: '#5856D6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', marginTop: '4px' }}>+ Tambah Produk</button>
               </div>
               <div><label style={labelStyle}>Catatan</label><textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} /></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: `1px solid ${border}` }}>
-                <span style={{ fontSize: '14px', fontWeight: '600', color: sub }}>Total</span>
-                <span style={{ fontSize: '18px', fontWeight: '800', color: '#5856D6' }}>{fmtRp(grandTotal)}</span>
-              </div>
               {saveError && editId && (
                 <p style={{ fontSize: '12px', color: '#FF3B30', margin: '0', fontWeight: '500' }}>{saveError}</p>
               )}

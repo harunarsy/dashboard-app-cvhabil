@@ -18,6 +18,11 @@ const RELEASES = [
         text: 'Tambah produk baru dari SP otomatis mendaftarkannya ke Inventory. Tidak ada lagi produk yang stoknya hilang saat barang diterima.',
         dev: 'Handler handleAddProduct/Remove/Rename diport dari Nota — onAdd panggil inventoryAPI.createProduct({name, unit:pcs, hna:0, ...}) → product_master langsung muncul di Inventory (stok 0, LEFT JOIN). Hardening backend purchaseOrders.js receive: produk yg belum terdaftar (SP lama / produk dinonaktifkan) di-auto-create dulu sebelum stock-in, jadi `if (product)` gak pernah skip diam-diam.'
       },
+      {
+        type: 'ui',
+        text: 'Surat Pesanan (SP) gak ada kolom Harga & Total lagi — SP murni daftar pesanan barang (produk + qty). Nominal harga muncul di Faktur Pembelian setelah barang + faktur dari distributor datang.',
+        dev: 'PurchaseOrderList.jsx: hapus input unit_price di baris produk, blok Total di modal, kolom Total di tabel list, kolom Harga + Subtotal di detail expand. Hapus helper fmtRp + grandTotal yg jadi unused. Backend tetap simpan unit_price/total default 0 — tanpa migrasi.'
+      },
     ]
   },
   {
