@@ -258,9 +258,18 @@ router.post('/:id/receive', auth, async (req, res) => {
         [item.po_item_id]
       );
       if (!current) continue;
-      const { rows: [product] } = await client.query(
+      let { rows: [product] } = await client.query(
         'SELECT id, hna, base_unit, pack_unit, pack_size FROM product_master WHERE name = $1 AND is_active = TRUE', [current.product_name]
       );
+      // Jaring pengaman: produk belum terdaftar (SP lama / produk dinonaktifkan) → daftarkan dulu supaya stok tidak hilang diam-diam
+      if (!product) {
+        const { rows: [created] } = await client.query(
+          `INSERT INTO product_master (name, unit, base_unit, hna) VALUES ($1,$2,$2,0)
+           RETURNING id, hna, base_unit, pack_unit, pack_size`,
+          [current.product_name, current.unit || 'pcs']
+        );
+        product = created;
+      }
 
       // Determine recv qty di BASE unit
       let recvBase;

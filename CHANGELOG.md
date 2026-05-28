@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.8.9-stable] - 2026-05-28
+
+### Changed
+- **🔽 Dropdown produk di "Buat SP" sekarang sama persis seperti di Nota**: bisa cari, pilih dari daftar, atau tambah produk baru langsung dari dropdown. Sebelumnya SP satu-satunya yang masih pakai input ketik-bebas (datalist), beda sendiri dari picker produk lain di app.
+  - _Detail teknis_: `PurchaseOrderList.jsx` ganti `<input list="inv-product-list">` (datalist free-text) → komponen `MasterSelect` (creatable dropdown, sama yg dipakai Nota `SalesOrderList.jsx:965` + Distributor di modal yg sama). Hapus `<datalist>`. `updateItem` dibikin atomik: autofill `unit` dari `base_unit` saat produk dipilih (sekalian fix latent double-`updateItem` bug di onChange lama). SP sisi pembelian → harga **tidak** auto-fill dari `sell_price` (beda dgn Nota), tetap manual.
+
+### Fixed
+- **📦 Tambah produk baru dari SP otomatis mendaftarkannya ke Inventory**: sebelumnya nama produk yang diketik bebas di SP jadi "hantu" — tidak terdaftar di inventory, dan stoknya **hilang diam-diam** saat barang diterima. Sekarang setiap produk SP dijamin masuk inventory.
+  - _Detail teknis_: Handler `handleAddProduct/Remove/Rename` diport dari Nota — `onAdd` panggil `inventoryAPI.createProduct({ name, unit:'pcs', hna:0, ... })` → `product_master` langsung muncul di Inventory (stok 0, LEFT JOIN di `getProducts`). Hardening backend `purchaseOrders.js` receive handler: produk yg belum terdaftar (SP lama / produk dinonaktifkan) di-auto-create dulu (`INSERT INTO product_master`) sebelum stock-in, jadi `if (product)` tidak pernah di-skip diam-diam.
+
 ## [v1.8.8-stable] - 2026-05-27
 
 ### Fixed

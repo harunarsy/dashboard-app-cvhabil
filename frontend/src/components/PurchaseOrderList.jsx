@@ -215,9 +215,41 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
     fetchDistributors();
   };
   
+  // MasterSelect handlers for Produk (mirror Nota — tambah produk baru langsung daftar ke Inventory)
+  const handleAddProduct = async (name) => {
+    try {
+      await inventoryAPI.createProduct({ name, unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5 });
+      flash('Produk ditambahkan'); fetchProducts();
+    } catch (e) { flash(e.response?.data?.error || e.message); }
+  };
+  const handleRemoveProduct = async (name) => {
+    try {
+      const product = products.find(p => p.name === name);
+      if (product) { await inventoryAPI.deleteProduct(product.id); flash('Produk dinonaktifkan'); fetchProducts(); }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
+  };
+  const handleRenameProduct = async (oldName, newName) => {
+    try {
+      const product = products.find(p => p.name === oldName);
+      if (product) {
+        await inventoryAPI.updateProduct(product.id, { name: newName, code: product.code, unit: product.unit, hna: product.hna, sell_price: product.sell_price, category: product.category, min_stock: product.min_stock });
+        flash('Nama produk diubah'); fetchProducts();
+      }
+    } catch (e) { flash(e.response?.data?.error || e.message); }
+  };
+
   const addItem = () => setItems([...items, blankItem()]);
   const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx));
-  const updateItem = (idx, f, v) => { const n = [...items]; n[idx] = { ...n[idx], [f]: v }; setItems(n); };
+  const updateItem = (idx, f, v) => {
+    const n = [...items];
+    const updated = { ...n[idx], [f]: v };
+    if (f === 'product_name') {
+      const match = products.find(p => p.name?.toLowerCase() === v?.toLowerCase());
+      if (match) updated.unit = match.base_unit || match.unit || 'pcs';
+    }
+    n[idx] = updated;
+    setItems(n);
+  };
   const grandTotal = items.reduce((s, i) => s + (i.qty || 0) * (i.unit_price || 0), 0);
   const selectedDistributorInfo = distributors.find(d => d.name === form.distributor_name);
 
@@ -467,11 +499,16 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                   return (
                   <div key={idx} style={{ marginBottom: '8px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 60px 90px 1fr 30px', gap: '6px', alignItems: 'center' }}>
-                      <input list="inv-product-list" value={it.product_name} onChange={e => {
-                        updateItem(idx, 'product_name', e.target.value);
-                        const p = products.find(x => x.name?.toLowerCase() === e.target.value?.toLowerCase());
-                        if (p) updateItem(idx, 'unit', p.base_unit || p.unit || 'pcs');
-                      }} placeholder="Produk" style={{ ...inputStyle, fontSize: '13px', padding: '8px 10px' }} />
+                      <MasterSelect
+                        value={it.product_name}
+                        onChange={v => updateItem(idx, 'product_name', v)}
+                        options={products.map(p => ({ name: p.name }))}
+                        onAdd={handleAddProduct}
+                        onRemove={handleRemoveProduct}
+                        onRename={handleRenameProduct}
+                        isDarkMode={isDarkMode}
+                        placeholder="Nama produk"
+                      />
                       <input type="number" value={it.qty} onChange={e => updateItem(idx, 'qty', parseInt(e.target.value) || 0)} min="1" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
                       <select value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px' }}>
                         {unitOptions.map((u, i) => <option key={`${u.value}-${i}`} value={u.value}>{u.label}</option>)}
@@ -485,7 +522,6 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                   </div>
                   );
                 })}
-                <datalist id="inv-product-list">{products.map(p => <option key={p.id} value={p.name} />)}</datalist>
                 <button onClick={addItem} style={{ fontSize: '13px', color: '#5856D6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', marginTop: '4px' }}>+ Tambah Produk</button>
               </div>
               <div><label style={labelStyle}>Catatan</label><textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} /></div>

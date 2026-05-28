@@ -6,7 +6,22 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.8.8-stable', date: '27 Mei 2026', status: 'latest',
+    version: 'v1.8.9-stable', date: '28 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'ui',
+        text: 'Dropdown produk di "Buat SP" sekarang sama persis seperti di Nota — bisa cari, pilih, atau tambah produk baru langsung dari dropdown.',
+        dev: 'PurchaseOrderList.jsx: ganti `<input list="inv-product-list">` (datalist free-text) → komponen `MasterSelect` (dropdown creatable, sama yang dipakai Nota SalesOrderList.jsx:965 + Distributor di modal yang sama). options dari inventoryAPI.getProducts. Hapus `<datalist>`. updateItem dibikin atomik: autofill unit dari base_unit saat produk dipilih (sekalian benerin latent double-updateItem bug). SP sisi beli → harga TIDAK auto-fill dari sell_price, tetap manual.'
+      },
+      {
+        type: 'feat',
+        text: 'Tambah produk baru dari SP otomatis mendaftarkannya ke Inventory. Tidak ada lagi produk yang stoknya hilang saat barang diterima.',
+        dev: 'Handler handleAddProduct/Remove/Rename diport dari Nota — onAdd panggil inventoryAPI.createProduct({name, unit:pcs, hna:0, ...}) → product_master langsung muncul di Inventory (stok 0, LEFT JOIN). Hardening backend purchaseOrders.js receive: produk yg belum terdaftar (SP lama / produk dinonaktifkan) di-auto-create dulu sebelum stock-in, jadi `if (product)` gak pernah skip diam-diam.'
+      },
+    ]
+  },
+  {
+    version: 'v1.8.8-stable', date: '27 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'ui',
@@ -605,7 +620,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.8.8-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.9-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -658,7 +673,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.8.8-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.8.9-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
