@@ -812,11 +812,11 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-bold text-gray-900 dark:text-white leading-tight text-sm">{heading}</h3>
+                          <h3 className="font-bold leading-tight text-sm" style={{ color: isDarkMode ? '#FFFFFF' : '#111827' }}>{heading}</h3>
                           <span className={`text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded ${typeMeta.bg} ${typeMeta.fg}`}>{typeMeta.label}</span>
                         </div>
                         {body && (
-                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 leading-relaxed">{body}</p>
+                          <p className="text-xs font-medium leading-relaxed" style={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }}>{body}</p>
                         )}
                       </div>
                     </div>

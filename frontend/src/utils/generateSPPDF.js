@@ -121,12 +121,11 @@ export function generateSPPDF(order, options = {}) {
       index + 1,
       formatProductNameSP(item),
       formatQtyForSP(item),
-      item.unit || 'pcs',
-      item.keterangan || '-'
+      item.unit || 'pcs'
     ];
   });
 
-  const tableHead = [['No', 'Nama Barang', 'Qty', 'Satuan', 'Keterangan']];
+  const tableHead = [['No', 'Nama Barang', 'Qty', 'Satuan']];
 
   autoTable(doc, {
     startY: distY + (isA6 ? 14 : 18),

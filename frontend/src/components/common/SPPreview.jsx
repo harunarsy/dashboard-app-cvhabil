@@ -57,12 +57,11 @@ export default function SPPreview({ form = {}, items = [], settings = {} }) {
               <th style={{ padding: '4px 5px', textAlign: 'left' }}>Nama Barang</th>
               <th style={{ padding: '4px 5px', textAlign: 'center', width: '48px' }}>Qty</th>
               <th style={{ padding: '4px 5px', textAlign: 'center', width: '56px' }}>Satuan</th>
-              <th style={{ padding: '4px 5px', textAlign: 'left', width: '80px' }}>Keterangan</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: '12px', textAlign: 'center', color: '#999', fontStyle: 'italic' }}>Belum ada produk</td></tr>
+              <tr><td colSpan={4} style={{ padding: '12px', textAlign: 'center', color: '#999', fontStyle: 'italic' }}>Belum ada produk</td></tr>
             )}
             {items.map((it, idx) => (
               <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#FFF' : '#FAFAFA' }}>
@@ -70,7 +69,6 @@ export default function SPPreview({ form = {}, items = [], settings = {} }) {
                 <td style={{ padding: '4px 5px', color: '#3A3A3C' }}>{it.product_name || '—'}</td>
                 <td style={{ padding: '4px 5px', textAlign: 'center', color: '#3A3A3C', verticalAlign: 'top' }}>{parseFloat(it.qty) || 0}</td>
                 <td style={{ padding: '4px 5px', textAlign: 'center', color: '#3A3A3C', verticalAlign: 'top' }}>{it.unit || 'pcs'}</td>
-                <td style={{ padding: '4px 5px', color: '#777', verticalAlign: 'top' }}>{it.keterangan || '-'}</td>
               </tr>
             ))}
           </tbody>
