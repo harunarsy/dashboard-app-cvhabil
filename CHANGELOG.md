@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.9.0-stable] - 2026-05-28
+
+### Added
+- **📄 Preview Live di Buat SP**: dokumen Surat Pesanan tampil real-time di samping form sambil diisi (distributor, produk, tanggal langsung kebaca di preview), persis seperti di Buat Nota. Bisa cek tampilan dokumen sebelum cetak.
+  - _Detail teknis_: komponen baru `common/SPPreview.jsx` (mirror `NotaPreview`, render dokumen SP HTML real-time, **tanpa harga/total** sesuai SP price-free). `PurchaseOrderList.jsx`: state `layoutSettings` (fetch `printSettingsAPI.get().nota_layout` on-mount), modal Buat SP jadi 2-kolom (form kiri + `SPPreview` sticky kanan, `gridTemplateColumns: 1.2fr 1fr`), `maxWidth` diperlebar ke `min(1100px, calc(100vw - 32px))`, preview disembunyikan di mobile.
+
 ## [v1.8.9-stable] - 2026-05-28
 
 ### Changed

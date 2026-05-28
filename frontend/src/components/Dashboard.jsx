@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.8.9-stable', date: '28 Mei 2026', status: 'latest',
+    version: 'v1.9.0-stable', date: '28 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Buat SP sekarang punya Preview Live — dokumen Surat Pesanan tampil real-time di samping form sambil diisi (distributor, produk, tanggal langsung kebaca), persis seperti di Nota. Cek tampilan dulu sebelum cetak.',
+        dev: 'Komponen baru common/SPPreview.jsx (mirror NotaPreview, render dokumen SP HTML real-time, TANPA harga/total sesuai SP price-free). PurchaseOrderList.jsx: tambah state layoutSettings (fetch printSettingsAPI.get().nota_layout on-mount), modal Buat SP jadi 2-kolom (form kiri + SPPreview sticky kanan, gridTemplateColumns 1.2fr 1fr), maxWidth diperlebar ke min(1100px, calc(100vw - 32px)), preview disembunyikan di mobile. po_number preview ikut nomor Auto/manual dari spCounter.'
+      },
+    ]
+  },
+  {
+    version: 'v1.8.9-stable', date: '28 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'ui',
@@ -625,7 +635,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.8.9-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.9.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -678,7 +688,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.8.9-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.9.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

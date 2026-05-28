@@ -7,6 +7,7 @@ import MasterSelect from './MasterSelect';
 import Skeleton from './common/Skeleton';
 import ConfirmModal from './common/ConfirmModal';
 import Breadcrumb from './common/Breadcrumb';
+import SPPreview from './common/SPPreview';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 const blankItem = () => ({ product_name: '', qty: 1, unit: 'pcs', unit_price: 0, _custom_unit: false });
@@ -42,6 +43,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
   const [distForm, setDistForm] = useState({ name: '', short_code: '', salesman_name: '', salesman_phone: '' });
   const [items, setItems] = useState([blankItem()]);
   const [receiveItems, setReceiveItems] = useState([]);
+  const [layoutSettings, setLayoutSettings] = useState(null);
 
   const bg = isDarkMode ? '#000' : '#F5F5F7';
   const cardBg = isDarkMode ? 'rgba(28,28,30,0.7)' : 'rgba(255,255,255,0.7)';
@@ -69,8 +71,9 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
       if (sp) setSpCounter(sp);
     } catch (e) { console.error(e); }
   };
+  const fetchSettings = async () => { try { const { data } = await printSettingsAPI.get(); setLayoutSettings(data.nota_layout); } catch (e) { console.error(e); } };
 
-  useEffect(() => { fetchOrders(); fetchDistributors(); fetchProducts(); fetchCounters(); }, []);
+  useEffect(() => { fetchOrders(); fetchDistributors(); fetchProducts(); fetchCounters(); fetchSettings(); }, []);
 
   const filtered = orders.filter(o =>
     o.po_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -390,12 +393,13 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
       {/* Create/Edit Modal */}
       {showModal === 'create' && (
         <div onClick={() => setShowModal(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: 'min(1100px, calc(100vw - 32px))', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: cardBg, zIndex: 1 }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>{editId ? '✏️ Edit SP' : '📋 Buat SP Baru'}</h3>
               <button onClick={() => setShowModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
             </div>
-            <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ padding: '20px 22px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr', gap: '20px', alignItems: 'start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
               {!editId && (
                 <div>
                   <label style={labelStyle}>Nomor SP *</label>
@@ -524,6 +528,17 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                 <button onClick={handleSave} disabled={isSaving} style={{ flex: 1, padding: '13px', backgroundColor: '#5856D6', color: '#FFF', border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', opacity: isSaving ? 0.7 : 1 }}>{isSaving ? 'Menyimpan...' : (editId ? 'Simpan' : 'Buat SP')}</button>
                 <button onClick={() => setShowModal(null)} disabled={isSaving} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600', opacity: isSaving ? 0.7 : 1 }}>Batal</button>
               </div>
+              </div>
+              {!isMobile && (
+                <div style={{ position: 'sticky', top: 0, alignSelf: 'start' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: sub, marginBottom: '8px', letterSpacing: '0.05em' }}>📄 Preview Live</div>
+                  <SPPreview
+                    form={{ ...form, po_number: editId ? form.po_number : `${spCounter.prefix || ''}${isAutoSP ? String(spCounter.last_number + 1).padStart(4, '0') : manualNumber}` }}
+                    items={items}
+                    settings={layoutSettings || {}}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
