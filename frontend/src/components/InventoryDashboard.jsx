@@ -131,6 +131,9 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
     });
   }, [products, search, statusFilter]);
 
+  // v1.10.2: total nilai persediaan = Σ HPP(inc PPN) × stok (ikut filter aktif)
+  const totalNilai = useMemo(() => filtered.reduce((s, p) => s + hppFromHna(p.hna) * (parseInt(p.total_stock) || 0), 0), [filtered]);
+
   const flashSuccess = (msg) => { setToast({ msg, type: 'success' }); setTimeout(() => setToast({ msg: '', type: 'success' }), 2500); };
   const flashError = (msg) => { setToast({ msg, type: 'error' }); setTimeout(() => setToast({ msg: '', type: 'success' }), 3500); };
 
@@ -338,6 +341,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                   <th style={{ ...thStyle(sub, border), textAlign: 'right' }} title="Harga Pokok Penjualan = HNA + PPN 11%">HPP<br/><span style={{ fontSize: '10px', fontWeight: '400', color: sub }}>(inc PPN)</span></th>
                   <th style={{ ...thStyle(sub, border), textAlign: 'right' }}>Harga Jual</th>
                   <th style={{ ...thStyle(sub, border), textAlign: 'center' }}>Stok</th>
+                  <th style={{ ...thStyle(sub, border), textAlign: 'right' }} title="Nilai persediaan = HPP (inc PPN 11%) × stok">Nilai</th>
                   <th style={thStyle(sub, border)}>Exp Terdekat</th>
                   <th style={{ ...thStyle(sub, border), textAlign: 'right' }}>Aksi</th>
                 </tr>
@@ -407,6 +411,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                               )}
                             </div>
                           </td>
+                          <td style={{ ...tdStyle, color: text, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: '600' }}>{fmtRp(hppFromHna(p.hna) * stock)}</td>
                           <td style={{ ...tdStyle, verticalAlign: 'middle' }}>
                             {p.nearest_expiry ? (
                               sev.plain ? (
@@ -433,7 +438,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                         {isExpanded && (
                           <tr style={{ background: surface, borderBottom: `1px solid ${border}` }}>
                             <td></td>
-                            <td colSpan={8} style={{ padding: '8px 14px 16px' }}>
+                            <td colSpan={9} style={{ padding: '8px 14px 16px' }}>
                               <ExpandedBatches
                                 productId={p.id}
                                 product={p}
@@ -451,11 +456,18 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                   })
                 )}
                 {!loading && !filtered.length && (
-                  <tr><td colSpan={9} style={{ padding: '3rem 1rem', textAlign: 'center', color: sub }}>
+                  <tr><td colSpan={10} style={{ padding: '3rem 1rem', textAlign: 'center', color: sub }}>
                     {search || statusFilter !== 'all' ? 'Tidak ada produk yang cocok dengan filter.' : 'Belum ada produk. Klik "Produk" untuk menambahkan.'}
                   </td></tr>
                 )}
               </tbody>
+              <tfoot>
+                <tr style={{ borderTop: `2px solid ${border}` }}>
+                  <td colSpan={8} style={{ ...tdStyle, textAlign: 'right', fontWeight: '700', color: text }}>Total Nilai Inventaris (inc PPN) <span style={{ fontWeight: '400', color: sub, fontSize: '11px' }}>(sesuai filter aktif)</span></td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '800', color: text, fontVariantNumeric: 'tabular-nums' }}>{fmtRp(totalNilai)}</td>
+                  <td colSpan={2} />
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>

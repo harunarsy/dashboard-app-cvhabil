@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.10.2-stable] - 2026-05-29
+
+### Added
+- **📊 Kolom "Nilai" + Total Nilai Inventaris di halaman Inventory**: tiap produk menampilkan nilai persediaan (HPP inc PPN × stok), dan di bawah tabel ada Total Nilai Inventaris keseluruhan. Total mengikuti filter/pencarian yang sedang aktif.
+  - _Detail teknis_: `InventoryDashboard.jsx` — `<th>` Nilai setelah Stok, `<td>{fmtRp(hppFromHna(p.hna) * stock)}` per baris, `useMemo totalNilai` (reduce atas `filtered`), `<tfoot>` grand total. `colSpan` baris expanded (8→9) & empty-state (9→10) disesuaikan untuk kolom baru.
+
 ## [v1.10.1-stable] - 2026-05-29
 
 ### Fixed
