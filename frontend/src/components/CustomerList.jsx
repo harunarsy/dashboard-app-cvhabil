@@ -127,7 +127,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nama, telepon, atau alamat..."
             style={{ ...inputStyle, paddingLeft: '36px' }} />
         </div>
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '180px', cursor: 'pointer' }}>
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '180px', cursor: 'pointer', paddingRight: '32px' }}>
           <option value="name_asc">📝 Nama A → Z</option>
           <option value="name_desc">📝 Nama Z → A</option>
           <option value="most_active">🔥 Paling Aktif</option>
@@ -192,8 +192,8 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
                   {/* Contact info */}
                   {(c.phone || c.address) && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      {c.phone && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: sub }}><Phone size={13} /> {c.phone}</div>}
-                      {c.address && <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '13px', color: sub }}><MapPin size={13} style={{ marginTop: '2px', flexShrink: 0 }} /> <span>{c.address}</span></div>}
+                      {c.phone && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: '500', color: isDarkMode ? '#EBEBF0' : '#3A3A3C' }}><Phone size={14} style={{ color: sub, flexShrink: 0 }} /> {c.phone}</div>}
+                      {c.address && <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '13.5px', fontWeight: '500', color: isDarkMode ? '#EBEBF0' : '#3A3A3C', lineHeight: '1.45' }}><MapPin size={14} style={{ marginTop: '2px', flexShrink: 0, color: sub }} /> <span>{c.address}</span></div>}
                     </div>
                   )}
 

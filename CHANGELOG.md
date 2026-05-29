@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.2-stable] - 2026-05-29
+
+### Changed
+- **🧾 CSV Rekap PPN ikut kolom Produk & Total Qty**: export faktur kini menyertakan daftar produk + total qty per faktur (tetap 1 baris/faktur, rekap PPN tetap akurat).
+- **👤 Customer lebih mudah dibaca**: nomor HP & alamat dinaikkan ukuran/ketebalan + warna teks utama (sebelumnya abu-abu kecil).
+- **🎯 Sidebar & dropdown polish**: ikon sidebar pas mode kecil lebih center; panah dropdown filter (rekap bulan, sort customer) tidak mepet teks lagi.
+  - _Detail teknis_: `InvoiceList.jsx` `handleExportCSV` (+`product_names`,+`total_qty`); `CustomerList.jsx` phone/address `fontSize 13.5 / weight 500 / warna utama` + select sort `paddingRight 32`; `Sidebar.jsx` nav button `justifyContent center` + padding simetris saat collapsed; rekap month select `paddingRight 28`.
+
 ## [v1.11.1-stable] - 2026-05-29
 
 ### Fixed

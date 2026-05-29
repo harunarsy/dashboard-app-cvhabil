@@ -116,7 +116,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const txt = isDarkMode ? '#FFF' : '#000';
   const sub = isDarkMode ? '#86868B' : '#6B7280';
-  const appVersion = 'v1.11.1-stable';
+  const appVersion = 'v1.11.2-stable';
 
   const closeMobileDrawer = () => setMobileOpen(false);
 
@@ -337,8 +337,9 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
                   minHeight: '44px',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: showLabel ? 'flex-start' : 'center',
                   gap: '0.75rem',
-                  padding: '0.75rem 1rem',
+                  padding: showLabel ? '0.75rem 1rem' : '0.75rem 0',
                   marginBottom: '0.5rem',
                   borderRadius: '0.75rem',
                   border: 'none',

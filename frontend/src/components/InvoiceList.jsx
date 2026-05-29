@@ -337,20 +337,21 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
     if (rows.length === 0) return;
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const num = (v) => (parseFloat(v) || 0).toFixed(2);
-    const header = ['Tanggal', 'No Faktur', 'Distributor', 'DPP', 'PPN 11%', 'Total'];
+    const header = ['Tanggal', 'No Faktur', 'Distributor', 'Produk', 'Total Qty', 'DPP', 'PPN 11%', 'Total'];
     const lines = [header.join(';')];
-    let tDpp = 0, tPpn = 0, tTot = 0;
+    let tDpp = 0, tPpn = 0, tTot = 0, tQty = 0;
     rows.forEach(r => {
       const dpp = parseFloat(r.hna_final ?? r.final_hna) || 0;
       const ppn = parseFloat(r.ppn_masukan ?? r.ppn_input) || 0;
       const tot = parseFloat(r.hna_plus_ppn) || 0;
-      tDpp += dpp; tPpn += ppn; tTot += tot;
+      const qty = parseFloat(r.total_qty) || 0;
+      tDpp += dpp; tPpn += ppn; tTot += tot; tQty += qty;
       lines.push([
         esc(formatLocalDate(r.purchase_date)), esc(r.invoice_number), esc(r.distributor_name),
-        num(dpp), num(ppn), num(tot),
+        esc(r.product_names || ''), num(qty), num(dpp), num(ppn), num(tot),
       ].join(';'));
     });
-    lines.push(['', '', esc('TOTAL'), num(tDpp), num(tPpn), num(tTot)].join(';'));
+    lines.push(['', '', esc('TOTAL'), '', num(tQty), num(tDpp), num(tPpn), num(tTot)].join(';'));
     const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -679,7 +680,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
             <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>📦 Rekap per Distributor</p>
             {/* Month filter for rekap */}
             <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
-              style={{ padding: '4px 10px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '8px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: isDarkMode ? '#FFF' : '#000', fontSize: '12px', cursor: 'pointer', outline: 'none' }}>
+              style={{ padding: '4px 28px 4px 10px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '8px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: isDarkMode ? '#FFF' : '#000', fontSize: '12px', cursor: 'pointer', outline: 'none' }}>
               <option value="all">Semua Bulan</option>
               {Array.from(new Set(invoices.map(i => parseLocalDate(i.purchase_date)?.toLocaleString('id-ID', { month: 'long', year: 'numeric' })))).sort().map(m => (
                 <option key={m} value={m}>{m}</option>

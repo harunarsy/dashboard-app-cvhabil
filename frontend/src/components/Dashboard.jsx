@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.11.1-stable', date: '29 Mei 2026', status: 'latest',
+    version: 'v1.11.2-stable', date: '29 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'ui',
+        text: 'Polish tampilan: CSV Rekap PPN sekarang ikut kolom Produk & Total Qty; nomor HP & alamat di Customer lebih jelas dibaca; ikon sidebar pas dikecilin lebih center; panah dropdown filter gak mepet lagi.',
+        dev: 'InvoiceList handleExportCSV +kolom product_names & total_qty (header & baris TOTAL ikut). CustomerList: phone/address fontSize 13.5 + weight 500 + warna teks utama (bukan sub); select sort paddingRight 32. Sidebar: nav button justifyContent center + padding simetris saat collapsed. InvoiceList rekap month select paddingRight 28.'
+      },
+    ]
+  },
+  {
+    version: 'v1.11.1-stable', date: '29 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'fix',
@@ -715,7 +725,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.11.1-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.2-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -768,7 +778,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.11.1-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.2-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
