@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.10.5-stable] - 2026-05-29
+
+### Added
+- **📝 Edit kode produk langsung saat Stok Opname**: di panel produk terpilih, klik ikon pensil di sebelah kode → ubah kode → simpan (Enter), langsung tersimpan ke produk.
+- **🧾 Export PDF "Berita Acara Stok Opname"**: tombol Export PDF di footer modal opname mencetak daftar batch yang berubah (Stok Sistem vs Fisik + Selisih + Catatan) untuk arsip/bukti. Aktif saat ada perubahan.
+  - _Detail teknis_: `OpnameModal.jsx` — state `editingCode`/`codeInput`/`codeMap`, `handleSaveCode` → `inventoryAPI.updateProduct` (prop `onProductsChanged` → parent `fetchProducts`). `handleExportPDF` memakai util baru `generateOpnamePDF.js` (landscape A4, jsPDF + autotable, helvetica **no-emoji**, kolom No·Kode·Produk·No.Batch·ED·Sistem·Fisik·Selisih·Catatan), data dari `inputs` difilter seperti `changedItems`.
+
 ## [v1.10.4-stable] - 2026-05-29
 
 ### Changed

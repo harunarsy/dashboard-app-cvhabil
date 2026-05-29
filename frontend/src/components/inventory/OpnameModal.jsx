@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { X, Search, ClipboardCheck, ChevronRight, CheckCircle2, Plus, Sliders, Pencil, Trash2 } from 'lucide-react';
-import { inventoryAPI } from '../../services/api';
+import { X, Search, ClipboardCheck, ChevronRight, CheckCircle2, Plus, Sliders, Pencil, Trash2, FileText, Check } from 'lucide-react';
+import { inventoryAPI, printSettingsAPI } from '../../services/api';
 import BatchFormModal from './BatchFormModal';
+import { generateOpnamePDF } from '../../utils/generateOpnamePDF';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
@@ -16,7 +17,7 @@ function expiryBadge(date, sub) {
 
 // Per-batch stok opname modal.
 // State: { [batchId]: { product_id, product_name, batch_no, qty_current, expired_date, physical_qty, notes } }
-export default function OpnameModal({ products, isDarkMode, isMobile, onClose, onSaved }) {
+export default function OpnameModal({ products, isDarkMode, isMobile, onClose, onSaved, onProductsChanged }) {
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [search, setSearch] = useState('');
   const [batchesByProduct, setBatchesByProduct] = useState({}); // { productId: [batches] }
@@ -29,6 +30,11 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
   const [adjustFor, setAdjustFor] = useState(null);
   const [adjustForm, setAdjustForm] = useState({ new_qty: 0, reason: '' });
   const [actionError, setActionError] = useState('');
+  // v1.10.5: edit kode produk inline saat opname
+  const [editingCode, setEditingCode] = useState(false);
+  const [codeInput, setCodeInput] = useState('');
+  const [codeMap, setCodeMap] = useState({}); // patch lokal { productId: newCode }
+  const [exporting, setExporting] = useState(false);
 
   const bg = isDarkMode ? '#1C1C1E' : '#FFF';
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
@@ -164,6 +170,45 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
     } finally { setSaving(false); }
   };
 
+  // v1.10.5: simpan kode produk baru saat opname (inline)
+  const handleSaveCode = async (product) => {
+    const newCode = codeInput.trim();
+    setEditingCode(false);
+    if (newCode === (codeMap[product.id] ?? product.code ?? '')) return;
+    try {
+      await inventoryAPI.updateProduct(product.id, {
+        name: product.name, code: newCode, unit: product.unit,
+        hna: parseFloat(product.hna) || 0, sell_price: parseFloat(product.sell_price) || 0,
+        category: product.category || '', min_stock: product.min_stock || 5,
+      });
+      setCodeMap(prev => ({ ...prev, [product.id]: newCode }));
+      onProductsChanged?.();
+    } catch (e) {
+      setActionError(e.response?.data?.error || e.message);
+    }
+  };
+
+  // v1.10.5: export PDF Berita Acara dari perubahan opname (sebelum / sesudah simpan)
+  const handleExportPDF = async () => {
+    if (changedItems.length === 0) return;
+    setExporting(true);
+    try {
+      let settings = {};
+      try { const { data } = await printSettingsAPI.get(); settings = data?.nota_layout || data || {}; } catch (_) { /* default */ }
+      const rows = Object.entries(inputs)
+        .filter(([_, v]) => v.physical_qty !== '' && parseInt(v.physical_qty) !== v.qty_current)
+        .map(([_, v]) => ({
+          code: codeMap[v.product_id] ?? (products.find(p => p.id === v.product_id)?.code) ?? '-',
+          product_name: v.product_name, batch_no: v.batch_no, expired_date: v.expired_date,
+          qty_current: v.qty_current, physical_qty: v.physical_qty, notes: v.notes,
+        }));
+      const doc = generateOpnamePDF(rows, { settings });
+      doc.save(`Berita_Acara_Opname_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (e) {
+      setError(`Gagal export PDF: ${e.message}`);
+    } finally { setExporting(false); }
+  };
+
   const selectedProduct = products.find(p => p.id === selectedProductId);
   const currentBatches = selectedProductId ? (batchesByProduct[selectedProductId] || []) : [];
   const inputCount = Object.values(inputs).filter(v => v.physical_qty !== '').length;
@@ -256,9 +301,26 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                 <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '700' }}>{selectedProduct.name}</h3>
-                    <p style={{ margin: '2px 0 0', fontSize: '12px', color: sub }}>
-                      {selectedProduct.code || '—'} · Total sistem: {selectedProduct.total_stock || 0} {selectedProduct.unit}
-                    </p>
+                    <div style={{ margin: '2px 0 0', fontSize: '12px', color: sub, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      {editingCode ? (
+                        <>
+                          <input
+                            value={codeInput} onChange={(e) => setCodeInput(e.target.value)} autoFocus
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleSaveCode(selectedProduct); if (e.key === 'Escape') setEditingCode(false); }}
+                            placeholder="Kode produk"
+                            style={{ padding: '3px 8px', border: `1px solid ${border}`, borderRadius: '6px', background: bg, color: text, fontSize: '12px', width: '120px', outline: 'none' }}
+                          />
+                          <button onClick={() => handleSaveCode(selectedProduct)} title="Simpan kode" style={{ ...iconBtnStyle, width: '24px', height: '24px', color: '#34C759' }}><Check size={13} /></button>
+                          <button onClick={() => setEditingCode(false)} title="Batal" style={{ ...iconBtnStyle, width: '24px', height: '24px' }}><X size={13} /></button>
+                        </>
+                      ) : (
+                        <>
+                          <span>{(codeMap[selectedProduct.id] ?? selectedProduct.code) || '—'}</span>
+                          <button onClick={() => { setCodeInput(codeMap[selectedProduct.id] ?? selectedProduct.code ?? ''); setEditingCode(true); setActionError(''); }} title="Edit kode produk" style={{ ...iconBtnStyle, width: '22px', height: '22px' }}><Pencil size={11} /></button>
+                        </>
+                      )}
+                      <span>· Total sistem: {selectedProduct.total_stock || 0} {selectedProduct.unit}</span>
+                    </div>
                   </div>
                   <button
                     onClick={() => { setActionError(''); setBatchModal({ mode: 'add' }); }}
@@ -392,6 +454,11 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
               </p>
             )}
           </div>
+          <button onClick={handleExportPDF} disabled={exporting || changedItems.length === 0} title="Cetak Berita Acara Opname" style={{
+            padding: '10px 14px', background: bg, color: changedItems.length > 0 ? '#007AFF' : sub, border: `1px solid ${changedItems.length > 0 ? '#007AFF' : border}`,
+            borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: changedItems.length === 0 ? 'not-allowed' : 'pointer',
+            display: 'flex', alignItems: 'center', gap: '6px',
+          }}><FileText size={14} /> {exporting ? '...' : 'Export PDF'}</button>
           <button onClick={onClose} disabled={saving} style={{
             padding: '10px 18px', background: bg, color: text, border: `1px solid ${border}`,
             borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: 'pointer',

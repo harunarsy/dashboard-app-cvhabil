@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.10.4-stable', date: '29 Mei 2026', status: 'latest',
+    version: 'v1.10.5-stable', date: '29 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Stok Opname makin lengkap: (1) kode produk bisa diedit langsung saat opname (klik ikon pensil di sebelah kode), dan (2) tombol "Export PDF" buat cetak Berita Acara Stok Opname — daftar batch yang berubah beserta Sistem vs Fisik + Selisih, buat arsip/bukti.',
+        dev: 'OpnameModal: state editingCode+codeInput+codeMap, handleSaveCode → inventoryAPI.updateProduct (prop onProductsChanged → parent fetchProducts). handleExportPDF pakai util baru generateOpnamePDF.js (landscape A4, helvetica no-emoji, kolom No·Kode·Produk·Batch·ED·Sistem·Fisik·Selisih·Catatan), data dari inputs difilter spt changedItems. Tombol Export PDF di footer (aktif kalau ada perubahan).'
+      },
+    ]
+  },
+  {
+    version: 'v1.10.4-stable', date: '29 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -685,7 +695,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.10.4-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.10.5-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -738,7 +748,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.10.4-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.10.5-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

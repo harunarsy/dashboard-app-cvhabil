@@ -728,6 +728,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
           isMobile={isMobile}
           onClose={() => setShowModal(null)}
           onSaved={(msg) => { flashSuccess(msg); fetchProducts(); fetchAlerts(); setBatchesCache({}); }}
+          onProductsChanged={() => { fetchProducts(); }}
         />
       )}
 
