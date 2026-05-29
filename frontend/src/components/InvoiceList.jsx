@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { invoicesAPI, distributorsAPI, productsAPI, auditAPI } from '../services/api';
+import { invoicesAPI, distributorsAPI, productsAPI, auditAPI, purchaseOrdersAPI } from '../services/api';
 import { BASE_UNITS, PACK_UNITS, formatQtyWithConversion, isPackUnit } from '../constants/units';
 import { Plus, X, Trash2, RotateCcw, Search, AlertTriangle, Clock, FileText, ChevronLeft, ChevronRight, History } from 'lucide-react';
 import MasterSelect from './MasterSelect';
@@ -204,6 +204,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
   const [editingId, setEditingId] = useState(null);
   const [distributors, setDistributors] = useState([]);
   const [products, setProducts] = useState([]);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
   const [showTrash, setShowTrash] = useState(false);
   const [trashItems, setTrashItems] = useState([]);
@@ -242,7 +243,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
   const [items, setItems] = useState([blankItem()]);
   const totals = calcTotals(items, form);
 
-  useEffect(() => { fetchInvoices(); fetchDistributors(); fetchProducts(); checkDraft(); }, []);
+  useEffect(() => { fetchInvoices(); fetchDistributors(); fetchProducts(); fetchPurchaseOrders(); checkDraft(); }, []);
   useEffect(() => {
     if (!showModal) return;
     if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
@@ -266,6 +267,19 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
   };
   const fetchDistributors = async () => { try { const r = await distributorsAPI.getAll(); setDistributors(r.data); } catch(e){} };
   const fetchProducts = async () => { try { const r = await productsAPI.getAll(); setProducts(r.data); } catch(e){} };
+  const fetchPurchaseOrders = async () => { try { const r = await purchaseOrdersAPI.getAll(); setPurchaseOrders((r.data || []).filter(po => po.status && po.status !== 'draft')); } catch(e){} };
+  // v1.10.0: pilih SP sebagai sumber faktur → prefill items + link purchase_order_id (backend skip stock-in kalau SP sudah Terima Barang, cegah stok dobel)
+  const handleSelectSP = async (poId) => {
+    if (!poId) { setForm(f => ({ ...f, purchase_order_id: null })); return; }
+    try {
+      const r = await purchaseOrdersAPI.getById(poId);
+      const po = r.data;
+      setForm(f => ({ ...f, purchase_order_id: poId, distributor_name: po.distributor_name || f.distributor_name }));
+      if (po.items && po.items.length) {
+        setItems(po.items.map(it => calcItem({ ...blankItem(), product_name: it.product_name, quantity: it.received_qty || it.qty || 1, unit: it.unit || 'pcs' })));
+      }
+    } catch (e) { console.error(e); }
+  };
   const fetchTrash = async () => { try { const r = await invoicesAPI.getTrash(); setTrashItems(r.data); } catch(e){} };
   const checkDraft = async () => {
     try {

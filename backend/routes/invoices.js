@@ -20,7 +20,8 @@ const ensureSchema = async () => {
       ADD COLUMN IF NOT EXISTS due_date DATE,
       ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP,
       ADD COLUMN IF NOT EXISTS is_draft BOOLEAN DEFAULT FALSE,
-      ADD COLUMN IF NOT EXISTS draft_data JSONB
+      ADD COLUMN IF NOT EXISTS draft_data JSONB,
+      ADD COLUMN IF NOT EXISTS purchase_order_id INTEGER
   `);
   await pool.query(`
     ALTER TABLE invoice_items
@@ -188,6 +189,7 @@ router.post('/', auth, async (req, res) => {
 
   const resolvedHnaFinal = hna_final ?? final_hna ?? null;
   const resolvedPpn = ppn_masukan ?? ppn_input ?? null;
+  const purchase_order_id = req.body.purchase_order_id ?? null;
 
   const client = await pool.connect();
   try {
@@ -211,14 +213,15 @@ router.post('/', auth, async (req, res) => {
           disc_cod_ada=$6, disc_cod_amount=$7,
           hna_final=$8, ppn_input=$9, ppn_masukan=$10, ppn_pembulatan=$11,
           hna_plus_ppn=$12, harga_per_produk=$13,
-          due_date=$14, payment_date=$15, status=$16, updated_at=NOW()
-        WHERE id=$17`,
+          due_date=$14, payment_date=$15, status=$16,
+          purchase_order_id=COALESCE($17, purchase_order_id), updated_at=NOW()
+        WHERE id=$18`,
         [purchase_date, distributor_name,
          total_hna||null, discount_amount||null, hna_baru||null,
          disc_cod_ada||false, disc_cod_amount||null,
          resolvedHnaFinal, resolvedPpn, resolvedPpn, ppn_pembulatan||null,
          hna_plus_ppn||null, harga_per_produk||null,
-         due_date||null, payment_date||null, status||'Pending', invoiceId]
+         due_date||null, payment_date||null, status||'Pending', purchase_order_id, invoiceId]
       );
     } else {
       const r = await client.query(
@@ -228,14 +231,14 @@ router.post('/', auth, async (req, res) => {
            disc_cod_ada, disc_cod_amount,
            hna_final, ppn_input, ppn_masukan, ppn_pembulatan,
            hna_plus_ppn, harga_per_produk,
-           due_date, payment_date, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id`,
+           due_date, payment_date, status, purchase_order_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING id`,
         [invoice_number, purchase_date, distributor_name,
          total_hna||null, discount_amount||null, hna_baru||null,
          disc_cod_ada||false, disc_cod_amount||null,
          resolvedHnaFinal, resolvedPpn, resolvedPpn, ppn_pembulatan||null,
          hna_plus_ppn||null, harga_per_produk||null,
-         due_date||null, payment_date||null, status||'Pending']
+         due_date||null, payment_date||null, status||'Pending', purchase_order_id]
       );
       invoiceId = r.rows[0].id;
       await logAudit(invoiceId, invoice_number, 'CREATE', { invoice_number, distributor_name, status, hna_final: resolvedHnaFinal, hna_plus_ppn });
@@ -282,6 +285,12 @@ router.post('/', auth, async (req, res) => {
     // ─── Auto Stock-In: Faktur → Inventory ──────────────────────────────
     // Each invoice item gets added to inventory_batches + inventory_mutations (qty in base unit + source snapshot)
     // v1.8.2: Auto-sync product_master.hna ke RAW HNA per pcs dari item.hna (faktur terbaru = source of truth)
+    // v1.10.0: cegah double-count. Faktur dari SP yg stoknya SUDAH masuk (via Terima Barang) → JANGAN stock-in lagi, cukup backfill HNA.
+    let skipStockIn = false;
+    if (purchase_order_id) {
+      const poChk = await client.query('SELECT stock_received FROM purchase_orders WHERE id = $1', [purchase_order_id]);
+      skipStockIn = !!(poChk.rows[0] && poChk.rows[0].stock_received);
+    }
     if (items && items.length > 0) {
       for (const item of items) {
         const product = productMap.get(item.product_name);
@@ -289,6 +298,20 @@ router.post('/', auth, async (req, res) => {
         const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
         const packSize = product?.pack_size || 1;
         const displayUnit = item.unit || product?.base_unit || 'pcs';
+        if (skipStockIn) {
+          // stok sudah masuk via Terima Barang SP → JANGAN buat batch/mutasi baru; cukup backfill HNA ke batch SP (source 'purchase')
+          if (product && parseFloat(item.hna) > 0) {
+            await client.query(
+              `UPDATE inventory_batches SET hna = $1 WHERE source_type = 'purchase' AND source_ref = $2 AND product_id = $3`,
+              [parseFloat(item.hna), `PO-${purchase_order_id}`, product.id]
+            );
+            await client.query(
+              `UPDATE product_master SET hna = $1, updated_at = NOW() WHERE id = $2`,
+              [parseFloat(item.hna), product.id]
+            );
+          }
+          continue;
+        }
         if (product && qtyBase > 0) {
           const batchHna = parseFloat(item.hna) || parseFloat(product.hna) || 0;
           const { rows: [batch] } = await client.query(
@@ -314,6 +337,11 @@ router.post('/', auth, async (req, res) => {
           console.warn(`[Invoice ${invoice_number}] Produk "${item.product_name}" tidak ditemukan di product_master — stok tidak dibuat otomatis`);
         }
       }
+    }
+
+    // v1.10.0: faktur dari SP yg BELUM diterima (user lupa Terima Barang) → faktur ini yg stock-in; tandai SP supaya gak dobel kalau nanti di-Terima Barang.
+    if (purchase_order_id && !skipStockIn) {
+      await client.query('UPDATE purchase_orders SET stock_received = TRUE WHERE id = $1', [purchase_order_id]);
     }
 
     await client.query('COMMIT');

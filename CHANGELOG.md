@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.10.0-stable] - 2026-05-29
+
+### Fixed
+- **📦 Stok tidak lagi dobel saat Faktur Pembelian dibuat dari Surat Pesanan**: dulu Terima Barang SP dan Faktur Pembelian dua-duanya menambah stok tanpa saling tahu → stok masuk 2×. Sekarang di Buat Faktur ada pilihan **"Dari Surat Pesanan"** — pilih SP-nya, produk otomatis terisi, dan sistem memastikan stok hanya masuk sekali (entah lewat Terima Barang dulu, atau langsung dari Faktur kalau lupa Terima Barang). Beli tanpa SP tetap menambah stok seperti biasa.
+  - _Detail teknis_: kolom baru `invoices.purchase_order_id` + `purchase_orders.stock_received` (ALTER ADD COLUMN IF NOT EXISTS, aman di Neon). `purchaseOrders.js` receive: set `stock_received=TRUE` saat fully received (`CASE WHEN status='received'`) + skip insert batch kalau `alreadyStocked`. `invoices.js` create: kalau faktur ber-`purchase_order_id` & SP `stock_received` → SKIP stock-in, cuma backfill HNA ke batch `source_type='purchase'`; kalau belum → stock-in + set flag; tanpa SP → stock-in normal (legacy). Frontend `InvoiceList.jsx`: dropdown "Dari SP" (`purchaseOrdersAPI`) prefill items+distributor; `purchase_order_id` ikut `...form` ke payload. Faktur lama (legacy) `purchase_order_id` NULL — tetap normal, tanpa dedup retroaktif.
+
 ## [v1.9.0-stable] - 2026-05-28
 
 ### Added

@@ -246,6 +246,10 @@ router.post('/:id/receive', auth, async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    // v1.10.0: kalau stok SP ini SUDAH masuk (mis. via Faktur duluan) → JANGAN stock-in lagi (cegah dobel); received_qty tetap di-update utk tracking.
+    const poFlagRow = await client.query('SELECT stock_received FROM purchase_orders WHERE id = $1', [req.params.id]);
+    const alreadyStocked = !!(poFlagRow.rows[0] && poFlagRow.rows[0].stock_received);
+
     for (const item of items) {
       // v1.6.0: receive qty bisa dikirim di unit asal PO (e.g., 5 karton) atau base unit (60 pcs)
       // Frontend convention: kirim received_qty_in_unit (di unit PO) + received_qty (di base unit) untuk clarity
@@ -295,7 +299,7 @@ router.post('/:id/receive', auth, async (req, res) => {
         [recvBase, recvInUnit || 0, item.po_item_id]
       );
 
-      if (product) {
+      if (product && !alreadyStocked) {
         const packSize = product.pack_size || current.pack_size_at_po || 1;
         const displayUnit = current.unit || product.base_unit || 'pcs';
         // Auto stock-in to inventory (qty_current di base unit + source snapshot)
@@ -320,7 +324,12 @@ router.post('/:id/receive', auth, async (req, res) => {
     const allReceived = poItems.every(i => i.received_qty >= i.qty);
     const anyReceived = poItems.some(i => i.received_qty > 0);
     const newStatus = allReceived ? 'received' : (anyReceived ? 'partial' : 'sent');
-    await client.query('UPDATE purchase_orders SET status = $1, updated_at = NOW() WHERE id = $2', [newStatus, req.params.id]);
+    await client.query(
+      `UPDATE purchase_orders SET status = $1,
+         stock_received = CASE WHEN $1 = 'received' THEN TRUE ELSE stock_received END,
+         updated_at = NOW() WHERE id = $2`,
+      [newStatus, req.params.id]
+    );
 
     await client.query('COMMIT');
     res.json({ message: 'Barang diterima', status: newStatus });

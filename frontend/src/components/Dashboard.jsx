@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.9.0-stable', date: '28 Mei 2026', status: 'latest',
+    version: 'v1.10.0-stable', date: '29 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'fix',
+        text: 'Stok tidak lagi dobel saat catat Faktur Pembelian dari Surat Pesanan. Di Buat Faktur ada pilihan "Dari Surat Pesanan" — pilih SP-nya, produk otomatis terisi, dan sistem cek supaya stok cuma masuk sekali (mau lewat Terima Barang dulu atau langsung Faktur).',
+        dev: 'Akar masalah: Terima Barang SP (purchaseOrders receive) DAN Faktur Pembelian (invoices create) dua-duanya stock-in ke inventory_batches+mutations tanpa linkage → stok dobel. Fix flag-based: kolom baru invoices.purchase_order_id + purchase_orders.stock_received. Receive set stock_received=TRUE saat fully received + skip insert kalau alreadyStocked. Faktur create terima purchase_order_id: kalau SP sudah stock_received → SKIP stock-in, cuma backfill HNA ke batch source_type=purchase; kalau belum → stock-in + set flag; tanpa SP → stock-in normal (legacy aman). Frontend InvoiceList: dropdown "Dari SP" (purchaseOrdersAPI.getAll/getById) prefill items + distributor, purchase_order_id ikut ...form ke payload.'
+      },
+    ]
+  },
+  {
+    version: 'v1.9.0-stable', date: '28 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -635,7 +645,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.9.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.10.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -688,7 +698,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.9.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.10.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
