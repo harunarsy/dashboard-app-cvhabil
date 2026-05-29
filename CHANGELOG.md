@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.4-stable] - 2026-05-29
+
+### Fixed
+- **🎨 Badge daftar Nota Penjualan tidak wrap 2 baris**: label BAYAR (LUNAS/BELUM BAYAR), STATUS DOC (Final/Draft), dan saluran (Offline/Online) sebelumnya turun baris & terlihat berantakan saat sidebar dibuka (kolom sempit). Ditambah `whiteSpace: nowrap` + `display: inline-block`.
+
 ## [v1.11.3-stable] - 2026-05-29
 
 ### Fixed

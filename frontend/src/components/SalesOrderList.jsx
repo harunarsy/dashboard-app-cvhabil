@@ -689,7 +689,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                     <td style={{ padding: '12px 14px', color: text }}>{fmtDate(o.sale_date)}</td>
                     <td style={{ padding: '12px 14px', color: text }}>
                       <div>{o.customer_name}</div>
-                      <span style={{ fontSize: '9px', fontWeight: '700', padding: '1px 5px', borderRadius: '3px',
+                      <span style={{ fontSize: '9px', fontWeight: '700', padding: '1px 5px', borderRadius: '3px', whiteSpace: 'nowrap', display: 'inline-block',
                         backgroundColor: o.channel === 'online' ? '#007AFF15' : '#8E8E9315',
                         color: o.channel === 'online' ? '#007AFF' : '#8E8E93' }}>
                         {o.channel === 'online' ? '🛒 ONLINE' : '🏪 OFFLINE'}
@@ -701,7 +701,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                         onClick={(e) => { e.stopPropagation(); openPaymentModal(o); }}
                         style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
                       >
-                        <span style={{ fontSize: '10px', fontWeight: '800', padding: '4px 10px', borderRadius: '6px',
+                        <span style={{ fontSize: '10px', fontWeight: '800', padding: '4px 10px', borderRadius: '6px', whiteSpace: 'nowrap', display: 'inline-block',
                           backgroundColor: o.payment_status === 'paid' ? '#34C75925' : '#FF3B3015',
                           color: o.payment_status === 'paid' ? '#34C759' : '#FF3B30',
                           border: `1px solid ${o.payment_status === 'paid' ? '#34C75930' : '#FF3B3020'}` }}>
@@ -725,7 +725,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                       })()}
                     </td>
                     <td style={{ padding: '12px 14px' }}>
-                      <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px',
+                      <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', whiteSpace: 'nowrap', display: 'inline-block',
                         backgroundColor: o.status === 'final' ? '#007AFF18' : '#8E8E9318',
                         color: o.status === 'final' ? '#007AFF' : '#8E8E93' }}>
                         {o.status === 'final' ? 'Final' : 'Draft'}
