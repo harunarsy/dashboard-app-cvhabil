@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.11.2-stable', date: '29 Mei 2026', status: 'latest',
+    version: 'v1.11.3-stable', date: '29 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'fix',
+        text: 'CSV Rekap PPN sekarang 1 baris per produk: kalau 1 faktur isi beberapa produk, tiap produk jadi baris sendiri (No Faktur diulang) dengan DPP, PPN, dan Total masing-masing. Sebelumnya produk-produk digabung jadi 1 sel.',
+        dev: 'handleExportCSV jadi async: Promise.all invoicesAPI.getById(id) tiap faktur terpilih → 1 baris per invoice_item (Tgl·No Faktur·Distributor·Produk·Qty·Satuan·DPP·PPN·Total). DPP per-item = hna_baru (fallback hna×quantity), PPN = DPP×0.11, Total = DPP×1.11. Baris TOTAL = sum. Loading toast saat fetch.'
+      },
+    ]
+  },
+  {
+    version: 'v1.11.2-stable', date: '29 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'ui',
@@ -725,7 +735,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.11.2-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.3-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -778,7 +788,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.11.2-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.3-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

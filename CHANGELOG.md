@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.3-stable] - 2026-05-29
+
+### Fixed
+- **🧾 CSV Rekap PPN jadi 1 baris per produk**: dulu produk dalam 1 faktur digabung jadi 1 sel (cth "Tropicana Skim, Tropicana Slim" jadi satu). Sekarang tiap produk = 1 baris sendiri, No Faktur diulang, dengan DPP/PPN/Total per-produk.
+  - _Detail teknis_: `InvoiceList.jsx` `handleExportCSV` → async, `Promise.all(invoicesAPI.getById)` ambil items tiap faktur; 1 baris per `invoice_item` (kolom: Tgl·No Faktur·Distributor·Produk·Qty·Satuan·DPP·PPN 11%·Total). DPP per-item = `hna_baru` (fallback `hna×quantity`), PPN = DPP×0.11, Total = DPP×1.11. Baris TOTAL = sum semua. Toast loading saat fetch.
+
 ## [v1.11.2-stable] - 2026-05-29
 
 ### Changed

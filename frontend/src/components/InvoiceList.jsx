@@ -332,32 +332,45 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
   // reset pilihan saat filter berubah supaya gak ada id "hantu"
   useEffect(() => { setSelectedIds(new Set()); }, [universalSearch, selectedMonth, searchDist, searchInv, filterStatus, filterDue, dateFrom, dateTo]);
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     const rows = invoices.filter(i => selectedIds.has(i.id));
     if (rows.length === 0) return;
     const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const num = (v) => (parseFloat(v) || 0).toFixed(2);
-    const header = ['Tanggal', 'No Faktur', 'Distributor', 'Produk', 'Total Qty', 'DPP', 'PPN 11%', 'Total'];
+    showToast('⏳ Menyiapkan CSV...');
+    // v1.11.2b: 1 baris PER PRODUK (No Faktur diulang), DPP/PPN/Total per-produk.
+    // Fetch detail item tiap faktur (Promise.all biar gak race).
+    let details;
+    try {
+      details = await Promise.all(rows.map(r => invoicesAPI.getById(r.id).then(res => ({ inv: r, items: res.data.items || [] }))));
+    } catch (e) { showToast('❌ Gagal ambil detail faktur'); return; }
+    const PPN = 0.11;
+    const header = ['Tanggal', 'No Faktur', 'Distributor', 'Produk', 'Qty', 'Satuan', 'DPP', 'PPN 11%', 'Total'];
     const lines = [header.join(';')];
-    let tDpp = 0, tPpn = 0, tTot = 0, tQty = 0;
-    rows.forEach(r => {
-      const dpp = parseFloat(r.hna_final ?? r.final_hna) || 0;
-      const ppn = parseFloat(r.ppn_masukan ?? r.ppn_input) || 0;
-      const tot = parseFloat(r.hna_plus_ppn) || 0;
-      const qty = parseFloat(r.total_qty) || 0;
-      tDpp += dpp; tPpn += ppn; tTot += tot; tQty += qty;
-      lines.push([
-        esc(formatLocalDate(r.purchase_date)), esc(r.invoice_number), esc(r.distributor_name),
-        esc(r.product_names || ''), num(qty), num(dpp), num(ppn), num(tot),
-      ].join(';'));
+    let tDpp = 0, tPpn = 0, tTot = 0, tQty = 0, rowCount = 0;
+    details.forEach(({ inv, items }) => {
+      const list = items.length ? items : [null];
+      list.forEach(it => {
+        // DPP per-item = hna_baru (hna×qty net disc, exc PPN). Fallback hna×quantity.
+        const dpp = it ? (parseFloat(it.hna_baru) || (parseFloat(it.hna) || 0) * (parseFloat(it.quantity) || 0)) : 0;
+        const ppn = dpp * PPN;
+        const tot = dpp + ppn;
+        const qty = it ? (parseFloat(it.quantity) || 0) : 0;
+        tDpp += dpp; tPpn += ppn; tTot += tot; tQty += qty; rowCount++;
+        lines.push([
+          esc(formatLocalDate(inv.purchase_date)), esc(inv.invoice_number), esc(inv.distributor_name),
+          esc(it ? it.product_name : '(tanpa item)'), num(qty), esc(it ? (it.unit || 'pcs') : ''),
+          num(dpp), num(ppn), num(tot),
+        ].join(';'));
+      });
     });
-    lines.push(['', '', esc('TOTAL'), '', num(tQty), num(tDpp), num(tPpn), num(tTot)].join(';'));
+    lines.push(['', '', esc('TOTAL'), '', num(tQty), '', num(tDpp), num(tPpn), num(tTot)].join(';'));
     const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = `Rekap_PPN_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click(); URL.revokeObjectURL(url);
-    showToast(`✅ ${rows.length} faktur diekspor ke CSV`);
+    showToast(`✅ ${rowCount} baris produk dari ${rows.length} faktur diekspor`);
   };
 
   const handleSort = (key) => {
