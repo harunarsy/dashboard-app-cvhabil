@@ -1017,6 +1017,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
         <InvoiceModal
           isDarkMode={isDarkMode} form={form} items={items} totals={totals} editingId={editingId}
           distributors={distributors} products={products}
+          purchaseOrders={purchaseOrders} onSelectSP={handleSelectSP}
           onAddDistributor={handleAddDistributor} onRemoveDistributor={handleRemoveDistributor} onRenameDistributor={handleRenameDistributor}
           onAddProduct={handleAddProduct} onRemoveProduct={handleRemoveProduct} onRenameProduct={handleRenameProduct}
           onFormChange={handleFormChange} updateItem={updateItem} addItem={addItem} removeItem={removeItem}
@@ -1144,7 +1145,7 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // MODAL
 // ═══════════════════════════════════════════════════════════════════════════════
-function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors, products, onAddDistributor, onRemoveDistributor, onRenameDistributor, onAddProduct, onRemoveProduct, onRenameProduct, onFormChange, updateItem, addItem, removeItem, onSubmit, onClose, S, formatRpInput, parseNum, formatRp }) {
+function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors, products, onAddDistributor, onRemoveDistributor, onRenameDistributor, onAddProduct, onRemoveProduct, onRenameProduct, onFormChange, updateItem, addItem, removeItem, onSubmit, onClose, S, formatRpInput, parseNum, formatRp, purchaseOrders, onSelectSP }) {
   const sec = { marginBottom: '1.75rem', paddingBottom: '1.75rem', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}` };
   const secTitle = { fontSize: '11px', fontWeight: '700', marginBottom: '14px', color: isDarkMode ? '#EBEBF0' : '#1C1C1E', letterSpacing: '0.05em', textTransform: 'uppercase' };
   const r2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' };
@@ -1170,6 +1171,16 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
           {/* Info Faktur */}
           <div style={sec}>
             <p style={secTitle}>📦 Informasi Faktur</p>
+            <div style={{ marginBottom: '14px' }}>
+              <label style={S.label}>Dari Surat Pesanan (opsional)</label>
+              <select style={S.input} value={form.purchase_order_id || ''} onChange={e => onSelectSP(e.target.value ? parseInt(e.target.value) : null)}>
+                <option value="">— Tanpa SP / beli langsung —</option>
+                {(purchaseOrders || []).map(po => (
+                  <option key={po.id} value={po.id}>{po.po_number} · {po.distributor_name}{po.stock_received ? ' (stok sudah diterima)' : ''}</option>
+                ))}
+              </select>
+              {form.purchase_order_id ? <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#34C759', fontWeight: 600 }}>✓ Terhubung ke SP — stok tidak akan dobel.</p> : null}
+            </div>
             <div style={r2}>
               <div><label style={S.label}>No Faktur</label><input style={S.input} value={form.invoice_number} onChange={e => onFormChange('invoice_number', e.target.value)} placeholder="Contoh: 1260300020" /></div>
               <div><label style={S.label}>Tanggal Belanja / Faktur</label><input type="date" style={S.input} value={form.purchase_date} onChange={e => onFormChange('purchase_date', e.target.value)} /></div>
