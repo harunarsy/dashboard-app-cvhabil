@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.10.2-stable', date: '29 Mei 2026', status: 'latest',
+    version: 'v1.10.3-stable', date: '29 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'fix',
+        text: 'Hapus batch sekarang langsung bisa walau stoknya masih ada — tidak perlu adjust ke 0 dulu. Sisa stok otomatis di-nol-kan (tetap tercatat di riwayat) lalu batch dihapus.',
+        dev: 'Backend deleteBatch (inventory.js): buang guard qty_current>0; kalau ada stok → INSERT inventory_mutations (out, reference adjust, "Hapus batch: stok N → 0") lalu qty_current=0, baru is_active=FALSE — semua dalam 1 transaksi. Frontend OpnameModal: teks konfirmasi info sisa stok akan di-nol-kan. Catatan: edit No.Batch/ED saat opname sudah tersedia via ikon pensil per batch.'
+      },
+    ]
+  },
+  {
+    version: 'v1.10.2-stable', date: '29 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -665,7 +675,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.10.2-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.10.3-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -718,7 +728,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.10.2-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.10.3-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

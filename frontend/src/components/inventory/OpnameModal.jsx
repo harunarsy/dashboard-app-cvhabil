@@ -82,7 +82,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
   }, []);
 
   const handleDelete = async (batch) => {
-    if (!window.confirm(`Hapus batch "${batch.batch_no || '(tanpa no)'}"? (qty harus 0)`)) return;
+    if (!window.confirm(`Hapus batch "${batch.batch_no || '(tanpa no)'}"?${batch.qty_current > 0 ? ` Sisa stok ${batch.qty_current} akan di-nol-kan & dihapus.` : ''}`)) return;
     setActionError('');
     try {
       await inventoryAPI.deleteBatch(batch.id);

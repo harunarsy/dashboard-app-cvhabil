@@ -347,18 +347,30 @@ router.put('/batches/:id', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// DELETE batch (soft) — guard: qty_current must be 0
+// DELETE batch (soft) — v1.10.3: kalau masih ada stok, otomatis di-nol-kan (catat mutasi audit) lalu dihapus
 router.delete('/batches/:id', auth, async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { rows: [batch] } = await pool.query('SELECT * FROM inventory_batches WHERE id = $1', [req.params.id]);
-    if (!batch) return res.status(404).json({ error: 'Batch not found' });
+    await client.query('BEGIN');
+    const { rows: [batch] } = await client.query('SELECT * FROM inventory_batches WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (!batch) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Batch not found' }); }
     if (batch.qty_current > 0) {
-      return res.status(400).json({ error: `Tidak bisa hapus batch dengan stok ${batch.qty_current}. Adjust ke 0 dulu.` });
+      // nol-kan stok + audit trail dulu, supaya stok tidak hilang diam-diam
+      await client.query(
+        `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, notes, created_by)
+         VALUES ($1, $2, 'out', $3, 'adjust', $4, $5)`,
+        [batch.product_id, batch.id, batch.qty_current, `Hapus batch: stok ${batch.qty_current} → 0`, req.user?.id || null]
+      );
+      await client.query('UPDATE inventory_batches SET qty_current = 0 WHERE id = $1', [req.params.id]);
     }
-    await pool.query('UPDATE inventory_batches SET is_active = FALSE WHERE id = $1', [req.params.id]);
+    await client.query('UPDATE inventory_batches SET is_active = FALSE WHERE id = $1', [req.params.id]);
+    await client.query('COMMIT');
     if (global.io) global.io.emit('inventoryBatchUpdated', { product_id: batch.product_id, batch_id: batch.id });
     res.json({ message: 'Batch dihapus' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally { client.release(); }
 });
 
 // POST adjust batch qty (manual adjustment — creates audit mutation)

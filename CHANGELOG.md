@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.10.3-stable] - 2026-05-29
+
+### Changed
+- **🗑️ Hapus batch tanpa harus adjust ke 0 dulu**: dulu batch yang masih ada stoknya tidak bisa dihapus (harus di-adjust 0 manual). Sekarang langsung bisa dihapus — sisa stok otomatis di-nol-kan (tetap tercatat di riwayat mutasi) lalu batch dihapus.
+  - _Detail teknis_: `inventory.js` `deleteBatch` — guard `qty_current>0` dibuang; bila ada stok → `INSERT inventory_mutations` (type `out`, reference `adjust`, "Hapus batch: stok N → 0") → `qty_current=0` → `is_active=FALSE`, semua dalam 1 transaksi (`BEGIN/COMMIT`). `OpnameModal.jsx` teks konfirmasi diperbarui. Catatan: edit No.Batch & ED saat opname sudah tersedia via ikon pensil per batch.
+
 ## [v1.10.2-stable] - 2026-05-29
 
 ### Added
