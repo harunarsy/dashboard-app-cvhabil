@@ -18,9 +18,11 @@ export default function RupiahInput({ value, onChange, decimals = 2, style, plac
     }
   }, [value, focused]);
 
+  // v1.10.1: coerce ke number sebelum format. Nilai dari DB bisa string "76000.00";
+  // formatRupiah→parseRupiah salah anggap titik = pemisah ribuan → "7.600.000,00".
   const display = focused
     ? editValue
-    : (parseFloat(value) > 0 ? formatRupiah(value, decimals) : '');
+    : (parseFloat(value) > 0 ? formatRupiah(parseFloat(value), decimals) : '');
 
   return (
     <input

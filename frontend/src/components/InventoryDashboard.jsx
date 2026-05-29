@@ -198,7 +198,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
   // ─── Stock In ─────────────────────────────────────────────────────────
   const openStockIn = (p) => {
-    setSiForm({ product_name: p?.name || '', batch_no: '', expired_date: '', qty: 1, hna: p?.hna || 0 });
+    setSiForm({ product_name: p?.name || '', batch_no: '', expired_date: '', qty: 1, hna: parseFloat(p?.hna) || 0 });
     setModalError(''); setShowModal('stockIn');
   };
   const saveStockIn = async () => {
@@ -619,7 +619,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                 onChange={v => {
                   setSiForm(pv => ({ ...pv, product_name: v }));
                   const prod = products.find(p => p.name === v);
-                  if (prod) setSiForm(pv => ({ ...pv, hna: prod.hna || 0 }));
+                  if (prod) setSiForm(pv => ({ ...pv, hna: parseFloat(prod.hna) || 0 }));
                 }}
                 options={products.map(p => ({ name: p.name }))}
                 onAdd={handleAddProduct}

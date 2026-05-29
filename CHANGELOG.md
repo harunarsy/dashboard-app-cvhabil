@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.10.1-stable] - 2026-05-29
+
+### Fixed
+- **💰 Harga HNA di Stok Masuk tampil benar (tidak ×100 lagi)**: dulu saat buka Stok Masuk, kolom HNA menampilkan angka 100× lipat (produk Rp 76.000 tampil "Rp 7.600.000") padahal HPP-nya benar dan saat diklik kembali normal. Sekarang langsung tampil benar.
+  - _Detail teknis_: nilai numeric dari Postgres datang sebagai string `"76000.00"`. `formatRupiah`→`parseRupiah` menganggap titik sebagai pemisah ribuan lalu menghapusnya → `7600000`. Fix di `RupiahInput.jsx`: `formatRupiah(parseFloat(value), decimals)` (memperbaiki semua field RupiahInput sekaligus). Tambahan defensif: `siForm.hna` di `InventoryDashboard.jsx` di-`parseFloat` saat `openStockIn` dan saat memilih produk.
+
 ## [v1.10.0-stable] - 2026-05-29
 
 ### Fixed
