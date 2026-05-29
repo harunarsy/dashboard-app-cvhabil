@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.0-stable] - 2026-05-29
+
+### Added
+- **🧾 Faktur multi-select + Export CSV Rekap PPN**: centang beberapa faktur di tabel → muncul bar "N faktur dipilih" → tombol **Export CSV Rekap PPN**. File CSV (kebuka di Excel) berisi kolom Tanggal, No Faktur, Distributor, DPP, PPN 11%, Total + baris TOTAL — untuk rekap/lapor pajak masukan.
+  - _Detail teknis_: `InvoiceList.jsx` — state `selectedIds` (Set); kolom checkbox di header (select-all scope `filteredInvoices`), `InvoiceRow`, dan skeleton (grid 8→9 kolom di 3 tempat); sticky action bar saat `selectedIds.size>0`; `handleExportCSV` (delimiter `;`, BOM UTF-8 untuk Excel-ID, angka `toFixed(2)` tanpa pemisah ribuan, baris TOTAL, download via Blob — tanpa library). `selectedIds` di-reset saat filter berubah. NPWP tidak tersedia di data → tidak dimasukkan.
+
 ## [v1.10.5-stable] - 2026-05-29
 
 ### Added

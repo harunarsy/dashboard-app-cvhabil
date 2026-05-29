@@ -205,6 +205,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
   const [distributors, setDistributors] = useState([]);
   const [products, setProducts] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [selectedIds, setSelectedIds] = useState(() => new Set()); // v1.11.0 multi-select utk export CSV
   const [expandedRows, setExpandedRows] = useState({});
   const [showTrash, setShowTrash] = useState(false);
   const [trashItems, setTrashItems] = useState([]);
@@ -324,6 +325,43 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const applyFiltersMemo = useCallback(applyFilters, [invoices, universalSearch, selectedMonth, searchDist, searchInv, filterStatus, filterDue, dateFrom, dateTo, sortKey, sortDir]);
   useEffect(() => { applyFiltersMemo(); setCurrentPage(1); }, [applyFiltersMemo]);
+
+  // v1.11.0: multi-select + export CSV rekap PPN
+  const toggleSelect = (id) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const allFilteredSelected = filteredInvoices.length > 0 && filteredInvoices.every(i => selectedIds.has(i.id));
+  const toggleSelectAll = () => setSelectedIds(prev => {
+    if (filteredInvoices.length > 0 && filteredInvoices.every(i => prev.has(i.id))) return new Set();
+    return new Set(filteredInvoices.map(i => i.id));
+  });
+  // reset pilihan saat filter berubah supaya gak ada id "hantu"
+  useEffect(() => { setSelectedIds(new Set()); }, [universalSearch, selectedMonth, searchDist, searchInv, filterStatus, filterDue, dateFrom, dateTo]);
+
+  const handleExportCSV = () => {
+    const rows = invoices.filter(i => selectedIds.has(i.id));
+    if (rows.length === 0) return;
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const num = (v) => (parseFloat(v) || 0).toFixed(2);
+    const header = ['Tanggal', 'No Faktur', 'Distributor', 'DPP', 'PPN 11%', 'Total'];
+    const lines = [header.join(';')];
+    let tDpp = 0, tPpn = 0, tTot = 0;
+    rows.forEach(r => {
+      const dpp = parseFloat(r.hna_final ?? r.final_hna) || 0;
+      const ppn = parseFloat(r.ppn_masukan ?? r.ppn_input) || 0;
+      const tot = parseFloat(r.hna_plus_ppn) || 0;
+      tDpp += dpp; tPpn += ppn; tTot += tot;
+      lines.push([
+        esc(formatLocalDate(r.purchase_date)), esc(r.invoice_number), esc(r.distributor_name),
+        num(dpp), num(ppn), num(tot),
+      ].join(';'));
+    });
+    lines.push(['', '', esc('TOTAL'), num(tDpp), num(tPpn), num(tTot)].join(';'));
+    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `Rekap_PPN_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    showToast(`✅ ${rows.length} faktur diekspor ke CSV`);
+  };
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -579,6 +617,17 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       <Breadcrumb title="Faktur Pembelian" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Toast */}
+      {/* v1.11.0: sticky action bar untuk multi-select export CSV */}
+      {selectedIds.size > 0 && (
+        <div style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}`, borderRadius: '14px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '14px', zIndex: 9998, boxShadow: '0 12px 40px rgba(0,0,0,0.25)' }}>
+          <span style={{ fontSize: '13px', fontWeight: '600', color: isDarkMode ? '#FFF' : '#000' }}>{selectedIds.size} faktur dipilih</span>
+          <button onClick={handleExportCSV} style={{ padding: '8px 16px', backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <FileText size={15} /> Export CSV Rekap PPN
+          </button>
+          <button onClick={() => setSelectedIds(new Set())} style={{ padding: '8px 14px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: isDarkMode ? '#FFF' : '#000', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}>Batal</button>
+        </div>
+      )}
+
       {successToast && (
         <div style={{ position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#34C759', color: 'white', padding: '12px 28px', borderRadius: '12px', fontWeight: '700', fontSize: '15px', zIndex: 9999, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}>
           {successToast}
@@ -782,7 +831,10 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       {/* Invoice Table */}
       <div className="glass-target" style={{ ...S.card, overflow: "hidden" }}>
         {/* Table header — sortable */}
-        <div style={{ display: 'grid', gridTemplateColumns: '110px 140px 1fr 130px 130px 150px 120px 100px', padding: '12px 16px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', borderBottom: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}` }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '36px 110px 140px 1fr 130px 130px 150px 120px 100px', padding: '12px 16px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', borderBottom: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}`, alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAll} title="Pilih semua (sesuai filter)" style={{ cursor: 'pointer', width: '15px', height: '15px' }} />
+          </div>
           {[
             { label: 'Tgl Faktur', key: 'purchase_date' },
             { label: 'No Faktur', key: 'invoice_number' },
@@ -803,7 +855,8 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
 
         {loading ? (
           [...Array(pageSize)].map((_, i) => (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '110px 140px 1fr 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF' }}>
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '36px 110px 140px 1fr 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF' }}>
+              <Skeleton width="15px" height="15px" />
               <Skeleton width="80px" height="14px" />
               <Skeleton width="100px" height="14px" />
               <Skeleton width="150px" height="24px" borderRadius="8px" />
@@ -818,6 +871,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
           ? <div style={{ padding: '3rem', textAlign: 'center', color: '#86868B' }}>{invoices.length === 0 ? 'Belum ada faktur' : 'Tidak ada yang cocok'}</div>
           : paginatedInvoices.map(inv => (
             <InvoiceRow key={inv.id} inv={inv} isDarkMode={isDarkMode}
+              selected={selectedIds.has(inv.id)} onToggleSelect={() => toggleSelect(inv.id)}
               expanded={!!expandedRows[inv.id]}
               onToggleExpand={() => setExpandedRows(prev => ({ ...prev, [inv.id]: !prev[inv.id] }))}
               onEdit={() => handleEdit(inv)}
@@ -1030,7 +1084,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
 }
 
 // ─── Invoice Row ──────────────────────────────────────────────────────────────
-function InvoiceRow({ inv, isDarkMode, expanded, onToggleExpand, onEdit, onDelete, onAudit, allKnownDist = [], formatRp }) {
+function InvoiceRow({ inv, isDarkMode, selected, onToggleSelect, expanded, onToggleExpand, onEdit, onDelete, onAudit, allKnownDist = [], formatRp }) {
   const [hovered, setHovered] = useState(false);
   const isPaid = inv.status === 'Paid';
   const sc = isPaid ? { bg: '#D1FAE5', text: '#065F46' } : { bg: isDarkMode ? '#3A2800' : '#FEF3C7', text: isDarkMode ? '#FFCC00' : '#92400E' };
@@ -1043,7 +1097,11 @@ function InvoiceRow({ inv, isDarkMode, expanded, onToggleExpand, onEdit, onDelet
       <div
         onClick={onToggleExpand}
         onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-        style={{ display: 'grid', gridTemplateColumns: '110px 140px 1fr 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: hovered ? (isDarkMode ? '#2C2C2E' : '#F5F5F7') : (isDarkMode ? '#1C1C1E' : '#FFF'), transition: 'background 0.15s', cursor: 'pointer' }}>
+        style={{ display: 'grid', gridTemplateColumns: '36px 110px 140px 1fr 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: selected ? (isDarkMode ? '#0A2540' : '#E8F2FF') : hovered ? (isDarkMode ? '#2C2C2E' : '#F5F5F7') : (isDarkMode ? '#1C1C1E' : '#FFF'), transition: 'background 0.15s', cursor: 'pointer' }}>
+        {/* Checkbox */}
+        <div onClick={(e) => { e.stopPropagation(); onToggleSelect(); }} style={{ display: 'flex', alignItems: 'center' }}>
+          <input type="checkbox" checked={!!selected} onChange={() => {}} onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', width: '15px', height: '15px' }} />
+        </div>
         {/* Tgl Faktur */}
         <div style={{ fontSize: '13px', color: isDarkMode ? '#EBEBF0' : '#3A3A3C', fontWeight: '500' }}>
           {formatLocalDate(inv.purchase_date, { day: '2-digit', month: 'short', year: 'numeric' })}

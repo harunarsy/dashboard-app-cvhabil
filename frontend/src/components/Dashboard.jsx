@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.10.5-stable', date: '29 Mei 2026', status: 'latest',
+    version: 'v1.11.0-stable', date: '29 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Faktur Pembelian sekarang bisa dipilih banyak sekaligus (centang di tabel) lalu di-Export CSV Rekap PPN — buat lapor/setor pajak masukan. Filenya kebuka di Excel: kolom Tanggal, No Faktur, Distributor, DPP, PPN 11%, Total + baris TOTAL.',
+        dev: 'InvoiceList: state selectedIds (Set), kolom checkbox (header select-all scope filteredInvoices + InvoiceRow + skeleton, grid 8→9 kolom di 3 tempat), sticky action bar saat ada pilihan, handleExportCSV (delimiter ";", BOM utf-8 utk Excel-ID, angka toFixed(2) plain, baris TOTAL). selectedIds reset saat filter berubah. Tanpa lib eksternal.'
+      },
+    ]
+  },
+  {
+    version: 'v1.10.5-stable', date: '29 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -695,7 +705,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.10.5-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -748,7 +758,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.10.5-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
