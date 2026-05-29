@@ -35,7 +35,7 @@ function ProtectedRoute({ children, isDarkMode, setIsDarkMode, isGlassMode, isVa
   return (
     <div className="flex">
       <Sidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} isVantaMode={isVantaMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
-      <div className="flex-1" style={{ marginLeft: isMobile ? 0 : (isSidebarOpen ? '256px' : '80px'), transition: 'margin-left 0.3s ease-in-out' }}>{children}</div>
+      <div className="flex-1" style={{ marginLeft: isMobile ? 0 : (isSidebarOpen ? '284px' : '108px'), transition: 'margin-left 0.3s ease-in-out' }}>{children}</div>
     </div>
   );
 }

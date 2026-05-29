@@ -116,7 +116,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const txt = isDarkMode ? '#FFF' : '#000';
   const sub = isDarkMode ? '#86868B' : '#6B7280';
-  const appVersion = 'v1.11.4-stable';
+  const appVersion = 'v1.11.5-stable';
 
   const closeMobileDrawer = () => setMobileOpen(false);
 
@@ -251,11 +251,14 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
           backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
           borderRight: `1px solid ${border}`,
         } : {
-          position: 'fixed', left: 0, top: 0, height: '100vh',
+          position: 'fixed', left: '14px', top: '14px', height: 'calc(100vh - 28px)',
           width: isSidebarOpen ? '256px' : '80px',
           backgroundColor: isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)',
           backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-          borderRight: `1px solid ${border}`,
+          border: `1px solid ${border}`,
+          borderRadius: '20px',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+          overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
           transition: 'width 0.3s ease-in-out',
           zIndex: 40,

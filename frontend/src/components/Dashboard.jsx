@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.11.4-stable', date: '29 Mei 2026', status: 'latest',
+    version: 'v1.11.5-stable', date: '29 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'ui',
+        text: 'Sidebar sekarang tampil mengambang (floating) — ada jarak dari tepi layar, sudut membulat, dan bayangan halus. Terlihat lebih modern & rapi.',
+        dev: 'Sidebar.jsx desktop branch: position fixed top/left 14px, height calc(100vh-28px), borderRadius 20px, boxShadow, overflow hidden, border penuh (ganti borderRight). App.js marginLeft konten disinkronkan 256→284 (open) & 80→108 (collapsed) = gap 14 kiri+kanan. Mobile branch tidak diubah.'
+      },
+    ]
+  },
+  {
+    version: 'v1.11.4-stable', date: '29 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'ui',
@@ -745,7 +755,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.11.4-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.5-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -798,7 +808,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.11.4-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.5-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

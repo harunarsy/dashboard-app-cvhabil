@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.5-stable] - 2026-05-29
+
+### Changed
+- **🎨 Sidebar floating**: sidebar desktop kini panel mengambang (jarak 14px dari tepi, sudut membulat 20px, bayangan halus) — tampilan lebih modern. Lebar tetap (256 buka / 80 kecil); margin konten disinkronkan (284 / 108) supaya tidak ketabrak.
+  - _Detail teknis_: `Sidebar.jsx` desktop branch `position:fixed top/left:14px height:calc(100vh-28px) borderRadius:20px boxShadow overflow:hidden border penuh`. `App.js` `marginLeft` konten 256→284 / 80→108. Mobile branch tidak diubah.
+
 ## [v1.11.4-stable] - 2026-05-29
 
 ### Fixed
