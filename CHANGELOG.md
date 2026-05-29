@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.10.4-stable] - 2026-05-29
+
+### Changed
+- **🖨️ Template Opname jadi per-batch (kolom No. Batch + ED)**: dulu template cetak 1 baris per produk (cuma "ED Terdekat"). Sekarang tiap batch = 1 baris dengan kolom **No. Batch** dan **ED**. Batch/ED yang belum ada tampil **"(kosong)"** supaya petugas mengisinya manual saat opname fisik lalu input ke sistem.
+  - _Detail teknis_: endpoint baru `GET /inventory/opname-template` (LEFT JOIN `inventory_batches` aktif & `qty_current>0`; produk tanpa batch tetap 1 baris null). `inventoryAPI.getOpnameTemplate`. `generateInventoryPDF.js` di-rewrite menerima rows per-batch: kolom No.Batch + ED (`fmtDate` default "(kosong)"), header Total Produk + Total Baris Batch + Total Stok. `handleExportOpnameTemplate` fetch endpoint baru.
+
 ## [v1.10.3-stable] - 2026-05-29
 
 ### Changed

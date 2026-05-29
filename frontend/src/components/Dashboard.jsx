@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.10.3-stable', date: '29 Mei 2026', status: 'latest',
+    version: 'v1.10.4-stable', date: '29 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Cetak Template Opname sekarang per-batch: tiap batch jadi 1 baris dengan kolom No. Batch + ED. Kalau batch atau ED belum ada, tertulis "(kosong)" supaya bisa diisi tangan saat opname fisik lalu diinput ke sistem.',
+        dev: 'Endpoint baru GET /inventory/opname-template (LEFT JOIN batch aktif qty>0, produk tanpa batch tetap 1 baris null). inventoryAPI.getOpnameTemplate. generateInventoryPDF di-rewrite per-batch: kolom No.Batch + ED (kosong→"(kosong)"), header Total Produk + Total Baris Batch. handleExportOpnameTemplate fetch endpoint baru.'
+      },
+    ]
+  },
+  {
+    version: 'v1.10.3-stable', date: '29 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'fix',
@@ -675,7 +685,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.10.3-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.10.4-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -728,7 +738,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.10.3-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.10.4-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

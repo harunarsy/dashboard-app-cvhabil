@@ -131,6 +131,21 @@ router.get('/products', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// GET data template opname per-BATCH (v1.10.3): tiap batch aktif = 1 baris; produk tanpa batch tetap 1 baris (batch/ED null)
+router.get('/opname-template', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT p.id AS product_id, p.code, p.name, p.unit,
+             b.id AS batch_id, b.batch_no, b.expired_date, b.qty_current
+      FROM product_master p
+      LEFT JOIN inventory_batches b ON b.product_id = p.id AND b.is_active = TRUE AND b.qty_current > 0
+      WHERE p.is_active = TRUE
+      ORDER BY p.name ASC, b.expired_date ASC NULLS LAST, b.id ASC
+    `);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // GET single product with batches and mutations
 router.get('/products/:id', auth, async (req, res) => {
   try {

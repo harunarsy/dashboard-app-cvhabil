@@ -102,6 +102,7 @@ export const salesAPI = {
 
 export const inventoryAPI = {
   getProducts: () => api.get('/inventory/products'),
+  getOpnameTemplate: () => api.get('/inventory/opname-template'),
   getProduct: (id) => api.get(`/inventory/products/${id}`),
   createProduct: (data) => api.post('/inventory/products', data),
   updateProduct: (id, data) => api.put(`/inventory/products/${id}`, data),

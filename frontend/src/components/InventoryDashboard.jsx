@@ -255,7 +255,8 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
     try {
       let settings = {};
       try { const { data } = await printSettingsAPI.get(); settings = data?.nota_layout || data || {}; } catch (_) { /* fallback default */ }
-      const doc = generateInventoryPDF(products, { settings });
+      const { data: rows } = await inventoryAPI.getOpnameTemplate();
+      const doc = generateInventoryPDF(rows, { settings });
       const stamp = new Date().toISOString().slice(0, 10);
       doc.save(`Template_Opname_${stamp}.pdf`);
       flashSuccess('Template opname berhasil diunduh');
