@@ -312,12 +312,8 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
     if (sortKey) {
       f = sortData(f, sortKey, sortDir);
     } else {
-      f = [...f].sort((a, b) => {
-        const da = daysDiff(a.due_date), db = daysDiff(b.due_date);
-        if (da !== null && db !== null) return da - db;
-        if (da !== null) return -1; if (db !== null) return 1;
-        return new Date(b.purchase_date) - new Date(a.purchase_date);
-      });
+      // Default: tanggal faktur terbaru dulu (purchase_date desc)
+      f = [...f].sort((a, b) => new Date(b.purchase_date) - new Date(a.purchase_date));
     }
     setFilteredInvoices(f);
   };
@@ -696,21 +692,21 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
               </button>
             )}
           </div>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px' }}>
             {distSummary.map((d, i) => {
               const isActive = searchDist === d.name;
               const clr = getDistColor(d.name, allKnownDist);
               const isEmpty = d.count === 0;
               return (
                 <div key={i} onClick={() => !isEmpty && setSearchDist(isActive ? '' : d.name)}
-                  style={{ padding: '8px 14px', borderRadius: '10px', display: 'flex', gap: '10px', alignItems: 'center', cursor: isEmpty ? 'default' : 'pointer', transition: 'all 0.15s', opacity: isEmpty ? 0.45 : 1,
-                    backgroundColor: isActive ? clr.dot : (isDarkMode ? '#2C2C2E' : clr.bg),
-                    border: `1.5px solid ${isActive ? clr.dot : clr.border}`,
+                  style={{ padding: '8px 12px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', cursor: isEmpty ? 'default' : 'pointer', transition: 'all 0.15s', opacity: isEmpty ? 0.45 : 1,
+                    backgroundColor: isActive ? clr.dot : (isDarkMode ? '#2C2C2E' : '#F9F9FB'),
+                    border: `1px solid ${isActive ? clr.dot : (isDarkMode ? '#3A3A3C' : '#ECECEF')}`,
                   }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isActive ? '#FFF' : clr.dot, flexShrink: 0 }} />
-                  <span style={{ fontSize: '13px', fontWeight: '700', color: isActive ? '#FFF' : (isDarkMode ? '#FFF' : '#1C1C1E') }}>{d.name}</span>
-                  <span style={{ fontSize: '12px', color: isActive ? 'rgba(255,255,255,0.8)' : '#86868B' }}>{d.count} faktur</span>
-                  <span style={{ fontSize: '13px', fontWeight: '700', color: isActive ? '#FFF' : clr.text }}>{formatRp(d.total)}</span>
+                  <span title={d.name} style={{ flex: 1, minWidth: 0, fontSize: '12px', fontWeight: '600', color: isActive ? '#FFF' : (isDarkMode ? '#EBEBF0' : '#1C1C1E'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
+                  <span style={{ fontSize: '11px', color: isActive ? 'rgba(255,255,255,0.8)' : '#86868B', flexShrink: 0 }}>{d.count}×</span>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: isActive ? '#FFF' : clr.text, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{formatRp(d.total)}</span>
                 </div>
               );
             })}
@@ -1099,8 +1095,8 @@ function InvoiceRow({ inv, isDarkMode, selected, onToggleSelect, expanded, onTog
         onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
         style={{ display: 'grid', gridTemplateColumns: '36px 110px 140px 1fr 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: selected ? (isDarkMode ? '#0A2540' : '#E8F2FF') : hovered ? (isDarkMode ? '#2C2C2E' : '#F5F5F7') : (isDarkMode ? '#1C1C1E' : '#FFF'), transition: 'background 0.15s', cursor: 'pointer' }}>
         {/* Checkbox */}
-        <div onClick={(e) => { e.stopPropagation(); onToggleSelect(); }} style={{ display: 'flex', alignItems: 'center' }}>
-          <input type="checkbox" checked={!!selected} onChange={() => {}} onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', width: '15px', height: '15px' }} />
+        <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center' }}>
+          <input type="checkbox" checked={!!selected} onChange={onToggleSelect} onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', width: '15px', height: '15px' }} />
         </div>
         {/* Tgl Faktur */}
         <div style={{ fontSize: '13px', color: isDarkMode ? '#EBEBF0' : '#3A3A3C', fontWeight: '500' }}>
@@ -1116,12 +1112,10 @@ function InvoiceRow({ inv, isDarkMode, selected, onToggleSelect, expanded, onTog
             📥 Input: {new Date(inv.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
-        {/* Distributor — dengan warna */}
-        <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px 3px 8px', borderRadius: '8px', backgroundColor: isDarkMode ? clr.bg.replace('20','15') : clr.bg, border: `1px solid ${clr.border}` }}>
-            <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: clr.dot, flexShrink: 0 }} />
-            <span style={{ fontWeight: '600', fontSize: '13px', color: isDarkMode ? clr.text : '#1C1C1E' }}>{inv.distributor_name}</span>
-          </div>
+        {/* Distributor — dot + nama plain (rapi, 1 baris) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: clr.dot, flexShrink: 0 }} />
+          <span style={{ fontWeight: '600', fontSize: '13px', color: isDarkMode ? '#EBEBF0' : '#1C1C1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={inv.distributor_name}>{inv.distributor_name}</span>
         </div>
         {/* HNA*QTY */}
         <div>

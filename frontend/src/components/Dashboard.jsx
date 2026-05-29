@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.11.0-stable', date: '29 Mei 2026', status: 'latest',
+    version: 'v1.11.1-stable', date: '29 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'fix',
+        text: 'Perbaikan tampilan Faktur Pembelian: (1) centang faktur satu-satu sekarang jalan, (2) urutan default kembali ke faktur terbaru di atas, (3) tampilan nama distributor di tabel & rekap dirapikan (gak berantakan lagi).',
+        dev: 'InvoiceList: checkbox InvoiceRow onChange={onToggleSelect} (dulu onChange kosong + onClick stopPropagation makan event). Sort default applyFilters else-branch → purchase_date desc murni (buang prioritas due_date). Distributor chip baris tabel → dot + nama plain ellipsis (hapus kotak bg flop). Rekap per distributor → grid auto-fill compact (dot + nama ellipsis + Nx + nominal 1 baris).'
+      },
+    ]
+  },
+  {
+    version: 'v1.11.0-stable', date: '29 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -705,7 +715,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.11.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.1-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -758,7 +768,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.11.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.1-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

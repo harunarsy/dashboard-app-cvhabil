@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.1-stable] - 2026-05-29
+
+### Fixed
+- **✅ Centang faktur satu-satu sekarang berfungsi** (sebelumnya hanya "pilih semua" yang jalan): checkbox per baris `onChange` kosong + `onClick stopPropagation` membuat klik mati.
+- **🔽 Urutan default Faktur kembali ke terbaru di atas**: sebelumnya default mengurutkan berdasarkan jatuh tempo sehingga terlihat acak. Sekarang murni tanggal faktur terbaru dulu.
+- **🎨 Tampilan distributor dirapikan**: chip warna-warni di kolom tabel diganti dot + nama (1 baris, ellipsis); kartu "Rekap per Distributor" jadi grid compact (dot + nama + Nx + nominal dalam 1 baris).
+  - _Detail teknis_: `InvoiceList.jsx` — `InvoiceRow` checkbox `onChange={onToggleSelect}`; `applyFilters` else-branch → `sort((a,b)=> new Date(b.purchase_date)-new Date(a.purchase_date))`; distributor cell & `distSummary` rekap di-redesign (grid `auto-fill minmax(280px,1fr)`).
+
 ## [v1.11.0-stable] - 2026-05-29
 
 ### Added
