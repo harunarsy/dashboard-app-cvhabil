@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.6-stable] - 2026-05-30
+
+### Fixed
+- **💰 Label harga modal diperjelas (HNA→HPP)**: di dropdown batch saat Buat Nota, label "HNA" diganti "HPP (inc PPN)" — biar gak rancu, itu harga modal yang sudah termasuk PPN 11%.
+- **🧹 Hapus "Harga per Produk" rata-rata yang menyesatkan di Faktur**: field itu = (HNA+PPN) ÷ total qty, jadi ngawur kalau 1 faktur isi beberapa produk beda harga. HPP per produk tetap akurat di tiap baris produk.
+  - _Detail teknis_: `SalesOrderList.jsx` label batch dropdown pakai `hppFromHna(b.hna)` (`b.hna` = raw exc PPN, single source of truth). `InvoiceList.jsx` hapus display field `harga_per_produk`. Storage HNA tidak berubah — tidak ada perubahan kalkulasi tersimpan.
+
 ## [v1.11.5-stable] - 2026-05-29
 
 ### Changed

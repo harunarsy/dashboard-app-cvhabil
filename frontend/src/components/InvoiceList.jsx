@@ -1418,10 +1418,6 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
               <div><label style={{ ...S.label, color: '#86868B' }}>PPN Pembulatan (INT)</label><input style={S.inputDis} value={formatRpInput(totals.ppn_pembulatan)} readOnly /></div>
               <div><label style={{ ...S.label, color: '#007AFF' }}>HNA + PPN Masukan</label><input style={{ ...S.computed, color: '#007AFF', fontSize: '15px', fontWeight: '700' }} value={formatRpInput(totals.hna_plus_ppn)} readOnly /></div>
             </div>
-            <div style={{ marginTop: '12px' }}>
-              <label style={{ ...S.label, color: '#AF52DE' }}>Harga per Produk / HPP (HNA+PPN ÷ Total QTY)</label>
-              <input style={{ ...S.computed, color: '#AF52DE' }} value={formatRpInput(totals.harga_per_produk)} readOnly />
-            </div>
           </div>
 
           {/* Pembayaran */}

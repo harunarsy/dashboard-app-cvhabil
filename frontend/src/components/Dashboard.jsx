@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.11.5-stable', date: '29 Mei 2026', status: 'latest',
+    version: 'v1.11.6-stable', date: '30 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'fix',
+        text: 'Perjelas harga modal: di dropdown batch saat Buat Nota, label "HNA" diganti "HPP (inc PPN)" supaya gak rancu — itu harga modal sudah termasuk PPN. Juga: kolom "Harga per Produk" rata-rata di Faktur (yang menyesatkan kalau 1 faktur banyak produk) dihapus; HPP tetap akurat per produk di tiap barisnya.',
+        dev: 'SalesOrderList: label batch dropdown HNA→HPP pakai hppFromHna(b.hna) (b.hna=raw exc PPN SSOT). InvoiceList: hapus display field harga_per_produk (rata-rata hna_plus_ppn÷totalQty — ngawur multi-produk). Storage HNA tetap single source, gak ada perubahan kalkulasi tersimpan.'
+      },
+    ]
+  },
+  {
+    version: 'v1.11.5-stable', date: '29 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'ui',
@@ -755,7 +765,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.11.5-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.6-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -808,7 +818,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.11.5-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.6-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

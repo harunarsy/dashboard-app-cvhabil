@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Trash2, Edit2, X, FileText, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { salesAPI, customersAPI, inventoryAPI, printSettingsAPI, countersAPI } from '../services/api';
 import { getProductUnits, formatQtyWithConversion, isPackUnit, resolveTierPrice } from '../constants/units';
+import { hppFromHna } from '../utils/rupiah';
 import { generateNotaPDF } from '../utils/generateNotaPDF';
 import { generateLaporanPDF } from '../utils/generateLaporanPDF';
 import MasterSelect from './MasterSelect';
@@ -994,7 +995,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                             style={{ ...inputStyle, fontSize: '11px', padding: '5px 8px', backgroundColor: isDarkMode ? '#1C1C1E' : '#F0F8FF', border: `1px solid #007AFF40`, color: '#007AFF' }}>
                             {batches.map(b => (
                               <option key={b.batch_no} value={b.batch_no}>
-                                Batch: {b.batch_no} | ED: {b.expired_date ? new Date(b.expired_date).toLocaleDateString('id-ID', {day:'2-digit',month:'short',year:'numeric'}) : '-'} | Stok: {b.qty_current} | HNA: {new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(b.hna)}
+                                Batch: {b.batch_no} | ED: {b.expired_date ? new Date(b.expired_date).toLocaleDateString('id-ID', {day:'2-digit',month:'short',year:'numeric'}) : '-'} | Stok: {b.qty_current} | HPP (inc PPN): {new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(hppFromHna(b.hna))}
                               </option>
                             ))}
                           </select>
