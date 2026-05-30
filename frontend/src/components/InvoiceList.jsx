@@ -81,14 +81,25 @@ const blankItem = () => ({
   _id: Math.random().toString(36).slice(2),
   product_name: '', batch_number: '', expired_date: '', quantity: '', hna: '',
   hna_times_qty: 0, disc_percent: '', disc_nominal: 0, hna_baru: 0, hna_per_item: 0,
+  price_basis: 'hna_exc', // hna_exc | hpp_inc. Canonical saved value remains raw HNA exc PPN.
   unit: 'pcs', // v1.6.0 multi-unit: unit input dari distributor (pcs/karton/dus/etc)
 });
+const normalizeItem = (item) => ({ price_basis: 'hna_exc', ...item });
+const displayUnitPrice = (item) => {
+  const hna = parseNum(item.hna);
+  return item.price_basis === 'hpp_inc' ? hna * (1 + PPN_RATE) : hna;
+};
+const toRawHna = (value, priceBasis) => {
+  const n = parseNum(value);
+  return priceBasis === 'hpp_inc' ? n / (1 + PPN_RATE) : n;
+};
 const blankForm = () => ({
   invoice_number: '', purchase_date: '', distributor_name: '',
   disc_cod_ada: false, disc_cod_amount: '', disc_cod_percent: '',
   due_date: '', payment_date: '', status: 'Pending',
 });
 const calcItem = (item, disc_cod_per_item = 0) => {
+  item = normalizeItem(item);
   const qty = parseNum(item.quantity);
   const hna = parseNum(item.hna);
   const hna_times_qty = hna * qty;
@@ -393,7 +404,18 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
 
   // Item handlers
   const updateItem = (idx, field, val) => {
-    setItems(prev => { const n = [...prev]; n[idx] = calcItem({ ...n[idx], [field]: val }); return n; });
+    setItems(prev => {
+      const n = [...prev];
+      const current = normalizeItem(n[idx]);
+      if (field === 'unit_price_input') {
+        n[idx] = calcItem({ ...current, hna: toRawHna(val, current.price_basis) });
+      } else if (field === 'price_basis') {
+        n[idx] = calcItem({ ...current, price_basis: val });
+      } else {
+        n[idx] = calcItem({ ...current, [field]: val });
+      }
+      return n;
+    });
   };
   const addItem = () => setItems(prev => [...prev, blankItem()]);
   const removeItem = (idx) => setItems(prev => prev.filter((_, i) => i !== idx));
@@ -434,7 +456,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
     if (validItems.length === 0) return 'Minimal 1 produk harus diisi';
     for (const i of validItems) {
       if (!parseNum(i.quantity) || parseNum(i.quantity) <= 0) return `QTY produk "${i.product_name}" harus lebih dari 0`;
-      if (!parseNum(i.hna) || parseNum(i.hna) <= 0) return `HNA produk "${i.product_name}" harus lebih dari 0`;
+      if (!parseNum(i.hna) || parseNum(i.hna) <= 0) return `Harga produk "${i.product_name}" harus lebih dari 0`;
     }
     if (form.due_date && form.purchase_date && new Date(form.due_date) < new Date(form.purchase_date)) {
       return 'Tanggal jatuh tempo tidak boleh sebelum tanggal faktur';
@@ -453,6 +475,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
         return {
           product_name: i.product_name, expired_date: i.expired_date || null,
           quantity: parseNum(i.quantity), hna: parseNum(i.hna),
+          price_basis: i.price_basis || 'hna_exc',
           unit_price: parseNum(i.hna), hna_times_qty: i.hna_times_qty,
           total_price: i.hna_times_qty, disc_percent: parseNum(i.disc_percent),
           disc_nominal: i.disc_nominal, hna_baru: i.hna_baru,
@@ -525,7 +548,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
         status: invoice.status,
       });
       setItems(invItems.length > 0
-        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', batch_number: i.batch_number||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0, unit: i.unit||'pcs' }))
+        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', batch_number: i.batch_number||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0, price_basis: 'hna_exc', unit: i.unit||'pcs' }))
         : [blankItem()]
       );
       setEditingId(existingId);
@@ -548,7 +571,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
         status: invoice.status,
       });
       setItems(invItems.length > 0
-        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', batch_number: i.batch_number||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0, unit: i.unit||'pcs' }))
+        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', batch_number: i.batch_number||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0, price_basis: 'hna_exc', unit: i.unit||'pcs' }))
         : [blankItem()]
       );
       setEditingId(inv.id); setShowModal(true);
@@ -1302,7 +1325,7 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                     </div>
                   ) : null;
                 })()}
-                <div style={{ display: 'grid', gridTemplateColumns: '0.7fr 0.8fr 1fr 0.7fr', gap: '10px', marginBottom: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '0.7fr 0.8fr 1.35fr 0.7fr', gap: '10px', marginBottom: '10px' }}>
                   <div><label style={S.label}>QTY</label><input style={S.input} type="number" min="0" value={item.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} placeholder="0" /></div>
                   <div>
                     <label style={S.label}>Satuan</label>
@@ -1315,9 +1338,30 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                       </optgroup>
                     </select>
                   </div>
-                  <div><label style={S.label} title="HNA per pcs (raw, sebelum PPN). Support koma desimal: 288.288,25">HNA / {item.unit || 'pcs'} (exc PPN)</label>
-                    <RupiahInput style={S.input} value={parseNum(item.hna)} decimals={2}
-                      onChange={v => updateItem(idx, 'hna', v)} placeholder="Rp 0,00" />
+                  <div>
+                    <label style={S.label} title="Pilih sesuai angka yang tertulis di faktur. Sistem tetap menyimpan raw HNA exc PPN.">Harga unit dari faktur</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.05fr', gap: '8px' }}>
+                      <select
+                        style={S.input}
+                        value={item.price_basis || 'hna_exc'}
+                        onChange={e => updateItem(idx, 'price_basis', e.target.value)}
+                      >
+                        <option value="hna_exc">HNA exc PPN</option>
+                        <option value="hpp_inc">HPP inc PPN</option>
+                      </select>
+                      <RupiahInput
+                        style={S.input}
+                        value={displayUnitPrice(item)}
+                        decimals={2}
+                        onChange={v => updateItem(idx, 'unit_price_input', v)}
+                        placeholder="Rp 0,00"
+                      />
+                    </div>
+                    <p style={{ margin: '5px 0 0', fontSize: '10px', color: '#86868B', lineHeight: 1.35 }}>
+                      {item.price_basis === 'hpp_inc'
+                        ? `Disimpan sebagai HNA exc PPN: ${formatRp(parseNum(item.hna), true)}`
+                        : `Estimasi HPP inc PPN: ${formatRp(parseNum(item.hna) * (1 + PPN_RATE), true)}`}
+                    </p>
                   </div>
                   <div><label style={S.label}>Disc %</label><input style={S.input} type="number" min="0" max="100" step="0.01" value={item.disc_percent} onChange={e => updateItem(idx, 'disc_percent', e.target.value)} placeholder="0" /></div>
                 </div>

@@ -103,6 +103,7 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
   const drawerWidth = isMobile ? '100%' : '520px';
   const totalStock = data?.total_stock || 0;
   const minStock = data?.min_stock || 0;
+  const inventoryValue = (data?.batches || []).reduce((sum, b) => sum + (parseInt(b.qty_current) || 0) * hppFromHna(b.hna), 0);
   const stockPct = minStock > 0 ? Math.min(100, (totalStock / (minStock * 2)) * 100) : 100;
   const stockColor = totalStock <= 0 ? '#FF3B30' : totalStock < minStock ? '#FF9500' : '#34C759';
 
@@ -169,7 +170,7 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
                   <div style={{ height: '100%', width: `${stockPct}%`, background: stockColor, transition: 'width 0.3s' }} />
                 </div>
                 <p style={{ margin: '8px 0 0', fontSize: '12px', color: sub }}>
-                  Stok minimum: {minStock} {data.unit} · Nilai inventaris: <strong style={{ color: text }}>{fmtRp(data.inventory_value || 0)}</strong>
+                  Stok minimum: {minStock} {data.unit} · Nilai inventaris: <strong style={{ color: text }}>{fmtRp(inventoryValue)}</strong>
                 </p>
               </div>
 

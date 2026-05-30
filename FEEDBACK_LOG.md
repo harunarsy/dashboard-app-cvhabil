@@ -1,5 +1,8 @@
 # Feedback Log
 
+## [2026-05-30] - Investigation
+- **Faktur Pembelian gagal dibuat — missing column `stock_received`**: UI menampilkan error `column "stock_received" does not exist` saat membuat Faktur Pembelian yang terhubung ke Surat Pesanan. Root cause awal: backend membaca/menulis `purchase_orders.stock_received` untuk mencegah stok dobel, tetapi schema guard `ensureSchema()` di `backend/routes/purchaseOrders.js` belum menjamin kolom tersebut ada di DB existing. Fix harus menambah `ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS stock_received BOOLEAN DEFAULT FALSE` sebelum query yang memakai kolom itu.
+
 ## [2026-03-20] - v1.3.36-stable
 - Perbaikan UI untuk UX penolakan Duplikat ID di frontend dengan intercept `err.code` 23505.
 - Update Release array array Dashboard agar sejalan dengan Changelog.

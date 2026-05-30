@@ -288,6 +288,7 @@ router.post('/', auth, async (req, res) => {
     // v1.10.0: cegah double-count. Faktur dari SP yg stoknya SUDAH masuk (via Terima Barang) → JANGAN stock-in lagi, cukup backfill HNA.
     let skipStockIn = false;
     if (purchase_order_id) {
+      await client.query('ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS stock_received BOOLEAN DEFAULT FALSE');
       const poChk = await client.query('SELECT stock_received FROM purchase_orders WHERE id = $1', [purchase_order_id]);
       skipStockIn = !!(poChk.rows[0] && poChk.rows[0].stock_received);
     }
@@ -341,6 +342,7 @@ router.post('/', auth, async (req, res) => {
 
     // v1.10.0: faktur dari SP yg BELUM diterima (user lupa Terima Barang) → faktur ini yg stock-in; tandai SP supaya gak dobel kalau nanti di-Terima Barang.
     if (purchase_order_id && !skipStockIn) {
+      await client.query('ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS stock_received BOOLEAN DEFAULT FALSE');
       await client.query('UPDATE purchase_orders SET stock_received = TRUE WHERE id = $1', [purchase_order_id]);
     }
 

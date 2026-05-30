@@ -13,6 +13,7 @@ import ConfirmModal from './common/ConfirmModal';
 import Breadcrumb from './common/Breadcrumb';
 import ProductDrawer from './inventory/ProductDrawer';
 import OpnameModal from './inventory/OpnameModal';
+import BatchFormModal from './inventory/BatchFormModal';
 import { hppFromHna, formatRupiah } from '../utils/rupiah';
 import RupiahInput from './common/RupiahInput';
 
@@ -49,6 +50,12 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   const [batchesCache, setBatchesCache] = useState({});
   const [batchesLoading, setBatchesLoading] = useState({});
   const [drawerProductId, setDrawerProductId] = useState(null);
+  const [productModalTab, setProductModalTab] = useState('profile');
+  const [batchModal, setBatchModal] = useState(null); // { mode, batch?, productId, productName }
+  const [adjustBatch, setAdjustBatch] = useState(null); // { ...batch, productName? }
+  const [adjustForm, setAdjustForm] = useState({ new_qty: 0, reason: '' });
+  const [batchActionError, setBatchActionError] = useState('');
+  const [batchActionSaving, setBatchActionSaving] = useState(false);
 
   // Product form (v1.6.0 multi-unit: base_unit + pack_unit + pack_size + sell_price_pack; v1.7.0 tiers)
   const [pForm, setPForm] = useState({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5, base_unit: 'pcs', pack_unit: '', pack_size: 1, sell_price_pack: 0, price_tiers: [] });
@@ -145,11 +152,13 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' };
 
   // ─── Product CRUD ─────────────────────────────────────────────────────
-  const openAddProduct = () => { setEditId(null); setPForm({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5, base_unit: 'pcs', pack_unit: '', pack_size: 1, sell_price_pack: 0, price_tiers: [] }); setModalError(''); setShowModal('product'); };
+  const openAddProduct = () => { setEditId(null); setProductModalTab('profile'); setPForm({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5, base_unit: 'pcs', pack_unit: '', pack_size: 1, sell_price_pack: 0, price_tiers: [] }); setModalError(''); setShowModal('product'); };
   const openEditProduct = async (p) => {
     setEditId(p.id);
+    setProductModalTab('profile');
     setPForm({ code: p.code || '', name: p.name, unit: p.unit || 'pcs', hna: parseFloat(p.hna) || 0, sell_price: parseFloat(p.sell_price) || 0, category: p.category || '', min_stock: p.min_stock || 5, base_unit: p.base_unit || p.unit || 'pcs', pack_unit: p.pack_unit || '', pack_size: parseInt(p.pack_size) || 1, sell_price_pack: parseFloat(p.sell_price_pack) || 0, price_tiers: [] });
     setModalError(''); setShowModal('product');
+    fetchBatches(p.id, true);
     // v1.7.0: fetch tiers async
     try {
       const { data } = await inventoryAPI.getProductTiers(p.id);
@@ -187,6 +196,57 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
     try { await inventoryAPI.deleteProduct(deleteConfirmId); flashSuccess('Produk dinonaktifkan'); fetchProducts(); }
     catch (e) { flashError(e.response?.data?.error || e.message); }
     finally { setDeleteConfirmId(null); }
+  };
+
+  const openBatchEdit = (batch, product) => {
+    setBatchActionError('');
+    setBatchModal({ mode: 'edit', batch, productId: product.id, productName: product.name });
+  };
+  const openBatchAdd = (product) => {
+    setBatchActionError('');
+    setBatchModal({ mode: 'add', productId: product.id, productName: product.name });
+  };
+  const refreshBatchProduct = async (productId) => {
+    await refreshAfterChange(productId);
+    if (editId === productId) await fetchBatches(productId, true);
+  };
+  const deleteBatch = async (batch, product) => {
+    const ok = window.confirm(`Hapus batch "${batch.batch_no || '(tanpa no.)'}"?${batch.qty_current > 0 ? ` Stok ${batch.qty_current} akan di-nol-kan dulu dan dicatat di mutasi.` : ''}`);
+    if (!ok) return;
+    setBatchActionError('');
+    setBatchActionSaving(true);
+    try {
+      await inventoryAPI.deleteBatch(batch.id);
+      flashSuccess('Batch dihapus');
+      await refreshBatchProduct(product.id);
+    } catch (e) {
+      setBatchActionError(e.response?.data?.error || e.message);
+      flashError(e.response?.data?.error || e.message);
+    } finally { setBatchActionSaving(false); }
+  };
+  const openAdjustBatch = (batch, product) => {
+    setBatchActionError('');
+    setAdjustBatch({ ...batch, productName: product.name, product_id: product.id });
+    setAdjustForm({ new_qty: batch.qty_current, reason: '' });
+  };
+  const submitAdjustBatch = async () => {
+    if (!adjustBatch) return;
+    if (!adjustForm.reason.trim()) { setBatchActionError('Alasan adjustment wajib diisi'); return; }
+    setBatchActionError('');
+    setBatchActionSaving(true);
+    try {
+      await inventoryAPI.adjustBatch(adjustBatch.id, {
+        new_qty: parseInt(adjustForm.new_qty),
+        reason: adjustForm.reason,
+      });
+      flashSuccess('Qty batch diperbarui');
+      const productId = adjustBatch.product_id || adjustBatch.productId;
+      setAdjustBatch(null);
+      setAdjustForm({ new_qty: 0, reason: '' });
+      await refreshBatchProduct(productId);
+    } catch (e) {
+      setBatchActionError(e.response?.data?.error || e.message);
+    } finally { setBatchActionSaving(false); }
   };
 
   const handleAddProduct = async (name) => {
@@ -439,15 +499,17 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                         {isExpanded && (
                           <tr style={{ background: surface, borderBottom: `1px solid ${border}` }}>
                             <td></td>
-                            <td colSpan={9} style={{ padding: '8px 14px 16px' }}>
+                            <td colSpan={10} style={{ padding: '8px 14px 16px' }}>
                               <ExpandedBatches
-                                productId={p.id}
                                 product={p}
                                 batches={batchesCache[p.id]}
                                 loading={batchesLoading[p.id]}
                                 sub={sub} text={text} border={border} cardBg={cardBg} isDarkMode={isDarkMode}
-                                onAddBatch={() => openStockIn(p)}
+                                onAddBatch={() => openBatchAdd(p)}
                                 onOpenDrawer={() => setDrawerProductId(p.id)}
+                                onEditBatch={(batch) => openBatchEdit(batch, p)}
+                                onAdjustBatch={(batch) => openAdjustBatch(batch, p)}
+                                onDeleteBatch={(batch) => deleteBatch(batch, p)}
                               />
                             </td>
                           </tr>
@@ -457,7 +519,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                   })
                 )}
                 {!loading && !filtered.length && (
-                  <tr><td colSpan={10} style={{ padding: '3rem 1rem', textAlign: 'center', color: sub }}>
+                  <tr><td colSpan={11} style={{ padding: '3rem 1rem', textAlign: 'center', color: sub }}>
                     {search || statusFilter !== 'all' ? 'Tidak ada produk yang cocok dengan filter.' : 'Belum ada produk. Klik "Produk" untuk menambahkan.'}
                   </td></tr>
                 )}
@@ -513,8 +575,35 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
       {/* ─── Product Modal ──────────────────────────────────────────────── */}
       {showModal === 'product' && (
-        <ModalShell onClose={() => setShowModal(null)} cardBg={cardBg} title={editId ? '✏️ Edit Produk' : '➕ Produk Baru'} text={text} border={border} sub={sub} isMobile={isMobile} maxWidth="520px">
+        <ModalShell onClose={() => setShowModal(null)} cardBg={cardBg} title={editId ? 'Edit Produk' : 'Produk Baru'} text={text} border={border} sub={sub} isMobile={isMobile} maxWidth={editId ? '760px' : '520px'}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {editId && (
+              <div role="tablist" aria-label="Edit produk" style={{ display: 'flex', gap: '4px', background: surface, borderRadius: '10px', padding: '3px', marginBottom: '4px' }}>
+                {[
+                  ['profile', 'Profil'],
+                  ['batches', `Batch (${(batchesCache[editId] || []).length})`],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    aria-selected={productModalTab === key}
+                    onClick={() => { setProductModalTab(key); if (key === 'batches') fetchBatches(editId, true); }}
+                    style={{
+                      flex: 1, minHeight: '38px', border: 'none', borderRadius: '8px',
+                      background: productModalTab === key ? cardBg : 'transparent',
+                      color: productModalTab === key ? text : sub, cursor: 'pointer',
+                      fontSize: '13px', fontWeight: '700',
+                      boxShadow: productModalTab === key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {(!editId || productModalTab === 'profile') && (
+              <>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div><label style={labelStyle}>Kode</label><input value={pForm.code} onChange={e => setPForm(p => ({ ...p, code: e.target.value }))} placeholder="OBT-001" style={inputStyle} /></div>
               <div><label style={labelStyle}>Kategori</label><input value={pForm.category} onChange={e => setPForm(p => ({ ...p, category: e.target.value }))} placeholder="Obat, Nutrisi..." style={inputStyle} /></div>
@@ -602,10 +691,23 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
             </div>
 
             <div><label style={labelStyle}>Stok Minimum (di {pForm.base_unit || pForm.unit || 'pcs'})</label><input type="number" value={pForm.min_stock} onChange={e => setPForm(p => ({ ...p, min_stock: parseInt(e.target.value) || 0 }))} style={inputStyle} /></div>
-            {editId && (
-              <div style={{ background: '#007AFF10', border: '1px solid #007AFF30', padding: '10px 12px', borderRadius: '10px', fontSize: '12px', color: text, display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                <AlertCircle size={14} style={{ color: '#007AFF', flexShrink: 0, marginTop: '1px' }} />
-                <span>Untuk edit batch (no. batch, ED, qty), buka <button onClick={() => { setShowModal(null); setDrawerProductId(editId); }} style={{ background: 'transparent', border: 'none', color: '#007AFF', fontWeight: '700', cursor: 'pointer', padding: 0, font: 'inherit', textDecoration: 'underline' }}>panel detail produk</button> tab <strong>Batch</strong>.</span>
+              </>
+            )}
+            {editId && productModalTab === 'batches' && (
+              <ProductBatchPanel
+                product={{ id: editId, name: pForm.name, unit: pForm.unit, base_unit: pForm.base_unit, pack_unit: pForm.pack_unit, pack_size: pForm.pack_size }}
+                batches={batchesCache[editId]}
+                loading={batchesLoading[editId]}
+                sub={sub} text={text} border={border} cardBg={cardBg} surface={surface} isDarkMode={isDarkMode}
+                onAddBatch={() => openBatchAdd({ id: editId, name: pForm.name })}
+                onEditBatch={(batch) => openBatchEdit(batch, { id: editId, name: pForm.name })}
+                onAdjustBatch={(batch) => openAdjustBatch(batch, { id: editId, name: pForm.name })}
+                onDeleteBatch={(batch) => deleteBatch(batch, { id: editId, name: pForm.name })}
+              />
+            )}
+            {batchActionError && (
+              <div role="alert" style={{ backgroundColor: '#FFF5F5', border: '1px solid #FFE5E5', borderRadius: '10px', padding: '10px 14px', color: '#FF3B30', fontSize: '13px', fontWeight: '600', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} /> <span>{batchActionError}</span>
               </div>
             )}
             {modalError && (
@@ -613,10 +715,12 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                 <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} /> <span>{modalError}</span>
               </div>
             )}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+            {(!editId || productModalTab === 'profile') && (
+              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
               <button onClick={saveProduct} disabled={modalSaving} style={primaryBtn('#007AFF', modalSaving)}>{modalSaving ? 'Menyimpan...' : (editId ? 'Simpan' : 'Tambah')}</button>
               <button onClick={() => setShowModal(null)} disabled={modalSaving} style={secondaryBtn(surface, text, border)}>Batal</button>
             </div>
+            )}
           </div>
         </ModalShell>
       )}
@@ -756,6 +860,46 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
         isDarkMode={isDarkMode}
       />
 
+      {batchModal && (
+        <BatchFormModal
+          mode={batchModal.mode}
+          batch={batchModal.batch}
+          productId={batchModal.productId}
+          productName={batchModal.productName}
+          isDarkMode={isDarkMode}
+          onClose={() => setBatchModal(null)}
+          onSaved={async () => {
+            setBatchModal(null);
+            await refreshBatchProduct(batchModal.productId);
+          }}
+        />
+      )}
+
+      {adjustBatch && (
+        <ModalShell onClose={() => { setAdjustBatch(null); setBatchActionError(''); }} cardBg={cardBg} title="Adjust Qty Batch" text={text} border={border} sub={sub} isMobile={isMobile} maxWidth="420px">
+          <div style={{ display: 'grid', gap: '12px' }}>
+            <p style={{ margin: 0, fontSize: '12px', color: sub }}>
+              {adjustBatch.productName} · batch <strong style={{ color: text }}>{adjustBatch.batch_no || '(tanpa no.)'}</strong> · sistem {adjustBatch.qty_current}
+            </p>
+            <div>
+              <label style={labelStyle}>Qty Baru *</label>
+              <input type="number" min="0" value={adjustForm.new_qty} onChange={(e) => setAdjustForm(p => ({ ...p, new_qty: e.target.value }))} style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Alasan *</label>
+              <input value={adjustForm.reason} onChange={(e) => setAdjustForm(p => ({ ...p, reason: e.target.value }))} placeholder="contoh: koreksi opname, rusak, hilang" style={inputStyle} />
+            </div>
+            {batchActionError && (
+              <div role="alert" style={{ backgroundColor: '#FFF5F5', border: '1px solid #FFE5E5', borderRadius: '10px', padding: '10px 14px', color: '#FF3B30', fontSize: '13px', fontWeight: '600' }}>{batchActionError}</div>
+            )}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={submitAdjustBatch} disabled={batchActionSaving} style={primaryBtn('#007AFF', batchActionSaving)}>{batchActionSaving ? 'Menyimpan...' : 'Simpan'}</button>
+              <button onClick={() => { setAdjustBatch(null); setBatchActionError(''); }} disabled={batchActionSaving} style={secondaryBtn(surface, text, border)}>Batal</button>
+            </div>
+          </div>
+        </ModalShell>
+      )}
+
       {/* Toast */}
       {toast.msg && (
         <div role="status" aria-live="polite" style={{
@@ -794,7 +938,7 @@ function IconBtn({ onClick, label, Icon, color }) {
   return (
     <button onClick={onClick} title={label} aria-label={label} style={{
       background: 'transparent', border: 'none', cursor: 'pointer',
-      padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center',
+      width: '34px', height: '34px', padding: 0, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
       transition: 'background 0.15s',
     }}
       onMouseEnter={e => e.currentTarget.style.background = color + '20'}
@@ -805,7 +949,7 @@ function IconBtn({ onClick, label, Icon, color }) {
   );
 }
 
-function ExpandedBatches({ productId, product, batches, loading, sub, text, border, cardBg, isDarkMode, onAddBatch, onOpenDrawer }) {
+function ExpandedBatches({ product, batches, loading, sub, text, border, cardBg, isDarkMode, onAddBatch, onOpenDrawer, onEditBatch, onAdjustBatch, onDeleteBatch }) {
   const packSize = parseInt(product?.pack_size) || 1;
   const packUnit = product?.pack_unit;
   const baseUnit = product?.base_unit || product?.unit || 'pcs';
@@ -824,8 +968,8 @@ function ExpandedBatches({ productId, product, batches, loading, sub, text, bord
         <span style={{ fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {batches.length} batch
         </span>
-        <button onClick={onOpenDrawer} style={{ background: 'transparent', color: '#007AFF', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>
-          Kelola di panel detail →
+        <button onClick={onOpenDrawer} style={{ background: 'transparent', color: '#007AFF', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '600', minHeight: '32px' }}>
+          Buka detail
         </button>
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
@@ -836,6 +980,7 @@ function ExpandedBatches({ productId, product, batches, loading, sub, text, bord
             <th style={{ ...thStyle(sub, border), borderBottom: 'none', padding: '8px 14px', textAlign: 'right' }}>Qty</th>
             <th style={{ ...thStyle(sub, border), borderBottom: 'none', padding: '8px 14px', textAlign: 'right' }} title="HNA per pcs (raw, exc PPN)">HNA<br/><span style={{ fontSize: '9px', fontWeight: '400', color: sub }}>(exc PPN)</span></th>
             <th style={{ ...thStyle(sub, border), borderBottom: 'none', padding: '8px 14px', textAlign: 'right' }} title="HPP per pcs = HNA + PPN 11%">HPP<br/><span style={{ fontSize: '9px', fontWeight: '400', color: sub }}>(inc PPN)</span></th>
+            <th style={{ ...thStyle(sub, border), borderBottom: 'none', padding: '8px 14px', textAlign: 'right' }}>Aksi</th>
           </tr>
         </thead>
         <tbody>
@@ -863,11 +1008,91 @@ function ExpandedBatches({ productId, product, batches, loading, sub, text, bord
                 </td>
                 <td style={{ padding: '8px 14px', textAlign: 'right', color: sub, fontVariantNumeric: 'tabular-nums' }}>{fmtRp(b.hna, 2)}</td>
                 <td style={{ padding: '8px 14px', textAlign: 'right', color: sub, fontVariantNumeric: 'tabular-nums' }}>{fmtRp(hppFromHna(b.hna), 2)}</td>
+                <td style={{ padding: '8px 14px', textAlign: 'right' }}>
+                  <div style={{ display: 'inline-flex', gap: '2px' }}>
+                    <IconBtn onClick={() => onEditBatch?.(b)} label="Edit batch" Icon={Edit2} color="#007AFF" />
+                    <IconBtn onClick={() => onAdjustBatch?.(b)} label="Adjust qty batch" Icon={AlertCircle} color="#FF9500" />
+                    <IconBtn onClick={() => onDeleteBatch?.(b)} label="Hapus batch" Icon={Trash2} color="#FF3B30" />
+                  </div>
+                </td>
               </tr>
             );
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function ProductBatchPanel({ product, batches, loading, sub, text, border, cardBg, surface, isDarkMode, onAddBatch, onEditBatch, onAdjustBatch, onDeleteBatch }) {
+  const packSize = parseInt(product?.pack_size) || 1;
+  const packUnit = product?.pack_unit;
+  const baseUnit = product?.base_unit || product?.unit || 'pcs';
+  const rows = batches || [];
+
+  if (loading) return <p style={{ color: sub, fontSize: '13px', margin: 0 }}>Memuat batch...</p>;
+
+  return (
+    <div style={{ display: 'grid', gap: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+        <div>
+          <p style={{ margin: 0, color: text, fontSize: '13px', fontWeight: '700' }}>Batch produk</p>
+          <p style={{ margin: '2px 0 0', color: sub, fontSize: '12px' }}>Edit no. batch, ED, HNA, notes, adjust qty, atau hapus batch langsung di sini.</p>
+        </div>
+        <button type="button" onClick={onAddBatch} style={{ minHeight: '38px', padding: '0 14px', background: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          Batch Baru
+        </button>
+      </div>
+      {rows.length === 0 ? (
+        <div style={{ padding: '24px', background: surface, border: `1px dashed ${border}`, borderRadius: '12px', textAlign: 'center', color: sub, fontSize: '13px' }}>
+          Belum ada batch untuk produk ini.
+        </div>
+      ) : (
+        <div style={{ border: `1px solid ${border}`, borderRadius: '12px', overflow: 'hidden', background: cardBg }}>
+          <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '620px' }}>
+            <thead>
+              <tr style={{ background: surface }}>
+                <th style={thStyle(sub, border)}>No. Batch</th>
+                <th style={thStyle(sub, border)}>ED</th>
+                <th style={{ ...thStyle(sub, border), textAlign: 'right' }}>Qty</th>
+                <th style={{ ...thStyle(sub, border), textAlign: 'right' }}>HPP</th>
+                <th style={thStyle(sub, border)}>Notes</th>
+                <th style={{ ...thStyle(sub, border), textAlign: 'right' }}>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((b) => {
+                const sev = expirySeverity(b.expired_date, isDarkMode);
+                return (
+                  <tr key={b.id} style={{ borderTop: `1px solid ${border}` }}>
+                    <td style={{ padding: '10px 14px', color: text, fontWeight: '700' }}>{b.batch_no || <em style={{ color: sub, fontWeight: '400' }}>(tanpa no.)</em>}</td>
+                    <td style={{ padding: '10px 14px' }}>
+                      {b.expired_date ? (
+                        <span style={{ color: sev.color, background: sev.plain ? 'transparent' : sev.bg, padding: sev.plain ? 0 : '3px 8px', borderRadius: '6px', fontWeight: '700', fontVariantNumeric: 'tabular-nums' }}>{sev.label}</span>
+                      ) : <span style={{ color: sub }}>—</span>}
+                    </td>
+                    <td style={{ padding: '10px 14px', textAlign: 'right', color: text, fontWeight: '700', fontVariantNumeric: 'tabular-nums' }}>
+                      {b.qty_current} {baseUnit}
+                      {packUnit && packSize > 1 && <div style={{ color: sub, fontSize: '10px', fontWeight: '500' }}>{(b.qty_current / packSize).toFixed(b.qty_current % packSize === 0 ? 0 : 1)} {packUnit}</div>}
+                    </td>
+                    <td style={{ padding: '10px 14px', textAlign: 'right', color: text, fontVariantNumeric: 'tabular-nums' }}>{fmtRp(hppFromHna(b.hna), 2)}</td>
+                    <td style={{ padding: '10px 14px', color: sub, maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.notes || '—'}</td>
+                    <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '2px' }}>
+                        <IconBtn onClick={() => onEditBatch(b)} label="Edit batch" Icon={Edit2} color="#007AFF" />
+                        <IconBtn onClick={() => onAdjustBatch(b)} label="Adjust qty batch" Icon={AlertCircle} color="#FF9500" />
+                        <IconBtn onClick={() => onDeleteBatch(b)} label="Hapus batch" Icon={Trash2} color="#FF3B30" />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

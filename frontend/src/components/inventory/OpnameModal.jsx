@@ -156,6 +156,22 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
       .map(([_, v]) => v.product_id)
     ).size;
   }, [inputs]);
+  const totalDiff = useMemo(() => {
+    return Object.values(inputs)
+      .filter(v => v.physical_qty !== '' && parseInt(v.physical_qty) !== v.qty_current)
+      .reduce((sum, v) => sum + (parseInt(v.physical_qty) - v.qty_current), 0);
+  }, [inputs]);
+
+  const setBatchPhysical = (batch, product, value) => {
+    handleInput(batch, product, value);
+  };
+  const clearBatchPhysical = (batchId) => {
+    setInputs(prev => {
+      const next = { ...prev };
+      delete next[batchId];
+      return next;
+    });
+  };
 
   const handleSave = async () => {
     if (changedItems.length === 0) { setError('Tidak ada perubahan untuk disimpan'); return; }
@@ -394,7 +410,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                             ><Pencil size={13} /></button>
                             <button
                               onClick={() => handleDelete(b)}
-                              title="Hapus batch (qty harus 0 dulu)"
+                              title="Hapus batch (stok akan di-nol-kan dan dicatat bila masih ada)"
                               style={{ ...iconBtnStyle, color: '#FF3B30', borderColor: '#FF3B3033' }}
                             ><Trash2 size={13} /></button>
                           </div>
@@ -414,6 +430,22 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                                 borderRadius: '8px', background: bg, color: text, fontSize: '14px', fontWeight: '600',
                                 outline: 'none', boxSizing: 'border-box',
                               }} />
+                            <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={() => setBatchPhysical(b, selectedProduct, b.qty_current)}
+                                style={{ flex: 1, minHeight: '28px', border: `1px solid ${border}`, background: bg, color: sub, borderRadius: '7px', fontSize: '10px', fontWeight: '700', cursor: 'pointer' }}
+                              >
+                                Samakan
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => clearBatchPhysical(b.id)}
+                                style={{ flex: 1, minHeight: '28px', border: `1px solid ${border}`, background: bg, color: sub, borderRadius: '7px', fontSize: '10px', fontWeight: '700', cursor: 'pointer' }}
+                              >
+                                Clear
+                              </button>
+                            </div>
                           </div>
                           <div>
                             <label style={{ display: 'block', fontSize: '10px', fontWeight: '700', color: sub, textTransform: 'uppercase', marginBottom: '4px' }}>Catatan</label>
@@ -449,7 +481,11 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                   <>Belum ada perubahan ({inputCount} input terisi tapi sama dengan sistem)</>
                 ) : (
                   <><CheckCircle2 size={14} style={{ display: 'inline', verticalAlign: '-2px', color: '#34C759', marginRight: '4px' }} />
-                    <strong style={{ color: text }}>{changedItems.length}</strong> batch berubah di <strong style={{ color: text }}>{totalProductsChanged}</strong> produk</>
+                    <strong style={{ color: text }}>{changedItems.length}</strong> batch berubah di <strong style={{ color: text }}>{totalProductsChanged}</strong> produk
+                    <span style={{ marginLeft: '8px', color: totalDiff > 0 ? '#34C759' : totalDiff < 0 ? '#FF3B30' : sub, fontWeight: '700' }}>
+                      Selisih total {totalDiff > 0 ? '+' : ''}{totalDiff}
+                    </span>
+                  </>
                 )}
               </p>
             )}

@@ -24,6 +24,7 @@ const ensureSchema = async () => {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS pic_name VARCHAR(150);
+    ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS stock_received BOOLEAN DEFAULT FALSE;
     
     CREATE TABLE IF NOT EXISTS purchase_order_items (
       id SERIAL PRIMARY KEY,

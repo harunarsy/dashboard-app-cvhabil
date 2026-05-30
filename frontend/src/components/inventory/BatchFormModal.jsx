@@ -93,7 +93,7 @@ export default function BatchFormModal({ mode, batch, productId, productName, on
       style={{
         position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 2100, padding: '1rem',
+        zIndex: 10050, padding: '1rem',
       }}
     >
       <div className="glass-target glass-target--clear" style={{
@@ -102,7 +102,7 @@ export default function BatchFormModal({ mode, batch, productId, productName, on
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>
-            {isEdit ? '✏️ Edit Batch' : '➕ Batch Baru'}
+            {isEdit ? 'Edit Batch' : 'Batch Baru'}
           </h3>
           <button onClick={onClose} aria-label="Tutup" style={{
             background: 'transparent', border: 'none', cursor: 'pointer', color: sub, padding: '4px',
@@ -160,7 +160,7 @@ export default function BatchFormModal({ mode, batch, productId, productName, on
           </div>
           {isEdit && (
             <p style={{ margin: 0, fontSize: '11px', color: sub, lineHeight: 1.5 }}>
-              ℹ️ Qty tidak bisa di-edit di sini untuk preserve audit trail. Pakai tombol <strong>Adjust</strong> di list batch.
+              Qty tidak bisa di-edit di sini untuk preserve audit trail. Pakai tombol <strong>Adjust</strong> di list batch.
             </p>
           )}
         </div>
