@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Trash2, Edit2, X, FileText, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { salesAPI, customersAPI, inventoryAPI, printSettingsAPI, countersAPI } from '../services/api';
 import { getProductUnits, formatQtyWithConversion, isPackUnit, resolveTierPrice } from '../constants/units';
-import { hppFromHna } from '../utils/rupiah';
+import { hppFromHna, hnaFromHpp } from '../utils/rupiah';
 import { generateNotaPDF } from '../utils/generateNotaPDF';
 import { generateLaporanPDF } from '../utils/generateLaporanPDF';
 import MasterSelect from './MasterSelect';
@@ -755,7 +755,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                                 <td style={{ padding: '6px 10px', color: text }}>{it.product_name}</td>
                                 <td style={{ padding: '6px 10px', color: text }}>{it.qty}</td>
                                 <td style={{ padding: '6px 10px', color: sub }}>{it.unit}</td>
-                                <td style={{ padding: '6px 10px', color: sub }}>{fmtRp(it.unit_hpp)}</td>
+                                <td style={{ padding: '6px 10px', color: sub }}>{fmtRp(hppFromHna(it.unit_hpp))}</td>
                                 <td style={{ padding: '6px 10px', color: text }}>{fmtRp(it.unit_price)}</td>
                                 <td style={{ padding: '6px 10px', fontWeight: '600', color: text }}>{fmtRp(it.subtotal)}</td>
                               </tr>
@@ -977,7 +977,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                         <select value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} style={{ ...inputStyle, fontSize: '12px', padding: '8px 4px' }}>
                           {unitOptions.map((u, i) => <option key={`${u.value}-${i}`} value={u.value}>{u.value}</option>)}
                         </select>
-                        <input type="number" value={it.unit_hpp} onChange={e => updateItem(idx, 'unit_hpp', parseFloat(e.target.value) || 0)} min="0" placeholder="0" style={{ ...inputStyle, fontSize: '12px', padding: '8px 6px', backgroundColor: isDarkMode ? '#1C1C1E' : '#EBEBEB', border: `1px dashed ${border}`, textAlign: 'center' }} />
+                        <input type="number" value={Math.round(hppFromHna(it.unit_hpp || 0))} onChange={e => updateItem(idx, 'unit_hpp', hnaFromHpp(parseFloat(e.target.value) || 0))} min="0" placeholder="0" title="HPP inc PPN 11% (disimpan sebagai HNA exc PPN)" style={{ ...inputStyle, fontSize: '12px', padding: '8px 6px', backgroundColor: isDarkMode ? '#1C1C1E' : '#EBEBEB', border: `1px dashed ${border}`, textAlign: 'center' }} />
                         <input type="number" value={it.unit_price} onChange={e => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} min="0" placeholder="0" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
                         {items.length > 1 && (
                           <button onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>

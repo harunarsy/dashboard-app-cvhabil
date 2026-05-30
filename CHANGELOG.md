@@ -8,6 +8,7 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 - **💰 Kolom HPP di Buat Nota benar (inc PPN 11%)**: kolom HPP pada baris produk dulu menampilkan harga sebelum PPN (mis. 30.096 padahal HPP batch 33.407). Sekarang konsisten inc PPN, sama dengan dropdown batch. Input manual = ketik HPP final (inc PPN), disimpan otomatis sebagai HNA.
   - _Detail teknis_: `SalesOrderList.jsx` field HPP item row (`:980`) `value=Math.round(hppFromHna(it.unit_hpp))`, `onChange=hnaFromHpp(input)` → storage `unit_hpp` tetap HNA exc PPN (round-trip `hppFromHna(hnaFromHpp(x))=x`). Detail expand (`:758`) `fmtRp(hppFromHna)`. Import `+hnaFromHpp`.
 - **📦 Fix error "stock_received does not exist" saat simpan Faktur Pembelian** (commit Codex `13600b6`): `ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS stock_received` (purchaseOrders.js + guard invoices.js) + patch Neon prod.
+- **🔢 Angka kartu Dashboard pakai istilah Indonesia**: "Jt" (Juta) & "M" (Miliar) — sebelumnya "M" ala Inggris (Million) yang rancu, dan nominal <1 juta pun salah tampil "M". `Dashboard.formatRupiah`: ≥1M→"Rp X,XX M", ≥1jt→"Rp X,X Jt", else format Rupiah penuh.
 
 ### Added
 - **🗂️ Polish Inventory & Opname** (Codex `13600b6`): expanded batch row punya aksi edit/adjust/hapus; Edit Produk tab Profil & Batch; Opname tombol Samakan & Clear + footer summary; ProductDrawer nilai inventaris pakai HPP inc PPN; BatchFormModal z-index fix.

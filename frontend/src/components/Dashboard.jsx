@@ -14,6 +14,11 @@ const RELEASES = [
         dev: 'SalesOrderList field HPP item row (:980): value Math.round(hppFromHna(it.unit_hpp)), onChange hnaFromHpp(input) → storage unit_hpp tetap HNA exc PPN (round-trip stabil). Detail expand (:758) fmtRp(hppFromHna). Import +hnaFromHpp.'
       },
       {
+        type: 'ui',
+        text: 'Angka di kartu Dashboard pakai istilah Indonesia: "Jt" (Juta) & "M" (Miliar) — bukan "M" gaya Inggris yang rancu. Contoh Rp 20,6 Jt.',
+        dev: 'Dashboard formatRupiah dibenerin: ≥1M→"Rp X,XX M" (Miliar), ≥1jt→"Rp X,X Jt", else Intl id-ID penuh. Sebelumnya else-branch juga /1e6+"M" (nominal <1jt tampil salah).'
+      },
+      {
         type: 'feat',
         text: 'Polish Inventory & Opname: batch bisa di-edit/adjust/hapus langsung dari baris produk yang di-expand, Edit Produk punya tab Profil & Batch, Opname ada tombol Samakan & Clear, nilai inventaris di drawer konsisten pakai HPP inc PPN.',
         dev: 'Codex 13600b6: InventoryDashboard (colSpan fix, expanded batch actions, tab Profil/Batch), BatchFormModal (z-index), ProductDrawer (nilai HPP inc PPN), OpnameModal (Samakan/Clear + footer summary).'
