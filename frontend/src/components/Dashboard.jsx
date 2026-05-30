@@ -6,7 +6,32 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.11.6-stable', date: '30 Mei 2026', status: 'latest',
+    version: 'v1.11.7-stable', date: '30 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'fix',
+        text: 'Kolom HPP di Buat Nota sekarang benar (termasuk PPN 11%), sama dengan angka di dropdown batch. Sebelumnya kolom HPP menampilkan harga sebelum PPN (mis. 30.096 padahal HPP batch 33.407). Kalau diisi manual, ketik HPP final (inc PPN) — sistem simpan otomatis.',
+        dev: 'SalesOrderList field HPP item row (:980): value Math.round(hppFromHna(it.unit_hpp)), onChange hnaFromHpp(input) → storage unit_hpp tetap HNA exc PPN (round-trip stabil). Detail expand (:758) fmtRp(hppFromHna). Import +hnaFromHpp.'
+      },
+      {
+        type: 'feat',
+        text: 'Polish Inventory & Opname: batch bisa di-edit/adjust/hapus langsung dari baris produk yang di-expand, Edit Produk punya tab Profil & Batch, Opname ada tombol Samakan & Clear, nilai inventaris di drawer konsisten pakai HPP inc PPN.',
+        dev: 'Codex 13600b6: InventoryDashboard (colSpan fix, expanded batch actions, tab Profil/Batch), BatchFormModal (z-index), ProductDrawer (nilai HPP inc PPN), OpnameModal (Samakan/Clear + footer summary).'
+      },
+      {
+        type: 'fix',
+        text: 'Perbaikan error "stock_received does not exist" saat simpan Faktur Pembelian. Sekarang Faktur bisa disimpan normal.',
+        dev: 'Codex 13600b6: ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS stock_received (purchaseOrders.js + guard invoices.js) + patch Neon prod.'
+      },
+      {
+        type: 'feat',
+        text: 'Saat input Faktur, harga unit bisa dipilih mode HNA (exc PPN) atau HPP (inc PPN) — kalau pilih HPP, sistem hitung balik ke HNA untuk simpanan supaya stok tetap konsisten.',
+        dev: 'Codex 13600b6: InvoiceList field item — mode HNA/HPP, convert hnaFromHpp saat HPP, helper text disimpan-sebagai-HNA / estimasi-HPP.'
+      },
+    ]
+  },
+  {
+    version: 'v1.11.6-stable', date: '30 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'fix',
@@ -765,7 +790,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.11.6-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.7-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -818,7 +843,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.11.6-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.7-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

@@ -2,6 +2,19 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.7-stable] - 2026-05-30
+
+### Fixed
+- **💰 Kolom HPP di Buat Nota benar (inc PPN 11%)**: kolom HPP pada baris produk dulu menampilkan harga sebelum PPN (mis. 30.096 padahal HPP batch 33.407). Sekarang konsisten inc PPN, sama dengan dropdown batch. Input manual = ketik HPP final (inc PPN), disimpan otomatis sebagai HNA.
+  - _Detail teknis_: `SalesOrderList.jsx` field HPP item row (`:980`) `value=Math.round(hppFromHna(it.unit_hpp))`, `onChange=hnaFromHpp(input)` → storage `unit_hpp` tetap HNA exc PPN (round-trip `hppFromHna(hnaFromHpp(x))=x`). Detail expand (`:758`) `fmtRp(hppFromHna)`. Import `+hnaFromHpp`.
+- **📦 Fix error "stock_received does not exist" saat simpan Faktur Pembelian** (commit Codex `13600b6`): `ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS stock_received` (purchaseOrders.js + guard invoices.js) + patch Neon prod.
+
+### Added
+- **🗂️ Polish Inventory & Opname** (Codex `13600b6`): expanded batch row punya aksi edit/adjust/hapus; Edit Produk tab Profil & Batch; Opname tombol Samakan & Clear + footer summary; ProductDrawer nilai inventaris pakai HPP inc PPN; BatchFormModal z-index fix.
+- **🧾 Input Faktur mode HNA/HPP** (Codex `13600b6`): field harga unit faktur bisa pilih HNA (exc PPN) atau HPP (inc PPN); mode HPP otomatis konversi balik ke HNA untuk storage.
+
+> Catatan: v1.11.7 menggabungkan fix HPP Nota (Claude) + 3 perubahan Codex commit `13600b6` yang sebelumnya belum tercatat di changelog/RELEASES.
+
 ## [v1.11.6-stable] - 2026-05-30
 
 ### Fixed
