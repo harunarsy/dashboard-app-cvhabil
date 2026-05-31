@@ -9,12 +9,12 @@ const StockMovementChart = lazy(() => import('./dashboard/StockMovementChart'));
 
 const RELEASES = [
   {
-    version: 'v1.12.5-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.12.6-stable', date: '31 Mei 2026', status: 'latest',
     changes: [
       {
         type: 'ui',
-        text: 'Form dan navigasi utama sekarang lebih mulus: Login, Sidebar, Purchase Order, Sales Order, dan Bulk Edit punya timing motion yang konsisten, focus state yang jelas, dan affordance icon button yang lebih rapi.',
-        dev: 'frontend/src/index.js, Login.jsx, Sidebar.jsx, PurchaseOrderList.jsx, SalesOrderList.jsx, dan BulkEditModal.jsx disinkronkan ke label versi terbaru. Motion foundation dari v1.12.4 tetap jadi basis, lalu flow form/nav dihaluskan tanpa ubah logika bisnis.'
+        text: 'Inventory surface jadi lebih rapi: drawer produk, batch actions, opname per-batch, dan modal print barcode sekarang lebih konsisten dengan motion / focus / hover yang sama.',
+        dev: 'frontend/src/components/InventoryDashboard.jsx, inventory/ProductDrawer.jsx, inventory/OpnameModal.jsx, inventory/PrintBarcodeModal.jsx, dan MasterSelect.jsx disinkronkan ke label versi terbaru. Nilai inventaris tetap pakai HPP inc PPN supaya angka di list dan detail tetap satu bahasa.'
       },
     ]
   },
@@ -976,7 +976,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.12.5-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.6-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -1040,7 +1040,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.12.5-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.6-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

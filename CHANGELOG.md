@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.12.6-stable] - 2026-05-31
+
+### Added
+- Inventory surface jadi lebih rapi: drawer produk, batch actions, opname per-batch, dan modal print barcode sekarang lebih konsisten dengan motion / focus / hover yang sama.
+- Nilai inventaris di drawer tetap pakai HPP inc PPN, jadi angka yang muncul di tabel dan detail tetap satu bahasa.
+
 ## [v1.12.5-stable] - 2026-05-31
 
 ### Added

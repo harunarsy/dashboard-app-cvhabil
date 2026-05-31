@@ -19,6 +19,7 @@ import HnaHppInput from './common/HnaHppInput';
 import BulkEditModal from './inventory/BulkEditModal';
 import BarcodeScanner from './common/BarcodeScanner';
 import PrintBarcodeModal from './inventory/PrintBarcodeModal';
+import { UI_MOTION, UI_SIZE, uiTransition } from '../constants/ui';
 
 const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -90,7 +91,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
     } catch (e) {
       console.error(e);
     } finally {
-      setTimeout(() => setLoading(false), 300);
+      setTimeout(() => setLoading(false), UI_MOTION.duration.loading);
     }
   }, []);
   const fetchAlerts = useCallback(async () => {
@@ -150,8 +151,8 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   const totalNilai = useMemo(() => filtered.reduce((s, p) => s + hppFromHna(p.hna) * (parseInt(p.total_stock) || 0), 0), [filtered]);
   const selectedBarcodeProducts = useMemo(() => products.filter(p => selectedProductIds.has(p.id)), [products, selectedProductIds]);
 
-  const flashSuccess = (msg) => { setToast({ msg, type: 'success' }); setTimeout(() => setToast({ msg: '', type: 'success' }), 2500); };
-  const flashError = (msg) => { setToast({ msg, type: 'error' }); setTimeout(() => setToast({ msg: '', type: 'success' }), 3500); };
+  const flashSuccess = (msg) => { setToast({ msg, type: 'success' }); setTimeout(() => setToast({ msg: '', type: 'success' }), UI_MOTION.duration.toastSuccess); };
+  const flashError = (msg) => { setToast({ msg, type: 'error' }); setTimeout(() => setToast({ msg: '', type: 'success' }), UI_MOTION.duration.toastError); };
   const findProductByCode = (code) => {
     const normalized = String(code || '').trim().toLowerCase();
     if (!normalized) return null;
@@ -363,18 +364,18 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
   const totalAlerts = alerts.expiring.length + alerts.lowStock.length;
   const headerBtn = (color, Icon, label, onClick) => (
-    <button onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px',
+    <button onClick={onClick} className="ui-motion-button ui-focus-ring" style={{
+      display: 'flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 16px',
       backgroundColor: color, color: '#FFF', border: 'none', borderRadius: '10px',
       cursor: 'pointer', fontWeight: '700', fontSize: '13px',
       boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
     }}>
-      <Icon size={16} /> {label}
+      <Icon size={UI_SIZE.icon.md} /> {label}
     </button>
   );
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div className="ui-motion-page" style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
       <Breadcrumb title="Inventory" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header */}
@@ -397,8 +398,8 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '4px', backgroundColor: isDarkMode ? '#1C1C1E' : '#E5E5EA', borderRadius: '10px', padding: '3px', marginBottom: '1.5rem', maxWidth: '500px' }}>
         {[['products', '📦 Produk'], ['alerts', `⚠️ Alert ${totalAlerts > 0 ? `(${totalAlerts})` : ''}`]].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)}
-            style={{ flex: 1, padding: '8px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700',
+          <button key={key} onClick={() => setTab(key)} className="ui-motion-button ui-focus-ring"
+            style={{ flex: 1, minHeight: '40px', padding: '8px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700',
               backgroundColor: tab === key ? cardBg : 'transparent',
               color: tab === key ? text : sub,
               boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none' }}>
@@ -412,9 +413,9 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
         <div style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: '1 1 280px', maxWidth: '420px' }}>
             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: sub }} />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari produk, kode, kategori..." style={{ ...inputStyle, paddingLeft: '36px' }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari produk, kode, kategori..." className="ui-focus-ring" style={{ ...inputStyle, paddingLeft: '36px' }} />
           </div>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ ...inputStyle, maxWidth: '180px', cursor: 'pointer' }}>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="ui-focus-ring" style={{ ...inputStyle, maxWidth: '180px', cursor: 'pointer' }}>
             <option value="all">Semua status</option>
             <option value="low">Stok rendah</option>
             <option value="expiring">Mendekati expired</option>
@@ -506,7 +507,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                             />
                           </td>
                           <td style={{ ...tdStyle, width: '36px' }}>
-                            <button onClick={() => toggleExpand(p.id)} aria-label={isExpanded ? 'Tutup batch' : 'Lihat batch'} style={{
+                            <button onClick={() => toggleExpand(p.id)} aria-label={isExpanded ? 'Tutup batch' : 'Lihat batch'} className="ui-motion-button ui-focus-ring" style={{
                               background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px',
                               display: 'flex', alignItems: 'center', color: sub,
                               transform: isExpanded ? 'rotate(0deg)' : 'rotate(0deg)',
@@ -516,7 +517,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                           </td>
                           <td style={{ ...tdStyle, color: sub, fontFamily: 'monospace', fontSize: '12px' }}>{p.code || '—'}</td>
                           <td style={tdStyle}>
-                            <button onClick={() => setDrawerProductId(p.id)} style={{
+                            <button onClick={() => setDrawerProductId(p.id)} className="ui-focus-ring" style={{
                               background: 'transparent', border: 'none', cursor: 'pointer',
                               padding: 0, fontWeight: '600', color: text, fontSize: '13px',
                               textAlign: 'left', fontFamily: 'inherit',
@@ -1059,7 +1060,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
       {/* Toast */}
       {toast.msg && (
-        <div role="status" aria-live="polite" style={{
+        <div role="status" aria-live="polite" className="ui-motion-toast" style={{
           position: 'fixed', bottom: '24px', right: '24px',
           backgroundColor: toast.type === 'error' ? '#FF3B30' : '#34C759', color: '#FFF',
           padding: '12px 20px', borderRadius: '12px', fontWeight: '600', fontSize: '14px',
@@ -1093,7 +1094,7 @@ const secondaryBtn = (surface, text, border) => ({
 
 function IconBtn({ onClick, label, Icon, color }) {
   return (
-    <button onClick={onClick} title={label} aria-label={label} style={{
+    <button onClick={onClick} title={label} aria-label={label} className="ui-motion-button ui-focus-ring" style={{
       background: 'transparent', border: 'none', cursor: 'pointer',
       width: '34px', height: '34px', padding: 0, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
       transition: 'background 0.15s',
@@ -1266,14 +1267,14 @@ function ModalShell({ onClose, cardBg, title, titleColor, text, border, sub, isM
       position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)',
       display: hidden ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: isMobile ? 0 : '1rem',
     }}>
-      <div className="glass-target glass-target--clear" style={{
+      <div className="glass-target glass-target--clear ui-motion-modal" style={{
         backgroundColor: cardBg, borderRadius: isMobile ? 0 : '16px', width: '100%',
         maxWidth, maxHeight: isMobile ? '100%' : '90vh', overflow: 'auto',
         boxShadow: '0 32px 64px rgba(0,0,0,0.35)', height: isMobile ? '100%' : 'auto',
       }}>
         <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: cardBg, zIndex: 1 }}>
           <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: titleColor || text }}>{title}</h3>
-          <button onClick={onClose} aria-label="Tutup" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}><X size={18} color={sub} /></button>
+          <button onClick={onClose} aria-label="Tutup" className="ui-motion-button ui-focus-ring" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}><X size={18} color={sub} /></button>
         </div>
         <div style={{ padding: '20px 22px' }}>{children}</div>
       </div>

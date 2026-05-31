@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { X, FileDown, Barcode, LayoutGrid, Settings2, AlertCircle } from 'lucide-react';
 import { printSettingsAPI } from '../../services/api';
 import { generateBarcodePDF } from '../../utils/generateBarcodePDF';
+import { UI_SIZE } from '../../constants/ui';
 
 export default function PrintBarcodeModal({ products, isDarkMode, onClose, onGenerated }) {
   const [rows, setRows] = useState([]);
@@ -54,7 +55,9 @@ export default function PrintBarcodeModal({ products, isDarkMode, onClose, onGen
       try {
         const { data } = await printSettingsAPI.get();
         settings = data?.nota_layout || data || {};
-      } catch (_) {}
+      } catch (err) {
+        console.warn('Print settings tidak tersedia, pakai default layout barcode.', err);
+      }
 
       const { doc, skippedCount } = await generateBarcodePDF(rows, {
         layout,
@@ -79,7 +82,7 @@ export default function PrintBarcodeModal({ products, isDarkMode, onClose, onGen
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
       }}
     >
-      <div className="glass-target glass-target--clear" style={{
+      <div className="glass-target glass-target--clear ui-motion-modal" style={{
         background: bg, color: text, borderRadius: '20px', width: '100%',
         maxWidth: '920px', maxHeight: '90vh', display: 'flex', flexDirection: 'column',
         boxShadow: '0 32px 64px rgba(0,0,0,0.35)', overflow: 'hidden',
@@ -94,13 +97,14 @@ export default function PrintBarcodeModal({ products, isDarkMode, onClose, onGen
             </p>
           </div>
           <button
-            type="button"
-            onClick={onClose}
-            disabled={generating}
-            aria-label="Tutup modal print barcode"
-            style={{ width: '40px', height: '40px', border: 'none', borderRadius: '12px', background: surface, color: text, cursor: generating ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <X size={18} />
+          type="button"
+          onClick={onClose}
+          disabled={generating}
+          aria-label="Tutup modal print barcode"
+          className="ui-motion-button ui-focus-ring"
+          style={{ width: '40px', height: '40px', border: 'none', borderRadius: '12px', background: surface, color: text, cursor: generating ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <X size={UI_SIZE.icon.lg} />
           </button>
         </div>
 
@@ -119,6 +123,7 @@ export default function PrintBarcodeModal({ products, isDarkMode, onClose, onGen
                   key={key}
                   type="button"
                   onClick={() => setLayout(key)}
+                  className="ui-motion-button ui-focus-ring"
                   style={{
                     minHeight: '38px', padding: '0 14px', borderRadius: '12px',
                     border: `1px solid ${layout === key ? '#007AFF' : border}`,
@@ -210,10 +215,11 @@ export default function PrintBarcodeModal({ products, isDarkMode, onClose, onGen
             )}
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={onClose} disabled={generating} style={secondaryBtn(surface, text, border)}>Batal</button>
+            <button onClick={onClose} disabled={generating} className="ui-motion-button ui-focus-ring" style={secondaryBtn(surface, text, border)}>Batal</button>
             <button
               onClick={handleGenerate}
               disabled={generating || printableRows.length === 0}
+              className="ui-motion-button ui-focus-ring"
               style={{
                 minWidth: '160px',
                 padding: '12px 16px',

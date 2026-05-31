@@ -4,6 +4,7 @@ import { inventoryAPI, printSettingsAPI } from '../../services/api';
 import BatchFormModal from './BatchFormModal';
 import { generateOpnamePDF } from '../../utils/generateOpnamePDF';
 import BarcodeScanner from '../common/BarcodeScanner';
+import { UI_MOTION, UI_SIZE } from '../../constants/ui';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
@@ -68,8 +69,8 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
     setHighlightProductId(product.id);
     setTimeout(() => {
       productRowRefs.current[product.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 80);
-    setTimeout(() => setHighlightProductId(null), 1800);
+    }, UI_MOTION.duration.scrollIntoView);
+    setTimeout(() => setHighlightProductId(null), UI_MOTION.duration.scanHighlight);
   }, [findProductByCode]);
 
   useEffect(() => {
@@ -259,7 +260,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000,
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? 0 : '1rem',
     }}>
-      <div className="glass-target glass-target--clear" style={{
+      <div className="glass-target glass-target--clear ui-motion-modal" style={{
         background: bg, color: text, borderRadius: isMobile ? 0 : '20px',
         width: '100%', maxWidth: '960px', height: isMobile ? '100%' : '85vh',
         display: 'flex', flexDirection: 'column', boxShadow: '0 32px 64px rgba(0,0,0,0.35)',
@@ -275,9 +276,9 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
               Pilih produk → input qty fisik per batch. Hanya batch yang berubah yang disimpan.
             </p>
           </div>
-          <button onClick={onClose} aria-label="Tutup" style={{
+          <button onClick={onClose} aria-label="Tutup" className="ui-motion-button ui-focus-ring" style={{
             background: surface, border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: text,
-          }}><X size={16} /></button>
+          }}><X size={UI_SIZE.icon.md} /></button>
         </div>
 
         {/* Body: 2-pane */}
@@ -306,6 +307,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                 type="button"
                 onClick={() => { setActionError(''); setScannerOpen(true); }}
                 aria-label="Scan barcode produk untuk opname"
+                className="ui-motion-button ui-focus-ring"
                 style={{
                   minHeight: '36px', padding: '8px 11px', border: `1px solid ${border}`,
                   borderRadius: '10px', background: bg, color: text, cursor: 'pointer',
@@ -323,7 +325,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                 const isSelected = selectedProductId === p.id;
                 const isHighlighted = highlightProductId === p.id;
                 return (
-                  <button key={p.id} ref={el => { if (el) productRowRefs.current[p.id] = el; }} onClick={() => setSelectedProductId(p.id)} style={{
+                  <button key={p.id} ref={el => { if (el) productRowRefs.current[p.id] = el; }} onClick={() => setSelectedProductId(p.id)} className="ui-motion-card ui-focus-ring" style={{
                     width: '100%', padding: '10px 14px', textAlign: 'left', background: isHighlighted ? '#34C75922' : isSelected ? '#007AFF15' : 'transparent',
                     border: 'none', borderLeft: isSelected ? '3px solid #007AFF' : '3px solid transparent',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
@@ -369,13 +371,13 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                             placeholder="Kode produk"
                             style={{ padding: '3px 8px', border: `1px solid ${border}`, borderRadius: '6px', background: bg, color: text, fontSize: '12px', width: '120px', outline: 'none' }}
                           />
-                          <button onClick={() => handleSaveCode(selectedProduct)} title="Simpan kode" style={{ ...iconBtnStyle, width: '24px', height: '24px', color: '#34C759' }}><Check size={13} /></button>
-                          <button onClick={() => setEditingCode(false)} title="Batal" style={{ ...iconBtnStyle, width: '24px', height: '24px' }}><X size={13} /></button>
+                          <button onClick={() => handleSaveCode(selectedProduct)} title="Simpan kode" className="ui-motion-button ui-focus-ring" style={{ ...iconBtnStyle, width: '24px', height: '24px', color: '#34C759' }}><Check size={13} /></button>
+                          <button onClick={() => setEditingCode(false)} title="Batal" className="ui-motion-button ui-focus-ring" style={{ ...iconBtnStyle, width: '24px', height: '24px' }}><X size={13} /></button>
                         </>
                       ) : (
                         <>
                           <span>{(codeMap[selectedProduct.id] ?? selectedProduct.code) || '—'}</span>
-                          <button onClick={() => { setCodeInput(codeMap[selectedProduct.id] ?? selectedProduct.code ?? ''); setEditingCode(true); setActionError(''); }} title="Edit kode produk" style={{ ...iconBtnStyle, width: '22px', height: '22px' }}><Pencil size={11} /></button>
+                          <button onClick={() => { setCodeInput(codeMap[selectedProduct.id] ?? selectedProduct.code ?? ''); setEditingCode(true); setActionError(''); }} title="Edit kode produk" className="ui-motion-button ui-focus-ring" style={{ ...iconBtnStyle, width: '22px', height: '22px' }}><Pencil size={11} /></button>
                         </>
                       )}
                       <span>· Total sistem: {selectedProduct.total_stock || 0} {selectedProduct.unit}</span>
@@ -475,18 +477,20 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                               }} />
                             <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
                               <button
-                                type="button"
-                                onClick={() => setBatchPhysical(b, selectedProduct, b.qty_current)}
-                                style={{ flex: 1, minHeight: '28px', border: `1px solid ${border}`, background: bg, color: sub, borderRadius: '7px', fontSize: '10px', fontWeight: '700', cursor: 'pointer' }}
-                              >
-                                Samakan
+                              type="button"
+                              onClick={() => setBatchPhysical(b, selectedProduct, b.qty_current)}
+                              className="ui-motion-button ui-focus-ring"
+                              style={{ flex: 1, minHeight: '28px', border: `1px solid ${border}`, background: bg, color: sub, borderRadius: '7px', fontSize: '10px', fontWeight: '700', cursor: 'pointer' }}
+                            >
+                              Samakan
                               </button>
                               <button
-                                type="button"
-                                onClick={() => clearBatchPhysical(b.id)}
-                                style={{ flex: 1, minHeight: '28px', border: `1px solid ${border}`, background: bg, color: sub, borderRadius: '7px', fontSize: '10px', fontWeight: '700', cursor: 'pointer' }}
-                              >
-                                Clear
+                              type="button"
+                              onClick={() => clearBatchPhysical(b.id)}
+                              className="ui-motion-button ui-focus-ring"
+                              style={{ flex: 1, minHeight: '28px', border: `1px solid ${border}`, background: bg, color: sub, borderRadius: '7px', fontSize: '10px', fontWeight: '700', cursor: 'pointer' }}
+                            >
+                              Clear
                               </button>
                             </div>
                           </div>
@@ -533,16 +537,16 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
               </p>
             )}
           </div>
-          <button onClick={handleExportPDF} disabled={exporting || changedItems.length === 0} title="Cetak Berita Acara Opname" style={{
+          <button onClick={handleExportPDF} disabled={exporting || changedItems.length === 0} title="Cetak Berita Acara Opname" className="ui-motion-button ui-focus-ring" style={{
             padding: '10px 14px', background: bg, color: changedItems.length > 0 ? '#007AFF' : sub, border: `1px solid ${changedItems.length > 0 ? '#007AFF' : border}`,
             borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: changedItems.length === 0 ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', gap: '6px',
           }}><FileText size={14} /> {exporting ? '...' : 'Export PDF'}</button>
-          <button onClick={onClose} disabled={saving} style={{
+          <button onClick={onClose} disabled={saving} className="ui-motion-button ui-focus-ring" style={{
             padding: '10px 18px', background: bg, color: text, border: `1px solid ${border}`,
             borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
           }}>Batal</button>
-          <button onClick={handleSave} disabled={saving || changedItems.length === 0} style={{
+          <button onClick={handleSave} disabled={saving || changedItems.length === 0} className="ui-motion-button ui-focus-ring" style={{
             padding: '10px 18px', background: changedItems.length > 0 ? '#FF9500' : sub, color: '#FFF',
             border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '13px',
             cursor: saving || changedItems.length === 0 ? 'not-allowed' : 'pointer',
@@ -573,7 +577,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2100,
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
         }}>
-          <div className="glass-target glass-target--clear" style={{
+          <div className="glass-target glass-target--clear ui-motion-modal" style={{
             background: bg, color: text, borderRadius: '16px', padding: '20px',
             width: '100%', maxWidth: '380px', boxShadow: '0 32px 64px rgba(0,0,0,0.35)',
           }}>
@@ -604,11 +608,11 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
               <p style={{ color: '#FF3B30', fontSize: '12px', margin: '0 0 10px' }}>{actionError}</p>
             )}
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => { setAdjustFor(null); setActionError(''); }} style={{
+              <button onClick={() => { setAdjustFor(null); setActionError(''); }} className="ui-motion-button ui-focus-ring" style={{
                 flex: 1, padding: '10px', background: surface, color: text, border: `1px solid ${border}`,
                 borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
               }}>Batal</button>
-              <button onClick={handleAdjustSubmit} style={{
+              <button onClick={handleAdjustSubmit} className="ui-motion-button ui-focus-ring" style={{
                 flex: 1, padding: '10px', background: '#007AFF', color: '#FFF', border: 'none',
                 borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
               }}>Simpan</button>

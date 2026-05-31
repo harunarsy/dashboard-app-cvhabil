@@ -3,6 +3,7 @@ import { X, Edit2, Trash2, Plus, Sliders, ArrowDownCircle, ArrowUpCircle, Clipbo
 import { inventoryAPI } from '../../services/api';
 import BatchFormModal from './BatchFormModal';
 import { hppFromHna } from '../../utils/rupiah';
+import { UI_SIZE } from '../../constants/ui';
 
 const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -64,7 +65,7 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
       await load();
       onChanged?.();
     } catch (e) {
-      alert(e.response?.data?.error || e.message);
+      setError(e.response?.data?.error || e.message);
     }
   };
 
@@ -89,6 +90,7 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
     <button
       key={id}
       onClick={() => setTab(id)}
+      className="ui-motion-button ui-focus-ring"
       style={{
         flex: 1, padding: '10px 8px', background: tab === id ? bg : 'transparent',
         color: tab === id ? '#007AFF' : sub, border: 'none',
@@ -113,7 +115,7 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1900,
         animation: 'fadeIn 0.2s ease-out',
       }} />
-      <div className="glass-target glass-target--clear" style={{
+      <div className="glass-target glass-target--clear ui-motion-modal" style={{
         position: 'fixed', top: 0, right: 0, bottom: 0, width: drawerWidth, maxWidth: '100%',
         background: bg, color: text, zIndex: 1950, display: 'flex', flexDirection: 'column',
         boxShadow: '-12px 0 32px rgba(0,0,0,0.15)', animation: 'slideIn 0.25s ease-out',
@@ -134,14 +136,14 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
               {data?.name || (loading ? 'Memuat...' : '-')}
             </h2>
           </div>
-          <button onClick={() => onEdit?.(data)} aria-label="Edit Produk" disabled={!data} style={{
+          <button onClick={() => onEdit?.(data)} aria-label="Edit Produk" disabled={!data} className="ui-motion-button ui-focus-ring" style={{
             background: surface, border: 'none', borderRadius: '8px', padding: '8px',
             cursor: data ? 'pointer' : 'default', color: text, opacity: data ? 1 : 0.4,
-          }}><Edit2 size={16} /></button>
-          <button onClick={onClose} aria-label="Tutup" style={{
+          }}><Edit2 size={UI_SIZE.icon.md} /></button>
+          <button onClick={onClose} aria-label="Tutup" className="ui-motion-button ui-focus-ring" style={{
             background: surface, border: 'none', borderRadius: '8px', padding: '8px',
             cursor: 'pointer', color: text,
-          }}><X size={16} /></button>
+          }}><X size={UI_SIZE.icon.md} /></button>
         </div>
 
         {/* Tabs */}
@@ -217,7 +219,7 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
                 {data.batches.map(b => {
                   const eb = expiryBadge(b.expired_date, sub);
                   return (
-                    <div key={b.id} style={{
+                    <div key={b.id} className="ui-motion-card" style={{
                       padding: '12px', background: surface, borderRadius: '12px', border: `1px solid ${border}`,
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
@@ -229,14 +231,14 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
                           }}>{eb.text}</span>
                         </div>
                         <div style={{ display: 'flex', gap: '4px' }}>
-                          <button onClick={() => setBatchModal({ mode: 'edit', batch: b })} aria-label="Edit batch" style={iconBtn(text, isDarkMode)}>
-                            <Edit2 size={14} />
+                          <button onClick={() => setBatchModal({ mode: 'edit', batch: b })} aria-label="Edit batch" className="ui-motion-button ui-focus-ring" style={iconBtn(text, isDarkMode)}>
+                            <Edit2 size={UI_SIZE.icon.sm} />
                           </button>
-                          <button onClick={() => { setAdjustFor(b); setAdjustForm({ new_qty: b.qty_current, reason: '' }); }} aria-label="Adjust qty" style={iconBtn('#007AFF', isDarkMode)}>
-                            <Sliders size={14} />
+                          <button onClick={() => { setAdjustFor(b); setAdjustForm({ new_qty: b.qty_current, reason: '' }); }} aria-label="Adjust qty" className="ui-motion-button ui-focus-ring" style={iconBtn('#007AFF', isDarkMode)}>
+                            <Sliders size={UI_SIZE.icon.sm} />
                           </button>
-                          <button onClick={() => handleDeleteBatch(b.id)} aria-label="Hapus batch" style={iconBtn('#FF3B30', isDarkMode)}>
-                            <Trash2 size={14} />
+                          <button onClick={() => handleDeleteBatch(b.id)} aria-label="Hapus batch" className="ui-motion-button ui-focus-ring" style={iconBtn('#FF3B30', isDarkMode)}>
+                            <Trash2 size={UI_SIZE.icon.sm} />
                           </button>
                         </div>
                       </div>
@@ -296,7 +298,7 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2100,
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
         }}>
-          <div className="glass-target glass-target--clear" style={{ background: bg, color: text, borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '420px' }}>
+          <div className="glass-target glass-target--clear ui-motion-modal" style={{ background: bg, color: text, borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '420px' }}>
             <h3 style={{ margin: '0 0 4px', fontSize: '17px', fontWeight: '700' }}>Adjust Qty Batch</h3>
             <p style={{ margin: '0 0 16px', fontSize: '12px', color: sub }}>
               Batch <strong>{adjustFor.batch_no || '(no batch)'}</strong> · Sistem: {adjustFor.qty_current}

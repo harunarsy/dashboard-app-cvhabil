@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, X, Search, Check, Trash2, Pencil } from 'lucide-react';
+import { UI_MOTION } from '../constants/ui';
 
 /**
  * MasterSelect — Creatable dropdown dengan fitur:
@@ -75,7 +76,7 @@ export default function MasterSelect({
       setOpen(false);
     } catch (err) {
       setErrMsg('Gagal menambahkan: ' + (err.response?.data?.error || err.message));
-      setTimeout(() => setErrMsg(''), 3000);
+      setTimeout(() => setErrMsg(''), UI_MOTION.duration.toastError);
     }
   };
 
@@ -88,7 +89,7 @@ export default function MasterSelect({
         setConfirmDelete(null);
       } catch (err) {
         setErrMsg('Gagal menghapus: ' + (err.response?.data?.error || err.message));
-        setTimeout(() => setErrMsg(''), 3000);
+        setTimeout(() => setErrMsg(''), UI_MOTION.duration.toastError);
       }
     } else {
       setConfirmDelete(name);
@@ -142,6 +143,7 @@ export default function MasterSelect({
       {/* Trigger */}
       <div
         style={triggerStyle}
+        className="ui-motion-button ui-focus-ring"
         onClick={() => { if (!disabled) setOpen(o => !o); }}
       >
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -195,7 +197,7 @@ export default function MasterSelect({
               }}
             />
             {query && (
-              <span onClick={() => setQuery('')} style={{ cursor: 'pointer' }}>
+              <span onClick={() => setQuery('')} aria-label="Hapus pencarian" role="button" tabIndex={0} style={{ cursor: 'pointer' }}>
                 <X size={13} color={muted} />
               </span>
             )}
@@ -260,24 +262,26 @@ export default function MasterSelect({
                         setRenaming(null);
                       }
                     }} style={{ padding: '3px 6px', backgroundColor: accent, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '11px', fontWeight: '700' }}>OK</button>
-                    <button onClick={() => setRenaming(null)} style={{ padding: '3px 5px', backgroundColor: 'transparent', border: `1px solid ${border}`, borderRadius: '5px', cursor: 'pointer' }}><X size={10} color={muted} /></button>
+                    <button onClick={() => setRenaming(null)} aria-label="Batal rename" className="ui-motion-button ui-focus-ring" style={{ padding: '3px 5px', backgroundColor: 'transparent', border: `1px solid ${border}`, borderRadius: '5px', cursor: 'pointer' }}><X size={10} color={muted} /></button>
                   </div>
                 ) : onRename && (
                   <button
                     onClick={e => { e.stopPropagation(); setRenaming(opt.name); setRenameVal(opt.name); }}
                     title="Rename"
+                    className="ui-motion-button ui-focus-ring"
                     style={{ padding: '4px 6px', backgroundColor: 'transparent', border: `1px solid ${border}`, borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
                   >
                     <Pencil size={11} color={muted} />
                   </button>
                 )}
               {/* Delete button */}
-                <button
-                  onClick={e => handleDelete(opt.name, e)}
-                  title={confirmDelete === opt.name ? 'Klik lagi untuk konfirmasi hapus' : 'Hapus dari daftar'}
-                  style={{
-                    padding: '4px 8px',
-                    backgroundColor: confirmDelete === opt.name ? '#FF3B30' : 'transparent',
+                  <button
+                    onClick={e => handleDelete(opt.name, e)}
+                    title={confirmDelete === opt.name ? 'Klik lagi untuk konfirmasi hapus' : 'Hapus dari daftar'}
+                    className="ui-motion-button ui-focus-ring"
+                    style={{
+                      padding: '4px 8px',
+                      backgroundColor: confirmDelete === opt.name ? '#FF3B30' : 'transparent',
                     border: `1px solid ${confirmDelete === opt.name ? '#FF3B30' : border}`,
                     borderRadius: '6px',
                     cursor: 'pointer',
@@ -305,10 +309,11 @@ export default function MasterSelect({
             backgroundColor: isDarkMode ? '#111' : '#FAFAFA',
           }}>
             {!adding ? (
-              <button
-                onClick={() => { setAdding(true); setNewName(query); }}
-                style={{
-                  width: '100%',
+                <button
+                  onClick={() => { setAdding(true); setNewName(query); }}
+                  className="ui-motion-button ui-focus-ring"
+                  style={{
+                    width: '100%',
                   padding: '8px 12px',
                   backgroundColor: 'transparent',
                   border: `1.5px dashed ${border}`,
@@ -350,14 +355,14 @@ export default function MasterSelect({
                     if (e.key === 'Escape') { setAdding(false); setNewName(''); }
                   }}
                 />
-                <button onClick={handleAdd} style={{
+                <button onClick={handleAdd} className="ui-motion-button ui-focus-ring" style={{
                   padding: '8px 14px', backgroundColor: accent, color: 'white',
                   border: 'none', borderRadius: '8px', cursor: 'pointer',
                   fontSize: '13px', fontWeight: '700',
                 }}>
                   Simpan
                 </button>
-                <button onClick={() => { setAdding(false); setNewName(''); }} style={{
+                <button onClick={() => { setAdding(false); setNewName(''); }} aria-label="Batal tambah" className="ui-motion-button ui-focus-ring" style={{
                   padding: '8px 10px', backgroundColor: 'transparent',
                   border: `1px solid ${border}`, borderRadius: '8px', cursor: 'pointer',
                 }}>
