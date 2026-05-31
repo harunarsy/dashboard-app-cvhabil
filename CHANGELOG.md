@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.13.1-stable] - 2026-06-01
+
+### Changed
+- Wiring polish lintas surface: icon-only controls yang masih pakai `title` digeser ke tooltip component, `ui-hover-delight` dipasang di card/list/kanban surface yang relevan, dan CTA utama diselaraskan ke `btn-primary` + `data-magnetic="true"`.
+- `Dashboard.jsx` kini memakai hook count-up bersama untuk nilai statistik, sementara release metadata dan label versi disinkronkan ke `v1.13.1-stable`.
+- `generateNotaPDF.js` tetap tidak disentuh.
+
 ## [v1.13.0-stable] - 2026-06-01
 
 ### Changed

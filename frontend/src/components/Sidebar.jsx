@@ -4,6 +4,7 @@ import { Home, ShoppingCart, Package, DollarSign, Users, ChevronLeft, ChevronRig
 import api from '../services/api';
 import { UI_MOTION, uiTransition } from '../constants/ui';
 import { AuthContext } from '../context/AuthContext';
+import Tooltip from './common/Tooltip';
 
 export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen }) {
   const navigate = useNavigate();
@@ -117,7 +118,19 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
   const txt = isDarkMode ? '#FFF' : '#000';
   const sub = isDarkMode ? 'var(--color-text-subtle)' : 'var(--color-text-muted)';
-  const appVersion = 'v1.13.0-stable';
+  const appVersion = 'v1.13.1-stable';
+  const TooltipButton = ({ label, children, className = '', style = {}, ...buttonProps }) => (
+    <Tooltip text={label} position="right" wrapperClassName="block w-full" wrapperStyle={{ display: 'block', width: '100%' }}>
+      <button
+        {...buttonProps}
+        aria-label={label}
+        className={`ui-motion-button ui-focus-ring ${className}`.trim()}
+        style={style}
+      >
+        {children}
+      </button>
+    </Tooltip>
+  );
 
   const closeMobileDrawer = () => setMobileOpen(false);
 
@@ -199,20 +212,25 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
     <>
       {/* Mobile Hamburger Button */}
       {isMobile && (
-        <button
-          onClick={() => setMobileOpen(o => !o)}
-          style={{
-            position: 'fixed', top: '14px', left: '14px', zIndex: 100,
-            background: bg, border: `1px solid ${border}`, borderRadius: '10px',
-            width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-          }}
-          aria-label={mobileOpen ? 'Tutup menu' : 'Buka menu'}
-          aria-expanded={mobileOpen}
-          aria-controls="mobile-navigation-drawer"
+        <Tooltip
+          text={mobileOpen ? 'Tutup menu' : 'Buka menu'}
+          position="right"
+          wrapperStyle={{ position: 'fixed', top: '14px', left: '14px', zIndex: 100 }}
         >
-          {mobileOpen ? <X size={18} color={txt} /> : <Menu size={18} color={txt} />}
-        </button>
+          <button
+            onClick={() => setMobileOpen(o => !o)}
+            style={{
+              background: bg, border: `1px solid ${border}`, borderRadius: '10px',
+              width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            }}
+            aria-label={mobileOpen ? 'Tutup menu' : 'Buka menu'}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-navigation-drawer"
+          >
+            {mobileOpen ? <X size={18} color={txt} /> : <Menu size={18} color={txt} />}
+          </button>
+        </Tooltip>
       )}
 
       {/* Mobile Overlay */}
@@ -297,14 +315,16 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
                   </div>
                 </div>
               </div>
-              <button
-                onClick={closeMobileDrawer}
-                className="shrink-0 p-2 rounded-xl"
-                style={{ color: txt, backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)' }}
-                aria-label="Tutup navigasi"
-              >
-                <X size={18} />
-              </button>
+              <Tooltip text="Tutup navigasi" position="left">
+                <button
+                  onClick={closeMobileDrawer}
+                  className="shrink-0 p-2 rounded-xl"
+                  style={{ color: txt, backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)' }}
+                  aria-label="Tutup navigasi"
+                >
+                  <X size={18} />
+                </button>
+              </Tooltip>
             </div>
           ) : (
             isSidebarOpen && (
@@ -315,9 +335,11 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
             )
           )}
           {!isMobile && (
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label={isSidebarOpen ? 'Sembunyikan sidebar' : 'Tampilkan sidebar'} className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', color: txt }}>
-              {isSidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-            </button>
+            <Tooltip text={isSidebarOpen ? 'Sembunyikan sidebar' : 'Tampilkan sidebar'} position="left">
+              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label={isSidebarOpen ? 'Sembunyikan sidebar' : 'Tampilkan sidebar'} className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', color: txt }}>
+                {isSidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+              </button>
+            </Tooltip>
           )}
         </div>
 
@@ -331,11 +353,10 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
             const isActive = item.active;
             const isCurrent = location.pathname === item.path;
             const showLabel = isMobile || isSidebarOpen;
-            return (
+            const menuButton = (
               <button
                 key={index}
                 onClick={() => handleNavigate(item.path, isActive)}
-                title={item.label}
                 style={{
                   width: '100%',
                   minHeight: '44px',
@@ -371,29 +392,40 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
                 )}
               </button>
             );
+            return showLabel ? menuButton : (
+              <Tooltip
+                key={index}
+                text={item.label}
+                position="right"
+                wrapperClassName="block w-full"
+                wrapperStyle={{ display: 'block', width: '100%' }}
+              >
+                {menuButton}
+              </Tooltip>
+            );
           })}
         </nav>
 
         {/* Footer */}
         <div style={{ padding: isMobile ? '0.75rem 0.75rem 1rem' : '1rem', borderTop: `1px solid ${border}` }}>
           {/* Bug Report button */}
-          <button onClick={() => { if (isMobile) closeMobileDrawer(); setShowBugModal(true); }} title="Bug / Saran Fitur" aria-label="Bug / Saran Fitur" className="ui-motion-button ui-focus-ring"
+          <TooltipButton onClick={() => { if (isMobile) closeMobileDrawer(); setShowBugModal(true); }} label="Bug / Saran Fitur" className=""
             style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? '#2C1A00' : 'var(--color-warning-soft)', color: 'var(--color-warning)', fontSize: '0.875rem', fontWeight: '700' }}>
             <Bug size={20} style={{ minWidth: '20px' }} />
             {(isMobile || isSidebarOpen) && <span>Bug / Saran Fitur</span>}
-          </button>
+          </TooltipButton>
 
-          <button onClick={() => { setIsDarkMode(!isDarkMode); if (isMobile) closeMobileDrawer(); }} title={isDarkMode ? 'Light Mode' : 'Dark Mode'} aria-label={isDarkMode ? 'Aktifkan light mode' : 'Aktifkan dark mode'} className="ui-motion-button ui-focus-ring"
+          <TooltipButton onClick={() => { setIsDarkMode(!isDarkMode); if (isMobile) closeMobileDrawer(); }} label={isDarkMode ? 'Light Mode' : 'Dark Mode'} className=""
             style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)', color: txt, fontSize: '0.875rem', fontWeight: '600' }}>
             {isDarkMode ? <Sun size={20} style={{ minWidth: '20px' }} /> : <Moon size={20} style={{ minWidth: '20px' }} />}
             {(isMobile || isSidebarOpen) && <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>}
-          </button>
+          </TooltipButton>
 
-          <button onClick={() => { if (isMobile) closeMobileDrawer(); handleLogout(); }} title="Logout" aria-label="Logout" className="ui-motion-button ui-focus-ring"
+          <TooltipButton onClick={() => { if (isMobile) closeMobileDrawer(); handleLogout(); }} label="Logout" className=""
             style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: 'var(--color-danger)', color: 'white', fontSize: '0.875rem', fontWeight: '700' }}>
             <LogOut size={20} style={{ minWidth: '20px' }} />
             {(isMobile || isSidebarOpen) && <span>Logout</span>}
-          </button>
+          </TooltipButton>
 
           {isMobile && (
             <div className="mt-3 px-2">

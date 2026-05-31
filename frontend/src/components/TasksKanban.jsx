@@ -18,6 +18,7 @@ import {
 import { tasksAPI } from '../services/api';
 import Skeleton from './common/Skeleton';
 import { UI_MOTION } from '../constants/ui';
+import Tooltip from './common/Tooltip';
 
 const API_BASE = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5001/api' : '/api');
 
@@ -56,6 +57,18 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
   const [toast, setToast] = useState('');
   const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), UI_MOTION.duration.toastSuccess); };
   const [trashLoading, setTrashLoading] = useState(false);
+  const TooltipButton = ({ label, children, className = '', style = {}, ...buttonProps }) => (
+    <Tooltip text={label} position="top">
+      <button
+        {...buttonProps}
+        aria-label={label}
+        className={`ui-motion-button ui-focus-ring ${className}`.trim()}
+        style={style}
+      >
+        {children}
+      </button>
+    </Tooltip>
+  );
 
   // ─── Theme tokens (premium SaaS palette, mirror Dashboard) ──────────────
   const bg = 'var(--color-bg)';
@@ -217,7 +230,8 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="ui-motion-button ui-focus-ring flex items-center gap-2 text-white px-4 py-2 rounded-full text-xs font-semibold transition-all shadow-md hover:shadow-lg"
+          className="btn-primary ui-motion-button ui-focus-ring flex items-center gap-2 text-white px-4 py-2 rounded-full text-xs font-semibold transition-all shadow-md hover:shadow-lg"
+          data-magnetic="true"
           style={{ backgroundColor: accent }}
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#0077ED'}
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = accent}
@@ -302,7 +316,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
               ) : (
                 <div className="grid grid-cols-1 gap-3">
                   {trashTasks.map(task => (
-                    <div key={task.id} className="ui-motion-card p-4 rounded-2xl flex items-center justify-between transition-all" style={{ backgroundColor: bg, border: `1px solid ${subtleBorder}` }}>
+                    <div key={task.id} className="ui-motion-card ui-hover-delight p-4 rounded-2xl flex items-center justify-between transition-all" style={{ backgroundColor: bg, border: `1px solid ${subtleBorder}` }}>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[10px] font-bold uppercase" style={{ color: sub }}>{task.priority}</span>
@@ -315,21 +329,21 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                       <div className="flex items-center gap-2 ml-4">
                         <button
                           onClick={() => handleRestoreTask(task.id)}
-                          className="ui-motion-button ui-focus-ring flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all"
+                          className="btn-primary ui-motion-button ui-focus-ring flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all"
+                          data-magnetic="true"
                           style={{ backgroundColor: cardBg, color: text, border: `1px solid ${subtleBorder}` }}
                         >
                           <RotateCcw size={14} />
                           <span>Pulihkan</span>
                         </button>
-                        <button
+                        <TooltipButton
                           onClick={() => handlePermanentDelete(task.id)}
-                          className="ui-motion-button ui-focus-ring flex items-center justify-center w-8 h-8 rounded-xl transition-all"
+                          label="Hapus Permanen"
+                          className="flex items-center justify-center w-8 h-8 rounded-xl transition-all"
                           style={{ backgroundColor: cardBg, color: sub, border: `1px solid ${subtleBorder}` }}
-                          aria-label="Hapus permanen"
-                          title="Hapus Permanen"
                         >
                           <Trash2 size={14} />
-                        </button>
+                        </TooltipButton>
                       </div>
                     </div>
                   ))}
@@ -390,7 +404,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                         draggable
                         onDragStart={(e) => onDragStart(e, task.id)}
                         onClick={() => setEditingTask(task)}
-                        className="ui-motion-card p-3 rounded-xl shadow-sm hover:shadow-md transition-all group cursor-pointer active:scale-95"
+                        className="ui-motion-card ui-hover-delight p-3 rounded-xl shadow-sm hover:shadow-md transition-all group cursor-pointer active:scale-95"
                         style={{ backgroundColor: cardBg, border: `1px solid ${subtleBorder}`, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
                       >
                         <div className="flex justify-between items-start mb-1.5">
@@ -417,7 +431,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                   })}
 
                   {getTasksByStatus(column.id).length === 0 && (
-                    <div className="ui-motion-card flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl py-8" style={{ borderColor: subtleBorder }}>
+                    <div className="ui-motion-card ui-hover-delight flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl py-8" style={{ borderColor: subtleBorder }}>
                       <p className="text-[10px] font-bold uppercase tracking-tighter" style={{ color: sub, opacity: 0.5 }}>Empty</p>
                     </div>
                   )}
@@ -506,7 +520,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
               </div>
 
               <div className="pt-4">
-                <button type="submit" className="ui-motion-button ui-focus-ring w-full py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all active:scale-[0.98]" style={{ backgroundColor: accent, color: '#FFF' }}>
+                  <button type="submit" className="btn-primary ui-motion-button ui-focus-ring w-full py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all active:scale-[0.98]" data-magnetic="true" style={{ backgroundColor: accent, color: '#FFF' }}>
                   Simpan Tugas
                 </button>
               </div>
@@ -522,11 +536,10 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
             <div className="flex justify-between items-center p-8 pb-4">
               <h2 className="text-2xl font-extrabold tracking-tight" style={{ color: text }}>Detail Tugas</h2>
               <div className="flex gap-2">
-                <button onClick={() => fetchHistory(editingTask.id)} className="ui-motion-button ui-focus-ring p-2 rounded-full transition-colors" style={{ color: sub }}
+                <TooltipButton onClick={() => fetchHistory(editingTask.id)} label="Lihat Riwayat" className="p-2 rounded-full transition-colors" style={{ color: sub }}
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = surface}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                  aria-label="Lihat Riwayat" title="Lihat Riwayat"
-                ><History size={20} /></button>
+                ><History size={20} /></TooltipButton>
                 <button onClick={() => setEditingTask(null)} className="ui-motion-button ui-focus-ring p-2 rounded-full transition-colors" style={{ color: sub }}
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = surface}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -610,7 +623,8 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                       style={{ backgroundColor: dangerSoft, color: danger }}
                     >Hapus</button>
                     <button type="submit"
-                      className="ui-motion-button ui-focus-ring flex-[2] py-4 rounded-2xl font-bold text-sm shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
+                      className="btn-primary ui-motion-button ui-focus-ring flex-[2] py-4 rounded-2xl font-bold text-sm shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
+                      data-magnetic="true"
                       style={{ backgroundColor: accent, color: '#FFF' }}
                     >Simpan Perubahan</button>
                   </div>

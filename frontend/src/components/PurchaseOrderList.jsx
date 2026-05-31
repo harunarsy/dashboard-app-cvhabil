@@ -51,6 +51,25 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
   const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = 'var(--color-text-subtle)';
+  const TooltipButton = ({ label, children, className = '', style = {}, ...buttonProps }) => (
+    <span className="group relative inline-flex">
+      <button
+        {...buttonProps}
+        aria-label={label}
+        className={`ui-motion-button ui-focus-ring ${className}`.trim()}
+        style={style}
+      >
+        {children}
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-md border px-2.5 py-1 text-[10px] font-semibold shadow-lg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+        style={{ backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : '#FFF', color: isDarkMode ? '#FFF' : '#000', borderColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)' }}
+      >
+        {label}
+      </span>
+    </span>
+  );
 
   const fetchOrders = async () => { 
     setLoading(true);
@@ -283,7 +302,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
           <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: 0, color: text }}>📋 Surat Pesanan</h1>
           <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>{loading ? <Skeleton width="130px" height="14px" /> : `${orders.length} SP tercatat`}</p>
         </div>
-        <button onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
+        <button onClick={openCreate} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
           <Plus size={18} /> Buat SP
         </button>
       </div>
@@ -300,7 +319,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
       </div>
 
       {/* Table */}
-      <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
+      <div className="ui-hover-delight" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '640px' }}>
           <thead>
             <tr style={{ backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)' }}>
@@ -347,10 +366,10 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                       </td>
                       <td style={{ padding: '12px 14px' }}>
                         <div style={{ display: 'flex', gap: '4px' }} onClick={e => e.stopPropagation()}>
-                          <button onClick={() => handlePrintSP(o)} title="Cetak SP" disabled={pdfLoading === o.id} style={{ background: 'none', border: 'none', cursor: pdfLoading === o.id ? 'not-allowed' : 'pointer', padding: '4px', opacity: pdfLoading === o.id ? 0.5 : 1 }}><FileText size={15} color="var(--color-primary-hover)" /></button>
-                          {o.status !== 'received' && <button onClick={() => openReceive(o)} title="Terima Barang" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><CheckCircle size={15} color="var(--color-success)" /></button>}
-                          <button onClick={() => openEdit(o)} aria-label={`Edit pesanan ${o.po_number}`} title="Edit pesanan" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="var(--color-primary)" /></button>
-                          <button onClick={() => handleDelete(o.id)} aria-label={`Hapus pesanan ${o.po_number}`} title="Hapus pesanan" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="var(--color-danger)" /></button>
+                          <TooltipButton label="Cetak SP" disabled={pdfLoading === o.id} onClick={() => handlePrintSP(o)} style={{ background: 'none', border: 'none', cursor: pdfLoading === o.id ? 'not-allowed' : 'pointer', padding: '4px', opacity: pdfLoading === o.id ? 0.5 : 1 }}><FileText size={15} color="var(--color-primary-hover)" /></TooltipButton>
+                          {o.status !== 'received' && <TooltipButton label="Terima Barang" onClick={() => openReceive(o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><CheckCircle size={15} color="var(--color-success)" /></TooltipButton>}
+                          <TooltipButton label="Edit pesanan" onClick={() => openEdit(o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="var(--color-primary)" /></TooltipButton>
+                          <TooltipButton label="Hapus pesanan" onClick={() => handleDelete(o.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="var(--color-danger)" /></TooltipButton>
                         </div>
                       </td>
                     </tr>
@@ -511,7 +530,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                       <select value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px' }}>
                         {unitOptions.map((u, i) => <option key={`${u.value}-${i}`} value={u.value}>{u.label}</option>)}
                       </select>
-                      {items.length > 1 && <button onClick={() => removeItem(idx)} aria-label="Hapus baris produk" title="Hapus baris produk" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="var(--color-danger)" /></button>}
+                      {items.length > 1 && <TooltipButton label="Hapus baris produk" onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="var(--color-danger)" /></TooltipButton>}
                     </div>
                     {showPreview && it.qty > 0 && (
                       <p style={{ margin: '4px 0 0 8px', fontSize: '11px', color: sub }}>📐 {formatQtyWithConversion(it.qty, it.unit, product)}</p>
@@ -526,7 +545,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                 <p style={{ fontSize: '12px', color: 'var(--color-danger)', margin: '0', fontWeight: '500' }}>{saveError}</p>
               )}
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={handleSave} disabled={isSaving} style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', opacity: isSaving ? 0.7 : 1 }}>{isSaving ? 'Menyimpan...' : (editId ? 'Simpan' : 'Buat SP')}</button>
+                <button onClick={handleSave} disabled={isSaving} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', opacity: isSaving ? 0.7 : 1 }}>{isSaving ? 'Menyimpan...' : (editId ? 'Simpan' : 'Buat SP')}</button>
                 <button onClick={() => setShowModal(null)} disabled={isSaving} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600', opacity: isSaving ? 0.7 : 1 }}>Batal</button>
               </div>
               </div>
@@ -583,7 +602,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                 </tbody>
               </table>
               <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-                <button onClick={handleReceive} style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-success)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Terima & Update Stok</button>
+                <button onClick={handleReceive} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-success)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Terima & Update Stok</button>
                 <button onClick={() => setShowModal(null)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
               </div>
             </div>
@@ -605,7 +624,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
               <div><label style={labelStyle}>Nama Salesman</label><input value={distForm.salesman_name} onChange={e => setDistForm(p => ({...p, salesman_name: e.target.value}))} style={inputStyle} placeholder="Nama PIC dari distributor" /></div>
               <div><label style={labelStyle}>No. HP Salesman</label><input value={distForm.salesman_phone} onChange={e => setDistForm(p => ({...p, salesman_phone: e.target.value}))} style={inputStyle} placeholder="0812xxx" /></div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                <button onClick={handleSaveDistributor} style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-primary)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Simpan Data Master</button>
+                <button onClick={handleSaveDistributor} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-primary)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Simpan Data Master</button>
                 <button onClick={() => setShowModal('create')} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
               </div>
             </div>

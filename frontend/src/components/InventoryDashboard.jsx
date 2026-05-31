@@ -19,6 +19,7 @@ import HnaHppInput from './common/HnaHppInput';
 import BulkEditModal from './inventory/BulkEditModal';
 import BarcodeScanner from './common/BarcodeScanner';
 import PrintBarcodeModal from './inventory/PrintBarcodeModal';
+import Tooltip from './common/Tooltip';
 import { UI_MOTION, UI_SIZE, uiTransition } from '../constants/ui';
 
 const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
@@ -364,7 +365,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
   const totalAlerts = alerts.expiring.length + alerts.lowStock.length;
   const headerBtn = (color, Icon, label, onClick) => (
-    <button onClick={onClick} className="ui-motion-button ui-focus-ring" style={{
+    <button onClick={onClick} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{
       display: 'flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 16px',
       backgroundColor: color, color: '#FFF', border: 'none', borderRadius: '10px',
       cursor: 'pointer', fontWeight: '700', fontSize: '13px',
@@ -426,7 +427,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
       {/* ─── Products Tab ───────────────────────────────────────────────── */}
       {tab === 'products' && (
-        <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px', overflow: 'hidden' }}>
+        <div className="ui-hover-delight" style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px', overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '760px' }}>
               <thead>
@@ -608,7 +609,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
       {/* ─── Alerts Tab ─────────────────────────────────────────────────── */}
       {tab === 'alerts' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px', padding: '18px' }}>
+            <div className="ui-hover-delight" style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px', padding: '18px' }}>
             <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: '700', color: 'var(--color-warning)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Clock size={18} /> Mendekati Expired ({alerts.expiring.length})
             </h3>
@@ -628,7 +629,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
             }) : <p style={{ color: sub, fontSize: '14px', margin: 0 }}>✅ Tidak ada produk mendekati expired.</p>}
           </div>
 
-          <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px', padding: '18px' }}>
+            <div className="ui-hover-delight" style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px', padding: '18px' }}>
             <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: '700', color: 'var(--color-danger)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AlertTriangle size={18} /> Stok Rendah ({alerts.lowStock.length})
             </h3>
@@ -746,7 +747,9 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                   <input type="number" min="1" placeholder="Min" value={tier.min_qty} onChange={e => updateTier(idx, 'min_qty', parseInt(e.target.value) || 1)} style={{ ...inputStyle, fontSize: '12px', padding: '8px' }} />
                   <input type="number" placeholder="Max" value={tier.max_qty || ''} onChange={e => updateTier(idx, 'max_qty', e.target.value)} title="Kosongkan = tanpa batas atas" style={{ ...inputStyle, fontSize: '12px', padding: '8px' }} />
                   <input type="number" placeholder="Harga (Rp)" value={tier.price} onChange={e => updateTier(idx, 'price', parseFloat(e.target.value) || 0)} style={{ ...inputStyle, fontSize: '12px', padding: '8px' }} />
-                  <button onClick={() => removeTier(idx)} type="button" aria-label="Hapus tier harga" title="Hapus tier harga" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="var(--color-danger)" /></button>
+                  <Tooltip text="Hapus tier harga" position="top">
+                    <button onClick={() => removeTier(idx)} type="button" aria-label="Hapus tier harga" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="var(--color-danger)" /></button>
+                  </Tooltip>
                 </div>
               ))}
               {(pForm.price_tiers || []).length > 0 && (
@@ -783,7 +786,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
             )}
             {(!editId || productModalTab === 'profile') && (
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-              <button onClick={saveProduct} disabled={modalSaving} style={primaryBtn('var(--color-primary)', modalSaving)}>{modalSaving ? 'Menyimpan...' : (editId ? 'Simpan' : 'Tambah')}</button>
+              <button onClick={saveProduct} disabled={modalSaving} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={primaryBtn('var(--color-primary)', modalSaving)}>{modalSaving ? 'Menyimpan...' : (editId ? 'Simpan' : 'Tambah')}</button>
               {/* v1.11.12: tombol Simpan warna konsistensi — semua biru */}
               <button onClick={() => setShowModal(null)} disabled={modalSaving} style={secondaryBtn(surface, text, border)}>Batal</button>
             </div>
@@ -837,7 +840,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
               </div>
             )}
             <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-              <button onClick={saveStockIn} disabled={modalSaving} style={primaryBtn('var(--color-primary)', modalSaving)}>{modalSaving ? 'Menyimpan...' : 'Simpan'}</button>
+              <button onClick={saveStockIn} disabled={modalSaving} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={primaryBtn('var(--color-primary)', modalSaving)}>{modalSaving ? 'Menyimpan...' : 'Simpan'}</button>
               <button onClick={() => setShowModal(null)} disabled={modalSaving} style={secondaryBtn(surface, text, border)}>Batal</button>
             </div>
           </div>
@@ -897,7 +900,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
               </div>
             )}
             <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-              <button onClick={saveStockOut} disabled={modalSaving} style={primaryBtn('var(--color-warning)', modalSaving)}>{modalSaving ? 'Menyimpan...' : 'Keluarkan'}</button>
+              <button onClick={saveStockOut} disabled={modalSaving} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={primaryBtn('var(--color-warning)', modalSaving)}>{modalSaving ? 'Menyimpan...' : 'Keluarkan'}</button>
               <button onClick={() => setShowModal(null)} disabled={modalSaving} style={secondaryBtn(surface, text, border)}>Batal</button>
             </div>
           </div>
@@ -1051,7 +1054,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
               <div role="alert" style={{ backgroundColor: 'var(--color-danger-soft)', border: '1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)', borderRadius: '10px', padding: '10px 14px', color: 'var(--color-danger)', fontSize: '13px', fontWeight: '600' }}>{batchActionError}</div>
             )}
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={submitAdjustBatch} disabled={batchActionSaving} style={primaryBtn('var(--color-primary)', batchActionSaving)}>{batchActionSaving ? 'Menyimpan...' : 'Simpan'}</button>
+              <button onClick={submitAdjustBatch} disabled={batchActionSaving} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={primaryBtn('var(--color-primary)', batchActionSaving)}>{batchActionSaving ? 'Menyimpan...' : 'Simpan'}</button>
               <button onClick={() => { setAdjustBatch(null); setBatchActionError(''); }} disabled={batchActionSaving} style={secondaryBtn(surface, text, border)}>Batal</button>
             </div>
           </div>
@@ -1094,16 +1097,22 @@ const secondaryBtn = (surface, text, border) => ({
 
 function IconBtn({ onClick, label, Icon, color }) {
   return (
-    <button onClick={onClick} title={label} aria-label={label} className="ui-motion-button ui-focus-ring" style={{
-      background: 'transparent', border: 'none', cursor: 'pointer',
-      width: '34px', height: '34px', padding: 0, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      transition: uiTransition('background', UI_MOTION.duration.fast),
-    }}
-      onMouseEnter={e => e.currentTarget.style.background = color + '20'}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >
-      <Icon size={15} color={color} />
-    </button>
+    <Tooltip text={label} position="top">
+      <button
+        onClick={onClick}
+        aria-label={label}
+        className="ui-motion-button ui-focus-ring"
+        style={{
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          width: '34px', height: '34px', padding: 0, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: uiTransition('background', UI_MOTION.duration.fast),
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = color + '20'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      >
+        <Icon size={15} color={color} />
+      </button>
+    </Tooltip>
   );
 }
 
@@ -1116,7 +1125,7 @@ function ExpandedBatches({ product, batches, loading, sub, text, border, cardBg,
     return (
       <div style={{ padding: '12px 16px', background: cardBg, border: `1px dashed ${border}`, borderRadius: '10px', fontSize: '12px', color: sub, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span>Belum ada batch tercatat.</span>
-        <button onClick={onAddBatch} style={{ background: 'var(--color-success)', color: '#FFF', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px' }}>+ Stok Masuk</button>
+        <button onClick={onAddBatch} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{ background: 'var(--color-success)', color: '#FFF', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px' }}>+ Stok Masuk</button>
       </div>
     );
   }
@@ -1126,7 +1135,7 @@ function ExpandedBatches({ product, batches, loading, sub, text, border, cardBg,
         <span style={{ fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {batches.length} batch
         </span>
-        <button onClick={onOpenDrawer} style={{ background: 'transparent', color: 'var(--color-primary)', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '600', minHeight: '32px' }}>
+        <button onClick={onOpenDrawer} className="ui-motion-button ui-focus-ring" style={{ background: 'transparent', color: 'var(--color-primary)', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '600', minHeight: '32px' }}>
           Buka detail
         </button>
       </div>
@@ -1197,7 +1206,7 @@ function ProductBatchPanel({ product, batches, loading, sub, text, border, cardB
           <p style={{ margin: 0, color: text, fontSize: '13px', fontWeight: '700' }}>Batch produk</p>
           <p style={{ margin: '2px 0 0', color: sub, fontSize: '12px' }}>Edit no. batch, ED, HNA, notes, adjust qty, atau hapus batch langsung di sini.</p>
         </div>
-        <button type="button" onClick={onAddBatch} style={{ minHeight: '38px', padding: '0 14px', background: 'var(--color-primary)', color: '#FFF', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        <button type="button" onClick={onAddBatch} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{ minHeight: '38px', padding: '0 14px', background: 'var(--color-primary)', color: '#FFF', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
           Batch Baru
         </button>
       </div>

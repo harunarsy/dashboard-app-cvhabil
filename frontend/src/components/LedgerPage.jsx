@@ -4,6 +4,7 @@ import { ledgerAPI } from '../services/api';
 import Skeleton from './common/Skeleton';
 import ConfirmModal from './common/ConfirmModal';
 import Breadcrumb from './common/Breadcrumb';
+import Tooltip from './common/Tooltip';
 import { UI_MOTION, uiTransition } from '../constants/ui';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
@@ -70,22 +71,22 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
           <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: 0, color: text }}>📒 Buku Besar</h1>
           <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>Khusus Direktur • {entries.length} entries</p>
         </div>
-        <button onClick={openCreate} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 18px', backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
+        <button onClick={openCreate} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 18px', backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
           <Plus size={18} /> Buat Transaksi
         </button>
       </div>
 
       {/* Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+        <div className="ui-motion-card ui-hover-delight" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
           <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Total Debit</p>
           <p style={{ margin: '6px 0 0', fontSize: '22px', fontWeight: '800', color: 'var(--color-success)' }}>{fmtRp(summary.totals?.total_debit)}</p>
         </div>
-        <div className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+        <div className="ui-motion-card ui-hover-delight" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
           <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Total Credit</p>
           <p style={{ margin: '6px 0 0', fontSize: '22px', fontWeight: '800', color: 'var(--color-danger)' }}>{fmtRp(summary.totals?.total_credit)}</p>
         </div>
-        <div className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+        <div className="ui-motion-card ui-hover-delight" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
           <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Saldo Bersih</p>
           <p style={{ margin: '6px 0 0', fontSize: '22px', fontWeight: '800', color: 'var(--color-primary)' }}>{fmtRp(summary.totals?.net_balance)}</p>
         </div>
@@ -102,7 +103,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
 
       {/* Entries Tab */}
       {tab === 'entries' && (
-        <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
+        <div className="ui-hover-delight" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '600px' }}>
             <thead>
               <tr style={{ backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)' }}>
@@ -138,8 +139,8 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
                       <td style={{ padding: '10px 12px', fontWeight: '600', color: parseFloat(e.credit) > 0 ? 'var(--color-danger)' : sub }}>{fmtRp(e.credit)}</td>
                       <td style={{ padding: '10px 12px' }}>
                         <div style={{ display: 'flex', gap: '4px' }}>
-                          <button onClick={() => openEdit(e)} aria-label={`Edit entry ${e.account_name}`} className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={14} color="var(--color-primary)" /></button>
-                          <button onClick={() => handleDelete(e.id)} aria-label={`Hapus entry ${e.account_name}`} className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} color="var(--color-danger)" /></button>
+                          <Tooltip text="Edit entry" position="top"><button onClick={() => openEdit(e)} aria-label={`Edit entry ${e.account_name}`} className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={14} color="var(--color-primary)" /></button></Tooltip>
+                          <Tooltip text="Hapus entry" position="top"><button onClick={() => handleDelete(e.id)} aria-label={`Hapus entry ${e.account_name}`} className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} color="var(--color-danger)" /></button></Tooltip>
                         </div>
                       </td>
                     </tr>
@@ -156,7 +157,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
       {tab === 'categories' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
           {summary.byCategory.map((c, i) => (
-            <div key={i} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+            <div key={i} className="ui-hover-delight" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
               <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '700', color: text }}>{c.category || 'Umum'}</h4>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <span style={{ fontSize: '13px', color: sub }}>Debit</span>
@@ -201,7 +202,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
                 <div><label style={labelStyle}>Kredit</label><input type="number" value={form.credit} onChange={e => setForm(f => ({ ...f, credit: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
               </div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                <button onClick={handleSave} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>{editId ? 'Simpan' : 'Buat Transaksi'}</button>
+                <button onClick={handleSave} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>{editId ? 'Simpan' : 'Buat Transaksi'}</button>
                 <button onClick={() => setShowModal(false)} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
               </div>
             </div>

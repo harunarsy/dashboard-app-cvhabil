@@ -232,6 +232,28 @@ const sortData = (data, key, dir) => {
   });
 };
 
+function IconTooltipButton({ label, children, buttonClassName = '', buttonStyle = {}, tooltipStyle = {}, tooltipBg = '#FFF', tooltipColor = '#000', tooltipBorder = 'var(--color-border)', ...buttonProps }) {
+  return (
+    <span className="group relative inline-flex">
+      <button
+        {...buttonProps}
+        aria-label={label}
+        className={`ui-motion-button ui-focus-ring ${buttonClassName}`.trim()}
+        style={buttonStyle}
+      >
+        {children}
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-md border px-2.5 py-1 text-[10px] font-semibold shadow-lg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+        style={{ backgroundColor: tooltipBg, color: tooltipColor, borderColor: tooltipBorder, ...tooltipStyle }}
+      >
+        {label}
+      </span>
+    </span>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
   const [invoices, setInvoices] = useState([]);
@@ -670,7 +692,6 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
     label: { display: 'block', fontSize: '11px', fontWeight: '700', marginBottom: '6px', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-border-strong)', letterSpacing: '0.05em', textTransform: 'uppercase' },
     computed: { width: '100%', padding: '10px 12px', border: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'}`, borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-border)', color: isDarkMode ? '#30D158' : '#1C7C2A', fontWeight: '600', cursor: 'not-allowed', fontSize: '14px', boxSizing: 'border-box' },
   };
-
   // if (loading) return <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem',  }}>Loading...</div>; (Removed early return to use skeletons)
 
   const SortIcon = ({ k }) => {
@@ -733,7 +754,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
           { label: 'HNA Final', value: formatRp(sumFinal), icon: '📈', color: 'var(--color-success)' },
           { label: 'Jumlah Faktur', value: `${filteredInvoices.length} faktur`, icon: '📋', color: 'var(--color-primary-hover)' },
         ].map((m, i) => (
-          <div key={i} className="glass-target" style={{ ...S.card, padding: "1.25rem" }}>
+          <div key={i} className="ui-hover-delight glass-target" style={{ ...S.card, padding: "1.25rem" }}>
             <div style={{ fontSize: '1.5rem', marginBottom: '6px' }}>{m.icon}</div>
             <p style={{ margin: '0 0 4px', fontSize: '11px', fontWeight: '700', color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.label}</p>
             {loading ? (
@@ -771,7 +792,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
               const clr = getDistColor(d.name, allKnownDist);
               const isEmpty = d.count === 0;
               return (
-                <div key={i} onClick={() => !isEmpty && setSearchDist(isActive ? '' : d.name)}
+                <div key={i} onClick={() => !isEmpty && setSearchDist(isActive ? '' : d.name)} className="ui-hover-delight"
                   style={{ padding: '8px 12px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', cursor: isEmpty ? 'default' : 'pointer', transition: uiTransition('all', UI_MOTION.duration.fast), opacity: isEmpty ? 0.45 : 1,
                     backgroundColor: isActive ? clr.dot : (isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg-subtle)'),
                     border: `1px solid ${isActive ? clr.dot : (isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)')}`,
@@ -790,7 +811,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       {/* Action Buttons */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button onClick={() => { resetForm(); setShowModal(true); }} style={{ padding: '10px 20px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button onClick={() => { resetForm(); setShowModal(true); }} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{ padding: '10px 20px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Plus size={16} /> Buat Faktur
           </button>
           <button onClick={() => { setShowTrash(!showTrash); if (!showTrash) fetchTrash(); }} style={{ padding: '10px 16px', backgroundColor: showTrash ? 'var(--color-danger)' : (isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'), color: showTrash ? 'white' : (isDarkMode ? '#FFF' : '#000'), border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -830,7 +851,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
             <input value={universalSearch} onChange={e => setUniversalSearch(e.target.value)}
               placeholder="Cari no. faktur, distributor, produk, status..."
               style={{ flex: 1, border: 'none', outline: 'none', backgroundColor: 'transparent', color: isDarkMode ? '#FFF' : '#000', fontSize: '14px' }} />
-            {universalSearch && <button onClick={() => setUniversalSearch('')} aria-label="Hapus pencarian" title="Hapus pencarian" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}><X size={14} color="var(--color-text-subtle)" /></button>}
+            {universalSearch && <IconTooltipButton label="Hapus pencarian" buttonStyle={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }} tooltipBg={isDarkMode ? 'var(--color-surface-elevated)' : '#FFF'} tooltipColor={isDarkMode ? '#FFF' : '#000'} tooltipBorder={isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'} onClick={() => setUniversalSearch('')}><X size={14} color="var(--color-text-subtle)" /></IconTooltipButton>}
           </div>
           <button onClick={() => setShowFilters(v => !v)} style={{ padding: '10px 16px', backgroundColor: showFilters ? 'var(--color-primary)' : (isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'), color: showFilters ? 'white' : (isDarkMode ? '#FFF' : '#000'), border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
             Filter {showFilters ? '▲' : '▼'}
@@ -876,7 +897,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
         <div className="glass-target" style={{ ...S.card, padding: "1.25rem", marginBottom: "1.25rem", borderColor: 'var(--color-danger)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <p style={{ margin: 0, fontWeight: '700', fontSize: '14px', color: 'var(--color-danger)', display: 'flex', alignItems: 'center', gap: '6px' }}><Trash2 size={16} /> Sampah ({trashItems.length})</p>
-            <button onClick={() => setShowTrash(false)} aria-label="Tutup sampah" title="Tutup sampah" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} color="var(--color-text-subtle)" /></button>
+            <IconTooltipButton label="Tutup sampah" buttonStyle={{ background: 'none', border: 'none', cursor: 'pointer' }} tooltipBg={isDarkMode ? 'var(--color-surface-elevated)' : '#FFF'} tooltipColor={isDarkMode ? '#FFF' : '#000'} tooltipBorder={isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'} onClick={() => setShowTrash(false)}><X size={16} color="var(--color-text-subtle)" /></IconTooltipButton>
           </div>
           {trashItems.length === 0
             ? <p style={{ color: 'var(--color-text-subtle)', fontSize: '13px', textAlign: 'center', padding: '1rem' }}>Sampah kosong</p>
@@ -1168,7 +1189,7 @@ function InvoiceRow({ inv, isDarkMode, selected, onToggleSelect, expanded, onTog
     <>
       {/* Main row */}
       <div
-        className="ui-row"
+        className="ui-row ui-hover-delight"
         onClick={onToggleExpand}
         onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
         style={{ display: 'grid', gridTemplateColumns: '36px 110px 140px 1fr 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: selected ? (isDarkMode ? '#0A2540' : '#E8F2FF') : hovered ? (isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)') : (isDarkMode ? 'var(--color-surface-elevated)' : '#FFF'), transition: uiTransition('background', UI_MOTION.duration.fast), cursor: 'pointer' }}>
@@ -1225,9 +1246,9 @@ function InvoiceRow({ inv, isDarkMode, selected, onToggleSelect, expanded, onTog
         </div>
         {/* Aksi */}
         <div className="ui-row-action" style={{ display: 'flex', gap: '5px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
-          <button onClick={onAudit} title="Riwayat" style={{ padding: '6px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><History size={13} color="var(--color-text-subtle)" /></button>
+          <IconTooltipButton label="Riwayat" buttonStyle={{ padding: '6px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }} tooltipBg={isDarkMode ? 'var(--color-surface-elevated)' : '#FFF'} tooltipColor={isDarkMode ? '#FFF' : '#000'} tooltipBorder={isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'} onClick={onAudit}><History size={13} color="var(--color-text-subtle)" /></IconTooltipButton>
           <button onClick={onEdit} style={{ padding: '6px 10px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Ubah</button>
-          <button onClick={onDelete} aria-label="Hapus faktur" title="Hapus faktur" style={{ padding: '6px', backgroundColor: 'var(--color-danger)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 size={13} /></button>
+          <IconTooltipButton label="Hapus faktur" buttonStyle={{ padding: '6px', backgroundColor: 'var(--color-danger)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }} tooltipBg={isDarkMode ? 'var(--color-surface-elevated)' : '#FFF'} tooltipColor={isDarkMode ? '#FFF' : '#000'} tooltipBorder={isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'} onClick={onDelete}><Trash2 size={13} /></IconTooltipButton>
         </div>
       </div>
       {expanded && <ExpandedItems invoiceId={inv.id} isDarkMode={isDarkMode} formatRp={formatRp} distColor={clr} />}
@@ -1340,14 +1361,14 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
           <div style={sec}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <p style={{ ...secTitle, margin: 0 }}>📦 Daftar Produk</p>
-              <button type="button" onClick={addItem} style={{ padding: '7px 14px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <button type="button" onClick={addItem} className="ui-motion-button ui-focus-ring" style={{ padding: '7px 14px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <Plus size={13} /> Tambah Produk
               </button>
             </div>
             {items.map((item, idx) => (
               <div key={item._id} style={{ backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg-subtle)', borderRadius: '12px', padding: '14px', marginBottom: '10px', border: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}`, position: 'relative' }}>
                 {items.length > 1 && (
-                          <button type="button" onClick={() => removeItem(idx)} aria-label="Hapus baris produk" title="Hapus baris produk" style={{ position: 'absolute', top: '10px', right: '10px', padding: '5px', backgroundColor: 'var(--color-danger)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}><X size={12} /></button>
+                        <IconTooltipButton label="Hapus baris produk" buttonStyle={{ position: 'absolute', top: '10px', right: '10px', padding: '5px', backgroundColor: 'var(--color-danger)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }} tooltipBg={isDarkMode ? 'var(--color-surface-elevated)' : '#FFF'} tooltipColor={isDarkMode ? '#FFF' : '#000'} tooltipBorder={isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'} onClick={() => removeItem(idx)}><X size={12} /></IconTooltipButton>
                 )}
                 <div style={{ ...r2, marginBottom: '10px' }}>
                   <div><label style={S.label}>Nama Produk</label><MasterSelect value={item.product_name} onChange={v => updateItem(idx, 'product_name', v)} options={products} onAdd={onAddProduct} onRemove={onRemoveProduct} onRename={onRenameProduct} placeholder="Pilih atau tambah produk..." isDarkMode={isDarkMode} /></div>
@@ -1560,7 +1581,7 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
           </div>
 
           <div style={{ display: 'flex', gap: '12px' }}>
-            <button type="button" onClick={onSubmit} style={{ flex: 1, padding: '14px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '15px', fontWeight: '700' }}>
+            <button type="button" onClick={onSubmit} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{ flex: 1, padding: '14px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '15px', fontWeight: '700' }}>
               {editingId ? '💾 Update Faktur' : '✅ Simpan Faktur'}
             </button>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: '14px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)', color: isDarkMode ? '#FFF' : '#000', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '15px', fontWeight: '600' }}>

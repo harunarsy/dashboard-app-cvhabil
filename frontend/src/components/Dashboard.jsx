@@ -1,30 +1,30 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Info, X, Activity, ShoppingCart, Package, Plus, Sparkles, Wrench, Palette, Zap, BarChart3, Tags, ArrowUpRight, ArrowDownRight, Users, TrendingUp } from 'lucide-react';
 import api from '../services/api';
 import TasksKanban from './TasksKanban';
 import Skeleton from './common/Skeleton';
 import { UI_MOTION } from '../constants/ui';
-
+import useCountUp from '../hooks/useCountUp';
 const StockMovementChart = lazy(() => import('./dashboard/StockMovementChart'));
 
 const RELEASES = [
   {
-    version: 'v1.13.0-stable', date: '1 Juni 2026', status: 'latest',
+    version: 'v1.13.1-stable', date: '1 Juni 2026', status: 'latest',
+    changes: [
+      {
+        type: 'ui',
+        text: 'Wiring polish: icon-only actions pakai tooltip helper, stat/list/kanban cards diberi hover-delight, CTA utama diselaraskan ke btn-primary + magnetic data, dan counter Dashboard pindah ke hook count-up bersama.',
+        dev: 'frontend/src/components/Dashboard.jsx, InventoryDashboard.jsx, TasksKanban.jsx, InvoiceList.jsx, PurchaseOrderList.jsx, Sidebar.jsx, LedgerPage.jsx, OpnameModal.jsx, Login.jsx, index.js, CHANGELOG.md, dan SUPERAPP_BRAIN.md disinkronkan ke v1.13.1-stable. generateNotaPDF.js tetap tidak disentuh.'
+      },
+    ],
+  },
+  {
+    version: 'v1.13.0-stable', date: '1 Juni 2026', status: 'stable',
     changes: [
       {
         type: 'ui',
         text: 'Visual identity refresh ke palette Stripe Modern: Inter/JetBrains Mono self-hosted, token warna/spacing/elevation baru, surface lebih border-first, dan hover-reveal actions di tabel utama.',
         dev: 'frontend/src/constants/ui.js, index.css, App.css, App.js, liquid-glass.css, Login.jsx, Sidebar.jsx, InventoryDashboard.jsx, InvoiceList.jsx, SalesOrderList.jsx, PurchaseOrderList.jsx, PrintSettings.jsx, CustomerList.jsx, LedgerPage.jsx, OnlineStoreDashboard.jsx, BugReports.jsx, serta shared preview components disinkronkan ke Stripe Modern theme dan typography system.'
-      },
-    ],
-  },
-  {
-    version: 'v1.12.9-stable', date: '1 Juni 2026', status: 'stable',
-    changes: [
-      {
-        type: 'fix',
-        text: 'Cleanup polish: residual transition hardcoded disatukan ke UI_MOTION dan gap aria-label ditutup di surface utama.',
-        dev: 'frontend/src/components/Sidebar.jsx, ProductDrawer.jsx, PrintSettings.jsx, InvoiceList.jsx, BugReports.jsx, Login.jsx, CustomerList.jsx, MasterSelect.jsx, InventoryDashboard.jsx, OpnameModal.jsx, Breadcrumb.jsx, dan SalesOrderList.jsx disinkronkan ke token motion yang sama.',
       },
     ],
   },
@@ -966,46 +966,7 @@ const upcoming = [
 ];
 
 function CountUpValue({ value, formatter, loading }) {
-  const [display, setDisplay] = useState(parseFloat(value) || 0);
-  const frameRef = useRef(null);
-  const lastValueRef = useRef(parseFloat(value) || 0);
-
-  useEffect(() => {
-    const target = parseFloat(value) || 0;
-    if (loading) {
-      setDisplay(target);
-      lastValueRef.current = target;
-      return undefined;
-    }
-
-    const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (reducedMotion) {
-      setDisplay(target);
-      lastValueRef.current = target;
-      return undefined;
-    }
-
-    const startValue = lastValueRef.current ?? 0;
-    const delta = target - startValue;
-    const duration = UI_MOTION.duration.countUp;
-    const start = performance.now();
-
-    const tick = (now) => {
-      const progress = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(startValue + (delta * eased));
-      if (progress < 1) {
-        frameRef.current = requestAnimationFrame(tick);
-      } else {
-        lastValueRef.current = target;
-      }
-    };
-
-    cancelAnimationFrame(frameRef.current);
-    frameRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frameRef.current);
-  }, [loading, value]);
-
+  const display = useCountUp(value, UI_MOTION.duration.countUp, loading);
   return <>{formatter(display)}</>;
 }
 
@@ -1016,7 +977,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.13.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.13.1-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -1080,7 +1041,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.13.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.13.1-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -1158,7 +1119,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
           { label: 'Surat Pesanan Aktif', value: stats.suratPesananAktif, type: 'number', tint: 'orange', icon: <ShoppingCart size={24} className="text-orange-500"/> },
           { label: 'Stok Low/Expired', value: stats.stokLowExpired, type: 'number', tint: 'purple', icon: <Package size={24} className="text-red-500"/> },
         ].map((stat, i) => (
-          <div key={i} className={`ui-motion-card glass-target glass-target--tint-${stat.tint} rounded-2xl p-6 border shadow-sm`} style={{ borderColor: border }}>
+          <div key={i} className={`ui-motion-card ui-hover-delight glass-target glass-target--tint-${stat.tint} rounded-2xl p-6 border shadow-sm`} style={{ borderColor: border }}>
             <div className="flex justify-between items-start mb-4">
               <div className="p-3 bg-gray-50 rounded-xl dark:bg-gray-800">{stat.icon}</div>
             </div>
@@ -1180,7 +1141,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
       {/* Profitability Snapshot */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
-        <section className="ui-motion-card glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+        <section className="ui-motion-card ui-hover-delight glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
               <h2 className="text-lg font-bold" style={{ color: text }}>Margin per Channel</h2>
@@ -1231,7 +1192,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
           )}
         </section>
 
-        <section className="ui-motion-card glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+        <section className="ui-motion-card ui-hover-delight glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
               <h2 className="text-lg font-bold" style={{ color: text }}>Top Kategori Margin</h2>
@@ -1277,7 +1238,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
-        <section className="ui-motion-card glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+        <section className="ui-motion-card ui-hover-delight glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
               <h2 className="text-lg font-bold" style={{ color: text }}>Top 5 Customer Bulan Ini</h2>
@@ -1328,7 +1289,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
           )}
         </section>
 
-        <section className="ui-motion-card glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+        <section className="ui-motion-card ui-hover-delight glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
               <h2 className="text-lg font-bold" style={{ color: text }}>Pergerakan Stok 30 Hari</h2>
@@ -1359,7 +1320,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
       {/* Quick Access Section - Compacted Row */}
       <div className="flex flex-col md:flex-row gap-6 mb-10">
-        <div className="ui-motion-card glass-target flex-1 rounded-3xl p-6 border shadow-sm flex items-center justify-between" style={{ backgroundColor: cardBg, borderColor: border }}>
+        <div className="ui-motion-card ui-hover-delight glass-target flex-1 rounded-3xl p-6 border shadow-sm flex items-center justify-between" style={{ backgroundColor: cardBg, borderColor: border }}>
           <div className="flex items-center gap-6">
             <h2 className="text-lg font-bold" style={{ color: text }}>Akses Cepat</h2>
             <div className="flex flex-wrap gap-3">
@@ -1411,7 +1372,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                   const heading = rest.length ? headLine : headLine.length > 60 ? headLine.slice(0, 60) + '…' : headLine;
                   const body = rest.length ? rest.join(':').trim() : '';
                   return (
-                    <div key={idx} className="glass-target glass-target--ultra flex gap-3 items-start p-3.5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div key={idx} className="ui-hover-delight glass-target glass-target--ultra flex gap-3 items-start p-3.5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
                       <div className={`p-2 rounded-xl ${typeMeta.bg} ${typeMeta.fg} flex-shrink-0`}>
                         <TypeIcon size={18} />
                       </div>
@@ -1442,7 +1403,8 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
             <div className="p-6 pt-4 flex justify-center" style={{ backgroundColor: bg }}>
               <button 
                 onClick={closeReleaseModal}
-                className="ui-motion-button ui-focus-ring w-full py-3.5 rounded-xl text-white font-bold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all outline-none focus:ring-4 focus:ring-blue-500/50"
+                className="btn-primary ui-motion-button ui-focus-ring w-full py-3.5 rounded-xl text-white font-bold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all outline-none focus:ring-4 focus:ring-blue-500/50"
+                data-magnetic="true"
                 style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)' }}
               >
                 Siap, Gas!
@@ -1480,7 +1442,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                     🕐 Release History
                   </h3>
                   {RELEASES.map((rel, ri) => (
-                    <div key={ri} className="rounded-2xl p-5 mb-4 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+                    <div key={ri} className="ui-hover-delight rounded-2xl p-5 mb-4 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
                       <div className="flex justify-between items-center mb-4">
                         <div className="flex items-center gap-3">
                           <span className="text-lg font-bold" style={{ color: text }}>{rel.version}</span>

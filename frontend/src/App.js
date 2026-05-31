@@ -12,8 +12,10 @@ import PurchaseOrderList from './components/PurchaseOrderList';
 import OnlineStoreDashboard from './components/OnlineStoreDashboard';
 import LedgerPage from './components/LedgerPage';
 import PrintSettings from './components/PrintSettings';
+import RouteFade from './components/common/RouteFade';
 import { AuthContext, AuthProvider } from './context/AuthContext';
 import { useDocumentTitle } from './hooks/useDocumentTitle';
+import useReducedMotion from './hooks/useReducedMotion';
 import useGlassMode from './hooks/useGlassMode';
 import useVantaBackground from './hooks/useVantaBackground';
 import { UI_MOTION, uiTransition } from './constants/ui';
@@ -50,14 +52,16 @@ function AppRoutes({ isDarkMode, setIsDarkMode, isGlassMode, setIsGlassMode, isV
   const { token } = useContext(AuthContext);
   const wrap = (Component, title) => (
     <ProtectedRoute isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} isVantaMode={isVantaMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isMobile={isMobile}>
-      <PageTitleWrapper title={title}>
-        <Component isDarkMode={isDarkMode} isGlassMode={isGlassMode} isVantaMode={isVantaMode} isSidebarOpen={isSidebarOpen} isMobile={isMobile} />
-      </PageTitleWrapper>
+      <RouteFade>
+        <PageTitleWrapper title={title}>
+          <Component isDarkMode={isDarkMode} isGlassMode={isGlassMode} isVantaMode={isVantaMode} isSidebarOpen={isSidebarOpen} isMobile={isMobile} />
+        </PageTitleWrapper>
+      </RouteFade>
     </ProtectedRoute>
   );
   return (
     <Routes>
-      <Route path="/login" element={<PageTitleWrapper title="Login"><Login isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} setIsGlassMode={setIsGlassMode} isVantaMode={isVantaMode} /></PageTitleWrapper>} />
+      <Route path="/login" element={<RouteFade><PageTitleWrapper title="Login"><Login isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} setIsGlassMode={setIsGlassMode} isVantaMode={isVantaMode} /></PageTitleWrapper></RouteFade>} />
       <Route path="/dashboard" element={wrap(Dashboard, 'Dashboard')} />
       <Route path="/invoices" element={wrap(InvoiceList, 'Nota Penjualan')} />
       <Route path="/sales" element={wrap(SalesOrderList, 'Nota Penjualan')} />
@@ -88,6 +92,7 @@ function App() {
   // Vanta.js animated background (v1.8.6) — theme-aware FOG effect, always ON
   // Auto-disable only via: ?vanta=off URL / prefers-reduced-motion / deviceMemory<4. No UI toggle.
   const [vantaRef, isVantaMode] = useVantaBackground(isDarkMode);
+  const reducedMotion = useReducedMotion();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
 
@@ -99,13 +104,89 @@ function App() {
     } catch {}
   }, [isDarkMode]);
 
+  useEffect(() => {
+    if (reducedMotion || typeof document === 'undefined') return undefined;
+
+    const selector = '.btn-primary[data-magnetic="true"]';
+    let activeButton = null;
+
+    const resetButton = (button) => {
+      if (!button) return;
+      button.style.removeProperty('--magnetic-x');
+      button.style.removeProperty('--magnetic-y');
+      button.style.removeProperty('--magnetic-scale');
+    };
+
+    const updateButton = (button, clientX, clientY) => {
+      const rect = button.getBoundingClientRect();
+      const maxX = Math.min(8, Math.max(4, rect.width * 0.08));
+      const maxY = Math.min(6, Math.max(3, rect.height * 0.08));
+      const offsetX = ((clientX - (rect.left + rect.width / 2)) / (rect.width / 2)) * maxX;
+      const offsetY = ((clientY - (rect.top + rect.height / 2)) / (rect.height / 2)) * maxY;
+
+      button.style.setProperty('--magnetic-x', `${Math.max(-maxX, Math.min(maxX, offsetX)).toFixed(2)}px`);
+      button.style.setProperty('--magnetic-y', `${Math.max(-maxY, Math.min(maxY, offsetY)).toFixed(2)}px`);
+      button.style.setProperty('--magnetic-scale', '1.01');
+    };
+
+    const clearActive = () => {
+      resetButton(activeButton);
+      activeButton = null;
+    };
+
+    const handlePointerMove = (event) => {
+      if (event.pointerType && event.pointerType !== 'mouse' && event.pointerType !== 'pen') {
+        clearActive();
+        return;
+      }
+
+      const target = event.target instanceof Element ? event.target.closest(selector) : null;
+
+      if (target !== activeButton) {
+        clearActive();
+        activeButton = target;
+      }
+
+      if (!target) return;
+      updateButton(target, event.clientX, event.clientY);
+    };
+
+    const handlePointerOut = (event) => {
+      if (!activeButton) return;
+      if (!(event.target instanceof Node)) return;
+      if (event.target !== activeButton && !activeButton.contains(event.target)) return;
+      if (event.relatedTarget && activeButton.contains(event.relatedTarget)) return;
+      clearActive();
+    };
+
+    const handleWindowBlur = clearActive;
+    const handleVisibility = () => {
+      if (document.hidden) clearActive();
+    };
+
+    document.addEventListener('pointermove', handlePointerMove, true);
+    document.addEventListener('pointerout', handlePointerOut, true);
+    window.addEventListener('blur', handleWindowBlur);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearActive();
+      document.removeEventListener('pointermove', handlePointerMove, true);
+      document.removeEventListener('pointerout', handlePointerOut, true);
+      window.removeEventListener('blur', handleWindowBlur);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [reducedMotion]);
+
   return (
     <AuthProvider>
       <Router>
         {/* Vanta canvas behind everything — pointer-events: none di CSS */}
         <div ref={vantaRef} id="vanta-bg" />
         <div className={`app-content transition-colors duration-300 ${isDarkMode ? 'dark' : ''}`} style={{ backgroundColor: isVantaMode ? 'transparent' : 'var(--color-bg)' }}>
-          <AppRoutes isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} setIsGlassMode={setIsGlassMode} isVantaMode={isVantaMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isMobile={isMobile} />
+          <RouteFade>
+            <AppRoutes isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} setIsGlassMode={setIsGlassMode} isVantaMode={isVantaMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isMobile={isMobile} />
+          </RouteFade>
         </div>
       </Router>
     </AuthProvider>

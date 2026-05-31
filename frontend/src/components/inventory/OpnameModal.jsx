@@ -51,6 +51,25 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
     borderRadius: '6px', cursor: 'pointer', color: sub,
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   };
+  const TooltipButton = ({ label, children, className = '', style = {}, ...buttonProps }) => (
+    <span className="group relative inline-flex">
+      <button
+        {...buttonProps}
+        aria-label={label}
+        className={`ui-motion-button ui-focus-ring ${className}`.trim()}
+        style={style}
+      >
+        {children}
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-md border px-2.5 py-1 text-[10px] font-semibold shadow-lg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+        style={{ backgroundColor: bg, color: text, borderColor: border }}
+      >
+        {label}
+      </span>
+    </span>
+  );
   const findProductByCode = useCallback((code) => {
     const normalized = String(code || '').trim().toLowerCase();
     if (!normalized) return null;
@@ -276,9 +295,9 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
               Pilih produk → input qty fisik per batch. Hanya batch yang berubah yang disimpan.
             </p>
           </div>
-          <button onClick={onClose} aria-label="Tutup" className="ui-motion-button ui-focus-ring" style={{
+          <TooltipButton onClick={onClose} label="Tutup" className="" style={{
             background: surface, border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: text,
-          }}><X size={UI_SIZE.icon.md} /></button>
+          }}><X size={UI_SIZE.icon.md} /></TooltipButton>
         </div>
 
         {/* Body: 2-pane */}
@@ -371,24 +390,25 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                             placeholder="Kode produk"
                             style={{ padding: '3px 8px', border: `1px solid ${border}`, borderRadius: '6px', background: bg, color: text, fontSize: '12px', width: '120px', outline: 'none' }}
                           />
-                          <button onClick={() => handleSaveCode(selectedProduct)} title="Simpan kode" className="ui-motion-button ui-focus-ring" style={{ ...iconBtnStyle, width: '24px', height: '24px', color: 'var(--color-success)' }}><Check size={13} /></button>
-                          <button onClick={() => setEditingCode(false)} title="Batal" aria-label="Batal edit kode" className="ui-motion-button ui-focus-ring" style={{ ...iconBtnStyle, width: '24px', height: '24px' }}><X size={13} /></button>
+                          <TooltipButton onClick={() => handleSaveCode(selectedProduct)} label="Simpan kode" className="" style={{ ...iconBtnStyle, width: '24px', height: '24px', color: 'var(--color-success)' }}><Check size={13} /></TooltipButton>
+                          <TooltipButton onClick={() => setEditingCode(false)} label="Batal" className="" style={{ ...iconBtnStyle, width: '24px', height: '24px' }}><X size={13} /></TooltipButton>
                         </>
                       ) : (
                         <>
                           <span>{(codeMap[selectedProduct.id] ?? selectedProduct.code) || '—'}</span>
-                          <button onClick={() => { setCodeInput(codeMap[selectedProduct.id] ?? selectedProduct.code ?? ''); setEditingCode(true); setActionError(''); }} title="Edit kode produk" className="ui-motion-button ui-focus-ring" style={{ ...iconBtnStyle, width: '22px', height: '22px' }}><Pencil size={11} /></button>
+                          <TooltipButton onClick={() => { setCodeInput(codeMap[selectedProduct.id] ?? selectedProduct.code ?? ''); setEditingCode(true); setActionError(''); }} label="Edit kode produk" className="" style={{ ...iconBtnStyle, width: '22px', height: '22px' }}><Pencil size={11} /></TooltipButton>
                         </>
                       )}
                       <span>· Total sistem: {selectedProduct.total_stock || 0} {selectedProduct.unit}</span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => { setActionError(''); setBatchModal({ mode: 'add' }); }}
-                    title="Tambah batch baru untuk produk ini"
-                    style={{
-                      padding: '8px 14px', background: 'var(--color-primary)', color: '#FFF',
-                      border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
+                    <button
+                      onClick={() => { setActionError(''); setBatchModal({ mode: 'add' }); }}
+                      className="btn-primary ui-motion-button ui-focus-ring"
+                      data-magnetic="true"
+                      style={{
+                        padding: '8px 14px', background: 'var(--color-primary)', color: '#FFF',
+                        border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
                       cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
                       flexShrink: 0,
                     }}
@@ -405,6 +425,8 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                     <p style={{ margin: '0 0 12px' }}>Belum ada batch untuk produk ini.</p>
                     <button
                       onClick={() => { setActionError(''); setBatchModal({ mode: 'add' }); }}
+                      className="btn-primary ui-motion-button ui-focus-ring"
+                      data-magnetic="true"
                       style={{
                         padding: '8px 16px', background: 'var(--color-primary)', color: '#FFF', border: 'none',
                         borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
@@ -424,7 +446,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                     const diffColor = diff > 0 ? 'var(--color-success)' : diff < 0 ? 'var(--color-danger)' : sub;
                     const eb = expiryBadge(b.expired_date, sub);
                     return (
-                      <div key={b.id} style={{
+                      <div key={b.id} className="ui-hover-delight" style={{
                         padding: '12px', background: surface, borderRadius: '12px', border: `1px solid ${border}`,
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', gap: '8px' }}>
@@ -443,21 +465,21 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                                 {diff > 0 ? '+' : ''}{diff}
                               </span>
                             )}
-                            <button
+                            <TooltipButton
                               onClick={() => { setActionError(''); setAdjustFor(b); setAdjustForm({ new_qty: b.qty_current, reason: '' }); }}
-                              title="Adjust qty (dengan alasan audit)"
+                              label="Adjust qty (dengan alasan audit)"
                               style={iconBtnStyle}
-                            ><Sliders size={13} /></button>
-                            <button
+                            ><Sliders size={13} /></TooltipButton>
+                            <TooltipButton
                               onClick={() => { setActionError(''); setBatchModal({ mode: 'edit', batch: b }); }}
-                              title="Edit metadata batch (no/ED/HNA/notes)"
+                              label="Edit metadata batch (no/ED/HNA/notes)"
                               style={iconBtnStyle}
-                            ><Pencil size={13} /></button>
-                            <button
+                            ><Pencil size={13} /></TooltipButton>
+                            <TooltipButton
                               onClick={() => handleDelete(b)}
-                              title="Hapus batch (stok akan di-nol-kan dan dicatat bila masih ada)"
+                              label="Hapus batch (stok akan di-nol-kan dan dicatat bila masih ada)"
                               style={{ ...iconBtnStyle, color: 'var(--color-danger)', borderColor: 'var(--color-danger)33' }}
-                            ><Trash2 size={13} /></button>
+                            ><Trash2 size={13} /></TooltipButton>
                           </div>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: '8px', alignItems: 'end' }}>
@@ -546,7 +568,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
             padding: '10px 18px', background: bg, color: text, border: `1px solid ${border}`,
             borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
           }}>Batal</button>
-          <button onClick={handleSave} disabled={saving || changedItems.length === 0} className="ui-motion-button ui-focus-ring" style={{
+          <button onClick={handleSave} disabled={saving || changedItems.length === 0} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{
             padding: '10px 18px', background: changedItems.length > 0 ? 'var(--color-warning)' : sub, color: '#FFF',
             border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '13px',
             cursor: saving || changedItems.length === 0 ? 'not-allowed' : 'pointer',

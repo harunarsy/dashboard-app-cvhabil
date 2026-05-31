@@ -78,6 +78,11 @@
   100% { background-position: 200% 0; }
 }
 
+@keyframes ui-skeleton-wave {
+  0% { background-position: -180% 0; }
+  100% { background-position: 180% 0; }
+}
+
 .ui-motion-page {
   animation: ui-fade-scale-in var(--ui-motion-page) var(--ui-motion-enter) both;
 }
@@ -116,6 +121,22 @@
   transform: scale(0.97);
 }
 
+.ui-hover-delight {
+  transition:
+    transform var(--ui-motion-base) var(--ui-motion-enter),
+    box-shadow var(--ui-motion-base) var(--ui-motion-enter),
+    border-color var(--ui-motion-base) var(--ui-motion-enter),
+    background-color var(--ui-motion-base) var(--ui-motion-enter);
+}
+
+.ui-hover-delight:hover,
+.ui-hover-delight:focus-visible {
+  transform: translateY(-2px);
+  box-shadow:
+    var(--shadow-hover),
+    0 0 0 1px color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
 .ui-focus-ring:focus-visible {
   outline: none;
   box-shadow:
@@ -124,19 +145,85 @@
 }
 
 .ui-skeleton-shimmer {
-  background: linear-gradient(90deg, rgba(229, 231, 235, 0.65) 25%, rgba(243, 244, 246, 0.95) 37%, rgba(229, 231, 235, 0.65) 63%);
+  background: linear-gradient(135deg, rgba(229, 231, 235, 0.64) 20%, rgba(243, 244, 246, 0.96) 35%, rgba(229, 231, 235, 0.64) 50%);
   background-size: 200% 100%;
-  animation: ui-shimmer var(--ui-motion-page) linear infinite;
+  animation: ui-shimmer 1200ms linear infinite;
 }
 
 .dark .ui-skeleton-shimmer {
-  background: linear-gradient(90deg, rgba(55, 65, 81, 0.7) 25%, rgba(75, 85, 99, 0.95) 37%, rgba(55, 65, 81, 0.7) 63%);
+  background: linear-gradient(135deg, rgba(55, 65, 81, 0.72) 20%, rgba(75, 85, 99, 0.96) 35%, rgba(55, 65, 81, 0.72) 50%);
+  background-size: 200% 100%;
+}
+
+.ui-skeleton-wave {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-border) 72%, var(--color-surface)) 25%, color-mix(in srgb, var(--color-surface) 92%, white) 37%, color-mix(in srgb, var(--color-border) 72%, var(--color-surface)) 63%);
+  background-size: 200% 100%;
+  animation: ui-skeleton-wave var(--ui-motion-page) linear infinite;
+}
+
+.dark .ui-skeleton-wave {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-border) 84%, var(--color-surface)) 25%, color-mix(in srgb, var(--color-surface) 88%, white) 37%, color-mix(in srgb, var(--color-border) 84%, var(--color-surface)) 63%);
   background-size: 200% 100%;
 }
 
 .ui-touch-target {
   min-height: 44px;
   min-width: 44px;
+}
+
+.route-fade {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity var(--route-fade-duration, var(--ui-motion-page)) var(--ui-motion-enter),
+    transform var(--route-fade-duration, var(--ui-motion-page)) var(--ui-motion-enter);
+  will-change: opacity, transform;
+}
+
+.route-fade--entered {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ui-tooltip-anchor {
+  display: inline-flex;
+}
+
+.ui-tooltip {
+  position: fixed;
+  z-index: 100000;
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  background: color-mix(in srgb, var(--color-surface-elevated) 88%, transparent);
+  color: var(--color-text);
+  box-shadow: var(--shadow-floating);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px) scale(0.98);
+  transition:
+    opacity var(--tooltip-fade-duration, var(--ui-motion-fast)) var(--ui-motion-enter),
+    transform var(--tooltip-fade-duration, var(--ui-motion-fast)) var(--ui-motion-enter);
+  will-change: opacity, transform;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.ui-tooltip[data-open='true'] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.ui-tooltip[data-placement='top'],
+.ui-tooltip[data-placement='bottom'] {
+  transform-origin: center center;
+}
+
+.ui-tooltip[data-placement='left'],
+.ui-tooltip[data-placement='right'] {
+  transform-origin: center center;
 }
 
 /* ─── Base glass-target (regular tier) — light mode ─────────────────────── */
@@ -253,9 +340,22 @@ body {
   .ui-motion-toast,
   .ui-motion-card,
   .ui-motion-button,
-  .ui-skeleton-shimmer {
+  .ui-skeleton-shimmer,
+  .ui-skeleton-wave,
+  .route-fade,
+  .ui-tooltip {
     transition: none !important;
     animation: none !important;
+  }
+
+  .route-fade {
+    opacity: 1;
+    transform: none;
+  }
+
+  .ui-tooltip {
+    opacity: 1;
+    transform: none;
   }
 }
 

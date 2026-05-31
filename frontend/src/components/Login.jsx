@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Lock, User, AlertCircle, Building2, Sun, Moon, Sparkles } from 'lucide-react';
 import { UI_MOTION, uiTransition } from '../constants/ui';
+import Tooltip from './common/Tooltip';
 
 export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode = false, setIsGlassMode, isVantaMode = false }) {
   const [username, setUsername] = useState('');
@@ -44,6 +45,18 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
   const sub = 'var(--color-text-muted)';
   const subtle = 'var(--color-text-subtle)';
   const focusRing = 'var(--color-primary)';
+  const TooltipButton = ({ label, children, className = '', style = {}, ...buttonProps }) => (
+    <Tooltip text={label} position="top">
+      <button
+        {...buttonProps}
+        aria-label={label}
+        className={`ui-motion-button ui-focus-ring ${className}`.trim()}
+        style={style}
+      >
+        {children}
+      </button>
+    </Tooltip>
+  );
 
   const toggleTheme = () => setIsDarkMode?.((v) => !v);
 
@@ -79,12 +92,12 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
       {/* Theme toggles (floating top-right) — Glass + Dark Mode (Vanta selalu ON, no toggle) */}
       <div style={{ position: 'fixed', top: '20px', right: '20px', display: 'flex', gap: '8px', zIndex: 50 }}>
         {setIsGlassMode && (
-          <button
+          <TooltipButton
             onClick={toggleGlass}
             aria-label={isGlassMode ? 'Matikan Liquid Glass mode' : 'Aktifkan Liquid Glass mode (Beta)'}
             aria-pressed={isGlassMode}
-            title={isGlassMode ? 'Liquid Glass aktif' : 'Liquid Glass (Beta)'}
-            className={`ui-motion-button ui-focus-ring glass-toggle-btn ${isGlassMode ? 'glass-target glass-target--ultra' : ''}`}
+            label={isGlassMode ? 'Liquid Glass aktif' : 'Liquid Glass (Beta)'}
+            className={`glass-toggle-btn ${isGlassMode ? 'glass-target glass-target--ultra' : ''}`}
             style={{
               width: '40px', height: '40px', borderRadius: '12px',
               background: isGlassMode ? 'transparent' : card,
@@ -105,14 +118,13 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
             }}
           >
             <Sparkles size={18} fill={isGlassMode ? 'var(--color-primary)' : 'none'} />
-          </button>
+          </TooltipButton>
         )}
         {setIsDarkMode && (
-          <button
+          <TooltipButton
             onClick={toggleTheme}
             aria-label={isDarkMode ? 'Aktifkan light mode' : 'Aktifkan dark mode'}
-            title={isDarkMode ? 'Light mode' : 'Dark mode'}
-            className="ui-motion-button ui-focus-ring"
+            label={isDarkMode ? 'Light mode' : 'Dark mode'}
             style={{
               width: '40px', height: '40px', borderRadius: '12px',
               background: card, border: `1px solid ${cardBorder}`,
@@ -123,7 +135,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
             }}
           >
             {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+          </TooltipButton>
         )}
       </div>
 
@@ -206,7 +218,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
             <Building2 size={32} />
           </div>
           <h1 className="text-3xl font-bold tracking-tight" style={{ color: text }}>HABIL SUPERAPP</h1>
-          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.13.0-stable — 2026</p>
+          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.13.1-stable — 2026</p>
         </div>
 
         <div
@@ -285,10 +297,11 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
               </div>
             </div>
 
-            <button
+              <button
               type="submit"
               disabled={loading}
-              className="ui-motion-button ui-focus-ring w-full py-3.5 px-4 text-white font-medium text-sm rounded-xl transition-colors shadow-sm focus:outline-none mt-2"
+              className="btn-primary ui-motion-button ui-focus-ring w-full py-3.5 px-4 text-white font-medium text-sm rounded-xl transition-colors shadow-sm focus:outline-none mt-2"
+              data-magnetic="true"
               style={{
                 backgroundColor: focusRing,
                 opacity: loading ? 0.6 : 1,
