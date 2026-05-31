@@ -5,10 +5,10 @@
  * Saat toggle OFF: zero impact (selector tidak match, semua existing styling apply normal).
  * Saat toggle ON: glass-target / glass-target--clear / glass-target--ultra di-aktifkan.
  *
- * Design rules — Apple "Adopting Liquid Glass" (WWDC25):
- *  - Frost level 10-25 (baseline 18 regular, 24 clear, 12 ultra)
- *  - Depth ≤ 20 — backdrop-blur >25px harm readability
- *  - Tint subtle (35-55% opacity) + inner shadow lift effect
+ * Design rules — premium SaaS surface overlay:
+ *  - Frost level tetap ringan (baseline 18 regular, 24 clear, 12 ultra)
+ *  - Depth rendah agar teks tetap terbaca dan cetak tetap aman
+ *  - Tint subtle + inner shadow lift effect
  *  - Respect prefers-reduced-transparency (auto-disable) + prefers-reduced-motion
  *  - Hindari stack glass-on-glass (performance + visual chaos)
  * ═══════════════════════════════════════════════════════════════════════════ */
@@ -119,8 +119,8 @@
 .ui-focus-ring:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 3px rgba(0, 122, 255, 0.18),
-    0 0 0 1px rgba(0, 122, 255, 0.52);
+    0 0 0 3px color-mix(in srgb, var(--color-focus) 42%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-focus) 72%, transparent);
 }
 
 .ui-skeleton-shimmer {
@@ -176,32 +176,32 @@ body.dark.liquid-glass-active .glass-target--clear,
 
 /* ─── Tint variants (Apple-style accent overlay) ───────────────────────── */
 .liquid-glass-active .glass-target--tint-blue {
-  background-color: color-mix(in srgb, var(--glass-tint-light) 70%, #007AFF 30%) !important;
+  background-color: color-mix(in srgb, var(--glass-tint-light) 70%, var(--color-primary) 30%) !important;
 }
 .liquid-glass-active .glass-target--tint-green {
-  background-color: color-mix(in srgb, var(--glass-tint-light) 70%, #34C759 30%) !important;
+  background-color: color-mix(in srgb, var(--glass-tint-light) 70%, var(--color-success) 30%) !important;
 }
 .liquid-glass-active .glass-target--tint-orange {
-  background-color: color-mix(in srgb, var(--glass-tint-light) 70%, #FF9500 30%) !important;
+  background-color: color-mix(in srgb, var(--glass-tint-light) 70%, var(--color-warning) 30%) !important;
 }
 .liquid-glass-active .glass-target--tint-purple {
-  background-color: color-mix(in srgb, var(--glass-tint-light) 70%, #5E5CE6 30%) !important;
+  background-color: color-mix(in srgb, var(--glass-tint-light) 70%, var(--color-primary-hover) 30%) !important;
 }
 body.dark.liquid-glass-active .glass-target--tint-blue,
 .dark .liquid-glass-active .glass-target--tint-blue {
-  background-color: color-mix(in srgb, var(--glass-tint-dark) 70%, #007AFF 30%) !important;
+  background-color: color-mix(in srgb, var(--glass-tint-dark) 70%, var(--color-primary) 30%) !important;
 }
 body.dark.liquid-glass-active .glass-target--tint-green,
 .dark .liquid-glass-active .glass-target--tint-green {
-  background-color: color-mix(in srgb, var(--glass-tint-dark) 70%, #34C759 30%) !important;
+  background-color: color-mix(in srgb, var(--glass-tint-dark) 70%, var(--color-success) 30%) !important;
 }
 body.dark.liquid-glass-active .glass-target--tint-orange,
 .dark .liquid-glass-active .glass-target--tint-orange {
-  background-color: color-mix(in srgb, var(--glass-tint-dark) 70%, #FF9500 30%) !important;
+  background-color: color-mix(in srgb, var(--glass-tint-dark) 70%, var(--color-warning) 30%) !important;
 }
 body.dark.liquid-glass-active .glass-target--tint-purple,
 .dark .liquid-glass-active .glass-target--tint-purple {
-  background-color: color-mix(in srgb, var(--glass-tint-dark) 70%, #5E5CE6 30%) !important;
+  background-color: color-mix(in srgb, var(--glass-tint-dark) 70%, var(--color-primary-hover) 30%) !important;
 }
 
 /* ─── Smooth root crossfade saat toggle on/off ──────────────────────────── */

@@ -1,8 +1,8 @@
 # 🧠 HABIL SUPERAPP — Source of Truth
-> **Current Version: v1.12.9-stable
-System Version: v1.12.9-stable
+> **Current Version: v1.13.0-stable
+System Version: v1.13.0-stable
 Status: PROD-STABLE
-> **VERSI SISTEM**: v1.12.9-stable
+> **VERSI SISTEM**: v1.13.0-stable
 
 > **CREDENTIALS (LOKAL):** Lihat `CREDENTIALS.local.md` di root project untuk semua akses: DB URL, JWT, Vercel, GitHub. File ini hanya ada di lokal (tidak di-commit).
 
@@ -12,7 +12,7 @@ Status: PROD-STABLE
 
 **Nama Sistem:** HABIL SUPERAPP  
 **Core Identity:** Real-time business dashboard (Invoice, Orders, Inventory, Financials).  
-**Design Language:** Apple Human Interface Guidelines (HIG) — Premium, minimalis, dan responsif.
+**Design Language:** Premium SaaS dashboard language (Stripe / Linear inspired) — solid, minimalis, dan responsif.
 
 ### Tech Stack
 
@@ -138,4 +138,4 @@ Status: PROD-STABLE
 
 ---
 *Dokumen Master Brain ini menggantikan README, Master Framework, dan Roadmap lama.*
-*Terakhir diupdate: v1.12.9-stable (1 Juni 2026) — prosedur Auto-Versioning sejak v1.3.16-stable*
+*Terakhir diupdate: v1.13.0-stable (1 Juni 2026) — prosedur Auto-Versioning sejak v1.3.16-stable*

@@ -102,11 +102,11 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
-  const bg = isDarkMode ? '#000' : '#F5F5F7';
-  const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
-  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
+  const bg = isDarkMode ? '#000' : 'var(--color-bg)';
+  const cardBg = isDarkMode ? 'var(--color-surface-elevated)' : '#FFF';
+  const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
   const text = isDarkMode ? '#FFF' : '#000';
-  const sub = '#86868B';
+  const sub = 'var(--color-text-subtle)';
   const labelStyle = { display: 'block', fontSize: '12px', fontWeight: '700', color: sub, marginBottom: '8px', textTransform: 'uppercase' };
 
   const fetchOrders = async () => {
@@ -583,7 +583,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
 
   const inputStyle = {
     width: '100%', padding: '10px 12px', border: `1px solid ${border}`,
-    borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7',
+    borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)',
     color: text, fontSize: '14px', outline: 'none', boxSizing: 'border-box',
   };
 
@@ -597,7 +597,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
           <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: 0, color: text }}>🧾 Nota Penjualan</h1>
           <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>{loading ? <Skeleton width="140px" height="14px" /> : `${orders.length} nota tercatat`}</p>
         </div>
-        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
+        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', backgroundColor: 'var(--color-success)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
           <Plus size={18} /> Buat Nota
         </button>
       </div>
@@ -651,7 +651,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
       {selectedNotaIds.size > 0 && (
         <div style={{
           position: 'sticky', top: '10px', zIndex: 10, marginBottom: '10px',
-          padding: '12px 16px', background: '#007AFF', color: '#FFF',
+          padding: '12px 16px', background: 'var(--color-primary)', color: '#FFF',
           borderRadius: '10px', boxShadow: '0 4px 12px rgba(0, 122, 255, 0.3)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px',
         }}>
@@ -664,7 +664,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
               border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px',
             }}>Batal</button>
             <button onClick={handleExportPdfLaporan} disabled={exportingPdf} style={{
-              padding: '8px 16px', background: '#FFF', color: '#007AFF',
+              padding: '8px 16px', background: '#FFF', color: 'var(--color-primary)',
               border: 'none', borderRadius: '8px', cursor: exportingPdf ? 'wait' : 'pointer',
               fontWeight: '700', fontSize: '12px', opacity: exportingPdf ? 0.7 : 1,
             }}>{exportingPdf ? 'Generating...' : '📄 Export Laporan PDF'}</button>
@@ -676,7 +676,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
       <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '640px' }}>
           <thead>
-            <tr style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}>
+            <tr style={{ backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)' }}>
               <th style={{ padding: '12px 8px', textAlign: 'center', width: '36px', borderBottom: `1px solid ${border}` }}>
                 <input type="checkbox"
                   checked={filtered.length > 0 && filtered.every(o => selectedNotaIds.has(o.id))}
@@ -701,7 +701,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                     aria-sort={!sortable ? 'none' : isActive ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
                     style={{
                       padding: '12px 14px', textAlign: 'left', fontWeight: '700',
-                      color: isActive ? '#007AFF' : sub,
+                      color: isActive ? 'var(--color-primary)' : sub,
                       fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em',
                       borderBottom: `1px solid ${border}`,
                       cursor: sortable ? 'pointer' : 'default',
@@ -733,17 +733,17 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
             ) : (
               filtered.map(o => (
                 <React.Fragment key={o.id}>
-                  <tr style={{ borderBottom: `1px solid ${border}`, cursor: 'pointer', backgroundColor: selectedNotaIds.has(o.id) ? (isDarkMode ? '#007AFF15' : '#007AFF08') : 'transparent' }} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}>
+                  <tr className="ui-row" style={{ borderBottom: `1px solid ${border}`, cursor: 'pointer', backgroundColor: selectedNotaIds.has(o.id) ? (isDarkMode ? 'var(--color-primary-soft)' : 'var(--color-primary)08') : 'transparent' }} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}>
                     <td style={{ padding: '12px 8px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
                       <input type="checkbox" checked={selectedNotaIds.has(o.id)} onChange={() => toggleNotaSelect(o.id)} style={{ cursor: 'pointer' }} />
                     </td>
-                    <td style={{ padding: '12px 14px', fontWeight: '600', color: '#007AFF' }}>{o.order_number}</td>
+                    <td style={{ padding: '12px 14px', fontWeight: '600', color: 'var(--color-primary)' }}>{o.order_number}</td>
                     <td style={{ padding: '12px 14px', color: text }}>{fmtDate(o.sale_date)}</td>
                     <td style={{ padding: '12px 14px', color: text }}>
                       <div>{o.customer_name}</div>
                       <span style={{ fontSize: '9px', fontWeight: '700', padding: '1px 5px', borderRadius: '3px', whiteSpace: 'nowrap', display: 'inline-block',
-                        backgroundColor: o.channel === 'online' ? '#007AFF15' : '#8E8E9315',
-                        color: o.channel === 'online' ? '#007AFF' : '#8E8E93' }}>
+                        backgroundColor: o.channel === 'online' ? 'var(--color-primary-soft)' : 'var(--color-text-subtle)15',
+                        color: o.channel === 'online' ? 'var(--color-primary)' : 'var(--color-text-subtle)' }}>
                         {o.channel === 'online' ? '🛒 ONLINE' : '🏪 OFFLINE'}
                       </span>
                     </td>
@@ -754,9 +754,9 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                         style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
                       >
                         <span style={{ fontSize: '10px', fontWeight: '800', padding: '4px 10px', borderRadius: '6px', whiteSpace: 'nowrap', display: 'inline-block',
-                          backgroundColor: o.payment_status === 'paid' ? '#34C75925' : '#FF3B3015',
-                          color: o.payment_status === 'paid' ? '#34C759' : '#FF3B30',
-                          border: `1px solid ${o.payment_status === 'paid' ? '#34C75930' : '#FF3B3020'}` }}>
+                          backgroundColor: o.payment_status === 'paid' ? 'var(--color-success-soft-strong)' : 'var(--color-danger-soft)',
+                          color: o.payment_status === 'paid' ? 'var(--color-success)' : 'var(--color-danger)',
+                          border: `1px solid ${o.payment_status === 'paid' ? 'var(--color-success-soft-strong)' : 'var(--color-danger-soft-strong)'}` }}>
                           {o.payment_status === 'paid' ? 'LUNAS' : 'BELUM BAYAR'}
                         </span>
                       </button>
@@ -771,23 +771,23 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                       {o.payment_status !== 'paid' && o.due_date && (() => {
                         const diff = notaDaysDiff(o.due_date);
                         if (diff === null) return null;
-                        if (diff < 0) return <p style={{ margin: '4px 0 0', fontSize: '9px', fontWeight: '700', color: '#FF3B30', animation: 'habil-pulse 1.2s ease-in-out infinite' }}>Terlambat {Math.abs(diff)}h</p>;
-                        if (diff <= 3) return <p style={{ margin: '4px 0 0', fontSize: '9px', fontWeight: '700', color: '#FF9500' }}>JT {diff}h lagi</p>;
+                        if (diff < 0) return <p style={{ margin: '4px 0 0', fontSize: '9px', fontWeight: '700', color: 'var(--color-danger)', animation: 'habil-pulse 1.2s ease-in-out infinite' }}>Terlambat {Math.abs(diff)}h</p>;
+                        if (diff <= 3) return <p style={{ margin: '4px 0 0', fontSize: '9px', fontWeight: '700', color: 'var(--color-warning)' }}>JT {diff}h lagi</p>;
                         return <p style={{ margin: '4px 0 0', fontSize: '9px', color: sub }}>JT: {fmtDate(o.due_date)}</p>;
                       })()}
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', whiteSpace: 'nowrap', display: 'inline-block',
-                        backgroundColor: o.status === 'final' ? '#007AFF18' : '#8E8E9318',
-                        color: o.status === 'final' ? '#007AFF' : '#8E8E93' }}>
+                        backgroundColor: o.status === 'final' ? 'var(--color-primary-soft)' : 'var(--color-text-subtle)18',
+                        color: o.status === 'final' ? 'var(--color-primary)' : 'var(--color-text-subtle)' }}>
                         {o.status === 'final' ? 'Final' : 'Draft'}
                       </span>
                     </td>
                     <td style={{ padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <button onClick={(e) => { e.stopPropagation(); openPrintOptions(o); }} aria-label={`Cetak nota ${o.order_number}`} title="Cetak PDF" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><FileText size={15} color="#34C759" /></button>
-                        <button onClick={(e) => { e.stopPropagation(); openEdit(o); }} aria-label={`Edit nota ${o.order_number}`} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="#007AFF" /></button>
-                        <button onClick={(e) => { e.stopPropagation(); handleDelete(o.id); }} aria-label={`Hapus nota ${o.order_number}`} title="Hapus" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="#FF3B30" /></button>
+                      <div className="ui-row-action" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <button onClick={(e) => { e.stopPropagation(); openPrintOptions(o); }} aria-label={`Cetak nota ${o.order_number}`} title="Cetak PDF" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><FileText size={15} color="var(--color-success)" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); openEdit(o); }} aria-label={`Edit nota ${o.order_number}`} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="var(--color-primary)" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(o.id); }} aria-label={`Hapus nota ${o.order_number}`} title="Hapus" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="var(--color-danger)" /></button>
                       </div>
                     </td>
                   </tr>
@@ -812,7 +812,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                                   <td style={{ padding: '6px 10px', color: sub }}>{fmtRp(hppInc)}</td>
                                   <td style={{ padding: '6px 10px', color: text }}>{fmtRp(it.unit_price)}</td>
                                   <td style={{ padding: '6px 10px', fontWeight: '600', color: text }}>{fmtRp(it.subtotal)}</td>
-                                  <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: '600', color: margin >= 0 ? '#34C759' : '#FF3B30' }}>{fmtRp(margin)}</td>
+                                  <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: '600', color: margin >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>{fmtRp(margin)}</td>
                                 </tr>
                               );
                             })}
@@ -823,14 +823,14 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                               return (
                                 <tr style={{ borderTop: `2px solid ${border}` }}>
                                   <td colSpan={6} style={{ padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: sub }}>Total Margin Nota</td>
-                                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: '700', fontSize: '13px', color: totalMargin >= 0 ? '#34C759' : '#FF3B30' }}>{fmtRp(totalMargin)}</td>
+                                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: '700', fontSize: '13px', color: totalMargin >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>{fmtRp(totalMargin)}</td>
                                 </tr>
                               );
                             })()}
                           </tfoot>
                         </table>
                         {o.items.some(it => !parseFloat(it.unit_hpp)) && (
-                          <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#FF9500', fontWeight: '600' }}>
+                          <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--color-warning)', fontWeight: '600' }}>
                             ⚠️ Beberapa produk HPP belum diisi — margin mungkin overstate. Update HPP di Inventory.
                           </p>
                         )}
@@ -871,7 +871,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                     <input
                       value={notaCounter.prefix}
                       disabled
-                      style={{ ...inputStyle, width: '130px', backgroundColor: isDarkMode ? '#333' : '#F5F5F7', opacity: 0.7, fontWeight: '600', textAlign: 'center' }}
+                      style={{ ...inputStyle, width: '130px', backgroundColor: isDarkMode ? '#333' : 'var(--color-bg)', opacity: 0.7, fontWeight: '600', textAlign: 'center' }}
                     />
                     <input
                       ref={numberInputRef}
@@ -883,7 +883,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                       onChange={e => !isAutoNota && setManualNumber(e.target.value.replace(/\D/g, ''))}
                       disabled={isAutoNota}
                       placeholder="2605001"
-                      style={{ ...inputStyle, flex: 1, backgroundColor: isAutoNota ? (isDarkMode ? '#333' : '#F5F5F7') : cardBg, opacity: isAutoNota ? 0.7 : 1 }}
+                      style={{ ...inputStyle, flex: 1, backgroundColor: isAutoNota ? (isDarkMode ? '#333' : 'var(--color-bg)') : cardBg, opacity: isAutoNota ? 0.7 : 1 }}
                     />
                     <button
                       type="button"
@@ -916,7 +916,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                     </button>
                   </div>
                   {!isAutoNota && <p style={{ fontSize: '10px', color: '#E65100', marginTop: '4px' }}>Mode Manual: Counter sistem tidak akan bertambah.</p>}
-                  {saveError && <p style={{ fontSize: '12px', color: '#FF3B30', marginTop: '6px', fontWeight: '500' }}>{saveError}</p>}
+                  {saveError && <p style={{ fontSize: '12px', color: 'var(--color-danger)', marginTop: '6px', fontWeight: '500' }}>{saveError}</p>}
                 </div>
               )}
               {editId && (
@@ -928,8 +928,8 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
 
               {/* Customer */}
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: formErrors.customer_name ? '#FF3B30' : sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Customer *</label>
-                <div style={formErrors.customer_name ? { border: '2px solid #FF3B30', borderRadius: '10px' } : {}}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: formErrors.customer_name ? 'var(--color-danger)' : sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Customer *</label>
+                <div style={formErrors.customer_name ? { border: '2px solid var(--color-danger)', borderRadius: '10px' } : {}}>
                   <MasterSelect 
                     value={form.customer_name} 
                     onChange={v => {
@@ -946,7 +946,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                     isDarkMode={isDarkMode}
                   />
                 </div>
-                {formErrors.customer_name && <p style={{ color: '#FF3B30', fontSize: '12px', margin: '4px 0 0', fontWeight: 500 }}>{formErrors.customer_name}</p>}
+                {formErrors.customer_name && <p style={{ color: 'var(--color-danger)', fontSize: '12px', margin: '4px 0 0', fontWeight: 500 }}>{formErrors.customer_name}</p>}
               </div>
 
               {/* Address */}
@@ -989,7 +989,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                       return (
                         <button key={n} type="button"
                           onClick={() => setForm(p => ({ ...p, due_date: target, payment_terms: n }))}
-                          style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '700', borderRadius: '8px', border: `1px solid ${active ? '#007AFF' : (isDarkMode ? '#3A3A3C' : '#D1D1D6')}`, backgroundColor: active ? '#007AFF' : 'transparent', color: active ? '#FFF' : (isDarkMode ? '#ABABAB' : '#555'), cursor: 'pointer' }}>
+                          style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '700', borderRadius: '8px', border: `1px solid ${active ? 'var(--color-primary)' : (isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)')}`, backgroundColor: active ? 'var(--color-primary)' : 'transparent', color: active ? '#FFF' : (isDarkMode ? 'var(--color-text-subtle)' : '#555'), cursor: 'pointer' }}>
                           {n} hari
                         </button>
                       );
@@ -998,7 +998,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                   <input type="date" value={form.due_date} onChange={e => setForm(p => ({ ...p, due_date: e.target.value, payment_terms: null }))} style={{ ...inputStyle, fontSize: '12px' }} placeholder="Atau pilih tanggal manual" />
                 </div>
               ) : (
-                <div style={{ padding: '10px 12px', background: isDarkMode ? '#1C1C1E' : '#F5F5F7', borderRadius: '10px', border: `1px dashed ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}` }}>
+                <div style={{ padding: '10px 12px', background: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)', borderRadius: '10px', border: `1px dashed ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}` }}>
                   <p style={{ margin: 0, fontSize: '11px', color: sub }}>
                     Pembayaran <strong>Tunai</strong> — tidak ada tempo. Ganti metode (Transfer / QRIS) kalau perlu jatuh tempo.
                   </p>
@@ -1049,22 +1049,22 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                         <select value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} style={{ ...inputStyle, fontSize: '12px', padding: '8px 4px' }}>
                           {unitOptions.map((u, i) => <option key={`${u.value}-${i}`} value={u.value}>{u.value}</option>)}
                         </select>
-                        <input type="number" value={Math.round(hppFromHna(it.unit_hpp || 0))} onChange={e => updateItem(idx, 'unit_hpp', hnaFromHpp(parseFloat(e.target.value) || 0))} min="0" placeholder="0" title="HPP inc PPN 11% (disimpan sebagai HNA exc PPN)" style={{ ...inputStyle, fontSize: '12px', padding: '8px 6px', backgroundColor: isDarkMode ? '#1C1C1E' : '#EBEBEB', border: `1px dashed ${border}`, textAlign: 'center' }} />
+                        <input type="number" value={Math.round(hppFromHna(it.unit_hpp || 0))} onChange={e => updateItem(idx, 'unit_hpp', hnaFromHpp(parseFloat(e.target.value) || 0))} min="0" placeholder="0" title="HPP inc PPN 11% (disimpan sebagai HNA exc PPN)" style={{ ...inputStyle, fontSize: '12px', padding: '8px 6px', backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : '#EBEBEB', border: `1px dashed ${border}`, textAlign: 'center' }} />
                         <input type="number" value={it.unit_price} onChange={e => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} min="0" placeholder="0" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
                         {items.length > 1 && (
-                          <button onClick={() => removeItem(idx)} aria-label="Hapus baris produk" title="Hapus baris produk" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>
+                          <button onClick={() => removeItem(idx)} aria-label="Hapus baris produk" title="Hapus baris produk" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="var(--color-danger)" /></button>
                         )}
                       </div>
                       {showConversion && (
                         <p style={{ margin: '4px 0 0 4px', fontSize: '11px', color: sub }}>📐 {formatQtyWithConversion(it.qty, it.unit, product)}</p>
                       )}
                       {it._tier_applied && (
-                        <p style={{ margin: '4px 0 0 4px', fontSize: '11px', color: '#34C759', fontWeight: '600' }}>🏷️ Harga grosir tier diaplikasikan</p>
+                        <p style={{ margin: '4px 0 0 4px', fontSize: '11px', color: 'var(--color-success)', fontWeight: '600' }}>🏷️ Harga grosir tier diaplikasikan</p>
                       )}
                       {batches.length > 0 && (
                         <div style={{ marginTop: '4px', paddingLeft: '2px' }}>
                           <select value={it._selected_batch || ''} onChange={e => updateItem(idx, '_selected_batch', e.target.value)}
-                            style={{ ...inputStyle, fontSize: '11px', padding: '5px 8px', backgroundColor: isDarkMode ? '#1C1C1E' : '#F0F8FF', border: `1px solid #007AFF40`, color: '#007AFF' }}>
+                            style={{ ...inputStyle, fontSize: '11px', padding: '5px 8px', backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : '#F0F8FF', border: `1px solid var(--color-primary-border-strong)`, color: 'var(--color-primary)' }}>
                             {batches.map(b => (
                               <option key={b.batch_no} value={b.batch_no}>
                                 Batch: {b.batch_no} | ED: {b.expired_date ? new Date(b.expired_date).toLocaleDateString('id-ID', {day:'2-digit',month:'short',year:'numeric'}) : '-'} | Stok: {b.qty_current} | HPP (inc PPN): {new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(hppFromHna(b.hna))}
@@ -1077,7 +1077,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                   );
                 })}
 
-                <button onClick={addItem} style={{ fontSize: '13px', color: '#007AFF', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', marginTop: '4px' }}>+ Tambah Produk</button>
+                <button onClick={addItem} style={{ fontSize: '13px', color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', marginTop: '4px' }}>+ Tambah Produk</button>
               </div>
 
               {/* Notes */}
@@ -1089,16 +1089,16 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
               {/* Total */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderTop: `1px solid ${border}` }}>
                 <span style={{ fontSize: '14px', fontWeight: '600', color: sub }}>Grand Total</span>
-                <span style={{ fontSize: '18px', fontWeight: '800', color: '#34C759' }}>{fmtRp(grandTotal)}</span>
+                <span style={{ fontSize: '18px', fontWeight: '800', color: 'var(--color-success)' }}>{fmtRp(grandTotal)}</span>
               </div>
 
               {/* Buttons */}
               <div style={{ display: 'flex', gap: '10px' }}>
-                {formErrors.items && <p style={{ color: '#FF3B30', fontSize: '12px', margin: '0 0 8px', fontWeight: 500, textAlign: 'center' }}>{formErrors.items}</p>}
-                <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '13px', backgroundColor: saving ? '#86868B' : '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', opacity: saving ? 0.7 : 1 }}>
+                {formErrors.items && <p style={{ color: 'var(--color-danger)', fontSize: '12px', margin: '0 0 8px', fontWeight: 500, textAlign: 'center' }}>{formErrors.items}</p>}
+                <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '13px', backgroundColor: saving ? 'var(--color-text-subtle)' : 'var(--color-success)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', opacity: saving ? 0.7 : 1 }}>
                   {saving ? 'Menyimpan...' : (editId ? 'Simpan Perubahan' : 'Buat Nota')}
                 </button>
-                <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
+                <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
                   Batal
                 </button>
               </div>
@@ -1137,8 +1137,8 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
               <div style={{ display: 'flex', gap: '10px' }}>
                 {['A5', 'A6'].map(f => (
                   <button key={f} onClick={() => setPrintOptions({ ...printOptions, format: f })}
-                    style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `2px solid ${printOptions.format === f ? '#007AFF' : border}`, 
-                             backgroundColor: printOptions.format === f ? '#007AFF10' : 'transparent', color: printOptions.format === f ? '#007AFF' : text,
+                    style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `2px solid ${printOptions.format === f ? 'var(--color-primary)' : border}`, 
+                             backgroundColor: printOptions.format === f ? 'var(--color-primary-soft-weak)' : 'transparent', color: printOptions.format === f ? 'var(--color-primary)' : text,
                              fontWeight: '700', cursor: 'pointer', transition: uiTransition('all', UI_MOTION.duration.base), display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                     <span style={{ fontSize: '15px' }}>{f}</span>
                     {f === 'A5' && <span style={{ fontSize: '9px', fontWeight: '500', opacity: 0.8 }}>(Landscape)</span>}
@@ -1150,18 +1150,18 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
             <div style={{ marginBottom: '24px' }}>
               <label style={{ ...labelStyle, marginBottom: '12px' }}>Tipe Dokumen</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '10px', borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '10px', borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)' }}>
                   <input type="radio" checked={printOptions.type === 'nota'} onChange={() => setPrintOptions({ ...printOptions, type: 'nota' })} />
                   <span style={{ fontSize: '14px', color: text }}>Nota Penjualan</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: (printOptions.format === 'A6' ? 'pointer' : 'not-allowed'), opacity: (printOptions.format === 'A6' ? 1 : 0.5), padding: '10px', borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: (printOptions.format === 'A6' ? 'pointer' : 'not-allowed'), opacity: (printOptions.format === 'A6' ? 1 : 0.5), padding: '10px', borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)' }}>
                   <input type="radio" checked={printOptions.type === 'terima'} disabled={printOptions.format !== 'A6'} onChange={() => setPrintOptions({ ...printOptions, type: 'terima' })} />
                   <span style={{ fontSize: '14px', color: text }}>Tanda Terima (Khusus A6)</span>
                 </label>
               </div>
             </div>
 
-            <button onClick={handlePrintPDF} disabled={pdfLoading} style={{ width: '100%', padding: '14px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '14px', cursor: pdfLoading ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '15px', opacity: pdfLoading ? 0.7 : 1 }}>
+            <button onClick={handlePrintPDF} disabled={pdfLoading} style={{ width: '100%', padding: '14px', backgroundColor: 'var(--color-primary)', color: '#FFF', border: 'none', borderRadius: '14px', cursor: pdfLoading ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '15px', opacity: pdfLoading ? 0.7 : 1 }}>
               {pdfLoading ? 'Membuat PDF...' : 'Cetak Sekarang'}
             </button>
           </div>
@@ -1191,7 +1191,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
               <button
                 onClick={handlePaymentSave}
                 disabled={paymentSaving || !paymentModal.date}
-                style={{ width: '100%', padding: '13px', backgroundColor: paymentSaving ? '#86868B' : '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: paymentSaving ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px' }}
+                style={{ width: '100%', padding: '13px', backgroundColor: paymentSaving ? 'var(--color-text-subtle)' : 'var(--color-success)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: paymentSaving ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px' }}
               >
                 {paymentSaving ? 'Menyimpan...' : 'Simpan'}
               </button>
@@ -1199,7 +1199,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                 <button
                   onClick={handlePaymentUnpay}
                   disabled={paymentSaving}
-                  style={{ width: '100%', padding: '13px', backgroundColor: 'transparent', color: '#FF3B30', border: '1px solid #FF3B30', borderRadius: '10px', cursor: paymentSaving ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '14px' }}
+                  style={{ width: '100%', padding: '13px', backgroundColor: 'transparent', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '10px', cursor: paymentSaving ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '14px' }}
                 >
                   Batalkan Pelunasan
                 </button>
@@ -1207,7 +1207,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
               <button
                 onClick={() => setPaymentModal({ open: false, order: null, date: '', mode: 'pay' })}
                 disabled={paymentSaving}
-                style={{ width: '100%', padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
+                style={{ width: '100%', padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
               >
                 Batal
               </button>
@@ -1228,7 +1228,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
 
       {/* Toast */}
       {toast && (
-        <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: 'var(--color-success)', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
           ✅ {toast}
         </div>
       )}

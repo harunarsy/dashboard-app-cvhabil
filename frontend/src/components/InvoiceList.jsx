@@ -52,10 +52,10 @@ const formatLocalDate = (dateStr, opts) => {
 };
 // Warna per distributor — auto-assign dari palette
 const DIST_COLORS = [
-  { bg: '#007AFF20', border: '#007AFF50', text: '#007AFF', dot: '#007AFF' },
-  { bg: '#34C75920', border: '#34C75950', text: '#34C759', dot: '#34C759' },
-  { bg: '#FF950020', border: '#FF950050', text: '#FF9500', dot: '#FF9500' },
-  { bg: '#AF52DE20', border: '#AF52DE50', text: '#AF52DE', dot: '#AF52DE' },
+  { bg: 'var(--color-primary)20', border: 'var(--color-primary)50', text: 'var(--color-primary)', dot: 'var(--color-primary)' },
+  { bg: 'var(--color-success)20', border: 'var(--color-success)50', text: 'var(--color-success)', dot: 'var(--color-success)' },
+  { bg: 'var(--color-warning-soft-strong)', border: 'var(--color-warning)50', text: 'var(--color-warning)', dot: 'var(--color-warning)' },
+  { bg: 'var(--color-primary-soft)', border: 'color-mix(in srgb, var(--color-primary-hover) 32%, transparent)', text: 'var(--color-primary-hover)', dot: 'var(--color-primary-hover)' },
   { bg: '#FF375F20', border: '#FF375F50', text: '#FF375F', dot: '#FF375F' },
   { bg: '#00C7BE20', border: '#00C7BE50', text: '#00C7BE', dot: '#00C7BE' },
   { bg: '#30B0C720', border: '#30B0C750', text: '#30B0C7', dot: '#30B0C7' },
@@ -154,8 +154,8 @@ const calcTotals = (items, form) => {
 const getDueStatus = (due_date, status) => {
   if (status === 'Paid' || !due_date) return null;
   const diff = daysDiff(due_date);
-  if (diff < 0) return { label: `Terlambat ${Math.abs(diff)}h`, color: '#FF3B30', bg: '#FF3B3020', animation: 'habil-pulse 1.2s ease-in-out infinite' };
-  if (diff <= 3) return { label: `Jatuh tempo ${diff}h lagi`, color: '#FF9500', bg: '#FF950020' };
+  if (diff < 0) return { label: `Terlambat ${Math.abs(diff)}h`, color: 'var(--color-danger)', bg: 'var(--color-danger-soft-strong)', animation: 'habil-pulse 1.2s ease-in-out infinite' };
+  if (diff <= 3) return { label: `Jatuh tempo ${diff}h lagi`, color: 'var(--color-warning)', bg: 'var(--color-warning-soft-strong)' };
   if (diff <= 7) return { label: `${diff}h lagi`, color: '#FFCC00', bg: '#FFCC0020' };
   return null;
 };
@@ -664,38 +664,38 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
   const distSummary = Object.values(rekapMap).sort((a,b) => b.total - a.total);
 
   const S = {
-    card: { border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, borderRadius: '12px' },
-    input: { width: '100%', padding: '10px 12px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: isDarkMode ? '#FFF' : '#000', fontSize: '14px', outline: 'none', boxSizing: 'border-box' },
-    inputDis: { width: '100%', padding: '10px 12px', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#1C1C1E' : '#E5E5EA', color: isDarkMode ? '#636366' : '#8E8E93', cursor: 'not-allowed', fontSize: '14px', boxSizing: 'border-box' },
-    label: { display: 'block', fontSize: '11px', fontWeight: '700', marginBottom: '6px', color: isDarkMode ? '#EBEBF0' : '#3A3A3C', letterSpacing: '0.05em', textTransform: 'uppercase' },
-    computed: { width: '100%', padding: '10px 12px', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#1C1C1E' : '#E5E5EA', color: isDarkMode ? '#30D158' : '#1C7C2A', fontWeight: '600', cursor: 'not-allowed', fontSize: '14px', boxSizing: 'border-box' },
+    card: { border: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'}`, borderRadius: '12px' },
+    input: { width: '100%', padding: '10px 12px', border: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}`, borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: isDarkMode ? '#FFF' : '#000', fontSize: '14px', outline: 'none', boxSizing: 'border-box' },
+    inputDis: { width: '100%', padding: '10px 12px', border: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'}`, borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-border)', color: isDarkMode ? '#636366' : 'var(--color-text-subtle)', cursor: 'not-allowed', fontSize: '14px', boxSizing: 'border-box' },
+    label: { display: 'block', fontSize: '11px', fontWeight: '700', marginBottom: '6px', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-border-strong)', letterSpacing: '0.05em', textTransform: 'uppercase' },
+    computed: { width: '100%', padding: '10px 12px', border: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'}`, borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-border)', color: isDarkMode ? '#30D158' : '#1C7C2A', fontWeight: '600', cursor: 'not-allowed', fontSize: '14px', boxSizing: 'border-box' },
   };
 
   // if (loading) return <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem',  }}>Loading...</div>; (Removed early return to use skeletons)
 
   const SortIcon = ({ k }) => {
-    if (sortKey !== k) return <span style={{ color: '#C7C7CC', marginLeft: '4px' }}>↕</span>;
-    return <span style={{ color: '#007AFF', marginLeft: '4px' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
+    if (sortKey !== k) return <span style={{ color: 'var(--color-border-strong)', marginLeft: '4px' }}>↕</span>;
+    return <span style={{ color: 'var(--color-primary)', marginLeft: '4px' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
   };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : (isDarkMode ? '#000' : '#F5F5F7'), minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : (isDarkMode ? '#000' : 'var(--color-bg)'), minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
       <Breadcrumb title="Faktur Pembelian" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Toast */}
       {/* v1.11.0: sticky action bar untuk multi-select export CSV */}
       {selectedIds.size > 0 && (
-        <div style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}`, borderRadius: '14px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '14px', zIndex: 9998, boxShadow: '0 12px 40px rgba(0,0,0,0.25)' }}>
+        <div style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : '#FFF', border: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}`, borderRadius: '14px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '14px', zIndex: 9998, boxShadow: '0 12px 40px rgba(0,0,0,0.25)' }}>
           <span style={{ fontSize: '13px', fontWeight: '600', color: isDarkMode ? '#FFF' : '#000' }}>{selectedIds.size} faktur dipilih</span>
-          <button onClick={handleExportCSV} style={{ padding: '8px 16px', backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button onClick={handleExportCSV} style={{ padding: '8px 16px', backgroundColor: 'var(--color-success)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <FileText size={15} /> Export CSV Rekap PPN
           </button>
-          <button onClick={() => setSelectedIds(new Set())} style={{ padding: '8px 14px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: isDarkMode ? '#FFF' : '#000', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}>Batal</button>
+          <button onClick={() => setSelectedIds(new Set())} style={{ padding: '8px 14px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: isDarkMode ? '#FFF' : '#000', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}>Batal</button>
         </div>
       )}
 
       {successToast && (
-        <div style={{ position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#34C759', color: 'white', padding: '12px 28px', borderRadius: '12px', fontWeight: '700', fontSize: '15px', zIndex: 9999, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', transition: uiTransition('all', UI_MOTION.duration.page) }}>
+        <div style={{ position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--color-success)', color: 'white', padding: '12px 28px', borderRadius: '12px', fontWeight: '700', fontSize: '15px', zIndex: 9999, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', transition: uiTransition('all', UI_MOTION.duration.page) }}>
           {successToast}
         </div>
       )}
@@ -704,24 +704,24 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: '0 0 4px 0', color: isDarkMode ? '#FFF' : '#000' }}>📄 Faktur Pembelian</h1>
-          <p style={{ margin: 0, fontSize: '14px', color: '#86868B' }}>Faktur Pembelian — CV Habil</p>
+          <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text-subtle)' }}>Faktur Pembelian — CV Habil</p>
         </div>
 
       </div>
 
       {/* Draft Banner */}
       {draftBanner && savedDraft && (
-        <div className="glass-target" style={{ ...S.card, padding: "14px 18px", marginBottom: "1.25rem", backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF9E6', borderColor: '#FF9500', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <FileText size={18} color="#FF9500" />
+        <div className="glass-target" style={{ ...S.card, padding: "14px 18px", marginBottom: "1.25rem", backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-warning-soft)', borderColor: 'var(--color-warning)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <FileText size={18} color="var(--color-warning)" />
           <div style={{ flex: 1 }}>
             <span style={{ fontWeight: '700', fontSize: '14px', color: isDarkMode ? '#FFF' : '#000' }}>Ada draft tersimpan</span>
-            <span style={{ fontSize: '13px', color: '#86868B', marginLeft: '8px' }}>
+            <span style={{ fontSize: '13px', color: 'var(--color-text-subtle)', marginLeft: '8px' }}>
               {savedDraftUpdatedAt ? `disimpan ${formatRelativeTime(savedDraftUpdatedAt)} · ` : 'disimpan otomatis · '}
               lanjutkan atau hapus supaya formulir tetap bersih.
             </span>
           </div>
-          <button onClick={loadDraft} style={{ padding: '8px 16px', backgroundColor: '#FF9500', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' }}>Pulihkan Draft</button>
-          <button onClick={dismissDraft} style={{ padding: '8px 16px', backgroundColor: 'transparent', color: '#86868B', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>Hapus Draft</button>
+          <button onClick={loadDraft} style={{ padding: '8px 16px', backgroundColor: 'var(--color-warning)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' }}>Pulihkan Draft</button>
+          <button onClick={dismissDraft} style={{ padding: '8px 16px', backgroundColor: 'transparent', color: 'var(--color-text-subtle)', border: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}`, borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>Hapus Draft</button>
         </div>
       )}
 
@@ -729,13 +729,13 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         {[
           { label: 'Total HNA*QTY', value: formatRp(sumHna), icon: '💰', color: '#30B0C0' },
-          { label: 'Total PPN Masukan', value: formatRp(sumPpn, true), icon: '📊', color: '#FF9500' },
-          { label: 'HNA Final', value: formatRp(sumFinal), icon: '📈', color: '#34C759' },
-          { label: 'Jumlah Faktur', value: `${filteredInvoices.length} faktur`, icon: '📋', color: '#AF52DE' },
+          { label: 'Total PPN Masukan', value: formatRp(sumPpn, true), icon: '📊', color: 'var(--color-warning)' },
+          { label: 'HNA Final', value: formatRp(sumFinal), icon: '📈', color: 'var(--color-success)' },
+          { label: 'Jumlah Faktur', value: `${filteredInvoices.length} faktur`, icon: '📋', color: 'var(--color-primary-hover)' },
         ].map((m, i) => (
           <div key={i} className="glass-target" style={{ ...S.card, padding: "1.25rem" }}>
             <div style={{ fontSize: '1.5rem', marginBottom: '6px' }}>{m.icon}</div>
-            <p style={{ margin: '0 0 4px', fontSize: '11px', fontWeight: '700', color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.label}</p>
+            <p style={{ margin: '0 0 4px', fontSize: '11px', fontWeight: '700', color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.label}</p>
             {loading ? (
               <Skeleton width="100px" height="24px" />
             ) : (
@@ -749,10 +749,10 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       {distSummary.length > 1 && (
         <div className="glass-target" style={{ ...S.card, padding: "1rem 1.25rem", marginBottom: "1.25rem" }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px', flexWrap: 'wrap' }}>
-            <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>📦 Rekap per Distributor</p>
+            <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>📦 Rekap per Distributor</p>
             {/* Month filter for rekap */}
             <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
-              style={{ padding: '4px 28px 4px 10px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '8px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: isDarkMode ? '#FFF' : '#000', fontSize: '12px', cursor: 'pointer', outline: 'none' }}>
+              style={{ padding: '4px 28px 4px 10px', border: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}`, borderRadius: '8px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: isDarkMode ? '#FFF' : '#000', fontSize: '12px', cursor: 'pointer', outline: 'none' }}>
               <option value="all">Semua Bulan</option>
               {Array.from(new Set(invoices.map(i => parseLocalDate(i.purchase_date)?.toLocaleString('id-ID', { month: 'long', year: 'numeric' })))).sort().map(m => (
                 <option key={m} value={m}>{m}</option>
@@ -760,7 +760,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
             </select>
             {(searchDist || selectedMonth !== 'all') && (
               <button onClick={() => { setSearchDist(''); setSelectedMonth('all'); }}
-                style={{ padding: '4px 12px', backgroundColor: '#FF3B30', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                style={{ padding: '4px 12px', backgroundColor: 'var(--color-danger)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <X size={11} /> Reset Filter
               </button>
             )}
@@ -773,12 +773,12 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
               return (
                 <div key={i} onClick={() => !isEmpty && setSearchDist(isActive ? '' : d.name)}
                   style={{ padding: '8px 12px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', cursor: isEmpty ? 'default' : 'pointer', transition: uiTransition('all', UI_MOTION.duration.fast), opacity: isEmpty ? 0.45 : 1,
-                    backgroundColor: isActive ? clr.dot : (isDarkMode ? '#2C2C2E' : '#F9F9FB'),
-                    border: `1px solid ${isActive ? clr.dot : (isDarkMode ? '#3A3A3C' : '#ECECEF')}`,
+                    backgroundColor: isActive ? clr.dot : (isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg-subtle)'),
+                    border: `1px solid ${isActive ? clr.dot : (isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)')}`,
                   }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isActive ? '#FFF' : clr.dot, flexShrink: 0 }} />
-                  <span title={d.name} style={{ flex: 1, minWidth: 0, fontSize: '12px', fontWeight: '600', color: isActive ? '#FFF' : (isDarkMode ? '#EBEBF0' : '#1C1C1E'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
-                  <span style={{ fontSize: '11px', color: isActive ? 'rgba(255,255,255,0.8)' : '#86868B', flexShrink: 0 }}>{d.count}×</span>
+                  <span title={d.name} style={{ flex: 1, minWidth: 0, fontSize: '12px', fontWeight: '600', color: isActive ? '#FFF' : (isDarkMode ? 'var(--color-text-muted)' : 'var(--color-surface-elevated)'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
+                  <span style={{ fontSize: '11px', color: isActive ? 'rgba(255,255,255,0.8)' : 'var(--color-text-subtle)', flexShrink: 0 }}>{d.count}×</span>
                   <span style={{ fontSize: '12px', fontWeight: '700', color: isActive ? '#FFF' : clr.text, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{formatRp(d.total)}</span>
                 </div>
               );
@@ -790,10 +790,10 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       {/* Action Buttons */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button onClick={() => { resetForm(); setShowModal(true); }} style={{ padding: '10px 20px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button onClick={() => { resetForm(); setShowModal(true); }} style={{ padding: '10px 20px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Plus size={16} /> Buat Faktur
           </button>
-          <button onClick={() => { setShowTrash(!showTrash); if (!showTrash) fetchTrash(); }} style={{ padding: '10px 16px', backgroundColor: showTrash ? '#FF3B30' : (isDarkMode ? '#2C2C2E' : '#E5E5EA'), color: showTrash ? 'white' : (isDarkMode ? '#FFF' : '#000'), border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button onClick={() => { setShowTrash(!showTrash); if (!showTrash) fetchTrash(); }} style={{ padding: '10px 16px', backgroundColor: showTrash ? 'var(--color-danger)' : (isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'), color: showTrash ? 'white' : (isDarkMode ? '#FFF' : '#000'), border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Trash2 size={16} /> Trash
           </button>
         </div>
@@ -801,22 +801,22 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {overdueCount > 0 && (
             <div onClick={() => { setFilterDue('overdue'); setShowFilters(true); }}
-              style={{ cursor: 'pointer', padding: '8px 14px', backgroundColor: '#FF3B3015', border: '1.5px solid #FF3B30', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <AlertTriangle size={14} color="#FF3B30" />
-              <span style={{ fontSize: '13px', fontWeight: '700', color: '#FF3B30' }}>{overdueCount} Terlambat</span>
+              style={{ cursor: 'pointer', padding: '8px 14px', backgroundColor: 'var(--color-danger-soft)', border: '1.5px solid var(--color-danger)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <AlertTriangle size={14} color="var(--color-danger)" />
+              <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-danger)' }}>{overdueCount} Terlambat</span>
             </div>
           )}
           {soonCount > 0 && (
             <div onClick={() => { setFilterDue('soon'); setShowFilters(true); }}
-              style={{ cursor: 'pointer', padding: '8px 14px', backgroundColor: '#FF950015', border: '1.5px solid #FF9500', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Clock size={14} color="#FF9500" />
-              <span style={{ fontSize: '13px', fontWeight: '700', color: '#FF9500' }}>{soonCount} Jatuh Tempo</span>
+              style={{ cursor: 'pointer', padding: '8px 14px', backgroundColor: 'var(--color-warning-soft)', border: '1.5px solid var(--color-warning)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={14} color="var(--color-warning)" />
+              <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-warning)' }}>{soonCount} Jatuh Tempo</span>
             </div>
           )}
           {overdueCount === 0 && soonCount === 0 && invoices.length > 0 && (
-            <div style={{ padding: '8px 14px', backgroundColor: '#34C75915', border: '1.5px solid #34C759', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Clock size={14} color="#34C759" />
-              <span style={{ fontSize: '13px', fontWeight: '700', color: '#34C759' }}>Semua Jatuh Tempo OK</span>
+            <div style={{ padding: '8px 14px', backgroundColor: 'var(--color-success-soft)', border: '1.5px solid var(--color-success)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={14} color="var(--color-success)" />
+              <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-success)' }}>Semua Jatuh Tempo OK</span>
             </div>
           )}
         </div>
@@ -825,17 +825,17 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       {/* Search + Filter */}
       <div className="glass-target" style={{ ...S.card, padding: "1rem", marginBottom: "1rem" }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: showFilters ? '12px' : '0' }}>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', borderRadius: '10px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}` }}>
-            <Search size={16} color="#86868B" />
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', borderRadius: '10px', border: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}` }}>
+            <Search size={16} color="var(--color-text-subtle)" />
             <input value={universalSearch} onChange={e => setUniversalSearch(e.target.value)}
               placeholder="Cari no. faktur, distributor, produk, status..."
               style={{ flex: 1, border: 'none', outline: 'none', backgroundColor: 'transparent', color: isDarkMode ? '#FFF' : '#000', fontSize: '14px' }} />
-            {universalSearch && <button onClick={() => setUniversalSearch('')} aria-label="Hapus pencarian" title="Hapus pencarian" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}><X size={14} color="#86868B" /></button>}
+            {universalSearch && <button onClick={() => setUniversalSearch('')} aria-label="Hapus pencarian" title="Hapus pencarian" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}><X size={14} color="var(--color-text-subtle)" /></button>}
           </div>
-          <button onClick={() => setShowFilters(v => !v)} style={{ padding: '10px 16px', backgroundColor: showFilters ? '#007AFF' : (isDarkMode ? '#2C2C2E' : '#E5E5EA'), color: showFilters ? 'white' : (isDarkMode ? '#FFF' : '#000'), border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+          <button onClick={() => setShowFilters(v => !v)} style={{ padding: '10px 16px', backgroundColor: showFilters ? 'var(--color-primary)' : (isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'), color: showFilters ? 'white' : (isDarkMode ? '#FFF' : '#000'), border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
             Filter {showFilters ? '▲' : '▼'}
             {(selectedMonth !== 'all' || searchDist || searchInv || filterStatus !== 'all' || filterDue !== 'all' || dateFrom || dateTo) && (
-              <span style={{ backgroundColor: '#FF3B30', color: 'white', borderRadius: '10px', padding: '1px 6px', fontSize: '11px', fontWeight: '700' }}>!</span>
+              <span style={{ backgroundColor: 'var(--color-danger)', color: 'white', borderRadius: '10px', padding: '1px 6px', fontSize: '11px', fontWeight: '700' }}>!</span>
             )}
           </button>
         </div>
@@ -864,7 +864,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
               <div><label style={S.label}>Sampai</label><input type="date" style={S.input} value={dateTo} onChange={e => setDateTo(e.target.value)} /></div>
             </div>
             <button onClick={() => { setSelectedMonth('all'); setSearchDist(''); setSearchInv(''); setFilterStatus('all'); setFilterDue('all'); setDateFrom(''); setDateTo(''); }}
-              style={{ marginTop: '10px', padding: '8px 16px', backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA', color: isDarkMode ? '#FFF' : '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>
+              style={{ marginTop: '10px', padding: '8px 16px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)', color: isDarkMode ? '#FFF' : '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>
               Hapus Filter
             </button>
           </div>
@@ -873,24 +873,24 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
 
       {/* Trash Panel */}
       {showTrash && (
-        <div className="glass-target" style={{ ...S.card, padding: "1.25rem", marginBottom: "1.25rem", borderColor: '#FF3B30' }}>
+        <div className="glass-target" style={{ ...S.card, padding: "1.25rem", marginBottom: "1.25rem", borderColor: 'var(--color-danger)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <p style={{ margin: 0, fontWeight: '700', fontSize: '14px', color: '#FF3B30', display: 'flex', alignItems: 'center', gap: '6px' }}><Trash2 size={16} /> Sampah ({trashItems.length})</p>
-            <button onClick={() => setShowTrash(false)} aria-label="Tutup sampah" title="Tutup sampah" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} color="#86868B" /></button>
+            <p style={{ margin: 0, fontWeight: '700', fontSize: '14px', color: 'var(--color-danger)', display: 'flex', alignItems: 'center', gap: '6px' }}><Trash2 size={16} /> Sampah ({trashItems.length})</p>
+            <button onClick={() => setShowTrash(false)} aria-label="Tutup sampah" title="Tutup sampah" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} color="var(--color-text-subtle)" /></button>
           </div>
           {trashItems.length === 0
-            ? <p style={{ color: '#86868B', fontSize: '13px', textAlign: 'center', padding: '1rem' }}>Sampah kosong</p>
+            ? <p style={{ color: 'var(--color-text-subtle)', fontSize: '13px', textAlign: 'center', padding: '1rem' }}>Sampah kosong</p>
             : trashItems.map(inv => (
-              <div key={inv.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderRadius: '8px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F9F9F9', marginBottom: '6px', gap: '12px' }}>
+              <div key={inv.id} style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderRadius: '8px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : '#F9F9F9', marginBottom: '6px', gap: '12px' }}>
                 <div style={{ flex: 1 }}>
                   <span style={{ fontWeight: '700', fontSize: '13px', color: isDarkMode ? '#FFF' : '#000' }}>{inv.invoice_number}</span>
-                  <span style={{ fontSize: '12px', color: '#86868B', marginLeft: '10px' }}>{inv.distributor_name}</span>
-                  <span style={{ fontSize: '11px', color: '#FF3B30', marginLeft: '10px' }}>Dihapus: {formatLocalDate(inv.deleted_at)}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--color-text-subtle)', marginLeft: '10px' }}>{inv.distributor_name}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--color-danger)', marginLeft: '10px' }}>Dihapus: {formatLocalDate(inv.deleted_at)}</span>
                 </div>
-                <button onClick={() => handleRestore(inv.id)} style={{ padding: '6px 12px', backgroundColor: '#34C759', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <button onClick={() => handleRestore(inv.id)} style={{ padding: '6px 12px', backgroundColor: 'var(--color-success)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <RotateCcw size={12} /> Restore
                 </button>
-                <button onClick={() => handlePermanentDelete(inv.id)} style={{ padding: '6px 12px', backgroundColor: '#FF3B30', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Hapus Permanen</button>
+                <button onClick={() => handlePermanentDelete(inv.id)} style={{ padding: '6px 12px', backgroundColor: 'var(--color-danger)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Hapus Permanen</button>
               </div>
             ))
           }
@@ -900,7 +900,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       {/* Invoice Table */}
       <div className="glass-target" style={{ ...S.card, overflow: "hidden" }}>
         {/* Table header — sortable */}
-        <div style={{ display: 'grid', gridTemplateColumns: '36px 110px 140px 1fr 130px 130px 150px 120px 100px', padding: '12px 16px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', borderBottom: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}`, alignItems: 'center' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '36px 110px 140px 1fr 130px 130px 150px 120px 100px', padding: '12px 16px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', borderBottom: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}`, alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <input type="checkbox" checked={allFilteredSelected} onChange={toggleSelectAll} title="Pilih semua (sesuai filter)" style={{ cursor: 'pointer', width: '15px', height: '15px' }} />
           </div>
@@ -916,7 +916,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
           ].map(h => (
             <div key={h.label}
               onClick={() => h.key && handleSort(h.key)}
-              style={{ fontSize: '11px', fontWeight: '700', color: sortKey === h.key ? '#007AFF' : '#86868B', textTransform: 'uppercase', letterSpacing: '0.04em', cursor: h.key ? 'pointer' : 'default', userSelect: 'none', display: 'flex', alignItems: 'center' }}>
+              style={{ fontSize: '11px', fontWeight: '700', color: sortKey === h.key ? 'var(--color-primary)' : 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.04em', cursor: h.key ? 'pointer' : 'default', userSelect: 'none', display: 'flex', alignItems: 'center' }}>
               {h.label}{h.key && <SortIcon k={h.key} />}
             </div>
           ))}
@@ -924,7 +924,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
 
         {loading ? (
           [...Array(pageSize)].map((_, i) => (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '36px 110px 140px 1fr 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF' }}>
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '36px 110px 140px 1fr 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : '#FFF' }}>
               <Skeleton width="15px" height="15px" />
               <Skeleton width="80px" height="14px" />
               <Skeleton width="100px" height="14px" />
@@ -937,7 +937,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
             </div>
           ))
         ) : paginatedInvoices.length === 0
-          ? <div style={{ padding: '3rem', textAlign: 'center', color: '#86868B' }}>{invoices.length === 0 ? 'Belum ada faktur' : 'Tidak ada yang cocok'}</div>
+          ? <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-subtle)' }}>{invoices.length === 0 ? 'Belum ada faktur' : 'Tidak ada yang cocok'}</div>
           : paginatedInvoices.map(inv => (
             <InvoiceRow key={inv.id} inv={inv} isDarkMode={isDarkMode}
               selected={selectedIds.has(inv.id)} onToggleSelect={() => toggleSelect(inv.id)}
@@ -953,31 +953,31 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
 
         {/* Pagination */}
         {filteredInvoices.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'}`, flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '13px', color: '#86868B' }}>Tampilkan</span>
+              <span style={{ fontSize: '13px', color: 'var(--color-text-subtle)' }}>Tampilkan</span>
               <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-                style={{ padding: '6px 10px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '8px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: isDarkMode ? '#FFF' : '#000', fontSize: '13px' }}>
+                style={{ padding: '6px 10px', border: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}`, borderRadius: '8px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: isDarkMode ? '#FFF' : '#000', fontSize: '13px' }}>
                 {[5, 10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
-              <span style={{ fontSize: '13px', color: '#86868B' }}>per halaman · {filteredInvoices.length} total</span>
+              <span style={{ fontSize: '13px', color: 'var(--color-text-subtle)' }}>per halaman · {filteredInvoices.length} total</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <button onClick={() => setCurrentPage(p => Math.max(1, p-1))} disabled={currentPage === 1}
-                style={{ padding: '6px 10px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '8px', backgroundColor: isDarkMode ? '#2C2C2E' : '#FFF', color: isDarkMode ? '#FFF' : '#000', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.4 : 1, display: 'flex', alignItems: 'center' }}>
+                style={{ padding: '6px 10px', border: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}`, borderRadius: '8px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : '#FFF', color: isDarkMode ? '#FFF' : '#000', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.4 : 1, display: 'flex', alignItems: 'center' }}>
                 <ChevronLeft size={14} />
               </button>
               {Array.from({ length: totalPages }, (_, i) => i+1).filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1).map((p, idx, arr) => (
                 <React.Fragment key={p}>
-                  {idx > 0 && arr[idx-1] !== p-1 && <span style={{ color: '#86868B', fontSize: '13px' }}>…</span>}
+                  {idx > 0 && arr[idx-1] !== p-1 && <span style={{ color: 'var(--color-text-subtle)', fontSize: '13px' }}>…</span>}
                   <button onClick={() => setCurrentPage(p)}
-                    style={{ padding: '6px 12px', border: `1px solid ${p === currentPage ? '#007AFF' : (isDarkMode ? '#3A3A3C' : '#D1D1D6')}`, borderRadius: '8px', backgroundColor: p === currentPage ? '#007AFF' : (isDarkMode ? '#2C2C2E' : '#FFF'), color: p === currentPage ? 'white' : (isDarkMode ? '#FFF' : '#000'), cursor: 'pointer', fontSize: '13px', fontWeight: p === currentPage ? '700' : '400' }}>
+                    style={{ padding: '6px 12px', border: `1px solid ${p === currentPage ? 'var(--color-primary)' : (isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)')}`, borderRadius: '8px', backgroundColor: p === currentPage ? 'var(--color-primary)' : (isDarkMode ? 'var(--color-surface-raised)' : '#FFF'), color: p === currentPage ? 'white' : (isDarkMode ? '#FFF' : '#000'), cursor: 'pointer', fontSize: '13px', fontWeight: p === currentPage ? '700' : '400' }}>
                     {p}
                   </button>
                 </React.Fragment>
               ))}
               <button onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))} disabled={currentPage === totalPages}
-                style={{ padding: '6px 10px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '8px', backgroundColor: isDarkMode ? '#2C2C2E' : '#FFF', color: isDarkMode ? '#FFF' : '#000', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.4 : 1, display: 'flex', alignItems: 'center' }}>
+                style={{ padding: '6px 10px', border: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}`, borderRadius: '8px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : '#FFF', color: isDarkMode ? '#FFF' : '#000', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.4 : 1, display: 'flex', alignItems: 'center' }}>
                 <ChevronRight size={14} />
               </button>
             </div>
@@ -988,24 +988,24 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       {/* Duplicate Confirm */}
       {dupConfirm && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-          <div style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF', borderRadius: '16px', padding: '28px', maxWidth: '400px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#FF950020', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <AlertTriangle size={26} color="#FF9500" />
+          <div style={{ backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : '#FFF', borderRadius: '16px', padding: '28px', maxWidth: '400px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--color-warning-soft-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <AlertTriangle size={26} color="var(--color-warning)" />
             </div>
             <h3 style={{ margin: '0 0 8px', fontSize: '17px', fontWeight: '700', color: isDarkMode ? '#FFF' : '#000', textAlign: 'center' }}>Faktur sudah ada!</h3>
-            <p style={{ margin: '0 0 20px', fontSize: '14px', color: '#86868B', textAlign: 'center' }}>
+            <p style={{ margin: '0 0 20px', fontSize: '14px', color: 'var(--color-text-subtle)', textAlign: 'center' }}>
               Nomor faktur <strong style={{ color: isDarkMode ? '#FFF' : '#000' }}>{dupConfirm.invoiceNumber}</strong> sudah tersimpan sebelumnya.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button onClick={handleDupLoadExisting} style={{ padding: '13px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <button onClick={handleDupLoadExisting} style={{ padding: '13px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span>✏️ Buka & Edit Invoice yang Ada</span>
                 <span style={{ fontSize: '11px', fontWeight: '400', opacity: 0.85 }}>Load data existing, bisa tambah/ubah produknya</span>
               </button>
-              <button onClick={handleDupOverwrite} style={{ padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: isDarkMode ? '#FFF' : '#000', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <button onClick={handleDupOverwrite} style={{ padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: isDarkMode ? '#FFF' : '#000', border: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}`, borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span>🔄 Timpa dengan Data Sekarang</span>
-                <span style={{ fontSize: '11px', fontWeight: '400', color: '#86868B' }}>Faktur lama akan diganti sepenuhnya</span>
+                <span style={{ fontSize: '11px', fontWeight: '400', color: 'var(--color-text-subtle)' }}>Faktur lama akan diganti sepenuhnya</span>
               </button>
-              <button onClick={() => setDupConfirm(null)} style={{ padding: '12px', backgroundColor: 'transparent', color: '#86868B', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, borderRadius: '10px', cursor: 'pointer', fontSize: '14px' }}>
+              <button onClick={() => setDupConfirm(null)} style={{ padding: '12px', backgroundColor: 'transparent', color: 'var(--color-text-subtle)', border: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'}`, borderRadius: '10px', cursor: 'pointer', fontSize: '14px' }}>
                 Batal — Ganti Nomor Faktur
               </button>
             </div>
@@ -1016,14 +1016,14 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       {/* Delete Confirm */}
       {deleteConfirm && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-          <div style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF', borderRadius: '16px', padding: '28px', maxWidth: '360px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#FF3B3020', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}><Trash2 size={24} color="#FF3B30" /></div>
+          <div style={{ backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : '#FFF', borderRadius: '16px', padding: '28px', maxWidth: '360px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--color-danger-soft-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}><Trash2 size={24} color="var(--color-danger)" /></div>
             <h3 style={{ margin: '0 0 8px', fontSize: '17px', fontWeight: '700', color: isDarkMode ? '#FFF' : '#000' }}>Pindahkan ke Trash?</h3>
-            <p style={{ margin: '0 0 6px', fontSize: '14px', color: '#86868B' }}>Faktur <strong style={{ color: isDarkMode ? '#FFF' : '#000' }}>{deleteConfirm.name}</strong> akan dipindahkan ke trash.</p>
-            <p style={{ margin: '0 0 24px', fontSize: '12px', color: '#86868B' }}>Kamu bisa restore dari Trash kapan saja.</p>
+            <p style={{ margin: '0 0 6px', fontSize: '14px', color: 'var(--color-text-subtle)' }}>Faktur <strong style={{ color: isDarkMode ? '#FFF' : '#000' }}>{deleteConfirm.name}</strong> akan dipindahkan ke trash.</p>
+            <p style={{ margin: '0 0 24px', fontSize: '12px', color: 'var(--color-text-subtle)' }}>Kamu bisa restore dari Trash kapan saja.</p>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: '12px', backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA', color: isDarkMode ? '#FFF' : '#000', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Batal</button>
-              <button onClick={handleDeleteConfirm} style={{ flex: 1, padding: '12px', backgroundColor: '#FF3B30', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Ke Trash</button>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: '12px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)', color: isDarkMode ? '#FFF' : '#000', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Batal</button>
+              <button onClick={handleDeleteConfirm} style={{ flex: 1, padding: '12px', backgroundColor: 'var(--color-danger)', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Ke Trash</button>
             </div>
           </div>
         </div>
@@ -1032,31 +1032,31 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       {/* Audit Log Modal */}
       {auditModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '2rem' }}>
-          <div style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF', borderRadius: '16px', width: '100%', maxWidth: '640px', maxHeight: '82vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+          <div style={{ backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : '#FFF', borderRadius: '16px', width: '100%', maxWidth: '640px', maxHeight: '82vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, backgroundColor: isDarkMode ? '#000' : '#F5F5F7' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px', borderBottom: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'}`, backgroundColor: isDarkMode ? '#000' : 'var(--color-bg)' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: isDarkMode ? '#FFF' : '#000', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <History size={16} color="#007AFF" /> Riwayat Perubahan
+                  <History size={16} color="var(--color-primary)" /> Riwayat Perubahan
                 </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#86868B' }}>Faktur #{auditModal.invoiceNumber} · {auditLog.length} entri</p>
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--color-text-subtle)' }}>Faktur #{auditModal.invoiceNumber} · {auditLog.length} entri</p>
               </div>
-              <button onClick={() => setAuditModal(null)} aria-label="Tutup riwayat perubahan" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px' }}><X size={18} color="#86868B" /></button>
+              <button onClick={() => setAuditModal(null)} aria-label="Tutup riwayat perubahan" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px' }}><X size={18} color="var(--color-text-subtle)" /></button>
             </div>
 
             {/* Timeline */}
             <div style={{ overflowY: 'auto', padding: '20px 22px', flex: 1 }}>
               {auditLog.length === 0
-                ? <p style={{ color: '#86868B', textAlign: 'center', padding: '2rem' }}>Belum ada riwayat</p>
+                ? <p style={{ color: 'var(--color-text-subtle)', textAlign: 'center', padding: '2rem' }}>Belum ada riwayat</p>
                 : auditLog.map((log, i) => {
                   const ACTION_CFG = {
-                    CREATE:           { color: '#34C759', bg: '#34C75918', label: '✅ Dibuat',      icon: '✅' },
-                    UPDATE:           { color: '#007AFF', bg: '#007AFF18', label: '✏️ Diubah',      icon: '✏️' },
-                    DELETE:           { color: '#FF9500', bg: '#FF950018', label: '🗑️ Dihapus',     icon: '🗑️' },
-                    RESTORE:          { color: '#34C759', bg: '#34C75918', label: '♻️ Direstore',   icon: '♻️' },
-                    PERMANENT_DELETE: { color: '#FF3B30', bg: '#FF3B3018', label: '❌ Hapus Perm.', icon: '❌' },
+                    CREATE:           { color: 'var(--color-success)', bg: 'var(--color-success-soft)', label: '✅ Dibuat',      icon: '✅' },
+                    UPDATE:           { color: 'var(--color-primary)', bg: 'var(--color-primary-soft)', label: '✏️ Diubah',      icon: '✏️' },
+                    DELETE:           { color: 'var(--color-warning)', bg: 'var(--color-warning-soft)', label: '🗑️ Dihapus',     icon: '🗑️' },
+                    RESTORE:          { color: 'var(--color-success)', bg: 'var(--color-success-soft)', label: '♻️ Direstore',   icon: '♻️' },
+                    PERMANENT_DELETE: { color: 'var(--color-danger)', bg: 'var(--color-danger-soft)', label: '❌ Hapus Perm.', icon: '❌' },
                   };
-                  const cfg = ACTION_CFG[log.action] || { color: '#86868B', bg: '#86868B18', label: log.action, icon: '•' };
+                  const cfg = ACTION_CFG[log.action] || { color: 'var(--color-text-subtle)', bg: 'var(--color-text-subtle)18', label: log.action, icon: '•' };
 
                   let snap = null;
                   try {
@@ -1073,7 +1073,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
                         <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: cfg.bg, border: `2px solid ${cfg.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>
                           {cfg.icon}
                         </div>
-                        {!isLast && <div style={{ width: '2px', flex: 1, backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA', margin: '4px 0' }} />}
+                        {!isLast && <div style={{ width: '2px', flex: 1, backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)', margin: '4px 0' }} />}
                       </div>
 
                       {/* Content */}
@@ -1081,11 +1081,11 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
                         {/* Action + time */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
                           <span style={{ fontSize: '13px', fontWeight: '700', color: cfg.color, padding: '3px 10px', backgroundColor: cfg.bg, borderRadius: '20px' }}>{cfg.label}</span>
-                          <span style={{ fontSize: '12px', color: '#86868B' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--color-text-subtle)' }}>
                             {new Date(log.changed_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </span>
                           {log.changed_by && (
-                            <span style={{ fontSize: '11px', color: '#86868B', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', padding: '2px 8px', borderRadius: '6px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--color-text-subtle)', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', padding: '2px 8px', borderRadius: '6px' }}>
                               👤 {log.changed_by}
                             </span>
                           )}
@@ -1093,15 +1093,15 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
 
                         {/* Snapshot — before/after style */}
                         {snap && (
-                          <div style={{ backgroundColor: isDarkMode ? '#2C2C2E' : '#F9F9FB', borderRadius: '10px', padding: '10px 14px', fontSize: '12px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}` }}>
+                          <div style={{ backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg-subtle)', borderRadius: '10px', padding: '10px 14px', fontSize: '12px', border: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}` }}>
                             {buildAuditDiff(log.snapshot, log.action).length > 0 ? (
                               buildAuditDiff(log.snapshot, log.action).map((row, idx) => (
                                 <div key={`${row.field}-${idx}`} style={{ marginBottom: '6px' }}>
-                                  <span style={{ color: '#86868B', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{row.field.replace(/_/g, ' ')}</span>
+                                  <span style={{ color: 'var(--color-text-subtle)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{row.field.replace(/_/g, ' ')}</span>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '3px' }}>
-                                    <span style={{ color: '#FF3B30', textDecoration: 'line-through', fontSize: '12px' }}>{row.before}</span>
-                                    <span style={{ fontSize: '11px', color: '#86868B' }}>→</span>
-                                    <span style={{ color: '#34C759', fontWeight: '700', fontSize: '12px' }}>{row.after}</span>
+                                    <span style={{ color: 'var(--color-danger)', textDecoration: 'line-through', fontSize: '12px' }}>{row.before}</span>
+                                    <span style={{ fontSize: '11px', color: 'var(--color-text-subtle)' }}>→</span>
+                                    <span style={{ color: 'var(--color-success)', fontWeight: '700', fontSize: '12px' }}>{row.after}</span>
                                   </div>
                                 </div>
                               ))
@@ -1116,14 +1116,14 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
                                   { label: 'Tgl Faktur', val: snap.purchase_date ? formatLocalDate(snap.purchase_date, { day: '2-digit', month: 'short', year: 'numeric' }) : null },
                                 ].filter(r => r.val).map(row => (
                                   <div key={row.label}>
-                                    <span style={{ color: '#86868B', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{row.label}</span>
-                                    <div style={{ color: isDarkMode ? '#FFF' : '#1C1C1E', fontWeight: '600', marginTop: '2px' }}>{row.val}</div>
+                                    <span style={{ color: 'var(--color-text-subtle)', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{row.label}</span>
+                                    <div style={{ color: isDarkMode ? '#FFF' : 'var(--color-surface-elevated)', fontWeight: '600', marginTop: '2px' }}>{row.val}</div>
                                   </div>
                                 ))}
                               </div>
                             )}
                             {log.note && (
-                              <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}`, color: '#86868B', fontSize: '11px' }}>
+                              <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}`, color: 'var(--color-text-subtle)', fontSize: '11px' }}>
                                 📝 {log.note}
                               </div>
                             )}
@@ -1160,7 +1160,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
 function InvoiceRow({ inv, isDarkMode, selected, onToggleSelect, expanded, onToggleExpand, onEdit, onDelete, onAudit, allKnownDist = [], formatRp }) {
   const [hovered, setHovered] = useState(false);
   const isPaid = inv.status === 'Paid';
-  const sc = isPaid ? { bg: '#D1FAE5', text: '#065F46' } : { bg: isDarkMode ? '#3A2800' : '#FEF3C7', text: isDarkMode ? '#FFCC00' : '#92400E' };
+  const sc = isPaid ? { bg: 'var(--color-success-soft)', text: 'var(--color-success)' } : { bg: isDarkMode ? '#3A2800' : 'var(--color-warning-soft)', text: isDarkMode ? '#FFCC00' : 'var(--color-warning)' };
   const statusLabel = isPaid ? 'SUDAH DIBAYAR' : 'BELUM BAYAR';
   const dueStatus = getDueStatus(inv.due_date, inv.status);
   const clr = getDistColor(inv.distributor_name, allKnownDist);
@@ -1168,43 +1168,44 @@ function InvoiceRow({ inv, isDarkMode, selected, onToggleSelect, expanded, onTog
     <>
       {/* Main row */}
       <div
+        className="ui-row"
         onClick={onToggleExpand}
         onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-        style={{ display: 'grid', gridTemplateColumns: '36px 110px 140px 1fr 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: selected ? (isDarkMode ? '#0A2540' : '#E8F2FF') : hovered ? (isDarkMode ? '#2C2C2E' : '#F5F5F7') : (isDarkMode ? '#1C1C1E' : '#FFF'), transition: uiTransition('background', UI_MOTION.duration.fast), cursor: 'pointer' }}>
+        style={{ display: 'grid', gridTemplateColumns: '36px 110px 140px 1fr 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: selected ? (isDarkMode ? '#0A2540' : '#E8F2FF') : hovered ? (isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)') : (isDarkMode ? 'var(--color-surface-elevated)' : '#FFF'), transition: uiTransition('background', UI_MOTION.duration.fast), cursor: 'pointer' }}>
         {/* Checkbox */}
         <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center' }}>
           <input type="checkbox" checked={!!selected} onChange={onToggleSelect} onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', width: '15px', height: '15px' }} />
         </div>
         {/* Tgl Faktur */}
-        <div style={{ fontSize: '13px', color: isDarkMode ? '#EBEBF0' : '#3A3A3C', fontWeight: '500' }}>
+        <div style={{ fontSize: '13px', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-border-strong)', fontWeight: '500' }}>
           {formatLocalDate(inv.purchase_date, { day: '2-digit', month: 'short', year: 'numeric' })}
         </div>
         {/* No Faktur */}
         <div>
-          <div style={{ fontWeight: '700', fontSize: '13px', color: '#007AFF' }}>{inv.invoice_number}</div>
-          <div style={{ fontSize: '11px', color: '#86868B', marginTop: '2px' }}>
+          <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--color-primary)' }}>{inv.invoice_number}</div>
+          <div style={{ fontSize: '11px', color: 'var(--color-text-subtle)', marginTop: '2px' }}>
             {inv.item_count > 0 ? `${inv.item_count} produk · ${inv.total_qty||0} qty` : '0 produk'}
           </div>
-          <div style={{ fontSize: '10px', color: '#AF52DE', marginTop: '2px', fontWeight: '500' }}>
+          <div style={{ fontSize: '10px', color: 'var(--color-primary-hover)', marginTop: '2px', fontWeight: '500' }}>
             📥 Input: {new Date(inv.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
         {/* Distributor — dot + nama plain (rapi, 1 baris) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: clr.dot, flexShrink: 0 }} />
-          <span style={{ fontWeight: '600', fontSize: '13px', color: isDarkMode ? '#EBEBF0' : '#1C1C1E', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={inv.distributor_name}>{inv.distributor_name}</span>
+          <span style={{ fontWeight: '600', fontSize: '13px', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-surface-elevated)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={inv.distributor_name}>{inv.distributor_name}</span>
         </div>
         {/* HNA*QTY */}
         <div>
           <div style={{ fontSize: '13px', fontWeight: '600', color: isDarkMode ? '#FFF' : '#000' }}>{formatRp(inv.total_hna)}</div>
-          {inv.discount_amount > 0 && <div style={{ fontSize: '11px', color: '#FF3B30' }}>Disc: {formatRp(inv.discount_amount)}</div>}
+          {inv.discount_amount > 0 && <div style={{ fontSize: '11px', color: 'var(--color-danger)' }}>Disc: {formatRp(inv.discount_amount)}</div>}
         </div>
         {/* HNA Final */}
-        <div style={{ fontSize: '13px', fontWeight: '600', color: '#34C759' }}>{formatRp(inv.hna_final||inv.final_hna)}</div>
+        <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-success)' }}>{formatRp(inv.hna_final||inv.final_hna)}</div>
         {/* HNA+PPN */}
         <div>
-          <div style={{ fontSize: '13px', fontWeight: '700', color: '#007AFF' }}>{formatRp(inv.hna_plus_ppn)}</div>
-          <div style={{ fontSize: '11px', color: '#86868B' }}>PPN: {formatRp(inv.ppn_masukan||inv.ppn_input, true)}</div>
+          <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-primary)' }}>{formatRp(inv.hna_plus_ppn)}</div>
+          <div style={{ fontSize: '11px', color: 'var(--color-text-subtle)' }}>PPN: {formatRp(inv.ppn_masukan||inv.ppn_input, true)}</div>
         </div>
         {/* Status + jatuh tempo */}
         <div>
@@ -1215,18 +1216,18 @@ function InvoiceRow({ inv, isDarkMode, selected, onToggleSelect, expanded, onTog
             </div>
           )}
           {!isPaid && inv.due_date && !dueStatus && (
-            <div style={{ marginTop: '4px', fontSize: '11px', color: '#86868B' }}>JT: {formatLocalDate(inv.due_date)}</div>
+            <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--color-text-subtle)' }}>JT: {formatLocalDate(inv.due_date)}</div>
           )}
           {isPaid && inv.payment_date && (
-            <div style={{ marginTop: '4px', fontSize: '11px', color: '#34C759', fontWeight: '600' }}>✅ {formatLocalDate(inv.payment_date)}</div>
+            <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--color-success)', fontWeight: '600' }}>✅ {formatLocalDate(inv.payment_date)}</div>
           )}
-          {expanded && <div style={{ marginTop: '4px', fontSize: '10px', color: '#86868B' }}>▲ sembunyikan</div>}
+          {expanded && <div style={{ marginTop: '4px', fontSize: '10px', color: 'var(--color-text-subtle)' }}>▲ sembunyikan</div>}
         </div>
         {/* Aksi */}
-        <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
-          <button onClick={onAudit} title="Riwayat" style={{ padding: '6px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><History size={13} color="#86868B" /></button>
-          <button onClick={onEdit} style={{ padding: '6px 10px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Ubah</button>
-          <button onClick={onDelete} aria-label="Hapus faktur" title="Hapus faktur" style={{ padding: '6px', backgroundColor: '#FF3B30', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 size={13} /></button>
+        <div className="ui-row-action" style={{ display: 'flex', gap: '5px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+          <button onClick={onAudit} title="Riwayat" style={{ padding: '6px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><History size={13} color="var(--color-text-subtle)" /></button>
+          <button onClick={onEdit} style={{ padding: '6px 10px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Ubah</button>
+          <button onClick={onDelete} aria-label="Hapus faktur" title="Hapus faktur" style={{ padding: '6px', backgroundColor: 'var(--color-danger)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 size={13} /></button>
         </div>
       </div>
       {expanded && <ExpandedItems invoiceId={inv.id} isDarkMode={isDarkMode} formatRp={formatRp} distColor={clr} />}
@@ -1237,32 +1238,32 @@ function InvoiceRow({ inv, isDarkMode, selected, onToggleSelect, expanded, onTog
 function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
   const [items, setItems] = useState(null);
   useEffect(() => { invoicesAPI.getById(invoiceId).then(r => setItems(r.data.items)).catch(() => setItems([])); }, [invoiceId]);
-  if (!items) return <div style={{ padding: '12px 24px', fontSize: '13px', color: '#86868B' }}>Memuat...</div>;
+  if (!items) return <div style={{ padding: '12px 24px', fontSize: '13px', color: 'var(--color-text-subtle)' }}>Memuat...</div>;
   if (!items.length) return null;
   const cols = '2fr 100px 60px 90px 100px 70px 100px 100px 90px 100px 100px';
   return (
-    <div style={{ backgroundColor: isDarkMode ? '#111' : '#FAFAFA', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, padding: '8px 24px', borderLeft: `3px solid ${distColor?.dot || '#007AFF'}` }}>
-      <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '8px', padding: '6px 0', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, marginBottom: '4px' }}>
+    <div style={{ backgroundColor: isDarkMode ? '#111' : '#FAFAFA', borderBottom: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'}`, padding: '8px 24px', borderLeft: `3px solid ${distColor?.dot || 'var(--color-primary)'}` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '8px', padding: '6px 0', borderBottom: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'}`, marginBottom: '4px' }}>
         {['Nama Produk','Batch No.','QTY','HNA','HNA*QTY','Disc%','Disc Nom.','HNA Baru','Disc COD','HNA Final','HPP/pcs'].map(h => (
-          <div key={h} style={{ fontSize: '10px', fontWeight: '700', color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</div>
+          <div key={h} style={{ fontSize: '10px', fontWeight: '700', color: 'var(--color-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</div>
         ))}
       </div>
       {items.map((item, i) => (
-        <div key={i} style={{ display: 'grid', gridTemplateColumns: cols, gap: '8px', padding: '6px 0', borderBottom: `1px solid ${isDarkMode ? '#1C1C1E' : '#F0F0F0'}` }}>
+        <div key={i} style={{ display: 'grid', gridTemplateColumns: cols, gap: '8px', padding: '6px 0', borderBottom: `1px solid ${isDarkMode ? 'var(--color-surface-elevated)' : '#F0F0F0'}` }}>
           <div>
             <div style={{ fontSize: '13px', fontWeight: '500', color: isDarkMode ? '#FFF' : '#000' }}>{item.product_name}</div>
-            {item.expired_date && <div style={{ fontSize: '11px', color: '#FF9500' }}>Exp: {formatLocalDate(item.expired_date)}</div>}
+            {item.expired_date && <div style={{ fontSize: '11px', color: 'var(--color-warning)' }}>Exp: {formatLocalDate(item.expired_date)}</div>}
           </div>
-          <div style={{ fontSize: '12px', color: isDarkMode ? '#ABABAB' : '#555', fontFamily: 'monospace' }}>{item.batch_number || <span style={{color:'#C7C7CC'}}>—</span>}</div>
+          <div style={{ fontSize: '12px', color: isDarkMode ? 'var(--color-text-subtle)' : '#555', fontFamily: 'monospace' }}>{item.batch_number || <span style={{color:'var(--color-border-strong)'}}>—</span>}</div>
           <div style={{ fontSize: '13px', color: isDarkMode ? '#FFF' : '#000' }}>{item.quantity}</div>
           <div style={{ fontSize: '13px', color: isDarkMode ? '#FFF' : '#000' }}>{formatRp(item.hna||item.unit_price)}</div>
           <div style={{ fontSize: '13px', color: isDarkMode ? '#FFF' : '#000' }}>{formatRp(item.hna_times_qty||item.total_price)}</div>
-          <div style={{ fontSize: '13px', color: '#FF3B30' }}>{item.disc_percent||0}%</div>
-          <div style={{ fontSize: '13px', color: '#FF3B30' }}>{formatRp(item.disc_nominal)}</div>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: '#34C759' }}>{formatRp(item.hna_baru)}</div>
-          <div style={{ fontSize: '13px', color: '#FF9500' }}>{item.disc_cod_per_item > 0 ? formatRp(item.disc_cod_per_item) : <span style={{color:'#C7C7CC'}}>—</span>}</div>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: '#34C759' }}>{item.hna_after_cod > 0 ? formatRp(item.hna_after_cod) : (item.hna_baru > 0 ? formatRp(item.hna_baru) : formatRp(item.total_price))}</div>
-          <div style={{ fontSize: '13px', fontWeight: '700', color: '#AF52DE' }}>
+          <div style={{ fontSize: '13px', color: 'var(--color-danger)' }}>{item.disc_percent||0}%</div>
+          <div style={{ fontSize: '13px', color: 'var(--color-danger)' }}>{formatRp(item.disc_nominal)}</div>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-success)' }}>{formatRp(item.hna_baru)}</div>
+          <div style={{ fontSize: '13px', color: 'var(--color-warning)' }}>{item.disc_cod_per_item > 0 ? formatRp(item.disc_cod_per_item) : <span style={{color:'var(--color-border-strong)'}}>—</span>}</div>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-success)' }}>{item.hna_after_cod > 0 ? formatRp(item.hna_after_cod) : (item.hna_baru > 0 ? formatRp(item.hna_baru) : formatRp(item.total_price))}</div>
+          <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-primary-hover)' }}>
             {formatRp(item.hpp_inc_ppn > 0 ? item.hpp_inc_ppn : ((item.hna_per_item > 0 ? item.hna_per_item : (parseNum(item.hna||item.unit_price))) * (1 + PPN_RATE)))}
           </div>
         </div>
@@ -1275,8 +1276,8 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
 // MODAL
 // ═══════════════════════════════════════════════════════════════════════════════
 function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors, products, onAddDistributor, onRemoveDistributor, onRenameDistributor, onAddProduct, onRemoveProduct, onRenameProduct, onFormChange, updateItem, addItem, removeItem, onSubmit, onClose, S, formatRpInput, parseNum, formatRp, purchaseOrders, onSelectSP }) {
-  const sec = { marginBottom: '1.75rem', paddingBottom: '1.75rem', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}` };
-  const secTitle = { fontSize: '11px', fontWeight: '700', marginBottom: '14px', color: isDarkMode ? '#EBEBF0' : '#1C1C1E', letterSpacing: '0.05em', textTransform: 'uppercase' };
+  const sec = { marginBottom: '1.75rem', paddingBottom: '1.75rem', borderBottom: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'}` };
+  const secTitle = { fontSize: '11px', fontWeight: '700', marginBottom: '14px', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-surface-elevated)', letterSpacing: '0.05em', textTransform: 'uppercase' };
   const r2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' };
   // v1.8.0: collapsible "Detail kalkulasi" per row — default hidden (clean UX, on-demand transparency)
   const [showDetailRows, setShowDetailRows] = useState(new Set());
@@ -1286,14 +1287,14 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, padding: '2rem 1rem', overflowY: 'auto' }}>
-      <div onClick={e => e.stopPropagation()} style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF', borderRadius: '16px', width: '100%', maxWidth: '780px', boxShadow: '0 32px 64px rgba(0,0,0,0.35)', overflow: 'hidden', marginBottom: '2rem' }}>
+      <div onClick={e => e.stopPropagation()} style={{ backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : '#FFF', borderRadius: '16px', width: '100%', maxWidth: '780px', boxShadow: '0 32px 64px rgba(0,0,0,0.35)', overflow: 'hidden', marginBottom: '2rem' }}>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, backgroundColor: isDarkMode ? '#000' : '#F5F5F7' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'}`, backgroundColor: isDarkMode ? '#000' : 'var(--color-bg)' }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: isDarkMode ? '#FFF' : '#000' }}>{editingId ? '✏️ Edit Faktur' : '➕ Buat Faktur Baru'}</h2>
-            <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#86868B' }}>Draft tersimpan otomatis tiap ada perubahan</p>
+            <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--color-text-subtle)' }}>Draft tersimpan otomatis tiap ada perubahan</p>
           </div>
-          <button onClick={onClose} aria-label="Tutup modal riwayat" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}><X size={20} color="#86868B" /></button>
+          <button onClick={onClose} aria-label="Tutup modal riwayat" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}><X size={20} color="var(--color-text-subtle)" /></button>
         </div>
 
         <div style={{ padding: '24px' }}>
@@ -1308,7 +1309,7 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                   <option key={po.id} value={po.id}>{po.po_number} · {po.distributor_name}{po.stock_received ? ' (stok sudah diterima)' : ''}</option>
                 ))}
               </select>
-              {form.purchase_order_id ? <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#34C759', fontWeight: 600 }}>✓ Terhubung ke SP — stok tidak akan dobel.</p> : null}
+              {form.purchase_order_id ? <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--color-success)', fontWeight: 600 }}>✓ Terhubung ke SP — stok tidak akan dobel.</p> : null}
             </div>
             <div style={r2}>
               <div><label style={S.label}>No Faktur</label><input style={S.input} value={form.invoice_number} onChange={e => onFormChange('invoice_number', e.target.value)} placeholder="Contoh: 1260300020" /></div>
@@ -1325,7 +1326,7 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                     const active = form.due_date === target;
                     return (
                       <button key={n} type="button" onClick={() => onFormChange('due_date', target)}
-                        style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '6px', border: `1px solid ${active ? '#007AFF' : (isDarkMode ? '#3A3A3C' : '#D1D1D6')}`, backgroundColor: active ? '#007AFF' : 'transparent', color: active ? '#FFF' : (isDarkMode ? '#ABABAB' : '#555'), cursor: 'pointer' }}>
+                        style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '6px', border: `1px solid ${active ? 'var(--color-primary)' : (isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)')}`, backgroundColor: active ? 'var(--color-primary)' : 'transparent', color: active ? '#FFF' : (isDarkMode ? 'var(--color-text-subtle)' : '#555'), cursor: 'pointer' }}>
                         +{n}h
                       </button>
                     );
@@ -1339,14 +1340,14 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
           <div style={sec}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <p style={{ ...secTitle, margin: 0 }}>📦 Daftar Produk</p>
-              <button type="button" onClick={addItem} style={{ padding: '7px 14px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <button type="button" onClick={addItem} style={{ padding: '7px 14px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <Plus size={13} /> Tambah Produk
               </button>
             </div>
             {items.map((item, idx) => (
-              <div key={item._id} style={{ backgroundColor: isDarkMode ? '#2C2C2E' : '#F9F9FB', borderRadius: '12px', padding: '14px', marginBottom: '10px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}`, position: 'relative' }}>
+              <div key={item._id} style={{ backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg-subtle)', borderRadius: '12px', padding: '14px', marginBottom: '10px', border: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}`, position: 'relative' }}>
                 {items.length > 1 && (
-                          <button type="button" onClick={() => removeItem(idx)} aria-label="Hapus baris produk" title="Hapus baris produk" style={{ position: 'absolute', top: '10px', right: '10px', padding: '5px', backgroundColor: '#FF3B30', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}><X size={12} /></button>
+                          <button type="button" onClick={() => removeItem(idx)} aria-label="Hapus baris produk" title="Hapus baris produk" style={{ position: 'absolute', top: '10px', right: '10px', padding: '5px', backgroundColor: 'var(--color-danger)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}><X size={12} /></button>
                 )}
                 <div style={{ ...r2, marginBottom: '10px' }}>
                   <div><label style={S.label}>Nama Produk</label><MasterSelect value={item.product_name} onChange={v => updateItem(idx, 'product_name', v)} options={products} onAdd={onAddProduct} onRemove={onRemoveProduct} onRename={onRenameProduct} placeholder="Pilih atau tambah produk..." isDarkMode={isDarkMode} /></div>
@@ -1360,7 +1361,7 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                   const prod = products.find(p => p.name?.toLowerCase() === item.product_name?.toLowerCase());
                   const showConv = prod && isPackUnit(item.unit, prod) && parseNum(item.quantity) > 0;
                   return showConv ? (
-                    <div style={{ marginBottom: '6px', fontSize: '11px', color: '#007AFF', fontWeight: '600', padding: '4px 10px', background: isDarkMode ? '#0A2540' : '#E8F2FF', borderRadius: '6px', display: 'inline-block' }}>
+                    <div style={{ marginBottom: '6px', fontSize: '11px', color: 'var(--color-primary)', fontWeight: '600', padding: '4px 10px', background: isDarkMode ? '#0A2540' : '#E8F2FF', borderRadius: '6px', display: 'inline-block' }}>
                       📐 {formatQtyWithConversion(parseNum(item.quantity), item.unit, prod)}
                     </div>
                   ) : null;
@@ -1397,18 +1398,18 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                         placeholder="Rp 0,00"
                       />
                     </div>
-                    <p style={{ margin: '5px 0 0', fontSize: '10px', color: '#86868B', lineHeight: 1.35 }}>
+                    <p style={{ margin: '5px 0 0', fontSize: '10px', color: 'var(--color-text-subtle)', lineHeight: 1.35 }}>
                       {item.price_basis === 'hpp_inc'
                         ? `Disimpan sebagai HNA exc PPN: ${formatRp(parseNum(item.hna), true)}`
                         : `Estimasi HPP inc PPN: ${formatRp(parseNum(item.hna) * (1 + PPN_RATE), true)}`}
                     </p>
                   </div>
-                  <div style={{ background: isDarkMode ? '#1C1C1E' : '#FFFFFF', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '12px', padding: '8px 10px' }}>
+                  <div style={{ background: isDarkMode ? 'var(--color-surface-elevated)' : '#FFFFFF', border: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}`, borderRadius: '12px', padding: '8px 10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                       <label style={{ ...S.label, marginBottom: 0 }}>Disc</label>
-                      <div style={{ display: 'inline-flex', background: isDarkMode ? '#2C2C2E' : '#F2F2F7', borderRadius: '6px', padding: '2px' }}>
-                        <button type="button" onClick={() => updateItem(idx, 'disc_mode', 'percent')} style={{ padding: '2px 8px', fontSize: '10px', fontWeight: '700', border: 'none', borderRadius: '4px', cursor: 'pointer', background: (item.disc_mode || 'percent') === 'percent' ? '#007AFF' : 'transparent', color: (item.disc_mode || 'percent') === 'percent' ? '#FFF' : (isDarkMode ? '#86868B' : '#6E6E73') }}>%</button>
-                        <button type="button" onClick={() => updateItem(idx, 'disc_mode', 'nominal')} style={{ padding: '2px 8px', fontSize: '10px', fontWeight: '700', border: 'none', borderRadius: '4px', cursor: 'pointer', background: item.disc_mode === 'nominal' ? '#007AFF' : 'transparent', color: item.disc_mode === 'nominal' ? '#FFF' : (isDarkMode ? '#86868B' : '#6E6E73') }}>Rp</button>
+                      <div style={{ display: 'inline-flex', background: isDarkMode ? 'var(--color-surface-raised)' : '#F2F2F7', borderRadius: '6px', padding: '2px' }}>
+                        <button type="button" onClick={() => updateItem(idx, 'disc_mode', 'percent')} style={{ padding: '2px 8px', fontSize: '10px', fontWeight: '700', border: 'none', borderRadius: '4px', cursor: 'pointer', background: (item.disc_mode || 'percent') === 'percent' ? 'var(--color-primary)' : 'transparent', color: (item.disc_mode || 'percent') === 'percent' ? '#FFF' : (isDarkMode ? 'var(--color-text-subtle)' : 'var(--color-text-muted)') }}>%</button>
+                        <button type="button" onClick={() => updateItem(idx, 'disc_mode', 'nominal')} style={{ padding: '2px 8px', fontSize: '10px', fontWeight: '700', border: 'none', borderRadius: '4px', cursor: 'pointer', background: item.disc_mode === 'nominal' ? 'var(--color-primary)' : 'transparent', color: item.disc_mode === 'nominal' ? '#FFF' : (isDarkMode ? 'var(--color-text-subtle)' : 'var(--color-text-muted)') }}>Rp</button>
                       </div>
                     </div>
                     {item.disc_mode === 'nominal' ? (
@@ -1417,7 +1418,7 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                       <input style={{ ...S.input, padding: '8px 10px' }} type="number" min="0" max="100" step="0.01" value={item.disc_input || ''} onChange={e => updateItem(idx, 'disc_input', e.target.value)} placeholder="0" />
                     )}
                     {(item.disc_nominal > 0 || parseNum(item.disc_input) > 0) && (
-                      <p style={{ margin: '4px 0 0', fontSize: '10px', color: '#86868B', lineHeight: 1.3 }}>
+                      <p style={{ margin: '4px 0 0', fontSize: '10px', color: 'var(--color-text-subtle)', lineHeight: 1.3 }}>
                         {item.disc_mode === 'nominal'
                           ? `= ${item.disc_percent.toFixed(2)}%`
                           : `= ${formatRp(item.disc_nominal, true)}`}
@@ -1432,28 +1433,28 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                   const expanded = showDetailRows.has(item._id);
                   return (
                     <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', backgroundColor: isDarkMode ? '#1A2A1A' : '#F0F9F0', borderRadius: '10px', border: `1px solid ${isDarkMode ? '#30D15840' : '#34C75940'}`, marginBottom: expanded ? '10px' : 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', backgroundColor: isDarkMode ? '#1A2A1A' : '#F0F9F0', borderRadius: '10px', border: `1px solid ${isDarkMode ? '#30D15840' : 'var(--color-success-soft-strong)'}`, marginBottom: expanded ? '10px' : 0 }}>
                         <div>
-                          <span style={{ fontSize: '11px', color: '#86868B', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HPP final per pcs (inc PPN 11%)</span>
+                          <span style={{ fontSize: '11px', color: 'var(--color-text-subtle)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>HPP final per pcs (inc PPN 11%)</span>
                           <div style={{ fontSize: '17px', fontWeight: '700', color: isDarkMode ? '#30D158' : '#1C7C2A', fontVariantNumeric: 'tabular-nums', marginTop: '2px' }}>{formatRp(hppFinal, true)}</div>
                         </div>
-                        <button type="button" onClick={() => toggleDetail(item._id)} style={{ background: 'transparent', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, color: isDarkMode ? '#EBEBF0' : '#1C1C1E', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
+                        <button type="button" onClick={() => toggleDetail(item._id)} style={{ background: 'transparent', border: `1px solid ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}`, color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-surface-elevated)', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
                           {expanded ? '▲ Sembunyikan' : '▼ Detail kalkulasi'}
                         </button>
                       </div>
                       {expanded && (
-                        <div style={{ padding: '12px', background: isDarkMode ? '#1A1A1C' : '#FAFAFC', borderRadius: '10px', border: `1px dashed ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}` }}>
+                        <div style={{ padding: '12px', background: isDarkMode ? '#1A1A1C' : '#FAFAFC', borderRadius: '10px', border: `1px dashed ${isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)'}` }}>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: totals.disc_cod_amount > 0 ? '10px' : 0 }}>
-                            <div><label style={{ ...S.label, color: '#86868B' }}>HNA × QTY</label><input style={S.computed} value={formatRpInput(item.hna_times_qty)} readOnly /></div>
-                            <div><label style={{ ...S.label, color: '#FF3B30' }}>Disc Nominal</label><input style={{ ...S.inputDis, color: '#FF3B30', fontWeight: '600' }} value={formatRpInput(item.disc_nominal)} readOnly /></div>
+                            <div><label style={{ ...S.label, color: 'var(--color-text-subtle)' }}>HNA × QTY</label><input style={S.computed} value={formatRpInput(item.hna_times_qty)} readOnly /></div>
+                            <div><label style={{ ...S.label, color: 'var(--color-danger)' }}>Disc Nominal</label><input style={{ ...S.inputDis, color: 'var(--color-danger)', fontWeight: '600' }} value={formatRpInput(item.disc_nominal)} readOnly /></div>
                             <div><label style={{ ...S.label, color: isDarkMode ? '#30D158' : '#1C7C2A' }}>HNA Baru</label><input style={S.computed} value={formatRpInput(item.hna_baru)} readOnly /></div>
-                            <div><label style={{ ...S.label, color: '#AF52DE' }}>HNA / Item</label><input style={{ ...S.computed, color: '#AF52DE' }} value={formatRpInput(item.hna_per_item)} readOnly /></div>
+                            <div><label style={{ ...S.label, color: 'var(--color-primary-hover)' }}>HNA / Item</label><input style={{ ...S.computed, color: 'var(--color-primary-hover)' }} value={formatRpInput(item.hna_per_item)} readOnly /></div>
                           </div>
                           {totals.disc_cod_amount > 0 && (
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', padding: '10px', backgroundColor: isDarkMode ? '#2C1A00' : '#FFF8F0', borderRadius: '8px', border: `1px solid #FF950040` }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', padding: '10px', backgroundColor: isDarkMode ? '#2C1A00' : 'var(--color-warning-soft)', borderRadius: '8px', border: `1px solid var(--color-warning-soft-strong)` }}>
                               <div>
-                                <label style={{ ...S.label, color: '#FF9500', fontSize: '10px' }}>Disc COD Bagian (proporsional)</label>
-                                <input style={{ ...S.inputDis, color: '#FF9500', fontWeight: '600' }} value={formatRpInput(withCod?.disc_cod_per_item || 0)} readOnly />
+                                <label style={{ ...S.label, color: 'var(--color-warning)', fontSize: '10px' }}>Disc COD Bagian (proporsional)</label>
+                                <input style={{ ...S.inputDis, color: 'var(--color-warning)', fontWeight: '600' }} value={formatRpInput(withCod?.disc_cod_per_item || 0)} readOnly />
                               </div>
                               <div>
                                 <label style={{ ...S.label, color: isDarkMode ? '#30D158' : '#1C7C2A', fontSize: '10px' }}>HNA After COD</label>
@@ -1475,7 +1476,7 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
             <p style={secTitle}>💰 Kalkulasi Finansial</p>
             <div style={r2}>
               <div><label style={S.label}>HNA×QTY Total</label><input style={S.computed} value={formatRpInput(totals.total_hna)} readOnly /></div>
-              <div><label style={S.label}>DISC Total</label><input style={{ ...S.inputDis, color: '#FF3B30', fontWeight: '600' }} value={formatRpInput(totals.discount_amount)} readOnly /></div>
+              <div><label style={S.label}>DISC Total</label><input style={{ ...S.inputDis, color: 'var(--color-danger)', fontWeight: '600' }} value={formatRpInput(totals.discount_amount)} readOnly /></div>
             </div>
             <div style={{ ...r2, marginTop: '12px' }}>
               <div><label style={S.label}>HNA Baru (HNA−DISC)</label><input style={S.computed} value={formatRpInput(totals.hna_baru)} readOnly /></div>
@@ -1505,7 +1506,7 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                   </div>
                 )}
                 {form.disc_cod_ada && totals.disc_cod_amount > 0 && (
-                  <div style={{ marginTop: '6px', fontSize: '12px', color: '#FF3B30', fontWeight: '600' }}>
+                  <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--color-danger)', fontWeight: '600' }}>
                     Disc COD: {formatRp(totals.disc_cod_amount)}
                   </div>
                 )}
@@ -1514,13 +1515,13 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
             <div style={{ ...r2, marginTop: '12px' }}>
               <div><label style={S.label}>HNA Final (HNA Baru − Disc COD)</label><input style={S.computed} value={formatRpInput(totals.hna_final)} readOnly /></div>
               <div><label style={S.label}>PPN Masukan (HNA Final × 11%)</label>
-                <input style={{ ...S.inputDis, color: '#FF9500', fontWeight: '600' }}
+                <input style={{ ...S.inputDis, color: 'var(--color-warning)', fontWeight: '600' }}
                   value={new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totals.ppn_masukan)} readOnly />
               </div>
             </div>
             <div style={{ ...r2, marginTop: '12px' }}>
-              <div><label style={{ ...S.label, color: '#86868B' }}>PPN Pembulatan (INT)</label><input style={S.inputDis} value={formatRpInput(totals.ppn_pembulatan)} readOnly /></div>
-              <div><label style={{ ...S.label, color: '#007AFF' }}>HNA + PPN Masukan</label><input style={{ ...S.computed, color: '#007AFF', fontSize: '15px', fontWeight: '700' }} value={formatRpInput(totals.hna_plus_ppn)} readOnly /></div>
+              <div><label style={{ ...S.label, color: 'var(--color-text-subtle)' }}>PPN Pembulatan (INT)</label><input style={S.inputDis} value={formatRpInput(totals.ppn_pembulatan)} readOnly /></div>
+              <div><label style={{ ...S.label, color: 'var(--color-primary)' }}>HNA + PPN Masukan</label><input style={{ ...S.computed, color: 'var(--color-primary)', fontSize: '15px', fontWeight: '700' }} value={formatRpInput(totals.hna_plus_ppn)} readOnly /></div>
             </div>
           </div>
 
@@ -1539,7 +1540,7 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                   onChange={e => onFormChange('payment_date', e.target.value)}
                 />
                 {form.status !== 'Paid' && (
-                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#86868B' }}>
+                  <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--color-text-subtle)' }}>
                     Ubah status ke "Sudah Dibayar" untuk isi tanggal
                   </p>
                 )}
@@ -1559,10 +1560,10 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
           </div>
 
           <div style={{ display: 'flex', gap: '12px' }}>
-            <button type="button" onClick={onSubmit} style={{ flex: 1, padding: '14px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '15px', fontWeight: '700' }}>
+            <button type="button" onClick={onSubmit} style={{ flex: 1, padding: '14px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '15px', fontWeight: '700' }}>
               {editingId ? '💾 Update Faktur' : '✅ Simpan Faktur'}
             </button>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: '14px', backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA', color: isDarkMode ? '#FFF' : '#000', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '15px', fontWeight: '600' }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: '14px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)', color: isDarkMode ? '#FFF' : '#000', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '15px', fontWeight: '600' }}>
               Batal
             </button>
           </div>

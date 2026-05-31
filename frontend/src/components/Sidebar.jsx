@@ -114,10 +114,10 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   };
 
   const bg = isDarkMode ? '#000' : '#FFF';
-  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
+  const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
   const txt = isDarkMode ? '#FFF' : '#000';
-  const sub = isDarkMode ? '#86868B' : '#6B7280';
-  const appVersion = 'v1.12.9-stable';
+  const sub = isDarkMode ? 'var(--color-text-subtle)' : 'var(--color-text-muted)';
+  const appVersion = 'v1.13.0-stable';
 
   const closeMobileDrawer = () => setMobileOpen(false);
 
@@ -278,7 +278,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
                 <div className="flex items-center gap-3">
                   <div
                     className="h-11 w-11 rounded-2xl shadow-sm flex items-center justify-center text-white font-black tracking-tight"
-                    style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)' }}
                     aria-hidden="true"
                   >
                     H
@@ -300,7 +300,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
               <button
                 onClick={closeMobileDrawer}
                 className="shrink-0 p-2 rounded-xl"
-                style={{ color: txt, backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}
+                style={{ color: txt, backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)' }}
                 aria-label="Tutup navigasi"
               >
                 <X size={18} />
@@ -349,11 +349,11 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
                   border: 'none',
                   cursor: isActive ? 'pointer' : 'not-allowed',
                   backgroundColor: isCurrent
-                    ? '#007AFF'
-                    : (isActive ? (isDarkMode ? '#1C1C1E' : '#F5F5F7') : 'transparent'),
+                    ? 'var(--color-primary)'
+                    : (isActive ? (isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)') : 'transparent'),
                   color: isCurrent
                     ? '#FFF'
-                    : (isActive ? txt : (isDarkMode ? '#3A3A3C' : '#D1D5DB')),
+                    : (isActive ? txt : (isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)')),
                   opacity: isActive ? 1 : 0.5,
                   fontSize: '0.875rem',
                   fontWeight: isCurrent ? '700' : '600',
@@ -378,19 +378,19 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
         <div style={{ padding: isMobile ? '0.75rem 0.75rem 1rem' : '1rem', borderTop: `1px solid ${border}` }}>
           {/* Bug Report button */}
           <button onClick={() => { if (isMobile) closeMobileDrawer(); setShowBugModal(true); }} title="Bug / Saran Fitur" aria-label="Bug / Saran Fitur" className="ui-motion-button ui-focus-ring"
-            style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? '#2C1A00' : '#FFF9E6', color: '#FF9500', fontSize: '0.875rem', fontWeight: '700' }}>
+            style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? '#2C1A00' : 'var(--color-warning-soft)', color: 'var(--color-warning)', fontSize: '0.875rem', fontWeight: '700' }}>
             <Bug size={20} style={{ minWidth: '20px' }} />
             {(isMobile || isSidebarOpen) && <span>Bug / Saran Fitur</span>}
           </button>
 
           <button onClick={() => { setIsDarkMode(!isDarkMode); if (isMobile) closeMobileDrawer(); }} title={isDarkMode ? 'Light Mode' : 'Dark Mode'} aria-label={isDarkMode ? 'Aktifkan light mode' : 'Aktifkan dark mode'} className="ui-motion-button ui-focus-ring"
-            style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7', color: txt, fontSize: '0.875rem', fontWeight: '600' }}>
+            style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)', color: txt, fontSize: '0.875rem', fontWeight: '600' }}>
             {isDarkMode ? <Sun size={20} style={{ minWidth: '20px' }} /> : <Moon size={20} style={{ minWidth: '20px' }} />}
             {(isMobile || isSidebarOpen) && <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>}
           </button>
 
           <button onClick={() => { if (isMobile) closeMobileDrawer(); handleLogout(); }} title="Logout" aria-label="Logout" className="ui-motion-button ui-focus-ring"
-            style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: '#FF3B30', color: 'white', fontSize: '0.875rem', fontWeight: '700' }}>
+            style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: 'var(--color-danger)', color: 'white', fontSize: '0.875rem', fontWeight: '700' }}>
             <LogOut size={20} style={{ minWidth: '20px' }} />
             {(isMobile || isSidebarOpen) && <span>Logout</span>}
           </button>
@@ -408,14 +408,14 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
       {/* Bug/Fitur Modal */}
       {showBugModal && (
         <div onClick={resetModal} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div onClick={e => e.stopPropagation()} className="ui-motion-modal" style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF', borderRadius: '16px', width: '100%', maxWidth: '460px', boxShadow: '0 32px 64px rgba(0,0,0,0.35)', overflow: 'hidden' }}>
+          <div onClick={e => e.stopPropagation()} className="ui-motion-modal" style={{ backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : '#FFF', borderRadius: '16px', width: '100%', maxWidth: '460px', boxShadow: '0 32px 64px rgba(0,0,0,0.35)', overflow: 'hidden' }}>
             
             {/* Modal Header */}
-            <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: isDarkMode ? '#000' : '#F5F5F7' }}>
+            <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: isDarkMode ? '#000' : 'var(--color-bg)' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: txt }}>
                 {submitted ? '🎉 Terima Kasih!' : '📢 Kirim Laporan'}
               </h3>
-              <button onClick={resetModal} aria-label="Tutup laporan" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color="#86868B" /></button>
+              <button onClick={resetModal} aria-label="Tutup laporan" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color="var(--color-text-subtle)" /></button>
             </div>
 
             {submitted ? (
@@ -423,12 +423,12 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
               <div style={{ padding: '36px 24px', textAlign: 'center' }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
                 <p style={{ fontSize: '16px', fontWeight: '700', color: txt, margin: '0 0 8px' }}>Laporan berhasil dikirim!</p>
-                <p style={{ fontSize: '14px', color: '#86868B', margin: '0 0 24px', lineHeight: '1.5' }}>
+                <p style={{ fontSize: '14px', color: 'var(--color-text-subtle)', margin: '0 0 24px', lineHeight: '1.5' }}>
                   {bugType === 'bug'
                     ? 'Bug kamu sudah kami catat dan akan segera ditangani oleh developer.'
                     : 'Saran fitur kamu sudah kami terima dan akan dipertimbangkan untuk update berikutnya.'}
                 </p>
-                <button onClick={resetModal} className="ui-motion-button ui-focus-ring" style={{ padding: '12px 28px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
+                <button onClick={resetModal} className="ui-motion-button ui-focus-ring" style={{ padding: '12px 28px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
                   OK
                 </button>
               </div>
@@ -436,12 +436,12 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
               /* Form */
               <div style={{ padding: '20px 22px' }}>
                 {/* Type toggle */}
-                <div style={{ display: 'flex', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', borderRadius: '10px', padding: '3px', marginBottom: '16px' }}>
-                  {[['bug', '🐛 Laporkan Bug', '#FF3B30'], ['feature', '💡 Saran Fitur', '#007AFF']].map(([key, label, color]) => (
+                <div style={{ display: 'flex', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', borderRadius: '10px', padding: '3px', marginBottom: '16px' }}>
+                  {[['bug', '🐛 Laporkan Bug', 'var(--color-danger)'], ['feature', '💡 Saran Fitur', 'var(--color-primary)']].map(([key, label, color]) => (
                     <button key={key} onClick={() => setBugType(key)} className="ui-motion-button ui-focus-ring"
                       style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', transition: uiTransition('all', UI_MOTION.duration.fast),
-                        backgroundColor: bugType === key ? (isDarkMode ? '#1C1C1E' : '#FFF') : 'transparent',
-                        color: bugType === key ? color : '#86868B',
+                        backgroundColor: bugType === key ? (isDarkMode ? 'var(--color-surface-elevated)' : '#FFF') : 'transparent',
+                        color: bugType === key ? color : 'var(--color-text-subtle)',
                         boxShadow: bugType === key ? '0 1px 4px rgba(0,0,0,0.15)' : 'none' }}>
                       {label}
                     </button>
@@ -450,58 +450,58 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
 
                 {/* Form fields */}
                 <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: isDarkMode ? '#EBEBF0' : '#3A3A3C', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-border-strong)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                     {bugType === 'bug' ? 'Judul Bug *' : 'Nama Fitur *'}
                   </label>
                   <input value={bugForm.title} onChange={e => setBugForm(p => ({ ...p, title: e.target.value }))}
                     placeholder={bugType === 'bug' ? 'Contoh: Tombol simpan tidak merespon' : 'Contoh: Export ke PDF'}
-                    style={{ width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: txt, fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: txt, fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
 
                 <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: isDarkMode ? '#EBEBF0' : '#3A3A3C', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-border-strong)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                     {bugType === 'bug' ? 'Deskripsi' : 'Deskripsi Fitur'}
                   </label>
                   <textarea value={bugForm.description} onChange={e => setBugForm(p => ({ ...p, description: e.target.value }))}
                     rows={3}
                     placeholder={bugType === 'bug' ? 'Apa yang terjadi? Apa yang diharapkan?' : 'Jelaskan fitur yang kamu inginkan...'}
-                    style={{ width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: txt, fontSize: '14px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: txt, fontSize: '14px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
                 </div>
 
                 {bugType === 'bug' && (
                   <div style={{ marginBottom: '12px' }}>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: isDarkMode ? '#EBEBF0' : '#3A3A3C', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-border-strong)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                       Langkah Reproduksi
                     </label>
                     <textarea value={bugForm.steps} onChange={e => setBugForm(p => ({ ...p, steps: e.target.value }))}
                       rows={3}
                       placeholder={'1. Buka halaman invoice\n2. Klik tombol ...\n3. Bug muncul'}
-                      style={{ width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: txt, fontSize: '14px', outline: 'none', resize: 'vertical', fontFamily: 'monospace', boxSizing: 'border-box' }} />
+                      style={{ width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: txt, fontSize: '14px', outline: 'none', resize: 'vertical', fontFamily: 'monospace', boxSizing: 'border-box' }} />
                   </div>
                 )}
 
                 <div style={{ marginBottom: '18px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: isDarkMode ? '#EBEBF0' : '#3A3A3C', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-border-strong)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                     Nama / Kontak (opsional)
                   </label>
                   <input value={bugForm.contact} onChange={e => setBugForm(p => ({ ...p, contact: e.target.value }))}
                     placeholder="Nama atau nomor HP"
-                    style={{ width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: txt, fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: txt, fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
 
                 {bugError && (
-                  <div style={{ padding: '10px 12px', backgroundColor: '#FF3B3018', color: '#FF3B30', borderRadius: '10px', fontSize: '13px', fontWeight: '600', marginBottom: '10px' }}>
+                  <div style={{ padding: '10px 12px', backgroundColor: 'var(--color-danger-soft)', color: 'var(--color-danger)', borderRadius: '10px', fontSize: '13px', fontWeight: '600', marginBottom: '10px' }}>
                     {bugError}
                   </div>
                 )}
 
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={handleSubmitBug} disabled={submitting} className="ui-motion-button ui-focus-ring"
-                    style={{ flex: 1, padding: '13px', backgroundColor: bugType === 'bug' ? '#FF3B30' : '#007AFF', color: 'white', border: 'none', borderRadius: '10px', cursor: submitting ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', opacity: submitting ? 0.6 : 1 }}>
+                    style={{ flex: 1, padding: '13px', backgroundColor: bugType === 'bug' ? 'var(--color-danger)' : 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '10px', cursor: submitting ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', opacity: submitting ? 0.6 : 1 }}>
                     {submitting ? 'Mengirim...' : (bugType === 'bug' ? '🐛 Kirim Bug Report' : '💡 Kirim Saran')}
                   </button>
                   <button onClick={resetModal} className="ui-motion-button ui-focus-ring"
-                    style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: txt, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
+                    style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: txt, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
                     Batal
                   </button>
                 </div>

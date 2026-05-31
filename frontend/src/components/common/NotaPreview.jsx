@@ -43,13 +43,13 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
   return (
     <div style={{
       backgroundColor: '#FFF', borderRadius: '10px', padding: '16px',
-      border: '1px solid #E5E5EA', boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+      border: '1px solid var(--color-border)', boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
       fontFamily: 'Helvetica, Arial, sans-serif', color: '#000',
     }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '13px', fontWeight: '800', color: '#007AFF', marginBottom: '3px' }}>{companyName}</div>
+          <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--color-primary)', marginBottom: '3px' }}>{companyName}</div>
           {address && <div style={{ fontSize: '9px', color: '#555', lineHeight: '1.4' }}>{address}</div>}
           {phone && <div style={{ fontSize: '9px', color: '#555' }}>{phone}</div>}
         </div>
@@ -58,7 +58,7 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
           <div style={{ fontSize: '8px', color: '#777' }}>No: {displayNo}</div>
           <div style={{ fontSize: '8px', color: '#777' }}>{headerDate}</div>
           {due_date && !isCash && (
-            <div style={{ fontSize: '8px', color: '#FF3B30', fontWeight: '700', marginTop: '2px' }}>JT: {fmtDate(due_date)}</div>
+            <div style={{ fontSize: '8px', color: 'var(--color-danger)', fontWeight: '700', marginTop: '2px' }}>JT: {fmtDate(due_date)}</div>
           )}
           {payment_method && (
             <div style={{ fontSize: '8px', color: '#555', marginTop: '2px' }}>Metode: {payment_method}</div>
@@ -66,7 +66,7 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
         </div>
       </div>
 
-      <div style={{ height: '1.5px', backgroundColor: '#007AFF', marginBottom: '8px', borderRadius: '2px' }} />
+      <div style={{ height: '1.5px', backgroundColor: 'var(--color-primary)', marginBottom: '8px', borderRadius: '2px' }} />
 
       {/* Customer */}
       <div style={{ marginBottom: '8px' }}>
@@ -77,10 +77,10 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
       </div>
 
       {/* Items table */}
-      <div style={{ backgroundColor: '#F5F5F7', borderRadius: '6px', overflow: 'hidden', marginBottom: '8px', border: '1px solid #007AFF' }}>
+      <div style={{ backgroundColor: 'var(--color-bg)', borderRadius: '6px', overflow: 'hidden', marginBottom: '8px', border: '1px solid var(--color-primary)' }}>
         <table style={{ width: '100%', fontSize: '8px', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ backgroundColor: '#007AFF', color: '#FFF' }}>
+            <tr style={{ backgroundColor: 'var(--color-primary)', color: '#FFF' }}>
               <th style={{ padding: '4px 5px', textAlign: 'center', width: '24px' }}>No</th>
               <th style={{ padding: '4px 5px', textAlign: 'left' }}>Nama Barang</th>
               <th style={{ padding: '4px 5px', textAlign: 'center', width: '48px' }}>Qty</th>
@@ -100,8 +100,8 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
               const hasMeta = it.batch_no_snapshot || ed;
               return (
                 <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#FFF' : '#FAFAFA' }}>
-                  <td style={{ padding: '4px 5px', textAlign: 'center', color: '#3A3A3C', verticalAlign: 'top' }}>{idx + 1}</td>
-                  <td style={{ padding: '4px 5px', color: '#3A3A3C' }}>
+                  <td style={{ padding: '4px 5px', textAlign: 'center', color: 'var(--color-border-strong)', verticalAlign: 'top' }}>{idx + 1}</td>
+                  <td style={{ padding: '4px 5px', color: 'var(--color-border-strong)' }}>
                     <div>{it.product_name || '—'}</div>
                     {hasMeta && (
                       <div style={{ fontSize: '7px', color: '#777', marginTop: '1px' }}>
@@ -111,9 +111,9 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
                       </div>
                     )}
                   </td>
-                  <td style={{ padding: '4px 5px', textAlign: 'center', color: '#3A3A3C', verticalAlign: 'top' }}>{qty} {it.unit || 'pcs'}</td>
-                  <td style={{ padding: '4px 5px', textAlign: 'right', color: '#3A3A3C', verticalAlign: 'top' }}>{fmtRp(price)}</td>
-                  <td style={{ padding: '4px 5px', textAlign: 'right', color: '#3A3A3C', verticalAlign: 'top', fontWeight: '600' }}>{fmtRp(lineTotal)}</td>
+                  <td style={{ padding: '4px 5px', textAlign: 'center', color: 'var(--color-border-strong)', verticalAlign: 'top' }}>{qty} {it.unit || 'pcs'}</td>
+                  <td style={{ padding: '4px 5px', textAlign: 'right', color: 'var(--color-border-strong)', verticalAlign: 'top' }}>{fmtRp(price)}</td>
+                  <td style={{ padding: '4px 5px', textAlign: 'right', color: 'var(--color-border-strong)', verticalAlign: 'top', fontWeight: '600' }}>{fmtRp(lineTotal)}</td>
                 </tr>
               );
             })}
@@ -139,11 +139,11 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
       {/* Ketentuan */}
       {ketentuanLines.length > 0 && (
         <div style={{ marginBottom: '8px' }}>
-          <div style={{ fontSize: '7px', fontWeight: '700', color: '#FF3B30' }}>NOTE:</div>
+          <div style={{ fontSize: '7px', fontWeight: '700', color: 'var(--color-danger)' }}>NOTE:</div>
           {ketentuanLines.map((line, i) => (
-            <div key={i} style={{ fontSize: '7px', color: '#FF3B30' }}>{i + 1}. {line}</div>
+            <div key={i} style={{ fontSize: '7px', color: 'var(--color-danger)' }}>{i + 1}. {line}</div>
           ))}
-          {ketentuanMore && <div style={{ fontSize: '7px', color: '#FF3B30', opacity: 0.6 }}>…</div>}
+          {ketentuanMore && <div style={{ fontSize: '7px', color: 'var(--color-danger)', opacity: 0.6 }}>…</div>}
         </div>
       )}
 
@@ -171,7 +171,7 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
 
       {/* Footer */}
       {footerText && (
-        <div style={{ borderTop: '1px dashed #E5E5EA', paddingTop: '6px', textAlign: 'center', marginTop: '8px' }}>
+        <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: '6px', textAlign: 'center', marginTop: '8px' }}>
           <div style={{ fontSize: '7px', color: '#AEAEB2' }}>{footerText}</div>
         </div>
       )}

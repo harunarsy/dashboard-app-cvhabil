@@ -26,14 +26,14 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-dig
 const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
 
 function expirySeverity(date, isDarkMode) {
-  if (!date) return { color: '#86868B', bg: 'transparent', label: '—', plain: true };
+  if (!date) return { color: 'var(--color-text-subtle)', bg: 'transparent', label: '—', plain: true };
   const days = daysUntil(date);
-  const redBg = isDarkMode ? '#3A1F1F' : '#FFF5F5';
-  const orangeBg = isDarkMode ? '#3A2E0F' : '#FFF8F0';
-  if (days <= 0) return { color: '#FF453A', bg: redBg, label: `EXPIRED · ${fmtDate(date)}` };
-  if (days < 30) return { color: '#FF453A', bg: redBg, label: `${fmtDate(date)} (${days}d)` };
+  const redBg = isDarkMode ? 'var(--color-danger-soft)' : 'var(--color-danger-soft)';
+  const orangeBg = isDarkMode ? 'var(--color-warning-soft)' : 'var(--color-warning-soft)';
+  if (days <= 0) return { color: 'var(--color-danger)', bg: redBg, label: `EXPIRED · ${fmtDate(date)}` };
+  if (days < 30) return { color: 'var(--color-danger)', bg: redBg, label: `${fmtDate(date)} (${days}d)` };
   if (days < 90) return { color: '#FF9F0A', bg: orangeBg, label: `${fmtDate(date)} (${days}d)` };
-  return { color: '#34C759', bg: 'transparent', label: fmtDate(date), plain: true };
+  return { color: 'var(--color-success)', bg: 'transparent', label: fmtDate(date), plain: true };
 }
 
 export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
@@ -76,12 +76,12 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   // Modal save loading flags
   const [modalSaving, setModalSaving] = useState(false);
 
-  const bg = isDarkMode ? '#000' : '#F5F5F7';
-  const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
-  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
+  const bg = isDarkMode ? '#000' : 'var(--color-bg)';
+  const cardBg = isDarkMode ? 'var(--color-surface-elevated)' : '#FFF';
+  const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
   const text = isDarkMode ? '#FFF' : '#000';
-  const sub = '#86868B';
-  const surface = isDarkMode ? '#2C2C2E' : '#F5F5F7';
+  const sub = 'var(--color-text-subtle)';
+  const surface = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)';
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -382,21 +382,21 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: 0, color: text }}>📦 Inventory & Stok</h1>
-          <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>
+          <div style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>
             {loading ? <Skeleton width="200px" height="14px" /> : <>{products.length} produk aktif • {totalAlerts > 0 ? `⚠️ ${totalAlerts} alert` : '✅ Semua aman'}</>}
-          </p>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {headerBtn('#007AFF', Plus, 'Produk', openAddProduct)}
-          {headerBtn('#34C759', ArrowDownCircle, 'Stok Masuk', () => openStockIn(null))}
-          {headerBtn('#FF9500', ArrowUpCircle, 'Stok Keluar', () => openStockOut(null))}
-          {headerBtn('#5E5CE6', ClipboardCheck, 'Opname', () => setShowModal('opname'))}
-          {headerBtn('#8E8E93', FileDown, 'Cetak Template', handleExportOpnameTemplate)}
+          {headerBtn('var(--color-primary)', Plus, 'Produk', openAddProduct)}
+          {headerBtn('var(--color-success)', ArrowDownCircle, 'Stok Masuk', () => openStockIn(null))}
+          {headerBtn('var(--color-warning)', ArrowUpCircle, 'Stok Keluar', () => openStockOut(null))}
+          {headerBtn('var(--color-primary-hover)', ClipboardCheck, 'Opname', () => setShowModal('opname'))}
+          {headerBtn('var(--color-text-subtle)', FileDown, 'Cetak Template', handleExportOpnameTemplate)}
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', backgroundColor: isDarkMode ? '#1C1C1E' : '#E5E5EA', borderRadius: '10px', padding: '3px', marginBottom: '1.5rem', maxWidth: '500px' }}>
+      <div style={{ display: 'flex', gap: '4px', backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-border)', borderRadius: '10px', padding: '3px', marginBottom: '1.5rem', maxWidth: '500px' }}>
         {[['products', '📦 Produk'], ['alerts', `⚠️ Alert ${totalAlerts > 0 ? `(${totalAlerts})` : ''}`]].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)} className="ui-motion-button ui-focus-ring"
             style={{ flex: 1, minHeight: '40px', padding: '8px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700',
@@ -485,11 +485,11 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                     const isExpanded = expandedIds.has(p.id);
                     // Bar visible HANYA bila min_stock terdefinisi (> 0). Tanpa threshold = no gauge.
                     const stockPct = hasMinStock ? Math.min(100, (stock / (minStockNum * 2)) * 100) : 0;
-                    const stockColor = stock <= 0 ? '#FF3B30' : isLowStock ? '#FF9500' : '#34C759';
+                    const stockColor = stock <= 0 ? 'var(--color-danger)' : isLowStock ? 'var(--color-warning)' : 'var(--color-success)';
                     const isSelected = selectedProductIds.has(p.id);
                     return (
                       <React.Fragment key={p.id}>
-                        <tr style={{ borderBottom: `1px solid ${border}`, background: isSelected ? (isDarkMode ? '#007AFF15' : '#007AFF08') : (isExpanded ? surface : 'transparent') }}>
+                        <tr className="ui-row" style={{ borderBottom: `1px solid ${border}`, background: isSelected ? (isDarkMode ? 'var(--color-primary-soft)' : 'var(--color-primary)08') : (isExpanded ? surface : 'transparent') }}>
                           <td style={{ ...tdStyle, width: '40px', textAlign: 'center' }}>
                             <input
                               type="checkbox"
@@ -535,7 +535,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                             >
                               <span style={{ fontWeight: '700', color: stockColor, fontSize: '14px', fontVariantNumeric: 'tabular-nums' }}>{stock}</span>
                               {hasMinStock && (
-                                <div style={{ width: '40px', height: '4px', background: isDarkMode ? '#2C2C2E' : '#E5E5EA', borderRadius: '2px', overflow: 'hidden' }}>
+                                <div style={{ width: '40px', height: '4px', background: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)', borderRadius: '2px', overflow: 'hidden' }}>
                                   <div style={{ height: '100%', width: `${stockPct}%`, background: stockColor, transition: uiTransition('width', UI_MOTION.duration.page) }} />
                                 </div>
                               )}
@@ -556,17 +556,17 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                             ) : <span style={{ color: sub }}>—</span>}
                           </td>
                           <td style={{ ...tdStyle, textAlign: 'right' }}>
-                            <div style={{ display: 'inline-flex', gap: '2px' }}>
+                            <div className="ui-row-action" style={{ display: 'inline-flex', gap: '2px' }}>
                               <IconBtn onClick={() => setDrawerProductId(p.id)} label="Lihat detail" Icon={Eye} color={sub} />
-                              <IconBtn onClick={() => openStockIn(p)} label="Stok Masuk" Icon={ArrowDownCircle} color="#34C759" />
-                              <IconBtn onClick={() => openStockOut(p)} label="Stok Keluar" Icon={ArrowUpCircle} color="#FF9500" />
-                              <IconBtn onClick={() => openEditProduct(p)} label="Edit Produk" Icon={Edit2} color="#007AFF" />
-                              <IconBtn onClick={() => setDeleteConfirmId(p.id)} label="Nonaktifkan" Icon={Trash2} color="#FF3B30" />
+                              <IconBtn onClick={() => openStockIn(p)} label="Stok Masuk" Icon={ArrowDownCircle} color="var(--color-success)" />
+                              <IconBtn onClick={() => openStockOut(p)} label="Stok Keluar" Icon={ArrowUpCircle} color="var(--color-warning)" />
+                              <IconBtn onClick={() => openEditProduct(p)} label="Edit Produk" Icon={Edit2} color="var(--color-primary)" />
+                              <IconBtn onClick={() => setDeleteConfirmId(p.id)} label="Nonaktifkan" Icon={Trash2} color="var(--color-danger)" />
                             </div>
                           </td>
                         </tr>
                         {isExpanded && (
-                          <tr style={{ background: surface, borderBottom: `1px solid ${border}` }}>
+              <tr className="ui-row" style={{ background: surface, borderBottom: `1px solid ${border}` }}>
                             <td></td>
                             <td colSpan={11} style={{ padding: '8px 14px 16px' }}>
                               <ExpandedBatches
@@ -609,7 +609,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
       {tab === 'alerts' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px', padding: '18px' }}>
-            <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: '700', color: '#FF9500', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: '700', color: 'var(--color-warning)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Clock size={18} /> Mendekati Expired ({alerts.expiring.length})
             </h3>
             {alerts.expiring.length ? alerts.expiring.map((b, i) => {
@@ -620,7 +620,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                     <span style={{ fontWeight: '600', color: text }}>{b.product_name}</span>
                     <span style={{ marginLeft: '8px', fontSize: '12px', color: sub }}>Batch: {b.batch_no || '—'} · Qty: {b.qty_current} {b.unit}</span>
                   </div>
-                  <span style={{ fontSize: '12px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', backgroundColor: days < 30 ? '#FF3B3018' : '#FF950018', color: days < 30 ? '#FF3B30' : '#FF9500' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', backgroundColor: days < 30 ? 'var(--color-danger-soft)' : 'var(--color-warning-soft)', color: days < 30 ? 'var(--color-danger)' : 'var(--color-warning)' }}>
                     {days <= 0 ? 'EXPIRED!' : `${days} hari lagi`}
                   </span>
                 </div>
@@ -629,13 +629,13 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
           </div>
 
           <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px', padding: '18px' }}>
-            <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: '700', color: '#FF3B30', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: '700', color: 'var(--color-danger)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AlertTriangle size={18} /> Stok Rendah ({alerts.lowStock.length})
             </h3>
             {alerts.lowStock.length ? alerts.lowStock.map((p, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < alerts.lowStock.length - 1 ? `1px solid ${border}` : 'none' }}>
                 <span style={{ fontWeight: '600', color: text }}>{p.name}</span>
-                <span style={{ fontSize: '12px', color: '#FF3B30', fontWeight: '600' }}>{p.total_stock} / min {p.min_stock}</span>
+                <span style={{ fontSize: '12px', color: 'var(--color-danger)', fontWeight: '600' }}>{p.total_stock} / min {p.min_stock}</span>
               </div>
             )) : <p style={{ color: sub, fontSize: '14px', margin: 0 }}>✅ Semua stok di atas minimum.</p>}
           </div>
@@ -690,7 +690,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
             <HnaHppInput value={pForm.hna} onChange={v => setPForm(p => ({ ...p, hna: v }))} decimals={2} isDarkMode={isDarkMode} />
             {parseFloat(pForm.hna) > 0 && (
               <p style={{ margin: '0 0 4px', fontSize: '11px', color: sub, padding: '6px 10px', background: surface, borderRadius: '8px' }}>
-                Margin per {pForm.base_unit || pForm.unit || 'pcs'} (jual − HPP inc PPN): <strong style={{ color: (pForm.sell_price - hppFromHna(pForm.hna)) > 0 ? '#34C759' : '#FF3B30' }}>{formatRupiah(pForm.sell_price - hppFromHna(pForm.hna), 0)}</strong>
+                Margin per {pForm.base_unit || pForm.unit || 'pcs'} (jual − HPP inc PPN): <strong style={{ color: (pForm.sell_price - hppFromHna(pForm.hna)) > 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>{formatRupiah(pForm.sell_price - hppFromHna(pForm.hna), 0)}</strong>
               </p>
             )}
 
@@ -732,7 +732,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                 <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: text }}>
                   💰 Harga Grosir (Tier) — opsional
                 </p>
-                <button onClick={addTier} type="button" style={{ background: '#007AFF', color: '#FFF', border: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}>+ Tier</button>
+                <button onClick={addTier} type="button" style={{ background: 'var(--color-primary)', color: '#FFF', border: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}>+ Tier</button>
               </div>
               {(pForm.price_tiers || []).length === 0 && (
                 <p style={{ margin: 0, fontSize: '11px', color: sub, fontStyle: 'italic' }}>Belum ada tier. Klik "+ Tier" untuk tambah harga grosir per qty.</p>
@@ -746,7 +746,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                   <input type="number" min="1" placeholder="Min" value={tier.min_qty} onChange={e => updateTier(idx, 'min_qty', parseInt(e.target.value) || 1)} style={{ ...inputStyle, fontSize: '12px', padding: '8px' }} />
                   <input type="number" placeholder="Max" value={tier.max_qty || ''} onChange={e => updateTier(idx, 'max_qty', e.target.value)} title="Kosongkan = tanpa batas atas" style={{ ...inputStyle, fontSize: '12px', padding: '8px' }} />
                   <input type="number" placeholder="Harga (Rp)" value={tier.price} onChange={e => updateTier(idx, 'price', parseFloat(e.target.value) || 0)} style={{ ...inputStyle, fontSize: '12px', padding: '8px' }} />
-                  <button onClick={() => removeTier(idx)} type="button" aria-label="Hapus tier harga" title="Hapus tier harga" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>
+                  <button onClick={() => removeTier(idx)} type="button" aria-label="Hapus tier harga" title="Hapus tier harga" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="var(--color-danger)" /></button>
                 </div>
               ))}
               {(pForm.price_tiers || []).length > 0 && (
@@ -772,18 +772,18 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
               />
             )}
             {batchActionError && (
-              <div role="alert" style={{ backgroundColor: '#FFF5F5', border: '1px solid #FFE5E5', borderRadius: '10px', padding: '10px 14px', color: '#FF3B30', fontSize: '13px', fontWeight: '600', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+              <div role="alert" style={{ backgroundColor: 'var(--color-danger-soft)', border: '1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)', borderRadius: '10px', padding: '10px 14px', color: 'var(--color-danger)', fontSize: '13px', fontWeight: '600', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} /> <span>{batchActionError}</span>
               </div>
             )}
             {modalError && (
-              <div style={{ backgroundColor: '#FFF5F5', border: '1px solid #FFE5E5', borderRadius: '10px', padding: '10px 14px', color: '#FF3B30', fontSize: '13px', fontWeight: '600', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+              <div style={{ backgroundColor: 'var(--color-danger-soft)', border: '1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)', borderRadius: '10px', padding: '10px 14px', color: 'var(--color-danger)', fontSize: '13px', fontWeight: '600', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} /> <span>{modalError}</span>
               </div>
             )}
             {(!editId || productModalTab === 'profile') && (
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-              <button onClick={saveProduct} disabled={modalSaving} style={primaryBtn('#007AFF', modalSaving)}>{modalSaving ? 'Menyimpan...' : (editId ? 'Simpan' : 'Tambah')}</button>
+              <button onClick={saveProduct} disabled={modalSaving} style={primaryBtn('var(--color-primary)', modalSaving)}>{modalSaving ? 'Menyimpan...' : (editId ? 'Simpan' : 'Tambah')}</button>
               {/* v1.11.12: tombol Simpan warna konsistensi — semua biru */}
               <button onClick={() => setShowModal(null)} disabled={modalSaving} style={secondaryBtn(surface, text, border)}>Batal</button>
             </div>
@@ -794,7 +794,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
       {/* ─── Stock In Modal ──────────────────────────────────────────────── */}
       {showModal === 'stockIn' && (
-        <ModalShell onClose={() => setShowModal(null)} cardBg={cardBg} title="📥 Stok Masuk" titleColor="#34C759" text={text} border={border} sub={sub} isMobile={isMobile} maxWidth="480px">
+        <ModalShell onClose={() => setShowModal(null)} cardBg={cardBg} title="📥 Stok Masuk" titleColor="var(--color-success)" text={text} border={border} sub={sub} isMobile={isMobile} maxWidth="480px">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
@@ -832,12 +832,12 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
               <input type="date" value={siForm.expired_date} onChange={e => setSiForm(p => ({ ...p, expired_date: e.target.value }))} style={inputStyle} />
             </div>
             {modalError && (
-              <div style={{ backgroundColor: '#FFF5F5', border: '1px solid #FFE5E5', borderRadius: '10px', padding: '10px 14px', color: '#FF3B30', fontSize: '13px', fontWeight: '600', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+              <div style={{ backgroundColor: 'var(--color-danger-soft)', border: '1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)', borderRadius: '10px', padding: '10px 14px', color: 'var(--color-danger)', fontSize: '13px', fontWeight: '600', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} /> <span>{modalError}</span>
               </div>
             )}
             <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-              <button onClick={saveStockIn} disabled={modalSaving} style={primaryBtn('#007AFF', modalSaving)}>{modalSaving ? 'Menyimpan...' : 'Simpan'}</button>
+              <button onClick={saveStockIn} disabled={modalSaving} style={primaryBtn('var(--color-primary)', modalSaving)}>{modalSaving ? 'Menyimpan...' : 'Simpan'}</button>
               <button onClick={() => setShowModal(null)} disabled={modalSaving} style={secondaryBtn(surface, text, border)}>Batal</button>
             </div>
           </div>
@@ -846,7 +846,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
       {/* ─── Stock Out Modal ─────────────────────────────────────────────── */}
       {showModal === 'stockOut' && (
-        <ModalShell onClose={() => setShowModal(null)} cardBg={cardBg} title="📤 Stok Keluar" titleColor="#FF9500" text={text} border={border} sub={sub} isMobile={isMobile} maxWidth="480px">
+        <ModalShell onClose={() => setShowModal(null)} cardBg={cardBg} title="📤 Stok Keluar" titleColor="var(--color-warning)" text={text} border={border} sub={sub} isMobile={isMobile} maxWidth="480px">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
@@ -889,15 +889,15 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
               <p style={{ margin: 0, fontSize: '11px', color: sub }}>ℹ️ Stok akan diambil otomatis dari batch dengan ED terdekat (FEFO).</p>
             )}
             {soForm.selected_batch_id && (
-              <p style={{ margin: 0, fontSize: '11px', color: '#FF9500', fontWeight: '600' }}>⚠️ Mode manual — qty akan dipotong dari batch yang dipilih saja.</p>
+              <p style={{ margin: 0, fontSize: '11px', color: 'var(--color-warning)', fontWeight: '600' }}>⚠️ Mode manual — qty akan dipotong dari batch yang dipilih saja.</p>
             )}
             {modalError && (
-              <div style={{ backgroundColor: '#FFF5F5', border: '1px solid #FFE5E5', borderRadius: '10px', padding: '10px 14px', color: '#FF3B30', fontSize: '13px', fontWeight: '600', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+              <div style={{ backgroundColor: 'var(--color-danger-soft)', border: '1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)', borderRadius: '10px', padding: '10px 14px', color: 'var(--color-danger)', fontSize: '13px', fontWeight: '600', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} /> <span>{modalError}</span>
               </div>
             )}
             <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-              <button onClick={saveStockOut} disabled={modalSaving} style={primaryBtn('#FF9500', modalSaving)}>{modalSaving ? 'Menyimpan...' : 'Keluarkan'}</button>
+              <button onClick={saveStockOut} disabled={modalSaving} style={primaryBtn('var(--color-warning)', modalSaving)}>{modalSaving ? 'Menyimpan...' : 'Keluarkan'}</button>
               <button onClick={() => setShowModal(null)} disabled={modalSaving} style={secondaryBtn(surface, text, border)}>Batal</button>
             </div>
           </div>
@@ -928,17 +928,17 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
       {selectedProductIds.size > 0 && (
         <div style={{
           position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
-          background: isDarkMode ? '#1C1C1E' : '#FFFFFF', color: text,
+          background: isDarkMode ? 'var(--color-surface-elevated)' : '#FFFFFF', color: text,
           border: `1px solid ${border}`, borderRadius: '14px',
           boxShadow: '0 12px 40px rgba(0,0,0,0.2)', padding: '10px 16px',
           display: 'flex', alignItems: 'center', gap: '14px', zIndex: 1000,
           fontSize: '13px', fontWeight: '600',
         }}>
-          <span><strong style={{ color: '#007AFF' }}>{selectedProductIds.size}</strong> produk dipilih</span>
+          <span><strong style={{ color: 'var(--color-primary)' }}>{selectedProductIds.size}</strong> produk dipilih</span>
           <button
             onClick={() => setBulkEditOpen(true)}
             style={{
-              padding: '8px 14px', background: '#007AFF', color: '#FFF', border: 'none',
+              padding: '8px 14px', background: 'var(--color-primary)', color: '#FFF', border: 'none',
               borderRadius: '8px', fontWeight: '600', fontSize: '12px', cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: '6px',
             }}
@@ -1048,10 +1048,10 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
               <input value={adjustForm.reason} onChange={(e) => setAdjustForm(p => ({ ...p, reason: e.target.value }))} placeholder="contoh: koreksi opname, rusak, hilang" style={inputStyle} />
             </div>
             {batchActionError && (
-              <div role="alert" style={{ backgroundColor: '#FFF5F5', border: '1px solid #FFE5E5', borderRadius: '10px', padding: '10px 14px', color: '#FF3B30', fontSize: '13px', fontWeight: '600' }}>{batchActionError}</div>
+              <div role="alert" style={{ backgroundColor: 'var(--color-danger-soft)', border: '1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)', borderRadius: '10px', padding: '10px 14px', color: 'var(--color-danger)', fontSize: '13px', fontWeight: '600' }}>{batchActionError}</div>
             )}
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={submitAdjustBatch} disabled={batchActionSaving} style={primaryBtn('#007AFF', batchActionSaving)}>{batchActionSaving ? 'Menyimpan...' : 'Simpan'}</button>
+              <button onClick={submitAdjustBatch} disabled={batchActionSaving} style={primaryBtn('var(--color-primary)', batchActionSaving)}>{batchActionSaving ? 'Menyimpan...' : 'Simpan'}</button>
               <button onClick={() => { setAdjustBatch(null); setBatchActionError(''); }} disabled={batchActionSaving} style={secondaryBtn(surface, text, border)}>Batal</button>
             </div>
           </div>
@@ -1062,7 +1062,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
       {toast.msg && (
         <div role="status" aria-live="polite" className="ui-motion-toast" style={{
           position: 'fixed', bottom: '24px', right: '24px',
-          backgroundColor: toast.type === 'error' ? '#FF3B30' : '#34C759', color: '#FFF',
+          backgroundColor: toast.type === 'error' ? 'var(--color-danger)' : 'var(--color-success)', color: '#FFF',
           padding: '12px 20px', borderRadius: '12px', fontWeight: '600', fontSize: '14px',
           boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999,
           animation: 'slideUp 0.2s ease-out',
@@ -1116,7 +1116,7 @@ function ExpandedBatches({ product, batches, loading, sub, text, border, cardBg,
     return (
       <div style={{ padding: '12px 16px', background: cardBg, border: `1px dashed ${border}`, borderRadius: '10px', fontSize: '12px', color: sub, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span>Belum ada batch tercatat.</span>
-        <button onClick={onAddBatch} style={{ background: '#34C759', color: '#FFF', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px' }}>+ Stok Masuk</button>
+        <button onClick={onAddBatch} style={{ background: 'var(--color-success)', color: '#FFF', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px' }}>+ Stok Masuk</button>
       </div>
     );
   }
@@ -1126,7 +1126,7 @@ function ExpandedBatches({ product, batches, loading, sub, text, border, cardBg,
         <span style={{ fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {batches.length} batch
         </span>
-        <button onClick={onOpenDrawer} style={{ background: 'transparent', color: '#007AFF', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '600', minHeight: '32px' }}>
+        <button onClick={onOpenDrawer} style={{ background: 'transparent', color: 'var(--color-primary)', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '600', minHeight: '32px' }}>
           Buka detail
         </button>
       </div>
@@ -1167,10 +1167,10 @@ function ExpandedBatches({ product, batches, loading, sub, text, border, cardBg,
                 <td style={{ padding: '8px 14px', textAlign: 'right', color: sub, fontVariantNumeric: 'tabular-nums' }}>{fmtRp(b.hna, 2)}</td>
                 <td style={{ padding: '8px 14px', textAlign: 'right', color: sub, fontVariantNumeric: 'tabular-nums' }}>{fmtRp(hppFromHna(b.hna), 2)}</td>
                 <td style={{ padding: '8px 14px', textAlign: 'right' }}>
-                  <div style={{ display: 'inline-flex', gap: '2px' }}>
-                    <IconBtn onClick={() => onEditBatch?.(b)} label="Edit batch" Icon={Edit2} color="#007AFF" />
-                    <IconBtn onClick={() => onAdjustBatch?.(b)} label="Adjust qty batch" Icon={AlertCircle} color="#FF9500" />
-                    <IconBtn onClick={() => onDeleteBatch?.(b)} label="Hapus batch" Icon={Trash2} color="#FF3B30" />
+                    <div className="ui-row-action" style={{ display: 'inline-flex', gap: '2px' }}>
+                    <IconBtn onClick={() => onEditBatch?.(b)} label="Edit batch" Icon={Edit2} color="var(--color-primary)" />
+                    <IconBtn onClick={() => onAdjustBatch?.(b)} label="Adjust qty batch" Icon={AlertCircle} color="var(--color-warning)" />
+                    <IconBtn onClick={() => onDeleteBatch?.(b)} label="Hapus batch" Icon={Trash2} color="var(--color-danger)" />
                   </div>
                 </td>
               </tr>
@@ -1197,7 +1197,7 @@ function ProductBatchPanel({ product, batches, loading, sub, text, border, cardB
           <p style={{ margin: 0, color: text, fontSize: '13px', fontWeight: '700' }}>Batch produk</p>
           <p style={{ margin: '2px 0 0', color: sub, fontSize: '12px' }}>Edit no. batch, ED, HNA, notes, adjust qty, atau hapus batch langsung di sini.</p>
         </div>
-        <button type="button" onClick={onAddBatch} style={{ minHeight: '38px', padding: '0 14px', background: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        <button type="button" onClick={onAddBatch} style={{ minHeight: '38px', padding: '0 14px', background: 'var(--color-primary)', color: '#FFF', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
           Batch Baru
         </button>
       </div>
@@ -1238,9 +1238,9 @@ function ProductBatchPanel({ product, batches, loading, sub, text, border, cardB
                     <td style={{ padding: '10px 14px', color: sub, maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.notes || '—'}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: '2px' }}>
-                        <IconBtn onClick={() => onEditBatch(b)} label="Edit batch" Icon={Edit2} color="#007AFF" />
-                        <IconBtn onClick={() => onAdjustBatch(b)} label="Adjust qty batch" Icon={AlertCircle} color="#FF9500" />
-                        <IconBtn onClick={() => onDeleteBatch(b)} label="Hapus batch" Icon={Trash2} color="#FF3B30" />
+                        <IconBtn onClick={() => onEditBatch(b)} label="Edit batch" Icon={Edit2} color="var(--color-primary)" />
+                        <IconBtn onClick={() => onAdjustBatch(b)} label="Adjust qty batch" Icon={AlertCircle} color="var(--color-warning)" />
+                        <IconBtn onClick={() => onDeleteBatch(b)} label="Hapus batch" Icon={Trash2} color="var(--color-danger)" />
                       </div>
                     </td>
                   </tr>

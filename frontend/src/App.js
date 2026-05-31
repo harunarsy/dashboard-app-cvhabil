@@ -16,6 +16,7 @@ import { AuthContext, AuthProvider } from './context/AuthContext';
 import { useDocumentTitle } from './hooks/useDocumentTitle';
 import useGlassMode from './hooks/useGlassMode';
 import useVantaBackground from './hooks/useVantaBackground';
+import { UI_MOTION, uiTransition } from './constants/ui';
 import './App.css';
 import './styles/liquid-glass.css';
 
@@ -35,7 +36,7 @@ function ProtectedRoute({ children, isDarkMode, setIsDarkMode, isGlassMode, isVa
   return (
     <div className="flex">
       <Sidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} isVantaMode={isVantaMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
-      <div className="flex-1" style={{ marginLeft: isMobile ? 0 : (isSidebarOpen ? '284px' : '108px'), transition: 'margin-left 0.3s ease-in-out' }}>{children}</div>
+      <div className="flex-1" style={{ marginLeft: isMobile ? 0 : (isSidebarOpen ? '284px' : '108px'), transition: uiTransition('margin-left', UI_MOTION.duration.page) }}>{children}</div>
     </div>
   );
 }
@@ -103,7 +104,7 @@ function App() {
       <Router>
         {/* Vanta canvas behind everything — pointer-events: none di CSS */}
         <div ref={vantaRef} id="vanta-bg" />
-        <div className={`app-content transition-colors duration-300 ${isDarkMode ? 'dark' : ''}`} style={{ backgroundColor: isVantaMode ? 'transparent' : (isDarkMode ? '#000000' : '#FFFFFF') }}>
+        <div className={`app-content transition-colors duration-300 ${isDarkMode ? 'dark' : ''}`} style={{ backgroundColor: isVantaMode ? 'transparent' : 'var(--color-bg)' }}>
           <AppRoutes isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} isGlassMode={isGlassMode} setIsGlassMode={setIsGlassMode} isVantaMode={isVantaMode} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isMobile={isMobile} />
         </div>
       </Router>

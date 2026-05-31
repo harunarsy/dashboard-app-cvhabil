@@ -6,28 +6,28 @@ import Skeleton from './common/Skeleton';
 import { UI_MOTION, uiTransition } from '../constants/ui';
 
 const STATUS = {
-  open:        { label: 'Open',        color: '#FF3B30', bg: '#FF3B3015', icon: AlertCircle,  emoji: '🔴' },
-  in_progress: { label: 'In Progress', color: '#FF9500', bg: '#FF950015', icon: Clock,         emoji: '🟡' },
-  resolved:    { label: 'Resolved',    color: '#34C759', bg: '#34C75915', icon: CheckCircle,   emoji: '🟢' },
+  open:        { label: 'Open',        color: 'var(--color-danger)', bg: 'var(--color-danger-soft)', icon: AlertCircle,  emoji: '🔴' },
+  in_progress: { label: 'In Progress', color: 'var(--color-warning)', bg: 'var(--color-warning-soft)', icon: Clock,         emoji: '🟡' },
+  resolved:    { label: 'Resolved',    color: 'var(--color-success)', bg: 'var(--color-success-soft)', icon: CheckCircle,   emoji: '🟢' },
 };
 
 const TYPE = {
-  bug:     { label: 'Bug',   color: '#FF3B30', bg: '#FF3B3015', icon: Bug },
-  feature: { label: 'Fitur', color: '#007AFF', bg: '#007AFF15', icon: Lightbulb },
+  bug:     { label: 'Bug',   color: 'var(--color-danger)', bg: 'var(--color-danger-soft)', icon: Bug },
+  feature: { label: 'Fitur', color: 'var(--color-primary)', bg: 'var(--color-primary-soft)', icon: Lightbulb },
 };
 
 function BugCard({ bug, isDark, onStatusChange }) {
   const [showSteps, setShowSteps] = useState(false);
-  const border = isDark ? '#2C2C2E' : '#F0F0F0';
+  const border = isDark ? 'var(--color-surface-raised)' : '#F0F0F0';
   const txt = isDark ? '#FFF' : '#000';
-  const sub = '#86868B';
+  const sub = 'var(--color-text-subtle)';
   const typeInfo = TYPE[bug.type] || TYPE.bug;
   const TypeIcon = typeInfo.icon;
 
   const nextStatuses = Object.keys(STATUS).filter(s => s !== bug.status);
 
   return (
-    <div style={{ backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderRadius: '12px', padding: '16px 18px', border: `1px solid ${border}`, marginBottom: '10px' }}>
+    <div style={{ backgroundColor: isDark ? 'var(--color-surface-elevated)' : '#FFF', borderRadius: '12px', padding: '16px 18px', border: `1px solid ${border}`, marginBottom: '10px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
         <div style={{ width: '36px', height: '36px', borderRadius: '9px', backgroundColor: typeInfo.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
           <TypeIcon size={16} color={typeInfo.color} />
@@ -42,21 +42,21 @@ function BugCard({ bug, isDark, onStatusChange }) {
               {new Date(bug.reported_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </span>
             {bug.contact && (
-              <span style={{ fontSize: '12px', backgroundColor: isDark ? '#2C2C2E' : '#F5F5F7', padding: '2px 8px', borderRadius: '6px', color: sub }}>
+              <span style={{ fontSize: '12px', backgroundColor: isDark ? 'var(--color-surface-raised)' : 'var(--color-bg)', padding: '2px 8px', borderRadius: '6px', color: sub }}>
                 👤 {bug.contact}
               </span>
             )}
           </div>
-          <p style={{ margin: '0 0 8px', fontSize: '13px', color: isDark ? '#EBEBF5' : '#3A3A3C', lineHeight: '1.5' }}>{bug.description}</p>
+          <p style={{ margin: '0 0 8px', fontSize: '13px', color: isDark ? '#EBEBF5' : 'var(--color-border-strong)', lineHeight: '1.5' }}>{bug.description}</p>
           {bug.steps && (
             <div style={{ marginBottom: '10px' }}>
               <button onClick={() => setShowSteps(!showSteps)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#007AFF', fontSize: '12px', fontWeight: '600', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: '12px', fontWeight: '600', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
                 {showSteps ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                 Langkah Reproduksi
               </button>
               {showSteps && (
-                <pre style={{ margin: '6px 0 0', padding: '10px 14px', backgroundColor: isDark ? '#2C2C2E' : '#F5F5F7', borderRadius: '8px', fontSize: '12px', color: txt, whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{bug.steps}</pre>
+                <pre style={{ margin: '6px 0 0', padding: '10px 14px', backgroundColor: isDark ? 'var(--color-surface-raised)' : 'var(--color-bg)', borderRadius: '8px', fontSize: '12px', color: txt, whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{bug.steps}</pre>
               )}
             </div>
           )}
@@ -82,23 +82,23 @@ function StatusSection({ statusKey, bugs, isDark, onStatusChange, defaultOpen })
   const cfg = STATUS[statusKey];
   const Icon = cfg.icon;
   const count = bugs.length;
-  const border = isDark ? '#2C2C2E' : '#E5E5EA';
+  const border = isDark ? 'var(--color-surface-raised)' : 'var(--color-border)';
 
   return (
     <div style={{ marginBottom: '16px', border: `1.5px solid ${count > 0 ? cfg.color + '40' : border}`, borderRadius: '14px', overflow: 'hidden' }}>
       <button onClick={() => setOpen(!open)}
-        style={{ width: '100%', padding: '14px 18px', backgroundColor: count > 0 ? cfg.bg : (isDark ? '#1C1C1E' : '#FAFAFA'), border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
-        <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: isDark ? '#2C2C2E' : '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        style={{ width: '100%', padding: '14px 18px', backgroundColor: count > 0 ? cfg.bg : (isDark ? 'var(--color-surface-elevated)' : '#FAFAFA'), border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
+        <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: isDark ? 'var(--color-surface-raised)' : '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Icon size={16} color={cfg.color} />
         </div>
         <span style={{ fontSize: '15px', fontWeight: '700', color: cfg.color, flex: 1 }}>{cfg.label}</span>
-        <span style={{ fontSize: '13px', fontWeight: '700', backgroundColor: count > 0 ? cfg.color : (isDark ? '#3A3A3C' : '#E5E5EA'), color: count > 0 ? '#FFF' : '#86868B', padding: '2px 10px', borderRadius: '20px', minWidth: '28px', textAlign: 'center' }}>{count}</span>
-        {open ? <ChevronUp size={16} color="#86868B" /> : <ChevronDown size={16} color="#86868B" />}
+        <span style={{ fontSize: '13px', fontWeight: '700', backgroundColor: count > 0 ? cfg.color : (isDark ? 'var(--color-border-strong)' : 'var(--color-border)'), color: count > 0 ? '#FFF' : 'var(--color-text-subtle)', padding: '2px 10px', borderRadius: '20px', minWidth: '28px', textAlign: 'center' }}>{count}</span>
+        {open ? <ChevronUp size={16} color="var(--color-text-subtle)" /> : <ChevronDown size={16} color="var(--color-text-subtle)" />}
       </button>
       {open && (
         <div style={{ padding: count > 0 ? '12px 14px 4px' : '0', backgroundColor: isDark ? '#111' : '#FAFAFA' }}>
           {count === 0 ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#86868B', fontSize: '13px' }}>
+            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-subtle)', fontSize: '13px' }}>
               {cfg.emoji} Tidak ada item di sini
             </div>
           ) : (
@@ -136,10 +136,10 @@ export default function BugReports({ isDarkMode, isSidebarOpen, isMobile, isVant
     resolved:    filtered.filter(b => b.status === 'resolved'),
   };
 
-  const bg = isDarkMode ? '#000' : '#F5F5F7';
+  const bg = isDarkMode ? '#000' : 'var(--color-bg)';
   const txt = isDarkMode ? '#FFF' : '#000';
   const cardBg = isDarkMode ? 'rgba(28,28,30,0.7)' : 'rgba(255,255,255,0.7)';
-  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
+  const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
 
   return (
     <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
@@ -148,24 +148,24 @@ export default function BugReports({ isDarkMode, isSidebarOpen, isMobile, isVant
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '26px', fontWeight: '700', color: txt, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Bug size={26} color="#FF9500" /> Bug & Fitur
+            <Bug size={26} color="var(--color-warning)" /> Bug & Fitur
           </h1>
-          <p style={{ margin: '4px 0 0', color: '#86868B', fontSize: '14px' }}>Laporan dari pengguna — {bugs.length} total</p>
+          <p style={{ margin: '4px 0 0', color: 'var(--color-text-subtle)', fontSize: '14px' }}>Laporan dari pengguna — {bugs.length} total</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF', borderRadius: '10px', padding: '3px', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}` }}>
+          <div style={{ display: 'flex', backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : '#FFF', borderRadius: '10px', padding: '3px', border: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'}` }}>
             {[['all', '🗂 Semua'], ['bug', '🐛 Bug'], ['feature', '💡 Fitur']].map(([key, label]) => (
               <button key={key} onClick={() => setFilterType(key)}
                 style={{ padding: '6px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', transition: uiTransition('all', UI_MOTION.duration.fast),
-                  backgroundColor: filterType === key ? (isDarkMode ? '#3A3A3C' : '#F5F5F7') : 'transparent',
-                  color: filterType === key ? txt : '#86868B',
+                  backgroundColor: filterType === key ? (isDarkMode ? 'var(--color-border-strong)' : 'var(--color-bg)') : 'transparent',
+                  color: filterType === key ? txt : 'var(--color-text-subtle)',
                 }}>
                 {label}
               </button>
             ))}
           </div>
           <button onClick={fetchBugs}
-            style={{ padding: '9px 14px', backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}`, borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: txt, fontSize: '13px', fontWeight: '600' }}>
+            style={{ padding: '9px 14px', backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'}`, borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: txt, fontSize: '13px', fontWeight: '600' }}>
             <RefreshCw size={14} /> Refresh
           </button>
         </div>
@@ -180,7 +180,7 @@ export default function BugReports({ isDarkMode, isSidebarOpen, isMobile, isVant
               <Icon size={20} color={cfg.color} />
               <div>
                 <div style={{ fontSize: '22px', fontWeight: '700', color: cfg.color, lineHeight: 1 }}>{count}</div>
-                <div style={{ fontSize: '11px', color: '#86868B', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{cfg.label}</div>
+                <div style={{ fontSize: '11px', color: 'var(--color-text-subtle)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{cfg.label}</div>
               </div>
             </div>
           );
@@ -190,7 +190,7 @@ export default function BugReports({ isDarkMode, isSidebarOpen, isMobile, isVant
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {[1, 2, 3].map(i => (
-            <div key={i} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '12px', padding: '20px', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}` }}>
+            <div key={i} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '12px', padding: '20px', border: `1px solid ${isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'}` }}>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <Skeleton width="36px" height="36px" borderRadius="9px" />
                 <div style={{ flex: 1 }}>
@@ -206,7 +206,7 @@ export default function BugReports({ isDarkMode, isSidebarOpen, isMobile, isVant
         <div style={{ padding: '60px 20px', textAlign: 'center', backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', border: `1px dashed ${border}` }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>✨</div>
           <p style={{ fontSize: '16px', fontWeight: '700', color: txt, margin: '0 0 8px' }}>Belum Ada Laporan</p>
-          <p style={{ fontSize: '14px', color: '#86868B', margin: 0 }}>Semua sistem berjalan lancar. Tidak ada bug atau saran yang terdaftar.</p>
+          <p style={{ fontSize: '14px', color: 'var(--color-text-subtle)', margin: 0 }}>Semua sistem berjalan lancar. Tidak ada bug atau saran yang terdaftar.</p>
         </div>
       ) : (
         <>

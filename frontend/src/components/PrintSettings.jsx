@@ -97,12 +97,12 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
     }
   };
 
-  const bg = isDarkMode ? '#000' : '#F5F5F7';
+  const bg = isDarkMode ? '#000' : 'var(--color-bg)';
   const cardBg = isDarkMode ? 'rgba(28,28,30,0.7)' : 'rgba(255,255,255,0.7)';
-  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
+  const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
   const text = isDarkMode ? '#FFF' : '#000';
-  const sub = isDarkMode ? '#86868B' : '#6B7280';
-  const inputBg = isDarkMode ? '#2C2C2E' : '#F5F5F7';
+  const sub = isDarkMode ? 'var(--color-text-subtle)' : 'var(--color-text-muted)';
+  const inputBg = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)';
 
   if (loading) return (
     <div className="ui-motion-page" style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
@@ -145,7 +145,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
             className="ui-motion-button ui-focus-ring"
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
-                backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px',
+                backgroundColor: 'var(--color-primary)', color: '#FFF', border: 'none', borderRadius: '10px',
                 fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: uiTransition('opacity', UI_MOTION.duration.base),
                 opacity: saving ? 0.7 : 1,
               }}
@@ -161,7 +161,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
           {/* LEFT — Form Inputs */}
           <div className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', padding: '24px', border: `1px solid ${border}`, boxShadow: isDarkMode ? 'none' : '0 1px 3px rgba(0,0,0,0.05)' }}>
             <h3 style={{ fontSize: '15px', fontWeight: '700', color: text, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Printer size={18} color="#007AFF" /> Identitas Toko
+              <Printer size={18} color="var(--color-primary)" /> Identitas Toko
             </h3>
 
             <div style={{ marginBottom: '16px' }}>
@@ -213,9 +213,9 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
               <p style={{ fontSize: '11px', color: sub, marginTop: '6px' }}>Teks kecil di bagian paling bawah dokumen cetak.</p>
             </div>
 
-            <div style={{ marginTop: '22px', padding: '18px', borderRadius: '14px', border: `1px solid ${border}`, backgroundColor: isDarkMode ? '#1C1C1E' : '#FAFAFA' }}>
+            <div style={{ marginTop: '22px', padding: '18px', borderRadius: '14px', border: `1px solid ${border}`, backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : '#FAFAFA' }}>
               <h3 style={{ fontSize: '15px', fontWeight: '700', color: text, margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Activity size={18} color="#34C759" /> Ambang Profitabilitas
+                <Activity size={18} color="var(--color-success)" /> Ambang Profitabilitas
               </h3>
               <p style={{ fontSize: '11px', color: sub, margin: '0 0 16px', lineHeight: 1.5 }}>
                 Dipakai oleh filter profit di Nota Penjualan. Ambang ini bisa disesuaikan sesuai cara kerja tim.
@@ -251,7 +251,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
                   className="ui-motion-button ui-focus-ring"
                   style={{
                     display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
-                    backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px',
+                    backgroundColor: 'var(--color-success)', color: '#FFF', border: 'none', borderRadius: '10px',
                     fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: uiTransition('opacity', UI_MOTION.duration.base),
                     opacity: savingThresholds ? 0.7 : 1,
                   }}
@@ -267,20 +267,20 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
           <div style={{ position: 'sticky', top: '24px' }}>
             <div className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', padding: '20px', border: `1px solid ${border}`, boxShadow: isDarkMode ? 'none' : '0 1px 3px rgba(0,0,0,0.05)' }}>
               <h3 style={{ fontSize: '15px', fontWeight: '700', color: text, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Monitor size={18} color="#FF9500" /> Preview Dokumen
+                <Monitor size={18} color="var(--color-warning)" /> Preview Dokumen
               </h3>
               <p style={{ fontSize: '11px', color: sub, marginBottom: '16px', marginTop: '-8px' }}>Tampilan real-time saat diisi.</p>
 
               {/* Document Preview Card */}
               <div style={{
                 backgroundColor: '#FFF', borderRadius: '10px', padding: '16px',
-                border: '1px solid #E5E5EA', boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                border: '1px solid var(--color-border)', boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
                 fontFamily: 'Helvetica, Arial, sans-serif',
               }}>
                 {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '13px', fontWeight: '800', color: '#007AFF', marginBottom: '3px' }}>{previewName}</div>
+                    <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--color-primary)', marginBottom: '3px' }}>{previewName}</div>
                     <div style={{ fontSize: '9px', color: '#555', lineHeight: '1.4' }}>{previewAddr}</div>
                     {previewPhone && <div style={{ fontSize: '9px', color: '#555' }}>{previewPhone}</div>}
                   </div>
@@ -291,16 +291,16 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
                   </div>
                 </div>
 
-                <div style={{ height: '1.5px', backgroundColor: '#007AFF', marginBottom: '8px', borderRadius: '2px' }} />
+                <div style={{ height: '1.5px', backgroundColor: 'var(--color-primary)', marginBottom: '8px', borderRadius: '2px' }} />
 
                 <div style={{ marginBottom: '6px' }}>
                   <span style={{ fontSize: '9px', color: '#555' }}>Kepada Yth: </span>
                   <span style={{ fontSize: '9px', fontWeight: '700', color: '#000' }}>Nama Customer</span>
                 </div>
-                <div style={{ backgroundColor: '#F5F5F7', borderRadius: '6px', overflow: 'hidden', marginBottom: '8px' }}>
+                <div style={{ backgroundColor: 'var(--color-bg)', borderRadius: '6px', overflow: 'hidden', marginBottom: '8px' }}>
                   <table style={{ width: '100%', fontSize: '8px', borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr style={{ backgroundColor: '#007AFF', color: '#FFF' }}>
+                      <tr style={{ backgroundColor: 'var(--color-primary)', color: '#FFF' }}>
                         {['No', 'Nama Barang', 'Qty', 'Harga', 'Total'].map(h => (
                           <th key={h} style={{ padding: '3px 5px', textAlign: 'left' }}>{h}</th>
                         ))}
@@ -308,11 +308,11 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
                     </thead>
                     <tbody>
                       <tr>
-                        <td style={{ padding: '3px 5px', color: '#3A3A3C' }}>1</td>
-                        <td style={{ padding: '3px 5px', color: '#3A3A3C' }}>Contoh Produk</td>
-                        <td style={{ padding: '3px 5px', color: '#3A3A3C' }}>2</td>
-                        <td style={{ padding: '3px 5px', color: '#3A3A3C' }}>Rp 50.000</td>
-                        <td style={{ padding: '3px 5px', color: '#3A3A3C' }}>Rp 100.000</td>
+                        <td style={{ padding: '3px 5px', color: 'var(--color-border-strong)' }}>1</td>
+                        <td style={{ padding: '3px 5px', color: 'var(--color-border-strong)' }}>Contoh Produk</td>
+                        <td style={{ padding: '3px 5px', color: 'var(--color-border-strong)' }}>2</td>
+                        <td style={{ padding: '3px 5px', color: 'var(--color-border-strong)' }}>Rp 50.000</td>
+                        <td style={{ padding: '3px 5px', color: 'var(--color-border-strong)' }}>Rp 100.000</td>
                       </tr>
                     </tbody>
                   </table>
@@ -322,12 +322,12 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
                 {/* Ketentuan preview */}
                 {previewKetentuan.length > 0 && (
                   <div style={{ marginBottom: '6px' }}>
-                    <span style={{ fontSize: '7px', fontWeight: '700', color: '#FF3B30' }}>NOTE: </span>
+                    <span style={{ fontSize: '7px', fontWeight: '700', color: 'var(--color-danger)' }}>NOTE: </span>
                     {previewKetentuan.map((line, i) => (
-                      <div key={i} style={{ fontSize: '7px', color: '#FF3B30' }}>{i + 1}. {line}</div>
+                      <div key={i} style={{ fontSize: '7px', color: 'var(--color-danger)' }}>{i + 1}. {line}</div>
                     ))}
                     {settings.ketentuan && settings.ketentuan.split('\n').filter(l => l.trim()).length > 2 && (
-                      <div style={{ fontSize: '7px', color: '#FF3B30', opacity: 0.6 }}>…</div>
+                      <div style={{ fontSize: '7px', color: 'var(--color-danger)', opacity: 0.6 }}>…</div>
                     )}
                   </div>
                 )}
@@ -359,7 +359,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
                 </div>
 
                 {/* Footer */}
-                <div style={{ borderTop: '1px dashed #E5E5EA', paddingTop: '5px', textAlign: 'center' }}>
+                <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: '5px', textAlign: 'center' }}>
                   <div style={{ fontSize: '7px', color: '#AEAEB2' }}>{previewFooter}</div>
                 </div>
               </div>
@@ -367,9 +367,9 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
               {/* Legend */}
               <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {[
-                  { color: '#007AFF', label: 'Nama Toko' },
+                  { color: 'var(--color-primary)', label: 'Nama Toko' },
                   { color: '#555', label: 'Alamat & Telepon' },
-                  { color: '#FF3B30', label: 'Ketentuan / Notes' },
+                  { color: 'var(--color-danger)', label: 'Ketentuan / Notes' },
                   { color: '#AEAEB2', label: 'Footer / Catatan Kaki' },
                 ].map(item => (
                   <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -384,7 +384,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
 
         {/* Toast */}
         {toast && (
-        <div className="ui-motion-toast" style={{ position: 'fixed', bottom: '24px', right: '24px', padding: '12px 24px', backgroundColor: '#1C1C1E', color: '#FFF', borderRadius: '12px', fontSize: '14px', fontWeight: '600', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', zIndex: 9999 }}>
+        <div className="ui-motion-toast" style={{ position: 'fixed', bottom: '24px', right: '24px', padding: '12px 24px', backgroundColor: 'var(--color-surface-elevated)', color: '#FFF', borderRadius: '12px', fontSize: '14px', fontWeight: '600', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', zIndex: 9999 }}>
           {toast}
         </div>
         )}

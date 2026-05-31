@@ -22,17 +22,17 @@ import { UI_MOTION } from '../constants/ui';
 const API_BASE = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5001/api' : '/api');
 
 const COLUMNS = [
-  { id: 'backlog', label: 'Backlog', icon: Circle, color: '#94a3b8' },
-  { id: 'todo', label: 'To Do', icon: Clock, color: '#3b82f6' },
-  { id: 'doing', label: 'In Progress', icon: Clock, color: '#f59e0b' },
-  { id: 'done', label: 'Done', icon: CheckCircle2, color: '#10b981' }
+  { id: 'backlog', label: 'Backlog', icon: Circle, color: 'var(--color-text-subtle)' },
+  { id: 'todo', label: 'To Do', icon: Clock, color: 'var(--color-primary-hover)' },
+  { id: 'doing', label: 'In Progress', icon: Clock, color: 'var(--color-warning)' },
+  { id: 'done', label: 'Done', icon: CheckCircle2, color: 'var(--color-success)' }
 ];
 
 // Theme-aware priority colors — light & dark variants
 const PRIORITY_COLORS = {
-  high:   { lightBg: '#FEE2E2', lightFg: '#DC2626', darkBg: '#3A1F1F', darkFg: '#FF6B6B' },
-  medium: { lightBg: '#FEF3C7', lightFg: '#D97706', darkBg: '#3A2E0F', darkFg: '#FBB040' },
-  low:    { lightBg: '#F1F5F9', lightFg: '#64748B', darkBg: '#2C2C2E', darkFg: '#A0A0A8' }
+  high:   { lightBg: 'var(--color-danger-soft)', lightFg: 'var(--color-danger)', darkBg: 'var(--color-danger-soft)', darkFg: 'var(--color-danger)' },
+  medium: { lightBg: 'var(--color-warning-soft)', lightFg: 'var(--color-warning)', darkBg: 'var(--color-warning-soft)', darkFg: 'var(--color-warning)' },
+  low:    { lightBg: 'var(--color-bg-subtle)', lightFg: 'var(--color-text-muted)', darkBg: 'var(--color-surface-raised)', darkFg: 'var(--color-text-subtle)' }
 };
 
 const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
@@ -57,19 +57,19 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
   const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), UI_MOTION.duration.toastSuccess); };
   const [trashLoading, setTrashLoading] = useState(false);
 
-  // ─── Theme tokens (Apple HIG, mirror Dashboard) ───────────────────────────
-  const bg = isDarkMode ? '#000000' : '#fbfbfd';
+  // ─── Theme tokens (premium SaaS palette, mirror Dashboard) ──────────────
+  const bg = 'var(--color-bg)';
   // v1.8.7: translucent — Vanta tembus + backdrop-blur shield untuk text readability
-  const cardBg = isDarkMode ? 'rgba(28,28,30,0.85)' : 'rgba(255,255,255,0.85)';
-  const surface = isDarkMode ? 'rgba(44,44,46,0.7)' : 'rgba(245,245,247,0.7)';
-  const columnBg = isDarkMode ? 'rgba(28,28,30,0.45)' : 'rgba(255,255,255,0.45)';
-  const border = isDarkMode ? '#2C2C2E' : 'rgba(0,0,0,0.06)';
-  const subtleBorder = isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
-  const text = isDarkMode ? '#FFFFFF' : '#1D1D1F';
-  const sub = isDarkMode ? '#8E8E93' : '#86868B';
-  const accent = '#0071E3';
-  const danger = isDarkMode ? '#FF6B6B' : '#D93025';
-  const dangerSoft = isDarkMode ? '#3A1F1F' : '#FEE2E2';
+  const cardBg = 'var(--color-surface)';
+  const surface = 'var(--color-surface-elevated)';
+  const columnBg = 'color-mix(in srgb, var(--color-surface) 82%, transparent)';
+  const border = 'var(--color-border)';
+  const subtleBorder = 'color-mix(in srgb, var(--color-border) 70%, transparent)';
+  const text = 'var(--color-text)';
+  const sub = 'var(--color-text-subtle)';
+  const accent = 'var(--color-primary)';
+  const danger = 'var(--color-danger)';
+  const dangerSoft = 'var(--color-danger-soft)';
 
   useEffect(() => {
     fetchTasks();
@@ -630,7 +630,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       ` }} />
 
       {toast && (
-        <div className="ui-motion-toast" style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
+        <div className="ui-motion-toast" style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: 'var(--color-success)', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
           ✅ {toast}
         </div>
       )}

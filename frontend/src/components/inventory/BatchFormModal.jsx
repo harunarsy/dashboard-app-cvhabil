@@ -32,11 +32,11 @@ export default function BatchFormModal({ mode, batch, productId, productName, on
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const bg = isDarkMode ? '#1C1C1E' : '#FFF';
-  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
+  const bg = isDarkMode ? 'var(--color-surface-elevated)' : '#FFF';
+  const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
   const text = isDarkMode ? '#FFF' : '#000';
-  const sub = '#86868B';
-  const inputBg = isDarkMode ? '#2C2C2E' : '#F5F5F7';
+  const sub = 'var(--color-text-subtle)';
+  const inputBg = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)';
 
   const inputStyle = {
     width: '100%', padding: '10px 12px', border: `1px solid ${border}`,
@@ -115,8 +115,8 @@ export default function BatchFormModal({ mode, batch, productId, productName, on
         {error && (
           <div role="alert" style={{
             display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '10px 12px',
-            background: '#FFF5F5', border: '1px solid #FFE5E5', borderRadius: '10px',
-            color: '#FF3B30', fontSize: '13px', marginBottom: '14px',
+            background: 'var(--color-danger-soft)', border: '1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)', borderRadius: '10px',
+            color: 'var(--color-danger)', fontSize: '13px', marginBottom: '14px',
           }}>
             <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} />
             <span>{error}</span>
@@ -156,7 +156,7 @@ export default function BatchFormModal({ mode, batch, productId, productName, on
 
         <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
           <button onClick={handleSave} disabled={saving} style={{
-            flex: 1, padding: '12px', background: '#007AFF', color: '#FFF', border: 'none',
+            flex: 1, padding: '12px', background: 'var(--color-primary)', color: '#FFF', border: 'none',
             borderRadius: '12px', fontWeight: '600', fontSize: '14px',
             cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.7 : 1,
           }}>{saving ? 'Menyimpan...' : 'Simpan'}</button>

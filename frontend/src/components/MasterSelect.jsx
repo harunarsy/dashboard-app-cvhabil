@@ -97,12 +97,12 @@ export default function MasterSelect({
   };
 
   // Colors
-  const bg = isDarkMode ? '#1C1C1E' : '#FFFFFF';
-  const bgHover = isDarkMode ? '#2C2C2E' : '#F5F5F7';
-  const border = isDarkMode ? '#3A3A3C' : '#D1D1D6';
+  const bg = isDarkMode ? 'var(--color-surface-elevated)' : '#FFFFFF';
+  const bgHover = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)';
+  const border = isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)';
   const txt = isDarkMode ? '#FFFFFF' : '#000000';
-  const muted = '#86868B';
-  const accent = '#007AFF';
+  const muted = 'var(--color-text-subtle)';
+  const accent = 'var(--color-primary)';
 
   const triggerStyle = {
     display: 'flex',
@@ -111,7 +111,7 @@ export default function MasterSelect({
     padding: '10px 12px',
     border: `1.5px solid ${open ? accent : border}`,
     borderRadius: '10px',
-    backgroundColor: disabled ? (isDarkMode ? '#1C1C1E' : '#E5E5EA') : bg,
+    backgroundColor: disabled ? (isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-border)') : bg,
     color: value ? txt : muted,
     fontSize: '14px',
     cursor: disabled ? 'not-allowed' : 'pointer',
@@ -168,7 +168,7 @@ export default function MasterSelect({
       {open && (
         <div style={dropdownStyle}>
           {errMsg && (
-            <div style={{ padding: '8px 12px', backgroundColor: '#FF3B3018', color: '#FF3B30', fontSize: '12px', fontWeight: '600', borderBottom: `1px solid #FF3B3030` }}>
+            <div style={{ padding: '8px 12px', backgroundColor: 'var(--color-danger-soft)', color: 'var(--color-danger)', fontSize: '12px', fontWeight: '600', borderBottom: `1px solid var(--color-danger-soft-strong)` }}>
               {errMsg}
             </div>
           )}
@@ -281,8 +281,8 @@ export default function MasterSelect({
                     className="ui-motion-button ui-focus-ring"
                     style={{
                       padding: '4px 8px',
-                      backgroundColor: confirmDelete === opt.name ? '#FF3B30' : 'transparent',
-                    border: `1px solid ${confirmDelete === opt.name ? '#FF3B30' : border}`,
+                      backgroundColor: confirmDelete === opt.name ? 'var(--color-danger)' : 'transparent',
+                    border: `1px solid ${confirmDelete === opt.name ? 'var(--color-danger)' : border}`,
                     borderRadius: '6px',
                     cursor: 'pointer',
                     display: 'flex',

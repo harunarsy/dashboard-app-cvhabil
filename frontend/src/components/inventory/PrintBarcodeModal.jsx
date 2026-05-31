@@ -12,11 +12,11 @@ export default function PrintBarcodeModal({ products, isDarkMode, onClose, onGen
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
 
-  const bg = isDarkMode ? '#1C1C1E' : '#FFF';
-  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
+  const bg = isDarkMode ? 'var(--color-surface-elevated)' : '#FFF';
+  const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
   const text = isDarkMode ? '#FFF' : '#000';
-  const sub = '#86868B';
-  const surface = isDarkMode ? '#2C2C2E' : '#F5F5F7';
+  const sub = 'var(--color-text-subtle)';
+  const surface = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)';
 
   useEffect(() => {
     setRows((products || []).map(p => ({
@@ -90,7 +90,7 @@ export default function PrintBarcodeModal({ products, isDarkMode, onClose, onGen
         <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Barcode size={18} color="#007AFF" /> Cetak Stiker Barcode
+              <Barcode size={18} color="var(--color-primary)" /> Cetak Stiker Barcode
             </h3>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: sub }}>
               {rows.length} produk dipilih · {missingCodeCount} tanpa kode akan dilewati
@@ -126,8 +126,8 @@ export default function PrintBarcodeModal({ products, isDarkMode, onClose, onGen
                   className="ui-motion-button ui-focus-ring"
                   style={{
                     minHeight: '38px', padding: '0 14px', borderRadius: '12px',
-                    border: `1px solid ${layout === key ? '#007AFF' : border}`,
-                    background: layout === key ? '#007AFF' : surface,
+                    border: `1px solid ${layout === key ? 'var(--color-primary)' : border}`,
+                    background: layout === key ? 'var(--color-primary)' : surface,
                     color: layout === key ? '#FFF' : text,
                     fontWeight: '800', fontSize: '12px', cursor: 'pointer',
                   }}
@@ -155,13 +155,13 @@ export default function PrintBarcodeModal({ products, isDarkMode, onClose, onGen
               <Settings2 size={14} /> Keterangan
             </div>
             <div style={{ padding: '12px 14px', border: `1px solid ${border}`, borderRadius: '14px', background: surface, display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-              <AlertCircle size={16} color="#FF9500" style={{ flexShrink: 0, marginTop: '1px' }} />
+              <AlertCircle size={16} color="var(--color-warning)" style={{ flexShrink: 0, marginTop: '1px' }} />
               <p style={{ margin: 0, fontSize: '12px', color: sub, lineHeight: 1.5 }}>
                 Qty stiker maksimum 100 per produk. Produk tanpa kode otomatis dilewati saat generate PDF.
               </p>
             </div>
             {missingCodeCount > 0 && (
-              <div style={{ padding: '12px 14px', border: '1px solid #FFE5E5', borderRadius: '14px', background: '#FFF5F5', color: '#FF3B30', fontSize: '12px', fontWeight: '700' }}>
+              <div style={{ padding: '12px 14px', border: '1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)', borderRadius: '14px', background: 'var(--color-danger-soft)', color: 'var(--color-danger)', fontSize: '12px', fontWeight: '700' }}>
                 {missingCodeCount} produk tidak punya kode dan akan dilewati.
               </div>
             )}
@@ -184,7 +184,7 @@ export default function PrintBarcodeModal({ products, isDarkMode, onClose, onGen
                   return (
                     <tr key={row.id} style={{ borderTop: `1px solid ${border}`, opacity: hasCode ? 1 : 0.55 }}>
                       <td style={{ ...tdStyle, fontWeight: '700', color: text }}>{row.name}</td>
-                      <td style={{ ...tdStyle, fontFamily: 'monospace', color: hasCode ? text : '#FF3B30' }}>{hasCode ? row.code : '(tanpa kode)'}</td>
+                      <td style={{ ...tdStyle, fontFamily: 'monospace', color: hasCode ? text : 'var(--color-danger)' }}>{hasCode ? row.code : '(tanpa kode)'}</td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>
                         <input
                           type="number"
@@ -206,7 +206,7 @@ export default function PrintBarcodeModal({ products, isDarkMode, onClose, onGen
         <div style={{ padding: '14px 22px', borderTop: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between' }}>
           <div style={{ flex: 1 }}>
             {error ? (
-              <p style={{ margin: 0, color: '#FF3B30', fontSize: '13px', fontWeight: '700' }}>{error}</p>
+              <p style={{ margin: 0, color: 'var(--color-danger)', fontSize: '13px', fontWeight: '700' }}>{error}</p>
             ) : (
               <p style={{ margin: 0, color: sub, fontSize: '12px' }}>
                 Total stiker: <strong style={{ color: text }}>{printableRows.reduce((s, r) => s + (Math.max(1, Math.min(100, parseInt(r.qty, 10) || 1))), 0)}</strong>
@@ -223,7 +223,7 @@ export default function PrintBarcodeModal({ products, isDarkMode, onClose, onGen
               style={{
                 minWidth: '160px',
                 padding: '12px 16px',
-                background: printableRows.length === 0 ? '#8E8E93' : '#007AFF',
+                background: printableRows.length === 0 ? 'var(--color-text-subtle)' : 'var(--color-primary)',
                 color: '#FFF',
                 border: 'none',
                 borderRadius: '12px',
@@ -266,7 +266,7 @@ const thStyle = {
   fontWeight: '800',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  color: '#86868B',
+  color: 'var(--color-text-subtle)',
 };
 
 const tdStyle = {

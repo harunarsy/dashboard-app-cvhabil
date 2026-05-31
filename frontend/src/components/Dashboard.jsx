@@ -9,7 +9,17 @@ const StockMovementChart = lazy(() => import('./dashboard/StockMovementChart'));
 
 const RELEASES = [
   {
-    version: 'v1.12.9-stable', date: '1 Juni 2026', status: 'latest',
+    version: 'v1.13.0-stable', date: '1 Juni 2026', status: 'latest',
+    changes: [
+      {
+        type: 'ui',
+        text: 'Visual identity refresh ke palette Stripe Modern: Inter/JetBrains Mono self-hosted, token warna/spacing/elevation baru, surface lebih border-first, dan hover-reveal actions di tabel utama.',
+        dev: 'frontend/src/constants/ui.js, index.css, App.css, App.js, liquid-glass.css, Login.jsx, Sidebar.jsx, InventoryDashboard.jsx, InvoiceList.jsx, SalesOrderList.jsx, PurchaseOrderList.jsx, PrintSettings.jsx, CustomerList.jsx, LedgerPage.jsx, OnlineStoreDashboard.jsx, BugReports.jsx, serta shared preview components disinkronkan ke Stripe Modern theme dan typography system.'
+      },
+    ],
+  },
+  {
+    version: 'v1.12.9-stable', date: '1 Juni 2026', status: 'stable',
     changes: [
       {
         type: 'fix',
@@ -124,7 +134,7 @@ const RELEASES = [
       {
         type: 'ui',
         text: 'Tombol Simpan di modal Stok Masuk dulu hijau, sekarang biru — konsisten dgn semua tombol Simpan di modal lain (Edit Produk, Edit Batch). Warna hijau dipertahankan utk badge LUNAS/sukses, bukan tombol aksi.',
-        dev: 'InventoryDashboard:761 primaryBtn(#34C759)→primaryBtn(#007AFF) di Simpan Stok Masuk.'
+        dev: 'InventoryDashboard:761 primaryBtn(var(--color-success))→primaryBtn(var(--color-primary)) di Simpan Stok Masuk.'
       },
     ]
   },
@@ -403,7 +413,7 @@ const RELEASES = [
       },
       {
         type: 'ui',
-        text: 'Dark mode card sekarang punya layering depth + Vanta-friendly translucent (sebelumnya flat #1C1C1E di atas #000 = kontras 1.08:1).',
+        text: 'Dark mode card sekarang punya layering depth + Vanta-friendly translucent (sebelumnya flat var(--color-surface-elevated) di atas #000 = kontras 1.08:1).',
         dev: 'Dashboard.jsx color tokens dark mode: bg `#0A0A0C` (bukan pure 000), cardBg `rgba(28,28,30,0.85)` translucent, border `rgba(60,60,67,0.6)` softer. Cards otomatis benefit dari Liquid Glass mode backdrop-blur kalau aktif.'
       },
       {
@@ -537,7 +547,7 @@ const RELEASES = [
       { type: 'feat', text: 'Toggle Glass dari Login: Tombol di pojok kanan atas Login page. First-time enable tampil warning + auto-detect device <4GB RAM. Persist via localStorage habil_glass_mode.' },
       { type: 'feat', text: 'Animasi Transisi 350ms: Crossfade smooth saat toggle on/off (backdrop-filter + bg + border + shadow). Icon Glass micro-animation scale 1.08 saat aktif + ripple saat click.' },
       { type: 'fix', text: 'Triple Safety Net: (1) Git tag v1.4.2-pre-glass-stable untuk rollback. (2) URL kill switch ?glass=off untuk emergency disable. (3) Try-catch wrapper di hook — auto-disable kalau gagal.' },
-      { type: 'ui', text: 'Apple HIG Compliance: Frost level 18/24/12 (regular/clear/ultra tier), saturate 180%, respect prefers-reduced-transparency + prefers-reduced-motion. Tabel & input field tidak kena glass untuk readability.' },
+      { type: 'ui', text: 'Glass overlay ringan: frost 18/24/12, saturate terjaga, respect prefers-reduced-transparency + prefers-reduced-motion. Tabel & input field tetap solid untuk readability.' },
       { type: 'feat', text: 'Stats Cards Tinted: 4 metric card Dashboard pakai glass dengan tint warna sesuai (green/blue/orange/purple). Welcome modal "APA YANG BARU?" cards juga glass-aware.' },
     ]
   },
@@ -1006,32 +1016,32 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.12.9-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.13.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)
-  const bg = isDarkMode ? '#0A0A0C' : '#F5F5F7';
-  const cardBg = isDarkMode ? 'rgba(28,28,30,0.85)' : 'rgba(255,255,255,0.92)';
-  const border = isDarkMode ? 'rgba(60,60,67,0.6)' : '#E5E5EA';
-  const text = isDarkMode ? '#FFF' : '#000';
-  const sub = '#86868B';
+  const bg = 'var(--color-bg)';
+  const cardBg = 'var(--color-surface)';
+  const border = 'var(--color-border)';
+  const text = 'var(--color-text)';
+  const sub = 'var(--color-text-subtle)';
 
   const typeConfig = {
-    new:       { label: 'Baru',     color: '#34C759', bg: '#34C75918' },
-    fix:       { label: 'Fix',      color: '#007AFF', bg: '#007AFF18' },
-    feat:      { label: 'Fitur',    color: '#34C759', bg: '#34C75918' },
-    ui:        { label: 'UI/UX',    color: '#5856D6', bg: '#5856D618' },
-    docs:      { label: 'Docs',     color: '#FF9500', bg: '#FF950018' },
-    changed:   { label: 'Ubah',     color: '#FF9500', bg: '#FF950018' },
-    stability: { label: 'Stabil',   color: '#34C759', bg: '#34C75918' },
-    removed:   { label: 'Hapus',    color: '#FF3B30', bg: '#FF3B3018' },
+    new:       { label: 'Baru',     color: 'var(--color-success)', bg: 'var(--color-success-soft)' },
+    fix:       { label: 'Fix',      color: 'var(--color-primary)', bg: 'var(--color-primary-soft)' },
+    feat:      { label: 'Fitur',    color: 'var(--color-success)', bg: 'var(--color-success-soft)' },
+    ui:        { label: 'UI/UX',    color: 'var(--color-primary-hover)', bg: 'var(--color-primary-hover)18' },
+    docs:      { label: 'Docs',     color: 'var(--color-warning)', bg: 'var(--color-warning-soft)' },
+    changed:   { label: 'Ubah',     color: 'var(--color-warning)', bg: 'var(--color-warning-soft)' },
+    stability: { label: 'Stabil',   color: 'var(--color-success)', bg: 'var(--color-success-soft)' },
+    removed:   { label: 'Hapus',    color: 'var(--color-danger)', bg: 'var(--color-danger-soft)' },
   };
   const priorityConfig = {
-    high:   { label: 'Prioritas Tinggi', color: '#FF3B30', bg: '#FF3B3018' },
-    medium: { label: 'Sedang',           color: '#FF9500', bg: '#FF950018' },
-    low:    { label: 'Nanti',            color: '#86868B', bg: '#86868B18' },
+    high:   { label: 'Prioritas Tinggi', color: 'var(--color-danger)', bg: 'var(--color-danger-soft)' },
+    medium: { label: 'Sedang',           color: 'var(--color-warning)', bg: 'var(--color-warning-soft)' },
+    low:    { label: 'Nanti',            color: 'var(--color-text-subtle)', bg: 'color-mix(in srgb, var(--color-text-subtle) 18%, transparent)' },
   };
 
   const [stats, setStats] = useState({
@@ -1070,7 +1080,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.12.9-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.13.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -1090,8 +1100,8 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const maxChannelRevenue = Math.max(1, ...channelMargins.map(row => Math.abs(parseFloat(row.revenue) || 0)));
   const maxCategoryMargin = Math.max(1, ...topCategoryMargins.map(row => Math.abs(parseFloat(row.margin) || 0)));
   const maxCustomerSpending = Math.max(1, ...topCustomers.map(row => Math.abs(parseFloat(row.spending) || 0)));
-  const marginColor = (value) => (parseFloat(value) || 0) >= 0 ? '#34C759' : '#FF3B30';
-  const channelColor = (channel) => channel === 'online' ? '#007AFF' : channel === 'offline' ? '#8E8E93' : '#FF9500';
+  const marginColor = (value) => (parseFloat(value) || 0) >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
+  const channelColor = (channel) => channel === 'online' ? 'var(--color-primary)' : channel === 'offline' ? 'var(--color-text-subtle)' : 'var(--color-warning)';
   const toLocalYmd = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   const buildStockMovementSeries = (rows = []) => {
     const map = new Map(rows.map(row => [String(row.day).slice(0, 10), row]));
@@ -1176,7 +1186,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
               <h2 className="text-lg font-bold" style={{ color: text }}>Margin per Channel</h2>
               <p className="text-xs font-medium mt-1" style={{ color: sub }}>Nota paid/final bulan ini</p>
             </div>
-            <div className="p-3 rounded-xl" style={{ backgroundColor: '#007AFF18', color: '#007AFF' }}>
+            <div className="p-3 rounded-xl" style={{ backgroundColor: 'var(--color-primary-soft)', color: 'var(--color-primary)' }}>
               <BarChart3 size={22} />
             </div>
           </div>
@@ -1209,7 +1219,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                         <p className="text-xs font-semibold" style={{ color: sub }}>{formatPercent(row.marginPct)}</p>
                       </div>
                     </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA' }}>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)' }}>
                       <div className="h-full rounded-full" style={{ width: valueWidth, backgroundColor: accent }} />
                     </div>
                   </div>
@@ -1227,7 +1237,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
               <h2 className="text-lg font-bold" style={{ color: text }}>Top Kategori Margin</h2>
               <p className="text-xs font-medium mt-1" style={{ color: sub }}>Urutan kontribusi laba bulan ini</p>
             </div>
-            <div className="p-3 rounded-xl" style={{ backgroundColor: '#34C75918', color: '#34C759' }}>
+            <div className="p-3 rounded-xl" style={{ backgroundColor: 'var(--color-success-soft)', color: 'var(--color-success)' }}>
               <Tags size={22} />
             </div>
           </div>
@@ -1253,7 +1263,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                         <p className="text-xs font-semibold" style={{ color: sub }}>{formatPercent(row.marginPct)}</p>
                       </div>
                     </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA' }}>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)' }}>
                       <div className="h-full rounded-full" style={{ width: valueWidth, backgroundColor: color }} />
                     </div>
                   </div>
@@ -1273,7 +1283,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
               <h2 className="text-lg font-bold" style={{ color: text }}>Top 5 Customer Bulan Ini</h2>
               <p className="text-xs font-medium mt-1" style={{ color: sub }}>Berdasarkan total pembelian nota paid/final</p>
             </div>
-            <div className="p-3 rounded-xl" style={{ backgroundColor: '#007AFF18', color: '#007AFF' }}>
+            <div className="p-3 rounded-xl" style={{ backgroundColor: 'var(--color-primary-soft)', color: 'var(--color-primary)' }}>
               <Users size={22} />
             </div>
           </div>
@@ -1291,7 +1301,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                     <div className="flex items-center justify-between gap-4 mb-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0" style={{ backgroundColor: '#007AFF18', color: '#007AFF' }}>
+                          <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0" style={{ backgroundColor: 'var(--color-primary-soft)', color: 'var(--color-primary)' }}>
                             {idx + 1}
                           </span>
                           <span className="text-sm font-bold truncate" style={{ color: text }}>{row.customerName}</span>
@@ -1299,15 +1309,15 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                         <p className="text-xs mt-1" style={{ color: sub }}>{row.notaCount} nota · {formatRupiah(row.spending)}</p>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="flex items-center justify-end gap-1 text-sm font-bold" style={{ color: '#007AFF' }}>
+                        <div className="flex items-center justify-end gap-1 text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
                           <TrendingUp size={14} />
                           {formatRupiah(row.spending)}
                         </div>
                         <p className="text-xs font-semibold" style={{ color: sub }}>{row.notaCount} transaksi</p>
                       </div>
                     </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA' }}>
-                      <div className="h-full rounded-full" style={{ width: valueWidth, backgroundColor: '#007AFF' }} />
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)' }}>
+                      <div className="h-full rounded-full" style={{ width: valueWidth, backgroundColor: 'var(--color-primary)' }} />
                     </div>
                   </div>
                 );
@@ -1324,7 +1334,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
               <h2 className="text-lg font-bold" style={{ color: text }}>Pergerakan Stok 30 Hari</h2>
               <p className="text-xs font-medium mt-1" style={{ color: sub }}>Ringkasan stok masuk dan keluar harian</p>
             </div>
-            <div className="p-3 rounded-xl" style={{ backgroundColor: '#34C75918', color: '#34C759' }}>
+            <div className="p-3 rounded-xl" style={{ backgroundColor: 'var(--color-success-soft)', color: 'var(--color-success)' }}>
               <BarChart3 size={22} />
             </div>
           </div>
@@ -1341,8 +1351,8 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
             </Suspense>
           </div>
           <div className="flex items-center gap-4 mt-4 text-xs font-medium" style={{ color: sub }}>
-            <span className="inline-flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#34C759' }} /> Stok Masuk</span>
-            <span className="inline-flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#FF3B30' }} /> Stok Keluar</span>
+            <span className="inline-flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'var(--color-success)' }} /> Stok Masuk</span>
+            <span className="inline-flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'var(--color-danger)' }} /> Stok Keluar</span>
           </div>
         </section>
       </div>
@@ -1377,7 +1387,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             {/* Spotlight Header */}
-            <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}>
+            <div className="relative p-8 text-center" style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)' }}>
               <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4 shadow-inner backdrop-blur-sm">
                 <span className="text-3xl">🚀</span>
               </div>
@@ -1407,11 +1417,11 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-bold leading-tight text-sm" style={{ color: isDarkMode ? '#FFFFFF' : '#111827' }}>{heading}</h3>
+                          <h3 className="font-bold leading-tight text-sm" style={{ color: isDarkMode ? '#FFFFFF' : 'var(--color-text)' }}>{heading}</h3>
                           <span className={`text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded ${typeMeta.bg} ${typeMeta.fg}`}>{typeMeta.label}</span>
                         </div>
                         {body && (
-                          <p className="text-xs font-medium leading-relaxed" style={{ color: isDarkMode ? '#9CA3AF' : '#6B7280' }}>{body}</p>
+                          <p className="text-xs font-medium leading-relaxed" style={{ color: isDarkMode ? 'var(--color-text-subtle)' : 'var(--color-text-muted)' }}>{body}</p>
                         )}
                       </div>
                     </div>
@@ -1433,7 +1443,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
               <button 
                 onClick={closeReleaseModal}
                 className="ui-motion-button ui-focus-ring w-full py-3.5 rounded-xl text-white font-bold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all outline-none focus:ring-4 focus:ring-blue-500/50"
-                style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}
+                style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)' }}
               >
                 Siap, Gas!
               </button>
@@ -1474,7 +1484,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                       <div className="flex justify-between items-center mb-4">
                         <div className="flex items-center gap-3">
                           <span className="text-lg font-bold" style={{ color: text }}>{rel.version}</span>
-                          <span className="text-xs font-bold px-2.5 py-1 rounded-md" style={{ backgroundColor: rel.status === 'latest' ? '#34C75918' : '#007AFF18', color: rel.status === 'latest' ? '#34C759' : '#007AFF' }}>
+                          <span className="text-xs font-bold px-2.5 py-1 rounded-md" style={{ backgroundColor: rel.status === 'latest' ? 'var(--color-success-soft)' : 'var(--color-primary-soft)', color: rel.status === 'latest' ? 'var(--color-success)' : 'var(--color-primary)' }}>
                             {rel.status === 'latest' ? 'LATEST' : 'STABLE'}
                           </span>
                         </div>
@@ -1493,7 +1503,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                                     {cfg.label}
                                   </span>
                                   <div className="flex-1">
-                                    <span className="text-sm leading-relaxed block" style={{ color: isDarkMode ? '#EBEBF0' : '#3A3A3C' }}>{c.text}</span>
+                                    <span className="text-sm leading-relaxed block" style={{ color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-border-strong)' }}>{c.text}</span>
                                     {c.dev && (
                                       <>
                                         <button
@@ -1505,12 +1515,12 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                                             });
                                           }}
                                           className="text-[11px] font-semibold mt-1 hover:underline"
-                                          style={{ color: '#007AFF', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                                          style={{ color: 'var(--color-primary)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                                         >
                                           {isExpanded ? '▼ Sembunyikan detail teknis' : '▶ Detail teknis (developer)'}
                                         </button>
                                         {isExpanded && (
-                                          <div className="text-xs mt-2 p-3 rounded-lg" style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7', color: isDarkMode ? '#AEAEB2' : '#48484A', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', lineHeight: 1.6 }}>
+                                          <div className="text-xs mt-2 p-3 rounded-lg" style={{ backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)', color: isDarkMode ? '#AEAEB2' : '#48484A', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', lineHeight: 1.6 }}>
                                             {c.dev}
                                           </div>
                                         )}

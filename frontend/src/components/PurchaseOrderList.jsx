@@ -14,10 +14,10 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-dig
 const blankItem = () => ({ product_name: '', qty: 1, unit: 'pcs', unit_price: 0, _custom_unit: false });
 
 const statusColors = {
-  draft: { bg: '#FF950018', color: '#FF9500', label: 'Draft' },
-  sent: { bg: '#007AFF18', color: '#007AFF', label: 'Dikirim' },
-  partial: { bg: '#5856D618', color: '#5856D6', label: 'Partial' },
-  received: { bg: '#34C75918', color: '#34C759', label: 'Diterima' },
+  draft: { bg: 'var(--color-warning-soft)', color: 'var(--color-warning)', label: 'Draft' },
+  sent: { bg: 'var(--color-primary-soft)', color: 'var(--color-primary)', label: 'Dikirim' },
+  partial: { bg: 'var(--color-primary-hover)18', color: 'var(--color-primary-hover)', label: 'Partial' },
+  received: { bg: 'var(--color-success-soft)', color: 'var(--color-success)', label: 'Diterima' },
 };
 
 export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
@@ -46,11 +46,11 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
   const [receiveItems, setReceiveItems] = useState([]);
   const [layoutSettings, setLayoutSettings] = useState(null);
 
-  const bg = isDarkMode ? '#000' : '#F5F5F7';
+  const bg = isDarkMode ? '#000' : 'var(--color-bg)';
   const cardBg = isDarkMode ? 'rgba(28,28,30,0.7)' : 'rgba(255,255,255,0.7)';
-  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
+  const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
   const text = isDarkMode ? '#FFF' : '#000';
-  const sub = '#86868B';
+  const sub = 'var(--color-text-subtle)';
 
   const fetchOrders = async () => { 
     setLoading(true);
@@ -114,7 +114,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
   const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), UI_MOTION.duration.toastSuccess); };
   const inputStyle = {
     width: '100%', padding: '10px 12px', border: `1px solid ${border}`,
-    borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7',
+    borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)',
     color: text, fontSize: '14px', outline: 'none', boxSizing: 'border-box',
   };
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' };
@@ -283,7 +283,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
           <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: 0, color: text }}>📋 Surat Pesanan</h1>
           <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>{loading ? <Skeleton width="130px" height="14px" /> : `${orders.length} SP tercatat`}</p>
         </div>
-        <button onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', backgroundColor: '#5856D6', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
+        <button onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
           <Plus size={18} /> Buat SP
         </button>
       </div>
@@ -303,7 +303,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
       <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '640px' }}>
           <thead>
-            <tr style={{ backgroundColor: isDarkMode ? '#1C1C1E' : '#F5F5F7' }}>
+            <tr style={{ backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)' }}>
               {[
                 { label: 'No. SP', field: 'po_number' },
                 { label: 'Tanggal', field: 'order_date' },
@@ -339,7 +339,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                 return (
                   <React.Fragment key={o.id}>
                     <tr style={{ borderBottom: `1px solid ${border}`, cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}>
-                      <td style={{ padding: '12px 14px', fontWeight: '600', color: '#5856D6' }}>{o.po_number}</td>
+                      <td style={{ padding: '12px 14px', fontWeight: '600', color: 'var(--color-primary-hover)' }}>{o.po_number}</td>
                       <td style={{ padding: '12px 14px', color: text }}>{fmtDate(o.order_date)}</td>
                       <td style={{ padding: '12px 14px', color: text }}>{o.distributor_name}</td>
                       <td style={{ padding: '12px 14px' }}>
@@ -347,10 +347,10 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                       </td>
                       <td style={{ padding: '12px 14px' }}>
                         <div style={{ display: 'flex', gap: '4px' }} onClick={e => e.stopPropagation()}>
-                          <button onClick={() => handlePrintSP(o)} title="Cetak SP" disabled={pdfLoading === o.id} style={{ background: 'none', border: 'none', cursor: pdfLoading === o.id ? 'not-allowed' : 'pointer', padding: '4px', opacity: pdfLoading === o.id ? 0.5 : 1 }}><FileText size={15} color="#5856D6" /></button>
-                          {o.status !== 'received' && <button onClick={() => openReceive(o)} title="Terima Barang" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><CheckCircle size={15} color="#34C759" /></button>}
-                          <button onClick={() => openEdit(o)} aria-label={`Edit pesanan ${o.po_number}`} title="Edit pesanan" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="#007AFF" /></button>
-                          <button onClick={() => handleDelete(o.id)} aria-label={`Hapus pesanan ${o.po_number}`} title="Hapus pesanan" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="#FF3B30" /></button>
+                          <button onClick={() => handlePrintSP(o)} title="Cetak SP" disabled={pdfLoading === o.id} style={{ background: 'none', border: 'none', cursor: pdfLoading === o.id ? 'not-allowed' : 'pointer', padding: '4px', opacity: pdfLoading === o.id ? 0.5 : 1 }}><FileText size={15} color="var(--color-primary-hover)" /></button>
+                          {o.status !== 'received' && <button onClick={() => openReceive(o)} title="Terima Barang" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><CheckCircle size={15} color="var(--color-success)" /></button>}
+                          <button onClick={() => openEdit(o)} aria-label={`Edit pesanan ${o.po_number}`} title="Edit pesanan" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="var(--color-primary)" /></button>
+                          <button onClick={() => handleDelete(o.id)} aria-label={`Hapus pesanan ${o.po_number}`} title="Hapus pesanan" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="var(--color-danger)" /></button>
                         </div>
                       </td>
                     </tr>
@@ -370,7 +370,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                                   <td style={{ padding: '6px 10px', color: text }}>{it.product_name}</td>
                                   <td style={{ padding: '6px 10px', color: text }}>{it.qty}</td>
                                   <td style={{ padding: '6px 10px', color: sub }}>{it.unit}</td>
-                                  <td style={{ padding: '6px 10px', fontWeight: '600', color: (it.received_qty || 0) >= it.qty ? '#34C759' : '#FF9500' }}>
+                                  <td style={{ padding: '6px 10px', fontWeight: '600', color: (it.received_qty || 0) >= it.qty ? 'var(--color-success)' : 'var(--color-warning)' }}>
                                     {it.received_qty || 0}/{it.qty}
                                   </td>
                                 </tr>
@@ -408,7 +408,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                     <input
                       value={spCounter.prefix}
                       disabled
-                      style={{ ...inputStyle, width: '130px', backgroundColor: isDarkMode ? '#333' : '#F5F5F7', opacity: 0.7, fontWeight: '600', textAlign: 'center' }}
+                      style={{ ...inputStyle, width: '130px', backgroundColor: isDarkMode ? '#333' : 'var(--color-bg)', opacity: 0.7, fontWeight: '600', textAlign: 'center' }}
                     />
                     <input
                       ref={numberInputRef}
@@ -416,7 +416,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                       onChange={e => !isAutoSP && setManualNumber(e.target.value.replace(/\D/g, ''))}
                       disabled={isAutoSP}
                       placeholder="0001"
-                      style={{ ...inputStyle, flex: 1, backgroundColor: isAutoSP ? (isDarkMode ? '#333' : '#F5F5F7') : cardBg, opacity: isAutoSP ? 0.7 : 1 }}
+                      style={{ ...inputStyle, flex: 1, backgroundColor: isAutoSP ? (isDarkMode ? '#333' : 'var(--color-bg)') : cardBg, opacity: isAutoSP ? 0.7 : 1 }}
                     />
                     <button
                       type="button"
@@ -445,7 +445,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                     </button>
                   </div>
                   {!isAutoSP && <p style={{ fontSize: '10px', color: '#E65100', marginTop: '4px' }}>Mode Manual: Counter sistem tidak akan bertambah.</p>}
-                  {saveError && <p style={{ fontSize: '12px', color: '#FF3B30', marginTop: '6px', fontWeight: '500' }}>{saveError}</p>}
+                  {saveError && <p style={{ fontSize: '12px', color: 'var(--color-danger)', marginTop: '6px', fontWeight: '500' }}>{saveError}</p>}
                 </div>
               )}
               {editId && (
@@ -511,7 +511,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                       <select value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px' }}>
                         {unitOptions.map((u, i) => <option key={`${u.value}-${i}`} value={u.value}>{u.label}</option>)}
                       </select>
-                      {items.length > 1 && <button onClick={() => removeItem(idx)} aria-label="Hapus baris produk" title="Hapus baris produk" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>}
+                      {items.length > 1 && <button onClick={() => removeItem(idx)} aria-label="Hapus baris produk" title="Hapus baris produk" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="var(--color-danger)" /></button>}
                     </div>
                     {showPreview && it.qty > 0 && (
                       <p style={{ margin: '4px 0 0 8px', fontSize: '11px', color: sub }}>📐 {formatQtyWithConversion(it.qty, it.unit, product)}</p>
@@ -519,15 +519,15 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                   </div>
                   );
                 })}
-                <button onClick={addItem} style={{ fontSize: '13px', color: '#5856D6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', marginTop: '4px' }}>+ Tambah Produk</button>
+                <button onClick={addItem} style={{ fontSize: '13px', color: 'var(--color-primary-hover)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', marginTop: '4px' }}>+ Tambah Produk</button>
               </div>
               <div><label style={labelStyle}>Catatan</label><textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} /></div>
               {saveError && editId && (
-                <p style={{ fontSize: '12px', color: '#FF3B30', margin: '0', fontWeight: '500' }}>{saveError}</p>
+                <p style={{ fontSize: '12px', color: 'var(--color-danger)', margin: '0', fontWeight: '500' }}>{saveError}</p>
               )}
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={handleSave} disabled={isSaving} style={{ flex: 1, padding: '13px', backgroundColor: '#5856D6', color: '#FFF', border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', opacity: isSaving ? 0.7 : 1 }}>{isSaving ? 'Menyimpan...' : (editId ? 'Simpan' : 'Buat SP')}</button>
-                <button onClick={() => setShowModal(null)} disabled={isSaving} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600', opacity: isSaving ? 0.7 : 1 }}>Batal</button>
+                <button onClick={handleSave} disabled={isSaving} style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', opacity: isSaving ? 0.7 : 1 }}>{isSaving ? 'Menyimpan...' : (editId ? 'Simpan' : 'Buat SP')}</button>
+                <button onClick={() => setShowModal(null)} disabled={isSaving} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600', opacity: isSaving ? 0.7 : 1 }}>Batal</button>
               </div>
               </div>
               {!isMobile && (
@@ -550,7 +550,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
         <div onClick={() => setShowModal(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
           <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: cardBg, zIndex: 1 }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#34C759' }}>✅ Terima Barang</h3>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: 'var(--color-success)' }}>✅ Terima Barang</h3>
               <button onClick={() => setShowModal(null)} aria-label="Tutup modal terima barang" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
             </div>
             <div style={{ padding: '20px 22px' }}>
@@ -566,7 +566,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                     <tr key={idx} style={{ borderBottom: `1px solid ${border}` }}>
                       <td style={{ padding: '6px 8px', fontWeight: '600', color: text }}>{ri.product_name}</td>
                       <td style={{ padding: '6px 8px', color: sub }}>{ri.ordered_qty}</td>
-                      <td style={{ padding: '6px 8px', color: ri.already_received >= ri.ordered_qty ? '#34C759' : '#FF9500' }}>{ri.already_received}</td>
+                      <td style={{ padding: '6px 8px', color: ri.already_received >= ri.ordered_qty ? 'var(--color-success)' : 'var(--color-warning)' }}>{ri.already_received}</td>
                       <td style={{ padding: '6px 8px' }}>
                         <input type="number" value={ri.received_qty} min="0" max={ri.ordered_qty - ri.already_received} onChange={e => {
                           const n = [...receiveItems]; n[idx] = { ...n[idx], received_qty: parseInt(e.target.value) || 0 }; setReceiveItems(n);
@@ -583,8 +583,8 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                 </tbody>
               </table>
               <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-                <button onClick={handleReceive} style={{ flex: 1, padding: '13px', backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Terima & Update Stok</button>
-                <button onClick={() => setShowModal(null)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
+                <button onClick={handleReceive} style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-success)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Terima & Update Stok</button>
+                <button onClick={() => setShowModal(null)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
               </div>
             </div>
           </div>
@@ -605,8 +605,8 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
               <div><label style={labelStyle}>Nama Salesman</label><input value={distForm.salesman_name} onChange={e => setDistForm(p => ({...p, salesman_name: e.target.value}))} style={inputStyle} placeholder="Nama PIC dari distributor" /></div>
               <div><label style={labelStyle}>No. HP Salesman</label><input value={distForm.salesman_phone} onChange={e => setDistForm(p => ({...p, salesman_phone: e.target.value}))} style={inputStyle} placeholder="0812xxx" /></div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                <button onClick={handleSaveDistributor} style={{ flex: 1, padding: '13px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Simpan Data Master</button>
-                <button onClick={() => setShowModal('create')} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
+                <button onClick={handleSaveDistributor} style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-primary)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Simpan Data Master</button>
+                <button onClick={() => setShowModal('create')} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
               </div>
             </div>
           </div>
@@ -625,7 +625,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
 
       {/* Toast */}
       {toast && (
-        <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: 'var(--color-success)', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
           ✅ {toast}
         </div>
       )}

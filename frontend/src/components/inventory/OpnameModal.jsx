@@ -12,9 +12,9 @@ const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : 
 function expiryBadge(date, sub) {
   if (!date) return { color: sub, bg: 'transparent', text: '-' };
   const days = daysUntil(date);
-  if (days <= 0) return { color: '#FF3B30', bg: '#FFF5F5', text: `EXP ${fmtDate(date)}` };
-  if (days < 90) return { color: '#FF9500', bg: '#FFF8F0', text: `${fmtDate(date)} (${days}d)` };
-  return { color: '#34C759', bg: '#F0FBF3', text: fmtDate(date) };
+  if (days <= 0) return { color: 'var(--color-danger)', bg: 'var(--color-danger-soft)', text: `EXP ${fmtDate(date)}` };
+  if (days < 90) return { color: 'var(--color-warning)', bg: 'var(--color-warning-soft)', text: `${fmtDate(date)} (${days}d)` };
+  return { color: 'var(--color-success)', bg: '#F0FBF3', text: fmtDate(date) };
 }
 
 // Per-batch stok opname modal.
@@ -41,11 +41,11 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
   const [highlightProductId, setHighlightProductId] = useState(null);
   const productRowRefs = useRef({});
 
-  const bg = isDarkMode ? '#1C1C1E' : '#FFF';
-  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
+  const bg = isDarkMode ? 'var(--color-surface-elevated)' : '#FFF';
+  const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
   const text = isDarkMode ? '#FFF' : '#000';
-  const sub = '#86868B';
-  const surface = isDarkMode ? '#2C2C2E' : '#F5F5F7';
+  const sub = 'var(--color-text-subtle)';
+  const surface = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)';
   const iconBtnStyle = {
     width: '28px', height: '28px', background: 'transparent', border: `1px solid ${border}`,
     borderRadius: '6px', cursor: 'pointer', color: sub,
@@ -267,7 +267,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
       }}>
         {/* Header */}
         <div style={{ padding: '20px 24px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#FF950015', color: '#FF9500', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--color-warning-soft)', color: 'var(--color-warning)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ClipboardCheck size={20} />
           </div>
           <div style={{ flex: 1 }}>
@@ -326,10 +326,10 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                 const isHighlighted = highlightProductId === p.id;
                 return (
                   <button key={p.id} ref={el => { if (el) productRowRefs.current[p.id] = el; }} onClick={() => setSelectedProductId(p.id)} className="ui-motion-card ui-focus-ring" style={{
-                    width: '100%', padding: '10px 14px', textAlign: 'left', background: isHighlighted ? '#34C75922' : isSelected ? '#007AFF15' : 'transparent',
-                    border: 'none', borderLeft: isSelected ? '3px solid #007AFF' : '3px solid transparent',
+                    width: '100%', padding: '10px 14px', textAlign: 'left', background: isHighlighted ? 'var(--color-success)22' : isSelected ? 'var(--color-primary-soft)' : 'transparent',
+                    border: 'none', borderLeft: isSelected ? '3px solid var(--color-primary)' : '3px solid transparent',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                    boxShadow: isHighlighted ? 'inset 0 0 0 1px #34C75966' : 'none',
+                    boxShadow: isHighlighted ? 'inset 0 0 0 1px var(--color-success)66' : 'none',
                     transition: `${uiTransition('background', UI_MOTION.duration.base)}, ${uiTransition('box-shadow', UI_MOTION.duration.base)}`,
                   }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -337,7 +337,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                       <p style={{ margin: '2px 0 0', fontSize: '11px', color: sub }}>{p.code || '—'} · Stok: {p.total_stock || 0}</p>
                     </div>
                     {productInputCount > 0 && (
-                      <span style={{ background: '#34C759', color: '#FFF', fontSize: '10px', fontWeight: '700', padding: '2px 6px', borderRadius: '8px' }}>{productInputCount}</span>
+                      <span style={{ background: 'var(--color-success)', color: '#FFF', fontSize: '10px', fontWeight: '700', padding: '2px 6px', borderRadius: '8px' }}>{productInputCount}</span>
                     )}
                     <ChevronRight size={14} style={{ color: sub, flexShrink: 0 }} />
                   </button>
@@ -371,7 +371,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                             placeholder="Kode produk"
                             style={{ padding: '3px 8px', border: `1px solid ${border}`, borderRadius: '6px', background: bg, color: text, fontSize: '12px', width: '120px', outline: 'none' }}
                           />
-                          <button onClick={() => handleSaveCode(selectedProduct)} title="Simpan kode" className="ui-motion-button ui-focus-ring" style={{ ...iconBtnStyle, width: '24px', height: '24px', color: '#34C759' }}><Check size={13} /></button>
+                          <button onClick={() => handleSaveCode(selectedProduct)} title="Simpan kode" className="ui-motion-button ui-focus-ring" style={{ ...iconBtnStyle, width: '24px', height: '24px', color: 'var(--color-success)' }}><Check size={13} /></button>
                           <button onClick={() => setEditingCode(false)} title="Batal" aria-label="Batal edit kode" className="ui-motion-button ui-focus-ring" style={{ ...iconBtnStyle, width: '24px', height: '24px' }}><X size={13} /></button>
                         </>
                       ) : (
@@ -387,7 +387,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                     onClick={() => { setActionError(''); setBatchModal({ mode: 'add' }); }}
                     title="Tambah batch baru untuk produk ini"
                     style={{
-                      padding: '8px 14px', background: '#007AFF', color: '#FFF',
+                      padding: '8px 14px', background: 'var(--color-primary)', color: '#FFF',
                       border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
                       cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
                       flexShrink: 0,
@@ -397,7 +397,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                   </button>
                 </div>
                 {actionError && (
-                  <p style={{ margin: '0 0 10px', color: '#FF3B30', fontSize: '12px' }}>{actionError}</p>
+                  <p style={{ margin: '0 0 10px', color: 'var(--color-danger)', fontSize: '12px' }}>{actionError}</p>
                 )}
                 {loadingBatches && <p style={{ color: sub, fontSize: '13px' }}>Memuat batch...</p>}
                 {!loadingBatches && currentBatches.length === 0 && (
@@ -406,7 +406,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                     <button
                       onClick={() => { setActionError(''); setBatchModal({ mode: 'add' }); }}
                       style={{
-                        padding: '8px 16px', background: '#007AFF', color: '#FFF', border: 'none',
+                        padding: '8px 16px', background: 'var(--color-primary)', color: '#FFF', border: 'none',
                         borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
                         display: 'inline-flex', alignItems: 'center', gap: '6px',
                       }}
@@ -421,7 +421,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                     const physicalQty = input.physical_qty;
                     const hasInput = physicalQty !== '' && physicalQty !== undefined;
                     const diff = hasInput ? parseInt(physicalQty) - b.qty_current : 0;
-                    const diffColor = diff > 0 ? '#34C759' : diff < 0 ? '#FF3B30' : sub;
+                    const diffColor = diff > 0 ? 'var(--color-success)' : diff < 0 ? 'var(--color-danger)' : sub;
                     const eb = expiryBadge(b.expired_date, sub);
                     return (
                       <div key={b.id} style={{
@@ -456,7 +456,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                             <button
                               onClick={() => handleDelete(b)}
                               title="Hapus batch (stok akan di-nol-kan dan dicatat bila masih ada)"
-                              style={{ ...iconBtnStyle, color: '#FF3B30', borderColor: '#FF3B3033' }}
+                              style={{ ...iconBtnStyle, color: 'var(--color-danger)', borderColor: 'var(--color-danger)33' }}
                             ><Trash2 size={13} /></button>
                           </div>
                         </div>
@@ -521,15 +521,15 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
           display: 'flex', alignItems: 'center', gap: '12px',
         }}>
           <div style={{ flex: 1 }}>
-            {error && <p style={{ margin: 0, color: '#FF3B30', fontSize: '13px' }}>{error}</p>}
+            {error && <p style={{ margin: 0, color: 'var(--color-danger)', fontSize: '13px' }}>{error}</p>}
             {!error && (
               <p style={{ margin: 0, fontSize: '13px', color: sub }}>
                 {changedItems.length === 0 ? (
                   <>Belum ada perubahan ({inputCount} input terisi tapi sama dengan sistem)</>
                 ) : (
-                  <><CheckCircle2 size={14} style={{ display: 'inline', verticalAlign: '-2px', color: '#34C759', marginRight: '4px' }} />
+                  <><CheckCircle2 size={14} style={{ display: 'inline', verticalAlign: '-2px', color: 'var(--color-success)', marginRight: '4px' }} />
                     <strong style={{ color: text }}>{changedItems.length}</strong> batch berubah di <strong style={{ color: text }}>{totalProductsChanged}</strong> produk
-                    <span style={{ marginLeft: '8px', color: totalDiff > 0 ? '#34C759' : totalDiff < 0 ? '#FF3B30' : sub, fontWeight: '700' }}>
+                    <span style={{ marginLeft: '8px', color: totalDiff > 0 ? 'var(--color-success)' : totalDiff < 0 ? 'var(--color-danger)' : sub, fontWeight: '700' }}>
                       Selisih total {totalDiff > 0 ? '+' : ''}{totalDiff}
                     </span>
                   </>
@@ -538,7 +538,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
             )}
           </div>
           <button onClick={handleExportPDF} disabled={exporting || changedItems.length === 0} title="Cetak Berita Acara Opname" className="ui-motion-button ui-focus-ring" style={{
-            padding: '10px 14px', background: bg, color: changedItems.length > 0 ? '#007AFF' : sub, border: `1px solid ${changedItems.length > 0 ? '#007AFF' : border}`,
+            padding: '10px 14px', background: bg, color: changedItems.length > 0 ? 'var(--color-primary)' : sub, border: `1px solid ${changedItems.length > 0 ? 'var(--color-primary)' : border}`,
             borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: changedItems.length === 0 ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', gap: '6px',
           }}><FileText size={14} /> {exporting ? '...' : 'Export PDF'}</button>
@@ -547,7 +547,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
             borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
           }}>Batal</button>
           <button onClick={handleSave} disabled={saving || changedItems.length === 0} className="ui-motion-button ui-focus-ring" style={{
-            padding: '10px 18px', background: changedItems.length > 0 ? '#FF9500' : sub, color: '#FFF',
+            padding: '10px 18px', background: changedItems.length > 0 ? 'var(--color-warning)' : sub, color: '#FFF',
             border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '13px',
             cursor: saving || changedItems.length === 0 ? 'not-allowed' : 'pointer',
             opacity: saving ? 0.7 : 1,
@@ -605,7 +605,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                 outline: 'none', marginBottom: '14px', boxSizing: 'border-box',
               }} />
             {actionError && (
-              <p style={{ color: '#FF3B30', fontSize: '12px', margin: '0 0 10px' }}>{actionError}</p>
+              <p style={{ color: 'var(--color-danger)', fontSize: '12px', margin: '0 0 10px' }}>{actionError}</p>
             )}
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => { setAdjustFor(null); setActionError(''); }} className="ui-motion-button ui-focus-ring" style={{
@@ -613,7 +613,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                 borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
               }}>Batal</button>
               <button onClick={handleAdjustSubmit} className="ui-motion-button ui-focus-ring" style={{
-                flex: 1, padding: '10px', background: '#007AFF', color: '#FFF', border: 'none',
+                flex: 1, padding: '10px', background: 'var(--color-primary)', color: '#FFF', border: 'none',
                 borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
               }}>Simpan</button>
             </div>

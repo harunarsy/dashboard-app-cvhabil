@@ -6,10 +6,10 @@ import RupiahInput from './RupiahInput';
 import { hppFromHna, hnaFromHpp } from '../../utils/rupiah';
 
 export default function HnaHppInput({ value, onChange, decimals = 2, isDarkMode = false, disabled = false }) {
-  const text = isDarkMode ? '#F5F5F7' : '#1C1C1E';
-  const sub = isDarkMode ? '#86868B' : '#6E6E73';
-  const bg = isDarkMode ? '#1C1C1E' : '#FFFFFF';
-  const border = isDarkMode ? '#3A3A3C' : '#D1D1D6';
+  const text = isDarkMode ? 'var(--color-bg)' : 'var(--color-surface-elevated)';
+  const sub = isDarkMode ? 'var(--color-text-subtle)' : 'var(--color-text-muted)';
+  const bg = isDarkMode ? 'var(--color-surface-elevated)' : '#FFFFFF';
+  const border = isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)';
 
   const inputStyle = {
     width: '100%',

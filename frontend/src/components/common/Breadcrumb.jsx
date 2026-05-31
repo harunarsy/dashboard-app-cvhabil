@@ -6,7 +6,7 @@ import { UI_MOTION, uiTransition } from '../../constants/ui';
 export default function Breadcrumb({ title, isMobile, isDarkMode }) {
   const navigate = useNavigate();
   const text = isDarkMode ? '#FFF' : '#000';
-  const sub = '#86868B';
+  const sub = 'var(--color-text-subtle)';
 
   if (isMobile) {
     return (

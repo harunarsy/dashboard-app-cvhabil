@@ -11,8 +11,8 @@ export default function BarcodeScanner({ onScan, onClose, isDarkMode }) {
 
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = '#AEAEB2';
-  const panel = isDarkMode ? '#1C1C1E' : '#FFFFFF';
-  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
+  const panel = isDarkMode ? 'var(--color-surface-elevated)' : '#FFFFFF';
+  const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
 
   const stopScanner = useCallback(async () => {
     const scanner = scannerRef.current;
@@ -122,7 +122,7 @@ export default function BarcodeScanner({ onScan, onClose, isDarkMode }) {
           <Camera size={20} />
           <div>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800' }}>Scan Barcode / QR</h3>
-            <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#D1D1D6' }}>Arahkan kamera ke kode produk</p>
+            <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--color-border)' }}>Arahkan kamera ke kode produk</p>
           </div>
         </div>
         <button
@@ -139,10 +139,10 @@ export default function BarcodeScanner({ onScan, onClose, isDarkMode }) {
       <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px' }}>
         {error ? (
           <div style={{ width: '100%', maxWidth: '420px', background: panel, color: text, border: `1px solid ${border}`, borderRadius: '18px', padding: '22px', textAlign: 'center' }}>
-            <Camera size={38} style={{ color: '#FF9500', marginBottom: '12px' }} />
+            <Camera size={38} style={{ color: 'var(--color-warning)', marginBottom: '12px' }} />
             <p style={{ margin: '0 0 16px', fontSize: '14px', fontWeight: '700', lineHeight: 1.5 }}>{error}</p>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button type="button" onClick={retry} className="ui-motion-button ui-focus-ring" style={{ flex: 1, minHeight: '44px', border: 'none', borderRadius: '12px', background: '#007AFF', color: '#FFF', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <button type="button" onClick={retry} className="ui-motion-button ui-focus-ring" style={{ flex: 1, minHeight: '44px', border: 'none', borderRadius: '12px', background: 'var(--color-primary)', color: '#FFF', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <RefreshCw size={16} /> Coba Lagi
               </button>
               <button type="button" onClick={onClose} className="ui-motion-button ui-focus-ring" style={{ flex: 1, minHeight: '44px', border: `1px solid ${border}`, borderRadius: '12px', background: panel, color: text, fontWeight: '800', cursor: 'pointer' }}>

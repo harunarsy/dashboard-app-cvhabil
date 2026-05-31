@@ -21,18 +21,18 @@ export default function SPPreview({ form = {}, items = [], settings = {} }) {
   return (
     <div style={{
       backgroundColor: '#FFF', borderRadius: '10px', padding: '16px',
-      border: '1px solid #E5E5EA', boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+      border: '1px solid var(--color-border)', boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
       fontFamily: 'Helvetica, Arial, sans-serif', color: '#000',
     }}>
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-        <div style={{ fontSize: '13px', fontWeight: '800', color: '#007AFF', marginBottom: '3px' }}>{companyName}</div>
+        <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--color-primary)', marginBottom: '3px' }}>{companyName}</div>
         {address && <div style={{ fontSize: '9px', color: '#555', lineHeight: '1.4' }}>{address}</div>}
         {phone && <div style={{ fontSize: '9px', color: '#555' }}>{phone}</div>}
         <div style={{ fontSize: '12px', fontWeight: '800', color: '#000', marginTop: '6px', letterSpacing: '0.05em' }}>SURAT PESANAN</div>
       </div>
 
-      <div style={{ height: '1.5px', backgroundColor: '#007AFF', marginBottom: '8px', borderRadius: '2px' }} />
+      <div style={{ height: '1.5px', backgroundColor: 'var(--color-primary)', marginBottom: '8px', borderRadius: '2px' }} />
 
       {/* Recipient + meta */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', gap: '8px' }}>
@@ -49,10 +49,10 @@ export default function SPPreview({ form = {}, items = [], settings = {} }) {
       </div>
 
       {/* Items table — TANPA harga */}
-      <div style={{ backgroundColor: '#F5F5F7', borderRadius: '6px', overflow: 'hidden', marginBottom: '8px', border: '1px solid #007AFF' }}>
+      <div style={{ backgroundColor: 'var(--color-bg)', borderRadius: '6px', overflow: 'hidden', marginBottom: '8px', border: '1px solid var(--color-primary)' }}>
         <table style={{ width: '100%', fontSize: '8px', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ backgroundColor: '#007AFF', color: '#FFF' }}>
+            <tr style={{ backgroundColor: 'var(--color-primary)', color: '#FFF' }}>
               <th style={{ padding: '4px 5px', textAlign: 'center', width: '24px' }}>No</th>
               <th style={{ padding: '4px 5px', textAlign: 'left' }}>Nama Barang</th>
               <th style={{ padding: '4px 5px', textAlign: 'center', width: '48px' }}>Qty</th>
@@ -65,10 +65,10 @@ export default function SPPreview({ form = {}, items = [], settings = {} }) {
             )}
             {items.map((it, idx) => (
               <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#FFF' : '#FAFAFA' }}>
-                <td style={{ padding: '4px 5px', textAlign: 'center', color: '#3A3A3C', verticalAlign: 'top' }}>{idx + 1}</td>
-                <td style={{ padding: '4px 5px', color: '#3A3A3C' }}>{it.product_name || '—'}</td>
-                <td style={{ padding: '4px 5px', textAlign: 'center', color: '#3A3A3C', verticalAlign: 'top' }}>{parseFloat(it.qty) || 0}</td>
-                <td style={{ padding: '4px 5px', textAlign: 'center', color: '#3A3A3C', verticalAlign: 'top' }}>{it.unit || 'pcs'}</td>
+                <td style={{ padding: '4px 5px', textAlign: 'center', color: 'var(--color-border-strong)', verticalAlign: 'top' }}>{idx + 1}</td>
+                <td style={{ padding: '4px 5px', color: 'var(--color-border-strong)' }}>{it.product_name || '—'}</td>
+                <td style={{ padding: '4px 5px', textAlign: 'center', color: 'var(--color-border-strong)', verticalAlign: 'top' }}>{parseFloat(it.qty) || 0}</td>
+                <td style={{ padding: '4px 5px', textAlign: 'center', color: 'var(--color-border-strong)', verticalAlign: 'top' }}>{it.unit || 'pcs'}</td>
               </tr>
             ))}
           </tbody>
@@ -90,7 +90,7 @@ export default function SPPreview({ form = {}, items = [], settings = {} }) {
 
       {/* Footer */}
       {footerText && (
-        <div style={{ borderTop: '1px dashed #E5E5EA', paddingTop: '6px', textAlign: 'center', marginTop: '8px' }}>
+        <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: '6px', textAlign: 'center', marginTop: '8px' }}>
           <div style={{ fontSize: '7px', color: '#AEAEB2' }}>{footerText}</div>
         </div>
       )}

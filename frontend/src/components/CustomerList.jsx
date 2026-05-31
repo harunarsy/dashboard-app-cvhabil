@@ -20,12 +20,12 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
   const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
-  const bg = isDarkMode ? '#000' : '#F5F5F7';
-  const cardBg = isDarkMode ? '#1C1C1E' : '#FFF';
-  const surface = isDarkMode ? '#2C2C2E' : '#F5F5F7';
-  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
+  const bg = isDarkMode ? '#000' : 'var(--color-bg)';
+  const cardBg = isDarkMode ? 'var(--color-surface-elevated)' : '#FFF';
+  const surface = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)';
+  const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
   const text = isDarkMode ? '#FFF' : '#000';
-  const sub = '#86868B';
+  const sub = 'var(--color-text-subtle)';
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -116,7 +116,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
           <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: 0, color: text }}>👥 Master Customer</h1>
           <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>{loading ? <Skeleton width="160px" height="14px" /> : `${customers.length} customer terdaftar`}</p>
         </div>
-        <button onClick={openAdd} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 18px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
+        <button onClick={openAdd} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 18px', backgroundColor: 'var(--color-primary)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
           <Plus size={18} /> Tambah Customer
         </button>
       </div>
@@ -173,8 +173,8 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
                       <div style={{ fontSize: '15px', fontWeight: '700', color: text, marginBottom: '6px', wordBreak: 'break-word' }}>{c.name}</div>
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                         <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px',
-                          backgroundColor: c.type === 'reseller' ? '#FF950018' : c.type === 'institusi' ? '#5E5CE618' : '#007AFF18',
-                          color: c.type === 'reseller' ? '#FF9500' : c.type === 'institusi' ? '#5E5CE6' : '#007AFF' }}>
+                          backgroundColor: c.type === 'reseller' ? 'var(--color-warning-soft)' : c.type === 'institusi' ? 'var(--color-primary-hover)18' : 'var(--color-primary-soft)',
+                          color: c.type === 'reseller' ? 'var(--color-warning)' : c.type === 'institusi' ? 'var(--color-primary-hover)' : 'var(--color-primary)' }}>
                           {c.type === 'reseller' ? 'Reseller' : c.type === 'institusi' ? 'Institusi' : 'Offline'}
                         </span>
                         {!hasActivity && (
@@ -185,23 +185,23 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <button onClick={() => openEdit(c)} aria-label={`Edit customer ${c.name}`} title="Edit" className="ui-motion-button ui-focus-ring" style={iconBtnStyle}><Edit2 size={16} color="#007AFF" /></button>
-                      <button onClick={() => handleDelete(c.id)} aria-label={`Hapus customer ${c.name}`} title="Hapus" className="ui-motion-button ui-focus-ring" style={iconBtnStyle}><Trash2 size={16} color="#FF3B30" /></button>
+                      <button onClick={() => openEdit(c)} aria-label={`Edit customer ${c.name}`} title="Edit" className="ui-motion-button ui-focus-ring" style={iconBtnStyle}><Edit2 size={16} color="var(--color-primary)" /></button>
+                      <button onClick={() => handleDelete(c.id)} aria-label={`Hapus customer ${c.name}`} title="Hapus" className="ui-motion-button ui-focus-ring" style={iconBtnStyle}><Trash2 size={16} color="var(--color-danger)" /></button>
                     </div>
                   </div>
 
                   {/* Contact info */}
                   {(c.phone || c.address) && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      {c.phone && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: '500', color: isDarkMode ? '#EBEBF0' : '#3A3A3C' }}><Phone size={14} style={{ color: sub, flexShrink: 0 }} /> {c.phone}</div>}
-                      {c.address && <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '13.5px', fontWeight: '500', color: isDarkMode ? '#EBEBF0' : '#3A3A3C', lineHeight: '1.45' }}><MapPin size={14} style={{ marginTop: '2px', flexShrink: 0, color: sub }} /> <span>{c.address}</span></div>}
+                      {c.phone && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: '500', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-border-strong)' }}><Phone size={14} style={{ color: sub, flexShrink: 0 }} /> {c.phone}</div>}
+                      {c.address && <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '13.5px', fontWeight: '500', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-border-strong)', lineHeight: '1.45' }}><MapPin size={14} style={{ marginTop: '2px', flexShrink: 0, color: sub }} /> <span>{c.address}</span></div>}
                     </div>
                   )}
 
                   {/* Incomplete warning (clickable) */}
                   {incomplete && (
                     <button onClick={() => openEdit(c)} aria-label="Lengkapi data customer" style={{
-                      background: isDarkMode ? '#3A2E0F' : '#FFF8F0',
+                      background: isDarkMode ? 'var(--color-warning-soft)' : 'var(--color-warning-soft)',
                       border: 'none', borderRadius: '8px', padding: '8px 10px',
                       display: 'flex', alignItems: 'center', gap: '8px',
                       color: '#FF9F0A', fontSize: '11px', fontWeight: '600', cursor: 'pointer', textAlign: 'left',
@@ -213,8 +213,8 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
 
                   {/* Metadata badges */}
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', borderTop: `1px solid ${border}`, paddingTop: '10px', marginTop: 'auto' }}>
-                    <MetaBadge icon={FileText} label={`${totalOrders} nota`} color={hasActivity ? '#34C759' : sub} sub={sub} cardBg={surface} />
-                    {hasActivity && <MetaBadge label={compact(totalSpent)} color="#007AFF" sub={sub} cardBg={surface} />}
+                    <MetaBadge icon={FileText} label={`${totalOrders} nota`} color={hasActivity ? 'var(--color-success)' : sub} sub={sub} cardBg={surface} />
+                    {hasActivity && <MetaBadge label={compact(totalSpent)} color="var(--color-primary)" sub={sub} cardBg={surface} />}
                     {c.last_sale_date && <MetaBadge label={`Last: ${fmtDate(c.last_sale_date)}`} color={sub} sub={sub} cardBg={surface} />}
                   </div>
                 </div>
@@ -230,7 +230,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
                 </h3>
                 {!search && (
                   <button onClick={openAdd} style={{
-                    marginTop: '4px', padding: '10px 18px', background: '#007AFF', color: '#FFF',
+                    marginTop: '4px', padding: '10px 18px', background: 'var(--color-primary)', color: '#FFF',
                     border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
                     display: 'inline-flex', alignItems: 'center', gap: '6px',
                   }}>
@@ -274,7 +274,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
                 </select>
               </div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                <button onClick={handleSave} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: '13px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
+                <button onClick={handleSave} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-primary)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
                   {editId ? 'Simpan' : 'Tambah'}
                 </button>
                 <button onClick={() => setShowModal(false)} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: '13px', backgroundColor: surface, color: text, border: `1px solid ${border}`, borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
@@ -296,7 +296,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
 
       {/* Toast */}
       {toast && (
-        <div role="status" aria-live="polite" className="ui-motion-toast" style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
+        <div role="status" aria-live="polite" className="ui-motion-toast" style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: 'var(--color-success)', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
           ✅ {toast}
         </div>
       )}

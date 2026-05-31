@@ -23,11 +23,11 @@ export default function BulkEditModal({ products, allProducts, allCategories, on
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [results, setResults] = useState(null); // { success: [], failed: [] }
 
-  const bg = isDarkMode ? '#1C1C1E' : '#FFF';
-  const text = isDarkMode ? '#FFF' : '#1C1C1E';
-  const sub = '#86868B';
-  const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
-  const surface = isDarkMode ? '#2C2C2E' : '#F5F5F7';
+  const bg = isDarkMode ? 'var(--color-surface-elevated)' : '#FFF';
+  const text = isDarkMode ? '#FFF' : 'var(--color-surface-elevated)';
+  const sub = 'var(--color-text-subtle)';
+  const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
+  const surface = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)';
   const cellBg = isDarkMode ? '#0A0A0A' : '#FAFAFA';
 
   // Validate: kode duplicate check (terhadap allProducts, exclude self)
@@ -152,7 +152,7 @@ export default function BulkEditModal({ products, allProducts, allCategories, on
                 style={{
                   padding: '6px 14px', fontSize: '12px', fontWeight: '600', border: 'none',
                   borderRadius: '6px', cursor: saving ? 'wait' : 'pointer',
-                  background: mode === opt.key ? '#007AFF' : 'transparent',
+                  background: mode === opt.key ? 'var(--color-primary)' : 'transparent',
                   color: mode === opt.key ? '#FFF' : sub,
                 }}
               >
@@ -164,7 +164,7 @@ export default function BulkEditModal({ products, allProducts, allCategories, on
 
         {/* Warning duplicate */}
         {duplicates.length > 0 && (
-          <div style={{ margin: '10px 22px 0', padding: '10px 14px', background: '#FFF5F5', border: '1px solid #FFE5E5', borderRadius: '10px', color: '#FF3B30', fontSize: '12px', fontWeight: '600', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ margin: '10px 22px 0', padding: '10px 14px', background: 'var(--color-danger-soft)', border: '1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)', borderRadius: '10px', color: 'var(--color-danger)', fontSize: '12px', fontWeight: '600', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <AlertCircle size={14} /> <span>{duplicates.length} kode duplikat (warna merah di tabel). Fix dulu sebelum simpan.</span>
           </div>
         )}
@@ -192,8 +192,8 @@ export default function BulkEditModal({ products, allProducts, allCategories, on
                   <tr key={r.id} style={{ borderBottom: `1px solid ${border}` }}>
                     <td style={{ ...cellStyle, color: text, fontWeight: '500' }}>
                       {r.name}
-                      {isSuccess && <CheckCircle2 size={12} color="#34C759" style={{ marginLeft: '6px', verticalAlign: 'middle' }} />}
-                      {result && <span style={{ display: 'block', fontSize: '10px', color: '#FF3B30', marginTop: '2px' }}>⚠ {result.error}</span>}
+                      {isSuccess && <CheckCircle2 size={12} color="var(--color-success)" style={{ marginLeft: '6px', verticalAlign: 'middle' }} />}
+                      {result && <span style={{ display: 'block', fontSize: '10px', color: 'var(--color-danger)', marginTop: '2px' }}>⚠ {result.error}</span>}
                     </td>
                     {mode !== 'category' && (
                       <td style={cellStyle}>
@@ -203,7 +203,7 @@ export default function BulkEditModal({ products, allProducts, allCategories, on
                           onChange={e => updateRow(r.id, 'codeNew', e.target.value)}
                           disabled={saving}
                           placeholder={r.codeOld || '(kosong)'}
-                          style={{ ...inputStyle, borderColor: isDupe ? '#FF3B30' : border, background: isDupe ? '#FFF5F5' : bg }}
+                          style={{ ...inputStyle, borderColor: isDupe ? 'var(--color-danger)' : border, background: isDupe ? 'var(--color-danger-soft)' : bg }}
                         />
                         {r.codeOld && r.codeOld !== r.codeNew && (
                           <p style={{ margin: '2px 0 0', fontSize: '10px', color: sub }}>lama: <span style={{ fontFamily: 'monospace' }}>{r.codeOld}</span></p>
@@ -244,8 +244,8 @@ export default function BulkEditModal({ products, allProducts, allCategories, on
             </div>
           ) : results ? (
             <div style={{ fontSize: '12px', fontWeight: '600' }}>
-              <span style={{ color: '#34C759' }}>✓ {results.success.length} berhasil</span>
-              {results.failed.length > 0 && <span style={{ color: '#FF3B30', marginLeft: '8px' }}>· {results.failed.length} gagal</span>}
+              <span style={{ color: 'var(--color-success)' }}>✓ {results.success.length} berhasil</span>
+              {results.failed.length > 0 && <span style={{ color: 'var(--color-danger)', marginLeft: '8px' }}>· {results.failed.length} gagal</span>}
             </div>
           ) : (
             <div style={{ fontSize: '12px', color: sub }}>{rows.length} produk siap di-edit</div>
@@ -257,7 +257,7 @@ export default function BulkEditModal({ products, allProducts, allCategories, on
             }}>Tutup</button>
             {!results && (
               <button onClick={handleSave} disabled={saving || duplicates.length > 0} style={{
-                padding: '10px 22px', background: duplicates.length > 0 ? '#999' : '#007AFF', color: '#FFF',
+                padding: '10px 22px', background: duplicates.length > 0 ? '#999' : 'var(--color-primary)', color: '#FFF',
                 border: 'none', borderRadius: '10px', fontWeight: '600', fontSize: '13px',
                 cursor: (saving || duplicates.length > 0) ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
               }}>{saving ? 'Menyimpan...' : 'Simpan Semua'}</button>

@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.13.0-stable] - 2026-06-01
+
+### Changed
+- Visual identity refresh ke palette Stripe Modern: Inter dan JetBrains Mono self-hosted, token warna/spacing/elevation baru, surface lebih border-first, dan hover-reveal actions di tabel utama.
+- Version badge, sidebar label, login footer, dashboard release history, dan header brain doc disinkronkan ke `v1.13.0-stable`.
+
 ## [v1.12.9-stable] - 2026-06-01
 
 ### Fixed

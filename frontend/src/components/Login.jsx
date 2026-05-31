@@ -34,16 +34,16 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
     }
   };
 
-  // ─── Theme tokens (Apple HIG colors, mirror seluruh app) ─────────────────
-  const bg = isDarkMode ? '#000000' : '#F5F5F7';
-  const card = isDarkMode ? '#1C1C1E' : '#FFFFFF';
-  const cardBorder = isDarkMode ? '#2C2C2E' : '#F0F0F2';
-  const inputBg = isDarkMode ? '#2C2C2E' : '#F5F5F7';
-  const inputBorder = isDarkMode ? '#3A3A3C' : '#E5E5EA';
-  const text = isDarkMode ? '#FFFFFF' : '#1D1D1F';
-  const sub = isDarkMode ? '#8E8E93' : '#6E6E73';
-  const subtle = isDarkMode ? '#48484A' : '#86868B';
-  const focusRing = '#007AFF';
+  // ─── Theme tokens (Stripe Modern palette, shared with app) ────────────
+  const bg = 'var(--color-bg)';
+  const card = 'var(--color-surface)';
+  const cardBorder = 'var(--color-border)';
+  const inputBg = 'var(--color-surface-elevated)';
+  const inputBorder = 'var(--color-border)';
+  const text = 'var(--color-text)';
+  const sub = 'var(--color-text-muted)';
+  const subtle = 'var(--color-text-subtle)';
+  const focusRing = 'var(--color-primary)';
 
   const toggleTheme = () => setIsDarkMode?.((v) => !v);
 
@@ -88,12 +88,12 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
             style={{
               width: '40px', height: '40px', borderRadius: '12px',
               background: isGlassMode ? 'transparent' : card,
-              border: `1px solid ${isGlassMode ? 'rgba(0, 122, 255, 0.4)' : cardBorder}`,
-              color: isGlassMode ? '#007AFF' : text,
+              border: `1px solid ${isGlassMode ? 'var(--color-primary-border)' : cardBorder}`,
+              color: isGlassMode ? 'var(--color-primary)' : text,
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: isGlassMode
-                ? '0 4px 16px rgba(0, 122, 255, 0.25)'
+                ? '0 4px 16px color-mix(in srgb, var(--color-primary) 28%, transparent)'
                 : (isDarkMode ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.06)'),
               transform: glassClicked ? 'scale(0.88)' : (isGlassMode ? 'scale(1.08)' : 'scale(1)'),
               transition: [
@@ -104,7 +104,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
               ].join(', '),
             }}
           >
-            <Sparkles size={18} fill={isGlassMode ? '#007AFF' : 'none'} />
+            <Sparkles size={18} fill={isGlassMode ? 'var(--color-primary)' : 'none'} />
           </button>
         )}
         {setIsDarkMode && (
@@ -148,7 +148,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
           >
             <div style={{
               width: '56px', height: '56px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
+              background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 16px', color: '#FFF',
             }}>
@@ -164,7 +164,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
             {lowMemory && (
               <p style={{
                 margin: '0 0 20px', padding: '8px 12px',
-                background: isDarkMode ? '#3A2E0F' : '#FFF8F0', color: '#FF9F0A',
+                background: 'var(--color-warning-soft)', color: 'var(--color-warning)',
                 borderRadius: '8px', fontSize: '12px', fontWeight: '600',
               }}>
                 ⚠️ Device kamu &lt;4GB RAM — mungkin agak lemot
@@ -185,7 +185,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
                 className="ui-motion-button ui-focus-ring"
                 style={{
                   flex: 1, padding: '12px',
-                  background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
+                  background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)',
                   color: '#FFF', border: 'none', borderRadius: '10px',
                   cursor: 'pointer', fontSize: '14px', fontWeight: '700',
                 }}
@@ -206,7 +206,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
             <Building2 size={32} />
           </div>
           <h1 className="text-3xl font-bold tracking-tight" style={{ color: text }}>HABIL SUPERAPP</h1>
-          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.12.9-stable — 2026</p>
+          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.13.0-stable — 2026</p>
         </div>
 
         <div
@@ -225,9 +225,9 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
                 role="alert"
                 className="flex items-start gap-3 p-4 rounded-xl text-sm"
                 style={{
-                  backgroundColor: isDarkMode ? '#3A1F1F' : '#FFF5F5',
-                  border: `1px solid ${isDarkMode ? '#5A2828' : '#FFE5E5'}`,
-                  color: '#FF453A',
+                  backgroundColor: 'var(--color-danger-soft)',
+                  border: '1px solid color-mix(in srgb, var(--color-danger) 28%, transparent)',
+                  color: 'var(--color-danger)',
                 }}
               >
                 <AlertCircle size={18} className="mt-0.5 shrink-0" />
