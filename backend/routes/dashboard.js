@@ -100,6 +100,24 @@ router.get('/stats', auth, async (req, res) => {
       LIMIT 5
     `, [hppMultiplier]);
 
+    // 1e. Top customer bulan ini (Paid + Final only)
+    const { rows: topCustomerRows } = await pool.query(`
+      SELECT
+        COALESCE(NULLIF(TRIM(customer_name), ''), '(tanpa customer)') AS customer_name,
+        COUNT(*) AS nota_count,
+        COALESCE(SUM(total), 0) AS spending
+      FROM sales_orders
+      WHERE is_deleted = false
+        AND payment_status = 'paid'
+        AND status = 'final'
+        AND DATE_TRUNC('month', sale_date) = DATE_TRUNC('month', CURRENT_DATE)
+        AND customer_name IS NOT NULL
+        AND TRIM(customer_name) != ''
+      GROUP BY COALESCE(NULLIF(TRIM(customer_name), ''), '(tanpa customer)')
+      ORDER BY spending DESC
+      LIMIT 5
+    `);
+
     // 2. Surat Pesanan Aktif
     const { rows: [{ active_po }] } = await pool.query(`
       SELECT COUNT(*) AS active_po 
@@ -129,6 +147,18 @@ router.get('/stats', auth, async (req, res) => {
     `);
     const lowExpiredTotal = parseInt(expiringCount || 0) + parseInt(low_stock_count || 0);
 
+    // 3b. Stock movement 30 hari terakhir
+    const { rows: stockMovementRows } = await pool.query(`
+      SELECT
+        DATE(created_at) AS day,
+        COALESCE(SUM(CASE WHEN type = 'in' THEN qty ELSE 0 END), 0) AS in_qty,
+        COALESCE(SUM(CASE WHEN type = 'out' THEN ABS(qty) ELSE 0 END), 0) AS out_qty
+      FROM inventory_mutations
+      WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY DATE(created_at)
+      ORDER BY day ASC
+    `);
+
     // 4. Total Customer
     const { rows: [{ total_customer }] } = await pool.query(`
       SELECT COUNT(*) AS total_customer 
@@ -156,6 +186,16 @@ router.get('/stats', auth, async (req, res) => {
         revenue: parseFloat(row.revenue) || 0,
         margin: parseFloat(row.margin) || 0,
         marginPct: parseFloat(row.margin_pct) || 0
+      })),
+      topCustomers: topCustomerRows.map(row => ({
+        customerName: row.customer_name || '(tanpa customer)',
+        notaCount: parseInt(row.nota_count) || 0,
+        spending: parseFloat(row.spending) || 0
+      })),
+      stockMovement30d: stockMovementRows.map(row => ({
+        day: row.day,
+        inQty: parseFloat(row.in_qty) || 0,
+        outQty: parseFloat(row.out_qty) || 0
       }))
     });
   } catch (err) { 

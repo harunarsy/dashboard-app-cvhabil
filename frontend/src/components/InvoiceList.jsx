@@ -159,6 +159,19 @@ const getDueStatus = (due_date, status) => {
   return null;
 };
 
+const formatRelativeTime = (dateStr) => {
+  if (!dateStr) return 'baru saja';
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  if (!Number.isFinite(diffMs)) return 'baru saja';
+  const minutes = Math.round(diffMs / 60000);
+  if (minutes < 1) return 'baru saja';
+  if (minutes < 60) return `${minutes} menit lalu`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} jam lalu`;
+  const days = Math.round(hours / 24);
+  return `${days} hari lalu`;
+};
+
 const buildAuditDiff = (rawSnapshot, action) => {
   if (!rawSnapshot) return [];
   let snapshot = rawSnapshot;
@@ -235,6 +248,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [draftBanner, setDraftBanner] = useState(false);
   const [savedDraft, setSavedDraft] = useState(null);
+  const [savedDraftUpdatedAt, setSavedDraftUpdatedAt] = useState(null);
   const [dupConfirm, setDupConfirm] = useState(null);
   const [successToast, setSuccessToast] = useState('');
   const [auditModal, setAuditModal] = useState(null); // { invoiceId, invoiceNumber }
@@ -273,7 +287,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
     if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
     draftDebounceRef.current = setTimeout(() => {
       invoicesAPI.saveDraft({ form, items }).catch(() => {});
-    }, 1500);
+    }, 2000);
     return () => clearTimeout(draftDebounceRef.current);
   }, [form, items, showModal]);
 
@@ -308,7 +322,11 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
   const checkDraft = async () => {
     try {
       const r = await invoicesAPI.getDraft();
-      if (r.data?.draft_data) { setSavedDraft(r.data.draft_data); setDraftBanner(true); }
+      if (r.data?.draft_data) {
+        setSavedDraft(r.data.draft_data);
+        setSavedDraftUpdatedAt(r.data.updated_at || null);
+        setDraftBanner(true);
+      }
     } catch(e) {}
   };
 
@@ -521,7 +539,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       if (isEdit) await invoicesAPI.update(editingId, payload);
       else await invoicesAPI.create(payload);
       try { await invoicesAPI.clearDraft(); } catch(e) {}
-      setSavedDraft(null); setDraftBanner(false);
+      setSavedDraft(null); setSavedDraftUpdatedAt(null); setDraftBanner(false);
       fetchInvoices(); fetchDistributors(); fetchProducts();
       resetForm(); setShowModal(false);
       showToast(isEdit ? '✅ Faktur berhasil diupdate!' : '✅ Faktur berhasil disimpan!');
@@ -535,7 +553,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
     try {
       await invoicesAPI.update(dupConfirm.existingId, dupConfirm.pendingPayload);
       try { await invoicesAPI.clearDraft(); } catch(e) {}
-      setSavedDraft(null); setDraftBanner(false);
+      setSavedDraft(null); setSavedDraftUpdatedAt(null); setDraftBanner(false);
       fetchInvoices(); resetForm(); setShowModal(false); setDupConfirm(null);
       showToast('✅ Faktur berhasil diupdate!');
     } catch (err) { showToast('Error: ' + (err.response?.data?.error || err.message)); }
@@ -611,7 +629,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
   };
   const dismissDraft = async () => {
     try { await invoicesAPI.clearDraft(); } catch(e) {}
-    setSavedDraft(null); setDraftBanner(false);
+    setSavedDraft(null); setSavedDraftUpdatedAt(null); setDraftBanner(false);
   };
 
   const openAuditLog = async (inv) => {
@@ -694,9 +712,12 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
           <FileText size={18} color="#FF9500" />
           <div style={{ flex: 1 }}>
             <span style={{ fontWeight: '700', fontSize: '14px', color: isDarkMode ? '#FFF' : '#000' }}>Ada draft tersimpan</span>
-            <span style={{ fontSize: '13px', color: '#86868B', marginLeft: '8px' }}>dari sesi sebelumnya</span>
+            <span style={{ fontSize: '13px', color: '#86868B', marginLeft: '8px' }}>
+              {savedDraftUpdatedAt ? `disimpan ${formatRelativeTime(savedDraftUpdatedAt)} · ` : 'disimpan otomatis · '}
+              lanjutkan atau hapus supaya formulir tetap bersih.
+            </span>
           </div>
-          <button onClick={loadDraft} style={{ padding: '8px 16px', backgroundColor: '#FF9500', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' }}>Lanjutkan</button>
+          <button onClick={loadDraft} style={{ padding: '8px 16px', backgroundColor: '#FF9500', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' }}>Pulihkan Draft</button>
           <button onClick={dismissDraft} style={{ padding: '8px 16px', backgroundColor: 'transparent', color: '#86868B', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>Hapus Draft</button>
         </div>
       )}

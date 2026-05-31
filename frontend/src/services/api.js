@@ -167,6 +167,11 @@ export const printSettingsAPI = {
   update: (settings) => api.post('/print-settings/bulk', settings),
 };
 
+export const settingsAPI = {
+  getProfitThresholds: () => api.get('/settings/profit-thresholds'),
+  updateProfitThresholds: (profitThresholds) => api.put('/settings/profit-thresholds', { profit_thresholds: profitThresholds }),
+};
+
 export const countersAPI = {
   getAll: () => api.get('/settings/counters'),
   update: (doc_type, data) => api.put(`/settings/counters/${doc_type}`, data),

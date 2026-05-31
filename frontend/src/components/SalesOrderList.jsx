@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Search, Trash2, Edit2, X, FileText, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react';
-import { salesAPI, customersAPI, inventoryAPI, printSettingsAPI, countersAPI } from '../services/api';
+import { salesAPI, customersAPI, inventoryAPI, printSettingsAPI, countersAPI, settingsAPI } from '../services/api';
 import { getProductUnits, formatQtyWithConversion, isPackUnit, resolveTierPrice } from '../constants/units';
 import { hppFromHna, hnaFromHpp } from '../utils/rupiah';
 import { generateNotaPDF } from '../utils/generateNotaPDF';
@@ -39,6 +39,16 @@ const computeNotaMargin = (order) => {
   const pct = revenue > 0 ? (margin / revenue) * 100 : 0;
   return { revenue, margin, pct };
 };
+const DEFAULT_PROFIT_THRESHOLDS = { high: 20, normal: 5, thin: 0 };
+const normalizeProfitThresholds = (thresholds = {}) => {
+  const safeValues = [thresholds.thin, thresholds.normal, thresholds.high].map((value, idx) => {
+    const parsed = parseFloat(value);
+    const fallback = [DEFAULT_PROFIT_THRESHOLDS.thin, DEFAULT_PROFIT_THRESHOLDS.normal, DEFAULT_PROFIT_THRESHOLDS.high][idx];
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }).sort((a, b) => a - b);
+  return { thin: safeValues[0], normal: safeValues[1], high: safeValues[2] };
+};
+const formatProfitPct = (value) => `${(parseFloat(value) || 0).toLocaleString('id-ID', { maximumFractionDigits: 1 })}%`;
 
 export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
 
@@ -48,6 +58,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
   const [exportingPdf, setExportingPdf] = useState(false);
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [profitThresholds, setProfitThresholds] = useState(DEFAULT_PROFIT_THRESHOLDS);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -116,6 +127,19 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
   };
   const fetchSettings = async () => {
     try { const { data } = await printSettingsAPI.get(); setLayoutSettings(data.nota_layout); } catch (e) { console.error(e); }
+  };
+  const fetchProfitThresholds = async () => {
+    try {
+      const { data } = await settingsAPI.getProfitThresholds();
+      const raw = data?.profit_thresholds || data || {};
+      setProfitThresholds({
+        high: Number.isFinite(parseFloat(raw.high)) ? parseFloat(raw.high) : DEFAULT_PROFIT_THRESHOLDS.high,
+        normal: Number.isFinite(parseFloat(raw.normal)) ? parseFloat(raw.normal) : DEFAULT_PROFIT_THRESHOLDS.normal,
+        thin: Number.isFinite(parseFloat(raw.thin)) ? parseFloat(raw.thin) : DEFAULT_PROFIT_THRESHOLDS.thin,
+      });
+    } catch (e) {
+      console.error(e);
+    }
   };
   const fetchCounters = async () => {
     try {
@@ -230,7 +254,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
     } catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
-  useEffect(() => { fetchOrders(); fetchCustomers(); fetchProducts(); fetchSettings(); fetchCounters(); }, []);
+  useEffect(() => { fetchOrders(); fetchCustomers(); fetchProducts(); fetchSettings(); fetchProfitThresholds(); fetchCounters(); }, []);
 
   // Filters
   const [filterStatus, setFilterStatus] = useState('all');
@@ -238,6 +262,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
   const [filterProfit, setFilterProfit] = useState('all');
   const [sortKey, setSortKey] = useState('sale_date'); // 'sale_date' | 'total' | 'order_number'
   const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
+  const activeProfitThresholds = normalizeProfitThresholds(profitThresholds);
 
   const toggleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -257,10 +282,10 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
       const matchesChannel = filterChannel === 'all' || (o.channel || 'offline') === filterChannel;
       const { pct } = computeNotaMargin(o);
       const matchesProfit = filterProfit === 'all' ||
-        (filterProfit === 'high' && pct > 20) ||
-        (filterProfit === 'normal' && pct >= 5 && pct <= 20) ||
-        (filterProfit === 'thin' && pct >= 0 && pct < 5) ||
-        (filterProfit === 'loss' && pct < 0);
+        (filterProfit === 'high' && pct > activeProfitThresholds.high) ||
+        (filterProfit === 'normal' && pct >= activeProfitThresholds.normal && pct <= activeProfitThresholds.high) ||
+        (filterProfit === 'thin' && pct >= activeProfitThresholds.thin && pct < activeProfitThresholds.normal) ||
+        (filterProfit === 'loss' && pct < activeProfitThresholds.thin);
       return matchesSearch && matchesMonth && matchesYear && matchesStatus && matchesChannel && matchesProfit;
     })
     .sort((a, b) => {
@@ -611,11 +636,14 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
 
         <select value={filterProfit} onChange={e => setFilterProfit(e.target.value)} style={{ ...inputStyle, width: '190px', flex: '0 0 auto', paddingRight: '32px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
           <option value="all">Semua Profit</option>
-          <option value="high">Untung tinggi (&gt;20%)</option>
-          <option value="normal">Untung normal (5–20%)</option>
-          <option value="thin">Tipis (0–5%)</option>
-          <option value="loss">Rugi (&lt;0%)</option>
+          <option value="high">Untung tinggi (&gt;{formatProfitPct(activeProfitThresholds.high)})</option>
+          <option value="normal">Untung normal ({formatProfitPct(activeProfitThresholds.normal)}–{formatProfitPct(activeProfitThresholds.high)})</option>
+          <option value="thin">Tipis ({formatProfitPct(activeProfitThresholds.thin)}–{formatProfitPct(activeProfitThresholds.normal)})</option>
+          <option value="loss">Rugi (&lt;{formatProfitPct(activeProfitThresholds.thin)})</option>
         </select>
+        <div style={{ width: '100%', fontSize: '11px', color: sub, marginTop: '-4px' }}>
+          Ambang aktif: tinggi &gt; {formatProfitPct(activeProfitThresholds.high)} · normal {formatProfitPct(activeProfitThresholds.normal)}–{formatProfitPct(activeProfitThresholds.high)} · tipis {formatProfitPct(activeProfitThresholds.thin)}–{formatProfitPct(activeProfitThresholds.normal)} · rugi &lt; {formatProfitPct(activeProfitThresholds.thin)}
+        </div>
       </div>
 
       {/* v1.7.0 Multi-select action bar */}

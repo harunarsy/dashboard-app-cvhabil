@@ -1,12 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Info, X, Activity, ShoppingCart, Package, Plus, Sparkles, Wrench, Palette, Zap, BarChart3, Tags, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { Info, X, Activity, ShoppingCart, Package, Plus, Sparkles, Wrench, Palette, Zap, BarChart3, Tags, ArrowUpRight, ArrowDownRight, Users, TrendingUp } from 'lucide-react';
 import api from '../services/api';
 import TasksKanban from './TasksKanban';
 import Skeleton from './common/Skeleton';
 
+const StockMovementChart = lazy(() => import('./dashboard/StockMovementChart'));
+
 const RELEASES = [
   {
-    version: 'v1.12.1-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.12.2-stable', date: '31 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Ambang profitabilitas sekarang configurable dari Pengaturan dan dipakai langsung oleh filter profit di Nota Penjualan. Dashboard juga menampilkan Top 5 Customer bulan ini dan mini chart pergerakan stok 30 hari.',
+        dev: 'backend/routes/settings.js: setting profit_thresholds (high/normal/thin) + frontend Pengaturan section baru. SalesOrderList.jsx baca threshold backend, label filter ikut dinamis. backend/routes/dashboard.js: extend /stats dengan topCustomers + stockMovement30d. Dashboard.jsx: render Top 5 Customer + mini LineChart stok masuk/keluar. InvoiceList.jsx draft restore tetap stabil.'
+      },
+    ]
+  },
+  {
+    version: 'v1.12.1-stable', date: '31 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -899,7 +911,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.12.1-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.2-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -934,7 +946,9 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
     stokLowExpired: 0,
     totalCustomer: 0,
     marginByChannel: [],
-    topCategoryMargins: []
+    topCategoryMargins: [],
+    topCustomers: [],
+    stockMovement30d: []
   });
 
   useEffect(() => {
@@ -946,7 +960,9 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
           ...prev,
           ...data,
           marginByChannel: Array.isArray(data?.marginByChannel) ? data.marginByChannel : [],
-          topCategoryMargins: Array.isArray(data?.topCategoryMargins) ? data.topCategoryMargins : []
+          topCategoryMargins: Array.isArray(data?.topCategoryMargins) ? data.topCategoryMargins : [],
+          topCustomers: Array.isArray(data?.topCustomers) ? data.topCustomers : [],
+          stockMovement30d: Array.isArray(data?.stockMovement30d) ? data.stockMovement30d : []
         }));
       } catch (error) {
         console.error('Failed to fetch dashboard stats', error);
@@ -959,7 +975,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.12.1-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.2-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -974,10 +990,32 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const formatQty = (number) => (parseFloat(number) || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 });
   const channelMargins = stats.marginByChannel || [];
   const topCategoryMargins = stats.topCategoryMargins || [];
+  const topCustomers = stats.topCustomers || [];
+  const stockMovementRows = stats.stockMovement30d || [];
   const maxChannelRevenue = Math.max(1, ...channelMargins.map(row => Math.abs(parseFloat(row.revenue) || 0)));
   const maxCategoryMargin = Math.max(1, ...topCategoryMargins.map(row => Math.abs(parseFloat(row.margin) || 0)));
+  const maxCustomerSpending = Math.max(1, ...topCustomers.map(row => Math.abs(parseFloat(row.spending) || 0)));
   const marginColor = (value) => (parseFloat(value) || 0) >= 0 ? '#34C759' : '#FF3B30';
   const channelColor = (channel) => channel === 'online' ? '#007AFF' : channel === 'offline' ? '#8E8E93' : '#FF9500';
+  const toLocalYmd = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const buildStockMovementSeries = (rows = []) => {
+    const map = new Map(rows.map(row => [String(row.day).slice(0, 10), row]));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Array.from({ length: 30 }, (_, index) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (29 - index));
+      const key = toLocalYmd(date);
+      const row = map.get(key) || {};
+      return {
+        day: key,
+        label: date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }),
+        inQty: parseFloat(row.inQty ?? row.in_qty ?? 0) || 0,
+        outQty: parseFloat(row.outQty ?? row.out_qty ?? 0) || 0,
+      };
+    });
+  };
+  const stockMovementSeries = buildStockMovementSeries(stockMovementRows);
 
 
   return (
@@ -1126,6 +1164,87 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
           ) : (
             <p className="text-sm font-medium py-6" style={{ color: sub }}>Belum ada kategori dengan margin bulan ini.</p>
           )}
+        </section>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+        <section className="glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <h2 className="text-lg font-bold" style={{ color: text }}>Top 5 Customer Bulan Ini</h2>
+              <p className="text-xs font-medium mt-1" style={{ color: sub }}>Berdasarkan total pembelian nota paid/final</p>
+            </div>
+            <div className="p-3 rounded-xl" style={{ backgroundColor: '#007AFF18', color: '#007AFF' }}>
+              <Users size={22} />
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="flex flex-col gap-4">
+              {[0, 1, 2, 3, 4].map(i => <Skeleton key={i} width="100%" height="52px" />)}
+            </div>
+          ) : topCustomers.length ? (
+            <div className="flex flex-col">
+              {topCustomers.map((row, idx) => {
+                const valueWidth = `${Math.min(100, ((Math.abs(parseFloat(row.spending) || 0) / maxCustomerSpending) * 100))}%`;
+                return (
+                  <div key={`${row.customerName}-${idx}`} className="py-3.5" style={{ borderTop: idx ? `1px solid ${border}` : 'none' }}>
+                    <div className="flex items-center justify-between gap-4 mb-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0" style={{ backgroundColor: '#007AFF18', color: '#007AFF' }}>
+                            {idx + 1}
+                          </span>
+                          <span className="text-sm font-bold truncate" style={{ color: text }}>{row.customerName}</span>
+                        </div>
+                        <p className="text-xs mt-1" style={{ color: sub }}>{row.notaCount} nota · {formatRupiah(row.spending)}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="flex items-center justify-end gap-1 text-sm font-bold" style={{ color: '#007AFF' }}>
+                          <TrendingUp size={14} />
+                          {formatRupiah(row.spending)}
+                        </div>
+                        <p className="text-xs font-semibold" style={{ color: sub }}>{row.notaCount} transaksi</p>
+                      </div>
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA' }}>
+                      <div className="h-full rounded-full" style={{ width: valueWidth, backgroundColor: '#007AFF' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm font-medium py-6" style={{ color: sub }}>Belum ada customer dengan transaksi bulan ini.</p>
+          )}
+        </section>
+
+        <section className="glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <h2 className="text-lg font-bold" style={{ color: text }}>Pergerakan Stok 30 Hari</h2>
+              <p className="text-xs font-medium mt-1" style={{ color: sub }}>Ringkasan stok masuk dan keluar harian</p>
+            </div>
+            <div className="p-3 rounded-xl" style={{ backgroundColor: '#34C75918', color: '#34C759' }}>
+              <BarChart3 size={22} />
+            </div>
+          </div>
+
+          <div style={{ height: '240px' }}>
+            <Suspense fallback={<Skeleton width="100%" height="240px" />}>
+              <StockMovementChart
+                data={stockMovementSeries}
+                isDarkMode={isDarkMode}
+                border={border}
+                sub={sub}
+                formatQty={formatQty}
+              />
+            </Suspense>
+          </div>
+          <div className="flex items-center gap-4 mt-4 text-xs font-medium" style={{ color: sub }}>
+            <span className="inline-flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#34C759' }} /> Stok Masuk</span>
+            <span className="inline-flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#FF3B30' }} /> Stok Keluar</span>
+          </div>
         </section>
       </div>
 

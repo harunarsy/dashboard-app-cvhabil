@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.12.2-stable] - 2026-05-31
+
+### Added
+- **⚡ Quick Wins Bundle v1.12.2**: ambang profitabilitas sekarang configurable dari Pengaturan dan dipakai langsung oleh filter profit di Nota Penjualan; Dashboard menambah widget Top 5 Customer bulan ini + mini chart pergerakan stok 30 hari; dan Faktur Draft punya autosave 2 detik dengan restore prompt yang jelas.
+  - _Detail teknis_: `backend/routes/settings.js` tambah setting `profit_thresholds` (`high`, `normal`, `thin`) dan `frontend/src/components/PrintSettings.jsx` section baru untuk simpan ambang. `SalesOrderList.jsx` baca threshold dari backend dan update label filter secara dinamis. `backend/routes/dashboard.js` extend `/dashboard/stats` dengan `topCustomers` dan `stockMovement30d`; `Dashboard.jsx` render dua widget baru. `InvoiceList.jsx` autosave draft debounce 2s + restore prompt menampilkan umur draft.
+
 ## [v1.12.1-stable] - 2026-05-31
 
 ### Added

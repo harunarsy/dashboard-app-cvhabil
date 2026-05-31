@@ -2,6 +2,54 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 
+const DEFAULT_PROFIT_THRESHOLDS = {
+  high: 20,
+  normal: 5,
+  thin: 0
+};
+
+const ensureSchema = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      id SERIAL PRIMARY KEY,
+      setting_key VARCHAR(50) UNIQUE NOT NULL,
+      setting_value JSONB NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(
+    `INSERT INTO app_settings (setting_key, setting_value)
+     VALUES ('profit_thresholds', $1::jsonb)
+     ON CONFLICT (setting_key) DO NOTHING`,
+    [JSON.stringify(DEFAULT_PROFIT_THRESHOLDS)]
+  );
+};
+ensureSchema().catch(console.error);
+
+const parseThresholds = (value = {}) => {
+  const raw = value && typeof value === 'object' ? value : {};
+  const toNumber = (input, fallback) => {
+    const parsed = Number.parseFloat(input);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  return {
+    high: toNumber(raw.high, DEFAULT_PROFIT_THRESHOLDS.high),
+    normal: toNumber(raw.normal, DEFAULT_PROFIT_THRESHOLDS.normal),
+    thin: toNumber(raw.thin, DEFAULT_PROFIT_THRESHOLDS.thin),
+  };
+};
+
+const readProfitThresholds = async () => {
+  const { rows } = await pool.query(
+    `SELECT setting_value FROM app_settings WHERE setting_key = 'profit_thresholds' LIMIT 1`
+  );
+  const value = rows[0]?.setting_value || DEFAULT_PROFIT_THRESHOLDS;
+  return parseThresholds(value);
+};
+
 // GET /api/settings/counters
 // v1.8.2: untuk doc_type NOTA, compute next_preview dengan YYMM dynamic per current month.
 // Sync last_number ke MAX active nota bulan ini supaya preview accurate dgn historical state.
@@ -33,6 +81,37 @@ router.get('/counters', async (req, res) => {
   } catch (err) {
     console.error('Error fetching counters:', err);
     res.status(500).json({ error: 'Failed to fetch counters' });
+  }
+});
+
+// GET /api/settings/profit-thresholds
+router.get('/profit-thresholds', async (req, res) => {
+  try {
+    const profit_thresholds = await readProfitThresholds();
+    res.json({ profit_thresholds });
+  } catch (err) {
+    console.error('Error fetching profit thresholds:', err);
+    res.status(500).json({ error: 'Failed to fetch profit thresholds' });
+  }
+});
+
+// PUT /api/settings/profit-thresholds
+router.put('/profit-thresholds', async (req, res) => {
+  const payload = req.body?.profit_thresholds || req.body || {};
+  const profit_thresholds = parseThresholds(payload);
+
+  try {
+    await pool.query(
+      `INSERT INTO app_settings (setting_key, setting_value, updated_at)
+       VALUES ('profit_thresholds', $1::jsonb, NOW())
+       ON CONFLICT (setting_key)
+       DO UPDATE SET setting_value = EXCLUDED.setting_value, updated_at = NOW()`,
+      [JSON.stringify(profit_thresholds)]
+    );
+    res.json({ profit_thresholds });
+  } catch (err) {
+    console.error('Error updating profit thresholds:', err);
+    res.status(500).json({ error: 'Failed to update profit thresholds' });
   }
 });
 

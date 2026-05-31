@@ -1,21 +1,28 @@
-  import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, Printer, Monitor } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Save, RefreshCw, Printer, Monitor, Activity } from 'lucide-react';
 import Skeleton from './common/Skeleton';
-import { printSettingsAPI } from '../services/api';
+import { printSettingsAPI, settingsAPI } from '../services/api';
 import Breadcrumb from './common/Breadcrumb';
 
 export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
   const [settings, setSettings] = useState(null);
+  const [thresholds, setThresholds] = useState({ high: 20, normal: 5, thin: 0 });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingThresholds, setSavingThresholds] = useState(false);
   const [toast, setToast] = useState('');
 
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const { data } = await printSettingsAPI.get();
-      if (data && data.nota_layout) {
-        const nl = data.nota_layout;
+      const [printResult, thresholdResult] = await Promise.allSettled([
+        printSettingsAPI.get(),
+        settingsAPI.getProfitThresholds(),
+      ]);
+
+      const printData = printResult.status === 'fulfilled' ? printResult.value?.data : null;
+      if (printData && printData.nota_layout) {
+        const nl = printData.nota_layout;
         setSettings({
           company_name: nl.company_name || nl.shop_name || '',
           address: nl.address || '',
@@ -29,6 +36,15 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
       } else {
         setSettings({ company_name: '', address: '', phone: '', footer_text: '', signer_name: '', bank_info: '', qris_text: '', ketentuan: '' });
       }
+
+      const rawThresholds = thresholdResult.status === 'fulfilled'
+        ? (thresholdResult.value?.data?.profit_thresholds || thresholdResult.value?.data || {})
+        : {};
+      setThresholds({
+        high: Number.isFinite(parseFloat(rawThresholds.high)) ? parseFloat(rawThresholds.high) : 20,
+        normal: Number.isFinite(parseFloat(rawThresholds.normal)) ? parseFloat(rawThresholds.normal) : 5,
+        thin: Number.isFinite(parseFloat(rawThresholds.thin)) ? parseFloat(rawThresholds.thin) : 0,
+      });
     } catch (e) {
       console.error('Error fetching settings:', e);
     } finally {
@@ -63,6 +79,20 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
       setToast('Gagal menyimpan pengaturan');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveThresholds = async () => {
+    setSavingThresholds(true);
+    try {
+      await settingsAPI.updateProfitThresholds(thresholds);
+      setToast('Ambang profitabilitas berhasil disimpan');
+      setTimeout(() => setToast(''), 3000);
+    } catch (e) {
+      console.error('Update thresholds error:', e);
+      setToast('Gagal menyimpan ambang profitabilitas');
+    } finally {
+      setSavingThresholds(false);
     }
   };
 
@@ -179,6 +209,53 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
               <label style={labelStyle}>CATATAN KAKI (FOOTER)</label>
               <input type="text" value={settings.footer_text} onChange={e => setSettings({ ...settings, footer_text: e.target.value })} placeholder="Terima kasih atas kepercayaan Anda" style={fieldStyle} />
               <p style={{ fontSize: '11px', color: sub, marginTop: '6px' }}>Teks kecil di bagian paling bawah dokumen cetak.</p>
+            </div>
+
+            <div style={{ marginTop: '22px', padding: '18px', borderRadius: '14px', border: `1px solid ${border}`, backgroundColor: isDarkMode ? '#1C1C1E' : '#FAFAFA' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '700', color: text, margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Activity size={18} color="#34C759" /> Ambang Profitabilitas
+              </h3>
+              <p style={{ fontSize: '11px', color: sub, margin: '0 0 16px', lineHeight: 1.5 }}>
+                Dipakai oleh filter profit di Nota Penjualan. Ambang ini bisa disesuaikan sesuai cara kerja tim.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: '12px' }}>
+                {[
+                  { key: 'high', label: 'Untung tinggi (%)', helper: 'di atas ambang ini' },
+                  { key: 'normal', label: 'Untung normal (%)', helper: 'batas bawah kategori normal' },
+                  { key: 'thin', label: 'Tipis (%)', helper: 'di bawah ini dianggap rugi' },
+                ].map(field => (
+                  <div key={field.key}>
+                    <label style={labelStyle}>{field.label}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={thresholds[field.key]}
+                      onChange={e => setThresholds(prev => ({
+                        ...prev,
+                        [field.key]: e.target.value === '' ? '' : parseFloat(e.target.value),
+                      }))}
+                      style={fieldStyle}
+                    />
+                    <p style={{ fontSize: '11px', color: sub, margin: '6px 0 0' }}>{field.helper}</p>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={handleSaveThresholds}
+                  disabled={savingThresholds}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
+                    backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px',
+                    fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'opacity 0.2s',
+                    opacity: savingThresholds ? 0.7 : 1,
+                  }}
+                >
+                  {savingThresholds ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
+                  {savingThresholds ? 'Menyimpan...' : 'Simpan Ambang'}
+                </button>
+              </div>
             </div>
           </div>
 
