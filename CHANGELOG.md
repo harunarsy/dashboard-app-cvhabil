@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.12.5-stable] - 2026-05-31
+
+### Added
+- Form dan navigasi utama sekarang lebih mulus: Login, Sidebar, Purchase Order, Sales Order, dan Bulk Edit punya timing motion yang konsisten, focus state yang jelas, dan affordance icon button yang lebih rapi.
+- `frontend/src/index.js`, `Login.jsx`, `Sidebar.jsx`, dan `Dashboard.jsx` disinkronkan ke label versi terbaru supaya release badge dan title browser tetap akurat.
+
 ## [v1.12.4-stable] - 2026-05-31
 
 ### Added

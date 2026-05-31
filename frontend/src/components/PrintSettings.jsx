@@ -3,6 +3,7 @@ import { Save, RefreshCw, Printer, Monitor, Activity } from 'lucide-react';
 import Skeleton from './common/Skeleton';
 import { printSettingsAPI, settingsAPI } from '../services/api';
 import Breadcrumb from './common/Breadcrumb';
+import { UI_MOTION, uiTransition } from '../constants/ui';
 
 export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
   const [settings, setSettings] = useState(null);
@@ -73,7 +74,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
       };
       await printSettingsAPI.update(payload);
       setToast('Pengaturan berhasil disimpan');
-      setTimeout(() => setToast(''), 3000);
+      setTimeout(() => setToast(''), UI_MOTION.duration.toastSuccess);
     } catch (e) {
       console.error('Update error:', e);
       setToast('Gagal menyimpan pengaturan');
@@ -87,7 +88,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
     try {
       await settingsAPI.updateProfitThresholds(thresholds);
       setToast('Ambang profitabilitas berhasil disimpan');
-      setTimeout(() => setToast(''), 3000);
+      setTimeout(() => setToast(''), UI_MOTION.duration.toastSuccess);
     } catch (e) {
       console.error('Update thresholds error:', e);
       setToast('Gagal menyimpan ambang profitabilitas');
@@ -104,11 +105,11 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
   const inputBg = isDarkMode ? '#2C2C2E' : '#F5F5F7';
 
   if (loading) return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div className="ui-motion-page" style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
       <Breadcrumb title="Pengaturan Cetak" isMobile={isMobile} isDarkMode={isDarkMode} />
       <Skeleton width="200px" height="32px" style={{ marginBottom: '24px' }} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-        <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', padding: '24px', border: `1px solid ${border}` }}>
+        <div className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', padding: '24px', border: `1px solid ${border}` }}>
           <Skeleton width="100%" height="20px" style={{ marginBottom: '16px' }} />
           <Skeleton width="100%" height="20px" style={{ marginBottom: '16px' }} />
           <Skeleton width="80%" height="20px" style={{ marginBottom: '16px' }} />
@@ -130,7 +131,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
   const labelStyle = { display: 'block', fontSize: '12px', color: sub, marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase' };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
         {/* Page Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -141,6 +142,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
           <button
             onClick={handleSave}
             disabled={saving}
+            className="ui-motion-button ui-focus-ring"
             style={{
               display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
               backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px',
@@ -157,7 +159,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px', alignItems: 'start' }}>
 
           {/* LEFT — Form Inputs */}
-          <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', padding: '24px', border: `1px solid ${border}`, boxShadow: isDarkMode ? 'none' : '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', padding: '24px', border: `1px solid ${border}`, boxShadow: isDarkMode ? 'none' : '0 1px 3px rgba(0,0,0,0.05)' }}>
             <h3 style={{ fontSize: '15px', fontWeight: '700', color: text, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Printer size={18} color="#007AFF" /> Identitas Toko
             </h3>
@@ -235,6 +237,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
                         ...prev,
                         [field.key]: e.target.value === '' ? '' : parseFloat(e.target.value),
                       }))}
+                      className="ui-focus-ring"
                       style={fieldStyle}
                     />
                     <p style={{ fontSize: '11px', color: sub, margin: '6px 0 0' }}>{field.helper}</p>
@@ -245,6 +248,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
                 <button
                   onClick={handleSaveThresholds}
                   disabled={savingThresholds}
+                  className="ui-motion-button ui-focus-ring"
                   style={{
                     display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
                     backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px',
@@ -261,7 +265,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
 
           {/* RIGHT — Live Preview */}
           <div style={{ position: 'sticky', top: '24px' }}>
-            <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', padding: '20px', border: `1px solid ${border}`, boxShadow: isDarkMode ? 'none' : '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', padding: '20px', border: `1px solid ${border}`, boxShadow: isDarkMode ? 'none' : '0 1px 3px rgba(0,0,0,0.05)' }}>
               <h3 style={{ fontSize: '15px', fontWeight: '700', color: text, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Monitor size={18} color="#FF9500" /> Preview Dokumen
               </h3>
@@ -380,9 +384,9 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
 
         {/* Toast */}
         {toast && (
-          <div style={{ position: 'fixed', bottom: '24px', right: '24px', padding: '12px 24px', backgroundColor: '#1C1C1E', color: '#FFF', borderRadius: '12px', fontSize: '14px', fontWeight: '600', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', zIndex: 9999 }}>
-            {toast}
-          </div>
+        <div className="ui-motion-toast" style={{ position: 'fixed', bottom: '24px', right: '24px', padding: '12px 24px', backgroundColor: '#1C1C1E', color: '#FFF', borderRadius: '12px', fontSize: '14px', fontWeight: '600', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', zIndex: 9999 }}>
+          {toast}
+        </div>
         )}
       </div>
     </div>

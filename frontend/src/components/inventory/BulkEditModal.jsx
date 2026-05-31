@@ -4,6 +4,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { inventoryAPI } from '../../services/api';
+import { UI_MOTION } from '../../constants/ui';
 
 export default function BulkEditModal({ products, allProducts, allCategories, onClose, onSaved, isDarkMode }) {
   const [mode, setMode] = useState('both'); // 'code' | 'category' | 'both'
@@ -91,7 +92,7 @@ export default function BulkEditModal({ products, allProducts, allCategories, on
     setResults({ success, failed });
     if (failed.length === 0) {
       onSaved?.(success.length);
-      setTimeout(onClose, 800);
+      setTimeout(onClose, UI_MOTION.duration.settle);
     } else {
       onSaved?.(success.length); // refresh utk yg sukses
     }
@@ -130,7 +131,7 @@ export default function BulkEditModal({ products, allProducts, allCategories, on
             <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '700' }}>Edit {rows.length} Produk</h3>
             <p style={{ margin: '2px 0 0', fontSize: '12px', color: sub }}>Update Kode &/atau Kategori. Storage backend tetap.</p>
           </div>
-          <button onClick={onClose} disabled={saving} aria-label="Tutup" style={{ background: 'transparent', border: 'none', cursor: saving ? 'wait' : 'pointer', padding: '4px', opacity: saving ? 0.5 : 1 }}>
+          <button onClick={onClose} disabled={saving} aria-label="Tutup modal edit massal" className="ui-motion-button ui-focus-ring" style={{ background: 'transparent', border: 'none', cursor: saving ? 'wait' : 'pointer', padding: '4px', opacity: saving ? 0.5 : 1 }}>
             <X size={20} color={sub} />
           </button>
         </div>

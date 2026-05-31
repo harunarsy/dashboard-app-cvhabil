@@ -9,7 +9,17 @@ const StockMovementChart = lazy(() => import('./dashboard/StockMovementChart'));
 
 const RELEASES = [
   {
-    version: 'v1.12.4-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.12.5-stable', date: '31 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'ui',
+        text: 'Form dan navigasi utama sekarang lebih mulus: Login, Sidebar, Purchase Order, Sales Order, dan Bulk Edit punya timing motion yang konsisten, focus state yang jelas, dan affordance icon button yang lebih rapi.',
+        dev: 'frontend/src/index.js, Login.jsx, Sidebar.jsx, PurchaseOrderList.jsx, SalesOrderList.jsx, dan BulkEditModal.jsx disinkronkan ke label versi terbaru. Motion foundation dari v1.12.4 tetap jadi basis, lalu flow form/nav dihaluskan tanpa ubah logika bisnis.'
+      },
+    ]
+  },
+  {
+    version: 'v1.12.4-stable', date: '31 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'ui',
@@ -25,16 +35,6 @@ const RELEASES = [
         type: 'fix',
         text: 'Audit/stability pass: draft invoice sekarang per-user, endpoint settings/counters diproteksi auth, lookup nama produk di hot path diindeks, dan note audit overwrite disimpan dengan benar.',
         dev: 'backend/routes/invoices.js: draft autosave pakai owner_id di draft_data.__meta + claim legacy draft sekali. backend/routes/settings.js: auth gate + validasi payload counter. backend/routes/inventory.js: functional index LOWER(TRIM(name)). backend/routes/sales.js / purchaseOrders.js / invoices.js: samakan predicate lookup ke bentuk normalisasi.'
-      },
-    ]
-  },
-  {
-    version: 'v1.12.2-stable', date: '31 Mei 2026', status: 'stable',
-    changes: [
-      {
-        type: 'feat',
-        text: 'Ambang profitabilitas sekarang configurable dari Pengaturan dan dipakai langsung oleh filter profit di Nota Penjualan. Dashboard juga menampilkan Top 5 Customer bulan ini dan mini chart pergerakan stok 30 hari.',
-        dev: 'backend/routes/settings.js: setting profit_thresholds (high/normal/thin) + frontend Pengaturan section baru. SalesOrderList.jsx baca threshold backend, label filter ikut dinamis. backend/routes/dashboard.js: extend /stats dengan topCustomers + stockMovement30d. Dashboard.jsx: render Top 5 Customer + mini LineChart stok masuk/keluar. InvoiceList.jsx draft restore tetap stabil.'
       },
     ]
   },
@@ -976,7 +976,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.12.4-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.5-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -1040,7 +1040,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.12.4-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.5-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

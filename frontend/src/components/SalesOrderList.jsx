@@ -10,6 +10,7 @@ import Skeleton from './common/Skeleton';
 import ConfirmModal from './common/ConfirmModal';
 import Breadcrumb from './common/Breadcrumb';
 import NotaPreview from './common/NotaPreview';
+import { UI_MOTION, uiTransition } from '../constants/ui';
 
 if (typeof document !== 'undefined' && !document.getElementById('habil-pulse-style')) {
   const s = document.createElement('style'); s.id = 'habil-pulse-style';
@@ -116,7 +117,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
     } catch (e) { 
       console.error(e); 
     } finally {
-      setTimeout(() => setLoading(false), 500);
+      setTimeout(() => setLoading(false), UI_MOTION.duration.loading);
     }
   };
   const fetchCustomers = async () => {
@@ -419,7 +420,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
     finally { setDeleteConfirmId(null); }
   };
 
-  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), UI_MOTION.duration.toastSuccess); };
 
   const handlePrintPDF = async () => {
     if (!printOrder || pdfLoading) return;
@@ -587,7 +588,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
   };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
       <Breadcrumb title="Nota Penjualan" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header */}
@@ -858,7 +859,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
             {/* Header */}
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: cardBg, zIndex: 1 }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>{editId ? '✏️ Edit Nota' : '🧾 Buat Nota Baru'}</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
+              <button onClick={() => setShowModal(false)} aria-label="Tutup modal nota" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
             </div>
 
             <div style={{ padding: '20px 22px', display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '24px', alignItems: 'start' }}>
@@ -900,7 +901,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                               numberInputRef.current.focus();
                               numberInputRef.current.select();
                             }
-                          }, 50);
+                          }, UI_MOTION.duration.micro);
                         } else {
                           setManualNumber('');
                         }
@@ -1128,7 +1129,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
           <div className="glass-target glass-target--clear" style={{ backgroundColor: cardBg, width: '100%', maxWidth: '360px', borderRadius: '20px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: text }}>Opsi Cetak</h2>
-              <button onClick={() => setShowPrintModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: sub }}><X size={20} /></button>
+              <button onClick={() => setShowPrintModal(false)} aria-label="Tutup modal cetak PDF" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', color: sub }}><X size={20} /></button>
             </div>
 
             <div style={{ marginBottom: '20px' }}>
@@ -1175,7 +1176,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>
                 {paymentModal.mode === 'edit' ? '✏️ Edit Tanggal Pelunasan' : '💰 Konfirmasi Pelunasan'}
               </h3>
-              <button onClick={() => setPaymentModal({ open: false, order: null, date: '', mode: 'pay' })} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
+              <button onClick={() => setPaymentModal({ open: false, order: null, date: '', mode: 'pay' })} aria-label="Tutup modal pembayaran" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
             </div>
             <div style={{ marginBottom: '20px' }}>
               <label style={labelStyle}>Tanggal Pelunasan</label>

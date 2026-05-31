@@ -8,6 +8,7 @@ import Skeleton from './common/Skeleton';
 import ConfirmModal from './common/ConfirmModal';
 import Breadcrumb from './common/Breadcrumb';
 import SPPreview from './common/SPPreview';
+import { UI_MOTION, uiTransition } from '../constants/ui';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 const blankItem = () => ({ product_name: '', qty: 1, unit: 'pcs', unit_price: 0, _custom_unit: false });
@@ -59,7 +60,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
     } catch (e) { 
       console.error(e); 
     } finally {
-      setTimeout(() => setLoading(false), 500);
+      setTimeout(() => setLoading(false), UI_MOTION.duration.loading);
     }
   };
   const fetchDistributors = async () => { try { const { data } = await distributorsAPI.getAll(); setDistributors(data); } catch (e) { console.error(e); } };
@@ -110,7 +111,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
       })
     : filtered;
 
-  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), UI_MOTION.duration.toastSuccess); };
   const inputStyle = {
     width: '100%', padding: '10px 12px', border: `1px solid ${border}`,
     borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7',
@@ -274,7 +275,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
   };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
       <Breadcrumb title="Surat Pesanan" isMobile={isMobile} isDarkMode={isDarkMode} />
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>
@@ -396,7 +397,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
           <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: 'min(1100px, calc(100vw - 32px))', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: cardBg, zIndex: 1 }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>{editId ? '✏️ Edit SP' : '📋 Buat SP Baru'}</h3>
-              <button onClick={() => setShowModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
+              <button onClick={() => setShowModal(null)} aria-label="Tutup modal SP" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
             </div>
             <div style={{ padding: '20px 22px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr', gap: '20px', alignItems: 'start' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
@@ -429,7 +430,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                               numberInputRef.current.focus();
                               numberInputRef.current.select();
                             }
-                          }, 50);
+                          }, UI_MOTION.duration.micro);
                         } else {
                           setManualNumber('');
                         }
@@ -550,7 +551,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
           <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: cardBg, zIndex: 1 }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#34C759' }}>✅ Terima Barang</h3>
-              <button onClick={() => setShowModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
+              <button onClick={() => setShowModal(null)} aria-label="Tutup modal terima barang" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
             </div>
             <div style={{ padding: '20px 22px' }}>
               <p style={{ fontSize: '13px', color: sub, margin: '0 0 12px' }}>Masukkan qty yang diterima, batch, dan tanggal expired. Stok akan otomatis bertambah.</p>
@@ -596,7 +597,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
           <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '480px', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>🏢 Master Data Distributor</h3>
-              <button onClick={() => setShowModal('create')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
+              <button onClick={() => setShowModal('create')} aria-label="Tutup modal distributor" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
             </div>
             <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div><label style={labelStyle}>Nama Distributor *</label><input value={distForm.name} onChange={e => setDistForm(p => ({...p, name: e.target.value}))} style={inputStyle} placeholder="Contoh: PT. Bintang Jadi" /></div>
