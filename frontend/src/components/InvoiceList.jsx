@@ -695,7 +695,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       )}
 
       {successToast && (
-        <div style={{ position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#34C759', color: 'white', padding: '12px 28px', borderRadius: '12px', fontWeight: '700', fontSize: '15px', zIndex: 9999, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}>
+        <div style={{ position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#34C759', color: 'white', padding: '12px 28px', borderRadius: '12px', fontWeight: '700', fontSize: '15px', zIndex: 9999, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', transition: uiTransition('all', UI_MOTION.duration.page) }}>
           {successToast}
         </div>
       )}
@@ -772,7 +772,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
               const isEmpty = d.count === 0;
               return (
                 <div key={i} onClick={() => !isEmpty && setSearchDist(isActive ? '' : d.name)}
-                  style={{ padding: '8px 12px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', cursor: isEmpty ? 'default' : 'pointer', transition: 'all 0.15s', opacity: isEmpty ? 0.45 : 1,
+                  style={{ padding: '8px 12px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', cursor: isEmpty ? 'default' : 'pointer', transition: uiTransition('all', UI_MOTION.duration.fast), opacity: isEmpty ? 0.45 : 1,
                     backgroundColor: isActive ? clr.dot : (isDarkMode ? '#2C2C2E' : '#F9F9FB'),
                     border: `1px solid ${isActive ? clr.dot : (isDarkMode ? '#3A3A3C' : '#ECECEF')}`,
                   }}>
@@ -830,7 +830,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
             <input value={universalSearch} onChange={e => setUniversalSearch(e.target.value)}
               placeholder="Cari no. faktur, distributor, produk, status..."
               style={{ flex: 1, border: 'none', outline: 'none', backgroundColor: 'transparent', color: isDarkMode ? '#FFF' : '#000', fontSize: '14px' }} />
-            {universalSearch && <button onClick={() => setUniversalSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}><X size={14} color="#86868B" /></button>}
+            {universalSearch && <button onClick={() => setUniversalSearch('')} aria-label="Hapus pencarian" title="Hapus pencarian" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}><X size={14} color="#86868B" /></button>}
           </div>
           <button onClick={() => setShowFilters(v => !v)} style={{ padding: '10px 16px', backgroundColor: showFilters ? '#007AFF' : (isDarkMode ? '#2C2C2E' : '#E5E5EA'), color: showFilters ? 'white' : (isDarkMode ? '#FFF' : '#000'), border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
             Filter {showFilters ? '▲' : '▼'}
@@ -876,7 +876,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
         <div className="glass-target" style={{ ...S.card, padding: "1.25rem", marginBottom: "1.25rem", borderColor: '#FF3B30' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <p style={{ margin: 0, fontWeight: '700', fontSize: '14px', color: '#FF3B30', display: 'flex', alignItems: 'center', gap: '6px' }}><Trash2 size={16} /> Sampah ({trashItems.length})</p>
-            <button onClick={() => setShowTrash(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} color="#86868B" /></button>
+            <button onClick={() => setShowTrash(false)} aria-label="Tutup sampah" title="Tutup sampah" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} color="#86868B" /></button>
           </div>
           {trashItems.length === 0
             ? <p style={{ color: '#86868B', fontSize: '13px', textAlign: 'center', padding: '1rem' }}>Sampah kosong</p>
@@ -1170,7 +1170,7 @@ function InvoiceRow({ inv, isDarkMode, selected, onToggleSelect, expanded, onTog
       <div
         onClick={onToggleExpand}
         onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-        style={{ display: 'grid', gridTemplateColumns: '36px 110px 140px 1fr 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: selected ? (isDarkMode ? '#0A2540' : '#E8F2FF') : hovered ? (isDarkMode ? '#2C2C2E' : '#F5F5F7') : (isDarkMode ? '#1C1C1E' : '#FFF'), transition: 'background 0.15s', cursor: 'pointer' }}>
+        style={{ display: 'grid', gridTemplateColumns: '36px 110px 140px 1fr 130px 130px 150px 120px 100px', padding: '14px 16px', borderBottom: `1px solid ${isDarkMode ? '#2C2C2E' : '#F0F0F0'}`, alignItems: 'center', backgroundColor: selected ? (isDarkMode ? '#0A2540' : '#E8F2FF') : hovered ? (isDarkMode ? '#2C2C2E' : '#F5F5F7') : (isDarkMode ? '#1C1C1E' : '#FFF'), transition: uiTransition('background', UI_MOTION.duration.fast), cursor: 'pointer' }}>
         {/* Checkbox */}
         <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center' }}>
           <input type="checkbox" checked={!!selected} onChange={onToggleSelect} onClick={(e) => e.stopPropagation()} style={{ cursor: 'pointer', width: '15px', height: '15px' }} />
@@ -1226,7 +1226,7 @@ function InvoiceRow({ inv, isDarkMode, selected, onToggleSelect, expanded, onTog
         <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
           <button onClick={onAudit} title="Riwayat" style={{ padding: '6px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><History size={13} color="#86868B" /></button>
           <button onClick={onEdit} style={{ padding: '6px 10px', backgroundColor: '#007AFF', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>Ubah</button>
-          <button onClick={onDelete} style={{ padding: '6px', backgroundColor: '#FF3B30', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 size={13} /></button>
+          <button onClick={onDelete} aria-label="Hapus faktur" title="Hapus faktur" style={{ padding: '6px', backgroundColor: '#FF3B30', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 size={13} /></button>
         </div>
       </div>
       {expanded && <ExpandedItems invoiceId={inv.id} isDarkMode={isDarkMode} formatRp={formatRp} distColor={clr} />}
@@ -1346,7 +1346,7 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
             {items.map((item, idx) => (
               <div key={item._id} style={{ backgroundColor: isDarkMode ? '#2C2C2E' : '#F9F9FB', borderRadius: '12px', padding: '14px', marginBottom: '10px', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#E5E5EA'}`, position: 'relative' }}>
                 {items.length > 1 && (
-                  <button type="button" onClick={() => removeItem(idx)} style={{ position: 'absolute', top: '10px', right: '10px', padding: '5px', backgroundColor: '#FF3B30', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}><X size={12} /></button>
+                          <button type="button" onClick={() => removeItem(idx)} aria-label="Hapus baris produk" title="Hapus baris produk" style={{ position: 'absolute', top: '10px', right: '10px', padding: '5px', backgroundColor: '#FF3B30', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}><X size={12} /></button>
                 )}
                 <div style={{ ...r2, marginBottom: '10px' }}>
                   <div><label style={S.label}>Nama Produk</label><MasterSelect value={item.product_name} onChange={v => updateItem(idx, 'product_name', v)} options={products} onAdd={onAddProduct} onRemove={onRemoveProduct} onRename={onRenameProduct} placeholder="Pilih atau tambah produk..." isDarkMode={isDarkMode} /></div>

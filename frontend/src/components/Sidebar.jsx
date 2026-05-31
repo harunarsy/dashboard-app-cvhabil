@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, ShoppingCart, Package, DollarSign, Users, ChevronLeft, ChevronRight, Sun, LogOut, Bug, X, Moon, FileText, BarChart3, Briefcase, Printer, Menu } from 'lucide-react';
 import api from '../services/api';
+import { UI_MOTION, uiTransition } from '../constants/ui';
 import { AuthContext } from '../context/AuthContext';
 
 export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen }) {
@@ -116,7 +117,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
   const txt = isDarkMode ? '#FFF' : '#000';
   const sub = isDarkMode ? '#86868B' : '#6B7280';
-  const appVersion = 'v1.12.8-stable';
+  const appVersion = 'v1.12.9-stable';
 
   const closeMobileDrawer = () => setMobileOpen(false);
 
@@ -260,7 +261,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
           boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
           overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
-          transition: 'width 0.3s ease-in-out',
+          transition: uiTransition('width', UI_MOTION.duration.page),
           zIndex: 40,
           transform: 'translateX(0)',
         }}
@@ -438,7 +439,7 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
                 <div style={{ display: 'flex', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', borderRadius: '10px', padding: '3px', marginBottom: '16px' }}>
                   {[['bug', '🐛 Laporkan Bug', '#FF3B30'], ['feature', '💡 Saran Fitur', '#007AFF']].map(([key, label, color]) => (
                     <button key={key} onClick={() => setBugType(key)} className="ui-motion-button ui-focus-ring"
-                      style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', transition: 'all 0.15s',
+                      style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', transition: uiTransition('all', UI_MOTION.duration.fast),
                         backgroundColor: bugType === key ? (isDarkMode ? '#1C1C1E' : '#FFF') : 'transparent',
                         color: bugType === key ? color : '#86868B',
                         boxShadow: bugType === key ? '0 1px 4px rgba(0,0,0,0.15)' : 'none' }}>

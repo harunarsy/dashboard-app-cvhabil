@@ -162,7 +162,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
                 <div key={c.id} className="glass-target ui-motion-card" style={{
                   backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px',
                   padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px',
-                  transition: 'transform 0.15s, box-shadow 0.15s',
+                  transition: `${uiTransition('transform', UI_MOTION.duration.fast)}, ${uiTransition('box-shadow', UI_MOTION.duration.fast)}`,
                 }}
                   onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = isDarkMode ? '0 4px 14px rgba(0,0,0,0.4)' : '0 4px 14px rgba(0,0,0,0.06)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
@@ -306,7 +306,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
 
 const iconBtnStyle = {
   background: 'none', border: 'none', cursor: 'pointer', padding: '6px',
-  borderRadius: '6px', display: 'flex', alignItems: 'center', transition: 'background 0.15s',
+  borderRadius: '6px', display: 'flex', alignItems: 'center', transition: uiTransition('background', UI_MOTION.duration.fast),
 };
 
 function MetaBadge({ icon: Icon, label, color, cardBg }) {

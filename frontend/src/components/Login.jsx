@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Lock, User, AlertCircle, Building2, Sun, Moon, Sparkles } from 'lucide-react';
-import { UI_MOTION } from '../constants/ui';
+import { UI_MOTION, uiTransition } from '../constants/ui';
 
 export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode = false, setIsGlassMode, isVantaMode = false }) {
   const [username, setUsername] = useState('');
@@ -96,7 +96,12 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
                 ? '0 4px 16px rgba(0, 122, 255, 0.25)'
                 : (isDarkMode ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.06)'),
               transform: glassClicked ? 'scale(0.88)' : (isGlassMode ? 'scale(1.08)' : 'scale(1)'),
-              transition: 'transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 250ms ease, box-shadow 250ms ease, border-color 250ms ease',
+              transition: [
+                uiTransition('transform', UI_MOTION.duration.press, UI_MOTION.easing.press),
+                uiTransition('background-color', UI_MOTION.duration.base),
+                uiTransition('box-shadow', UI_MOTION.duration.base),
+                uiTransition('border-color', UI_MOTION.duration.base),
+              ].join(', '),
             }}
           >
             <Sparkles size={18} fill={isGlassMode ? '#007AFF' : 'none'} />
@@ -114,7 +119,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
               color: text, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: isDarkMode ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.06)',
-              transition: 'all 0.2s ease',
+              transition: uiTransition('all', UI_MOTION.duration.base),
             }}
           >
             {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
@@ -201,7 +206,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
             <Building2 size={32} />
           </div>
           <h1 className="text-3xl font-bold tracking-tight" style={{ color: text }}>HABIL SUPERAPP</h1>
-          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.12.8-stable — 2026</p>
+          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.12.9-stable — 2026</p>
         </div>
 
         <div

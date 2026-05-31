@@ -143,12 +143,12 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
             onClick={handleSave}
             disabled={saving}
             className="ui-motion-button ui-focus-ring"
-            style={{
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
-              backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px',
-              fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'opacity 0.2s',
-              opacity: saving ? 0.7 : 1,
-            }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
+                backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px',
+                fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: uiTransition('opacity', UI_MOTION.duration.base),
+                opacity: saving ? 0.7 : 1,
+              }}
           >
             {saving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
             {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
@@ -252,7 +252,7 @@ export default function PrintSettings({ isDarkMode, isSidebarOpen, isMobile, isV
                   style={{
                     display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
                     backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px',
-                    fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'opacity 0.2s',
+                    fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: uiTransition('opacity', UI_MOTION.duration.base),
                     opacity: savingThresholds ? 0.7 : 1,
                   }}
                 >

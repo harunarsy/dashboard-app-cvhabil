@@ -4,7 +4,7 @@ import { inventoryAPI, printSettingsAPI } from '../../services/api';
 import BatchFormModal from './BatchFormModal';
 import { generateOpnamePDF } from '../../utils/generateOpnamePDF';
 import BarcodeScanner from '../common/BarcodeScanner';
-import { UI_MOTION, UI_SIZE } from '../../constants/ui';
+import { UI_MOTION, UI_SIZE, uiTransition } from '../../constants/ui';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
@@ -330,7 +330,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                     border: 'none', borderLeft: isSelected ? '3px solid #007AFF' : '3px solid transparent',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
                     boxShadow: isHighlighted ? 'inset 0 0 0 1px #34C75966' : 'none',
-                    transition: 'background 0.2s, box-shadow 0.2s',
+                    transition: `${uiTransition('background', UI_MOTION.duration.base)}, ${uiTransition('box-shadow', UI_MOTION.duration.base)}`,
                   }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
@@ -372,7 +372,7 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                             style={{ padding: '3px 8px', border: `1px solid ${border}`, borderRadius: '6px', background: bg, color: text, fontSize: '12px', width: '120px', outline: 'none' }}
                           />
                           <button onClick={() => handleSaveCode(selectedProduct)} title="Simpan kode" className="ui-motion-button ui-focus-ring" style={{ ...iconBtnStyle, width: '24px', height: '24px', color: '#34C759' }}><Check size={13} /></button>
-                          <button onClick={() => setEditingCode(false)} title="Batal" className="ui-motion-button ui-focus-ring" style={{ ...iconBtnStyle, width: '24px', height: '24px' }}><X size={13} /></button>
+                          <button onClick={() => setEditingCode(false)} title="Batal" aria-label="Batal edit kode" className="ui-motion-button ui-focus-ring" style={{ ...iconBtnStyle, width: '24px', height: '24px' }}><X size={13} /></button>
                         </>
                       ) : (
                         <>

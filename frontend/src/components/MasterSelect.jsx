@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, X, Search, Check, Trash2, Pencil } from 'lucide-react';
-import { UI_MOTION } from '../constants/ui';
+import { UI_MOTION, uiTransition } from '../constants/ui';
 
 /**
  * MasterSelect — Creatable dropdown dengan fitur:
@@ -115,7 +115,7 @@ export default function MasterSelect({
     color: value ? txt : muted,
     fontSize: '14px',
     cursor: disabled ? 'not-allowed' : 'pointer',
-    transition: 'border-color 0.15s',
+    transition: uiTransition('border-color', UI_MOTION.duration.fast),
     boxShadow: open ? `0 0 0 3px ${accent}22` : 'none',
     userSelect: 'none',
   };
@@ -219,7 +219,7 @@ export default function MasterSelect({
                   padding: '10px 12px',
                   backgroundColor: value === opt.name ? `${accent}18` : 'transparent',
                   cursor: 'pointer',
-                  transition: 'background 0.1s',
+                  transition: uiTransition('background', UI_MOTION.duration.press),
                   gap: '8px',
                 }}
                 onMouseEnter={e => { if (value !== opt.name) e.currentTarget.style.backgroundColor = bgHover; }}
@@ -288,7 +288,7 @@ export default function MasterSelect({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    transition: 'all 0.15s',
+                    transition: uiTransition('all', UI_MOTION.duration.fast),
                     flexShrink: 0,
                   }}
                 >
@@ -326,7 +326,7 @@ export default function MasterSelect({
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
-                  transition: 'background 0.15s',
+                  transition: uiTransition('background', UI_MOTION.duration.fast),
                 }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = `${accent}12`}
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}

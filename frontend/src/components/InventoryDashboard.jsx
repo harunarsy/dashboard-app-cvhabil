@@ -536,7 +536,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                               <span style={{ fontWeight: '700', color: stockColor, fontSize: '14px', fontVariantNumeric: 'tabular-nums' }}>{stock}</span>
                               {hasMinStock && (
                                 <div style={{ width: '40px', height: '4px', background: isDarkMode ? '#2C2C2E' : '#E5E5EA', borderRadius: '2px', overflow: 'hidden' }}>
-                                  <div style={{ height: '100%', width: `${stockPct}%`, background: stockColor, transition: 'width 0.3s' }} />
+                                  <div style={{ height: '100%', width: `${stockPct}%`, background: stockColor, transition: uiTransition('width', UI_MOTION.duration.page) }} />
                                 </div>
                               )}
                             </div>
@@ -746,7 +746,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                   <input type="number" min="1" placeholder="Min" value={tier.min_qty} onChange={e => updateTier(idx, 'min_qty', parseInt(e.target.value) || 1)} style={{ ...inputStyle, fontSize: '12px', padding: '8px' }} />
                   <input type="number" placeholder="Max" value={tier.max_qty || ''} onChange={e => updateTier(idx, 'max_qty', e.target.value)} title="Kosongkan = tanpa batas atas" style={{ ...inputStyle, fontSize: '12px', padding: '8px' }} />
                   <input type="number" placeholder="Harga (Rp)" value={tier.price} onChange={e => updateTier(idx, 'price', parseFloat(e.target.value) || 0)} style={{ ...inputStyle, fontSize: '12px', padding: '8px' }} />
-                  <button onClick={() => removeTier(idx)} type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>
+                  <button onClick={() => removeTier(idx)} type="button" aria-label="Hapus tier harga" title="Hapus tier harga" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>
                 </div>
               ))}
               {(pForm.price_tiers || []).length > 0 && (
@@ -1097,7 +1097,7 @@ function IconBtn({ onClick, label, Icon, color }) {
     <button onClick={onClick} title={label} aria-label={label} className="ui-motion-button ui-focus-ring" style={{
       background: 'transparent', border: 'none', cursor: 'pointer',
       width: '34px', height: '34px', padding: 0, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      transition: 'background 0.15s',
+      transition: uiTransition('background', UI_MOTION.duration.fast),
     }}
       onMouseEnter={e => e.currentTarget.style.background = color + '20'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}

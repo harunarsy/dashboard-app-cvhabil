@@ -9,7 +9,17 @@ const StockMovementChart = lazy(() => import('./dashboard/StockMovementChart'));
 
 const RELEASES = [
   {
-    version: 'v1.12.8-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.12.9-stable', date: '1 Juni 2026', status: 'latest',
+    changes: [
+      {
+        type: 'fix',
+        text: 'Cleanup polish: residual transition hardcoded disatukan ke UI_MOTION dan gap aria-label ditutup di surface utama.',
+        dev: 'frontend/src/components/Sidebar.jsx, ProductDrawer.jsx, PrintSettings.jsx, InvoiceList.jsx, BugReports.jsx, Login.jsx, CustomerList.jsx, MasterSelect.jsx, InventoryDashboard.jsx, OpnameModal.jsx, Breadcrumb.jsx, dan SalesOrderList.jsx disinkronkan ke token motion yang sama.',
+      },
+    ],
+  },
+  {
+    version: 'v1.12.8-stable', date: '31 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'fix',
@@ -996,7 +1006,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.12.8-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.9-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -1060,7 +1070,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.12.8-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.9-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -1445,7 +1455,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                 <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
                 <p className="text-xs mt-1" style={{ color: sub }}>Aktual: {RELEASES[0]?.version} - Terakhir diupdate {RELEASES[0]?.date}</p>
               </div>
-              <button onClick={() => setShowModal(false)} aria-label="Tutup changelog" className="ui-motion-button ui-focus-ring p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <button onClick={() => setShowModal(false)} aria-label="Tutup popup rilis" className="ui-motion-button ui-focus-ring p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />
               </button>
             </div>

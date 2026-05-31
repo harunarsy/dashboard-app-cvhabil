@@ -156,7 +156,7 @@ export default function BugReports({ isDarkMode, isSidebarOpen, isMobile, isVant
           <div style={{ display: 'flex', backgroundColor: isDarkMode ? '#1C1C1E' : '#FFF', borderRadius: '10px', padding: '3px', border: `1px solid ${isDarkMode ? '#2C2C2E' : '#E5E5EA'}` }}>
             {[['all', '🗂 Semua'], ['bug', '🐛 Bug'], ['feature', '💡 Fitur']].map(([key, label]) => (
               <button key={key} onClick={() => setFilterType(key)}
-                style={{ padding: '6px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', transition: 'all 0.15s',
+                style={{ padding: '6px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', transition: uiTransition('all', UI_MOTION.duration.fast),
                   backgroundColor: filterType === key ? (isDarkMode ? '#3A3A3C' : '#F5F5F7') : 'transparent',
                   color: filterType === key ? txt : '#86868B',
                 }}>

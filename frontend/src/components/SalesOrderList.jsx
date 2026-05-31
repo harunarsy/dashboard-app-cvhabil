@@ -1052,7 +1052,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                         <input type="number" value={Math.round(hppFromHna(it.unit_hpp || 0))} onChange={e => updateItem(idx, 'unit_hpp', hnaFromHpp(parseFloat(e.target.value) || 0))} min="0" placeholder="0" title="HPP inc PPN 11% (disimpan sebagai HNA exc PPN)" style={{ ...inputStyle, fontSize: '12px', padding: '8px 6px', backgroundColor: isDarkMode ? '#1C1C1E' : '#EBEBEB', border: `1px dashed ${border}`, textAlign: 'center' }} />
                         <input type="number" value={it.unit_price} onChange={e => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)} min="0" placeholder="0" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} />
                         {items.length > 1 && (
-                          <button onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>
+                          <button onClick={() => removeItem(idx)} aria-label="Hapus baris produk" title="Hapus baris produk" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>
                         )}
                       </div>
                       {showConversion && (
@@ -1139,7 +1139,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                   <button key={f} onClick={() => setPrintOptions({ ...printOptions, format: f })}
                     style={{ flex: 1, padding: '12px', borderRadius: '12px', border: `2px solid ${printOptions.format === f ? '#007AFF' : border}`, 
                              backgroundColor: printOptions.format === f ? '#007AFF10' : 'transparent', color: printOptions.format === f ? '#007AFF' : text,
-                             fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                             fontWeight: '700', cursor: 'pointer', transition: uiTransition('all', UI_MOTION.duration.base), display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                     <span style={{ fontSize: '15px' }}>{f}</span>
                     {f === 'A5' && <span style={{ fontSize: '9px', fontWeight: '500', opacity: 0.8 }}>(Landscape)</span>}
                   </button>

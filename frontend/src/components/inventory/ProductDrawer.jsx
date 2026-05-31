@@ -3,7 +3,7 @@ import { X, Edit2, Trash2, Plus, Sliders, ArrowDownCircle, ArrowUpCircle, Clipbo
 import { inventoryAPI } from '../../services/api';
 import BatchFormModal from './BatchFormModal';
 import { hppFromHna } from '../../utils/rupiah';
-import { UI_SIZE } from '../../constants/ui';
+import { UI_MOTION, UI_SIZE, uiTransition } from '../../constants/ui';
 
 const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -95,7 +95,7 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
         flex: 1, padding: '10px 8px', background: tab === id ? bg : 'transparent',
         color: tab === id ? '#007AFF' : sub, border: 'none',
         borderBottom: tab === id ? '2px solid #007AFF' : '2px solid transparent',
-        fontSize: '13px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.15s',
+        fontSize: '13px', fontWeight: '600', cursor: 'pointer', transition: uiTransition('all', UI_MOTION.duration.fast),
       }}
     >
       {label}{count !== undefined && <span style={{ marginLeft: '6px', color: sub, fontWeight: '500' }}>({count})</span>}
@@ -169,7 +169,7 @@ export default function ProductDrawer({ productId, isDarkMode, isMobile, onClose
                   </span>
                 </div>
                 <div style={{ height: '6px', background: isDarkMode ? '#000' : '#E5E5EA', borderRadius: '3px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${stockPct}%`, background: stockColor, transition: 'width 0.3s' }} />
+                  <div style={{ height: '100%', width: `${stockPct}%`, background: stockColor, transition: uiTransition('width', UI_MOTION.duration.page) }} />
                 </div>
                 <p style={{ margin: '8px 0 0', fontSize: '12px', color: sub }}>
                   Stok minimum: {minStock} {data.unit} · Nilai inventaris: <strong style={{ color: text }}>{fmtRp(inventoryValue)}</strong>

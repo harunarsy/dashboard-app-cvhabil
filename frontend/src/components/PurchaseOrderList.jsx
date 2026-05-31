@@ -349,8 +349,8 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                         <div style={{ display: 'flex', gap: '4px' }} onClick={e => e.stopPropagation()}>
                           <button onClick={() => handlePrintSP(o)} title="Cetak SP" disabled={pdfLoading === o.id} style={{ background: 'none', border: 'none', cursor: pdfLoading === o.id ? 'not-allowed' : 'pointer', padding: '4px', opacity: pdfLoading === o.id ? 0.5 : 1 }}><FileText size={15} color="#5856D6" /></button>
                           {o.status !== 'received' && <button onClick={() => openReceive(o)} title="Terima Barang" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><CheckCircle size={15} color="#34C759" /></button>}
-                          <button onClick={() => openEdit(o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="#007AFF" /></button>
-                          <button onClick={() => handleDelete(o.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="#FF3B30" /></button>
+                          <button onClick={() => openEdit(o)} aria-label={`Edit pesanan ${o.po_number}`} title="Edit pesanan" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="#007AFF" /></button>
+                          <button onClick={() => handleDelete(o.id)} aria-label={`Hapus pesanan ${o.po_number}`} title="Hapus pesanan" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="#FF3B30" /></button>
                         </div>
                       </td>
                     </tr>
@@ -511,7 +511,7 @@ export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile,
                       <select value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px' }}>
                         {unitOptions.map((u, i) => <option key={`${u.value}-${i}`} value={u.value}>{u.label}</option>)}
                       </select>
-                      {items.length > 1 && <button onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>}
+                      {items.length > 1 && <button onClick={() => removeItem(idx)} aria-label="Hapus baris produk" title="Hapus baris produk" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="#FF3B30" /></button>}
                     </div>
                     {showPreview && it.qty > 0 && (
                       <p style={{ margin: '4px 0 0 8px', fontSize: '11px', color: sub }}>📐 {formatQtyWithConversion(it.qty, it.unit, product)}</p>

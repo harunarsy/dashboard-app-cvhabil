@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.12.9-stable] - 2026-06-01
+
+### Fixed
+- Cleanup polish: residual transition hardcoded disatukan ke `UI_MOTION`, dan icon-only controls yang lolos audit diberi `aria-label` yang jelas.
+- Version badge, sidebar label, login footer, dan dashboard release history disinkronkan ke `v1.12.9-stable`.
+
 ## [v1.12.8-stable] - 2026-05-31
 
 ### Fixed

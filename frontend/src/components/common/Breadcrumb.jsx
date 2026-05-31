@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronRight, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { UI_MOTION, uiTransition } from '../../constants/ui';
 
 export default function Breadcrumb({ title, isMobile, isDarkMode }) {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ export default function Breadcrumb({ title, isMobile, isDarkMode }) {
       <span 
         onClick={() => navigate('/dashboard')} 
         className="ui-focus-ring"
-        style={{ cursor: 'pointer', transition: 'color 0.2s' }} 
+        style={{ cursor: 'pointer', transition: uiTransition('color', UI_MOTION.duration.base) }} 
         onMouseEnter={e => e.target.style.color = text} 
         onMouseLeave={e => e.target.style.color = sub}
       >
