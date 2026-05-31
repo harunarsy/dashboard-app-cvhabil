@@ -7,6 +7,7 @@ import Skeleton from './common/Skeleton';
 import Breadcrumb from './common/Breadcrumb';
 import { PPN_RATE } from '../utils/rupiah';
 import RupiahInput from './common/RupiahInput';
+import { UI_MOTION, uiTransition } from '../constants/ui';
 
 const OVERDUE_PULSE_CSS = `@keyframes habil-pulse{0%,100%{opacity:1}50%{opacity:0.35}}`;
 if (typeof document !== 'undefined' && !document.getElementById('habil-pulse-style')) {
@@ -286,14 +287,16 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
     if (!showModal) return;
     if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
     draftDebounceRef.current = setTimeout(() => {
-      invoicesAPI.saveDraft({ form, items }).catch(() => {});
-    }, 2000);
+      invoicesAPI.saveDraft({ form, items }).catch((err) => {
+        console.error('Error autosaving invoice draft:', err);
+      });
+    }, UI_MOTION.duration.draftDebounce);
     return () => clearTimeout(draftDebounceRef.current);
   }, [form, items, showModal]);
 
   const showToast = (msg) => {
     setSuccessToast(msg);
-    setTimeout(() => setSuccessToast(''), 3000);
+    setTimeout(() => setSuccessToast(''), UI_MOTION.duration.toastSuccess);
   };
 
   const fetchInvoices = async () => {
@@ -303,9 +306,9 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
     }
     catch (e) { console.error(e); } finally { setLoading(false); }
   };
-  const fetchDistributors = async () => { try { const r = await distributorsAPI.getAll(); setDistributors(r.data); } catch(e){} };
-  const fetchProducts = async () => { try { const r = await productsAPI.getAll(); setProducts(r.data); } catch(e){} };
-  const fetchPurchaseOrders = async () => { try { const r = await purchaseOrdersAPI.getAll(); setPurchaseOrders((r.data || []).filter(po => po.status && po.status !== 'draft')); } catch(e){} };
+  const fetchDistributors = async () => { try { const r = await distributorsAPI.getAll(); setDistributors(r.data); } catch(e){ console.error('Error loading distributors:', e); } };
+  const fetchProducts = async () => { try { const r = await productsAPI.getAll(); setProducts(r.data); } catch(e){ console.error('Error loading products:', e); } };
+  const fetchPurchaseOrders = async () => { try { const r = await purchaseOrdersAPI.getAll(); setPurchaseOrders((r.data || []).filter(po => po.status && po.status !== 'draft')); } catch(e){ console.error('Error loading purchase orders:', e); } };
   // v1.10.0: pilih SP sebagai sumber faktur → prefill items + link purchase_order_id (backend skip stock-in kalau SP sudah Terima Barang, cegah stok dobel)
   const handleSelectSP = async (poId) => {
     if (!poId) { setForm(f => ({ ...f, purchase_order_id: null })); return; }
@@ -318,7 +321,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       }
     } catch (e) { console.error(e); }
   };
-  const fetchTrash = async () => { try { const r = await invoicesAPI.getTrash(); setTrashItems(r.data); } catch(e){} };
+  const fetchTrash = async () => { try { const r = await invoicesAPI.getTrash(); setTrashItems(r.data); } catch(e){ console.error('Error loading invoice trash:', e); } };
   const checkDraft = async () => {
     try {
       const r = await invoicesAPI.getDraft();
@@ -327,7 +330,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
         setSavedDraftUpdatedAt(r.data.updated_at || null);
         setDraftBanner(true);
       }
-    } catch(e) {}
+    } catch(e) { console.error('Error loading saved invoice draft:', e); }
   };
 
   const applyFilters = () => {
@@ -538,7 +541,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       const isEdit = !!editingId;
       if (isEdit) await invoicesAPI.update(editingId, payload);
       else await invoicesAPI.create(payload);
-      try { await invoicesAPI.clearDraft(); } catch(e) {}
+      try { await invoicesAPI.clearDraft(); } catch(e) { console.error('Error clearing invoice draft after save:', e); }
       setSavedDraft(null); setSavedDraftUpdatedAt(null); setDraftBanner(false);
       fetchInvoices(); fetchDistributors(); fetchProducts();
       resetForm(); setShowModal(false);
@@ -552,7 +555,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
     if (!dupConfirm) return;
     try {
       await invoicesAPI.update(dupConfirm.existingId, dupConfirm.pendingPayload);
-      try { await invoicesAPI.clearDraft(); } catch(e) {}
+      try { await invoicesAPI.clearDraft(); } catch(e) { console.error('Error clearing invoice draft after overwrite:', e); }
       setSavedDraft(null); setSavedDraftUpdatedAt(null); setDraftBanner(false);
       fetchInvoices(); resetForm(); setShowModal(false); setDupConfirm(null);
       showToast('✅ Faktur berhasil diupdate!');
@@ -614,10 +617,10 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
     try { await invoicesAPI.softDelete(deleteConfirm.id); fetchInvoices(); setDeleteConfirm(null); showToast('🗑️ Faktur dipindahkan ke trash'); }
     catch(e) { showToast('Gagal menghapus faktur'); }
   };
-  const handleRestore = async (id) => { try { await invoicesAPI.restore(id); fetchTrash(); fetchInvoices(); showToast('✅ Faktur berhasil direstore'); } catch(e){} };
+  const handleRestore = async (id) => { try { await invoicesAPI.restore(id); fetchTrash(); fetchInvoices(); showToast('✅ Faktur berhasil direstore'); } catch(e){ showToast('Gagal restore faktur'); console.error('Error restoring invoice:', e); } };
   const handlePermanentDelete = async (id) => {
     if (!window.confirm('Hapus permanen? Tidak bisa di-undo.')) return;
-    try { await invoicesAPI.permanentDelete(id); fetchTrash(); } catch(e) {}
+    try { await invoicesAPI.permanentDelete(id); fetchTrash(); } catch(e) { console.error('Error permanent deleting invoice:', e); }
   };
 
   const resetForm = () => { setForm(blankForm()); setItems([blankItem()]); setEditingId(null); };
@@ -628,7 +631,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
     setDraftBanner(false); setShowModal(true);
   };
   const dismissDraft = async () => {
-    try { await invoicesAPI.clearDraft(); } catch(e) {}
+    try { await invoicesAPI.clearDraft(); } catch(e) { console.error('Error clearing invoice draft on dismiss:', e); }
     setSavedDraft(null); setSavedDraftUpdatedAt(null); setDraftBanner(false);
   };
 
@@ -637,7 +640,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
       const r = await auditAPI.getByInvoice(inv.id);
       setAuditLog(r.data);
       setAuditModal({ invoiceId: inv.id, invoiceNumber: inv.invoice_number });
-    } catch(e) { showToast('Error loading audit log'); }
+    } catch(e) { showToast('Error loading audit log'); console.error('Error loading invoice audit log:', e); }
   };
 
   const summaryData = filteredInvoices.length > 0 ? filteredInvoices : invoices;
@@ -676,7 +679,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
   };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : (isDarkMode ? '#000' : '#F5F5F7'), minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : (isDarkMode ? '#000' : '#F5F5F7'), minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
       <Breadcrumb title="Faktur Pembelian" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Toast */}
@@ -1038,7 +1041,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
                 </h3>
                 <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#86868B' }}>Faktur #{auditModal.invoiceNumber} · {auditLog.length} entri</p>
               </div>
-              <button onClick={() => setAuditModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px' }}><X size={18} color="#86868B" /></button>
+              <button onClick={() => setAuditModal(null)} aria-label="Tutup riwayat perubahan" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px' }}><X size={18} color="#86868B" /></button>
             </div>
 
             {/* Timeline */}
@@ -1056,7 +1059,11 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
                   const cfg = ACTION_CFG[log.action] || { color: '#86868B', bg: '#86868B18', label: log.action, icon: '•' };
 
                   let snap = null;
-                  try { snap = log.snapshot ? (typeof log.snapshot === 'string' ? JSON.parse(log.snapshot) : log.snapshot) : null; } catch(e) {}
+                  try {
+                    snap = log.snapshot ? (typeof log.snapshot === 'string' ? JSON.parse(log.snapshot) : log.snapshot) : null;
+                  } catch (e) {
+                    console.warn('[InvoiceList] Failed to parse audit snapshot:', e);
+                  }
 
                   const isLast = i === auditLog.length - 1;
                   return (
@@ -1286,7 +1293,7 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: isDarkMode ? '#FFF' : '#000' }}>{editingId ? '✏️ Edit Faktur' : '➕ Buat Faktur Baru'}</h2>
             <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#86868B' }}>Draft tersimpan otomatis tiap ada perubahan</p>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}><X size={20} color="#86868B" /></button>
+          <button onClick={onClose} aria-label="Tutup modal riwayat" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}><X size={20} color="#86868B" /></button>
         </div>
 
         <div style={{ padding: '24px' }}>

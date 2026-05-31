@@ -4,6 +4,7 @@ import { customersAPI } from '../services/api';
 import Skeleton from './common/Skeleton';
 import ConfirmModal from './common/ConfirmModal';
 import Breadcrumb from './common/Breadcrumb';
+import { UI_MOTION, uiTransition } from '../constants/ui';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(parseFloat(n) || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -81,7 +82,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
     finally { setDeleteConfirmId(null); }
   };
 
-  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), UI_MOTION.duration.toastSuccess); };
 
   useEffect(() => {
     if (!showModal) return;
@@ -106,7 +107,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
   };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s', color: text }}>
+    <div className="ui-motion-page" style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard), color: text }}>
       <Breadcrumb title="Master Customer" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header */}
@@ -115,7 +116,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
           <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: 0, color: text }}>👥 Master Customer</h1>
           <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>{loading ? <Skeleton width="160px" height="14px" /> : `${customers.length} customer terdaftar`}</p>
         </div>
-        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
+        <button onClick={openAdd} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 18px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
           <Plus size={18} /> Tambah Customer
         </button>
       </div>
@@ -140,7 +141,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: '12px' }}>
         {loading ? (
           [1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px', padding: '16px 18px' }}>
+                <div key={i} className="ui-motion-card" style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px', padding: '16px 18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <Skeleton width="60%" height="20px" />
                 <div style={{ display: 'flex', gap: '4px' }}><Skeleton width="24px" height="24px" /><Skeleton width="24px" height="24px" /></div>
@@ -158,7 +159,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
               const totalSpent = parseFloat(c.total_spent) || 0;
               const hasActivity = totalOrders > 0;
               return (
-                <div key={c.id} className="glass-target" style={{
+                <div key={c.id} className="glass-target ui-motion-card" style={{
                   backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '14px',
                   padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px',
                   transition: 'transform 0.15s, box-shadow 0.15s',
@@ -184,8 +185,8 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <button onClick={() => openEdit(c)} aria-label={`Edit customer ${c.name}`} title="Edit" style={iconBtnStyle}><Edit2 size={16} color="#007AFF" /></button>
-                      <button onClick={() => handleDelete(c.id)} aria-label={`Hapus customer ${c.name}`} title="Hapus" style={iconBtnStyle}><Trash2 size={16} color="#FF3B30" /></button>
+                      <button onClick={() => openEdit(c)} aria-label={`Edit customer ${c.name}`} title="Edit" className="ui-motion-button ui-focus-ring" style={iconBtnStyle}><Edit2 size={16} color="#007AFF" /></button>
+                      <button onClick={() => handleDelete(c.id)} aria-label={`Hapus customer ${c.name}`} title="Hapus" className="ui-motion-button ui-focus-ring" style={iconBtnStyle}><Trash2 size={16} color="#FF3B30" /></button>
                     </div>
                   </div>
 
@@ -245,10 +246,10 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
       {/* Modal */}
       {showModal && (
         <div onClick={() => setShowModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div onClick={e => e.stopPropagation()} className="glass-target glass-target--clear" style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '460px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)', border: `1px solid ${border}` }}>
+          <div onClick={e => e.stopPropagation()} className="glass-target glass-target--clear ui-motion-modal" style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '460px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)', border: `1px solid ${border}` }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>{editId ? '✏️ Edit Customer' : '➕ Tambah Customer'}</h3>
-              <button onClick={() => setShowModal(false)} aria-label="Tutup" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><X size={18} color={sub} /></button>
+              <button onClick={() => setShowModal(false)} aria-label="Tutup" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><X size={18} color={sub} /></button>
             </div>
             <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
@@ -273,10 +274,10 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
                 </select>
               </div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                <button onClick={handleSave} style={{ flex: 1, padding: '13px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
+                <button onClick={handleSave} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: '13px', backgroundColor: '#007AFF', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
                   {editId ? 'Simpan' : 'Tambah'}
                 </button>
-                <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '13px', backgroundColor: surface, color: text, border: `1px solid ${border}`, borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
+                <button onClick={() => setShowModal(false)} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: '13px', backgroundColor: surface, color: text, border: `1px solid ${border}`, borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
               </div>
             </div>
           </div>
@@ -295,7 +296,7 @@ export default function CustomerList({ isDarkMode, isSidebarOpen, isMobile, isVa
 
       {/* Toast */}
       {toast && (
-        <div role="status" aria-live="polite" style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
+        <div role="status" aria-live="polite" className="ui-motion-toast" style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
           ✅ {toast}
         </div>
       )}

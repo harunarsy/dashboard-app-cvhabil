@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { tasksAPI } from '../services/api';
 import Skeleton from './common/Skeleton';
+import { UI_MOTION } from '../constants/ui';
 
 const API_BASE = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5001/api' : '/api');
 
@@ -53,7 +54,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
   const [showTrashModal, setShowTrashModal] = useState(false);
   const [trashTasks, setTrashTasks] = useState([]);
   const [toast, setToast] = useState('');
-  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), UI_MOTION.duration.toastSuccess); };
   const [trashLoading, setTrashLoading] = useState(false);
 
   // ─── Theme tokens (Apple HIG, mirror Dashboard) ───────────────────────────
@@ -207,7 +208,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
   };
 
   return (
-    <div className="flex flex-col h-full p-0 overflow-hidden" style={{ color: text }}>
+    <div className="ui-motion-page flex flex-col h-full p-0 overflow-hidden" style={{ color: text }}>
       {/* Header */}
       <div className="flex justify-between items-end mb-6 flex-wrap gap-3">
         <div>
@@ -216,7 +217,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 text-white px-4 py-2 rounded-full text-xs font-semibold transition-all shadow-md hover:shadow-lg"
+          className="ui-motion-button ui-focus-ring flex items-center gap-2 text-white px-4 py-2 rounded-full text-xs font-semibold transition-all shadow-md hover:shadow-lg"
           style={{ backgroundColor: accent }}
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#0077ED'}
           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = accent}
@@ -244,7 +245,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
 
         <button
           onClick={() => { fetchTrash(); setShowTrashModal(true); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm"
+          className="ui-motion-button ui-focus-ring flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm"
           style={{ backgroundColor: cardBg, color: danger, border: `1px solid ${subtleBorder}` }}
           aria-label="Tempat Sampah"
         >
@@ -258,7 +259,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowTrashModal(false)} />
           <div
-            className="glass-target glass-target--clear relative w-full max-w-3xl max-h-[80vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col"
+            className="ui-motion-modal glass-target glass-target--clear relative w-full max-w-3xl max-h-[80vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div className="p-6 flex justify-between items-center" style={{ backgroundColor: bg, borderBottom: `1px solid ${border}` }}>
@@ -273,11 +274,11 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
               </div>
               <button
                 onClick={() => setShowTrashModal(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
+                aria-label="Tutup sampah"
+                className="ui-motion-button ui-focus-ring w-8 h-8 flex items-center justify-center rounded-full transition-colors"
                 style={{ color: text }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = surface}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                aria-label="Tutup"
               >
                 <X size={20} />
               </button>
@@ -301,7 +302,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
               ) : (
                 <div className="grid grid-cols-1 gap-3">
                   {trashTasks.map(task => (
-                    <div key={task.id} className="p-4 rounded-2xl flex items-center justify-between transition-all" style={{ backgroundColor: bg, border: `1px solid ${subtleBorder}` }}>
+                    <div key={task.id} className="ui-motion-card p-4 rounded-2xl flex items-center justify-between transition-all" style={{ backgroundColor: bg, border: `1px solid ${subtleBorder}` }}>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[10px] font-bold uppercase" style={{ color: sub }}>{task.priority}</span>
@@ -314,7 +315,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                       <div className="flex items-center gap-2 ml-4">
                         <button
                           onClick={() => handleRestoreTask(task.id)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all"
+                          className="ui-motion-button ui-focus-ring flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all"
                           style={{ backgroundColor: cardBg, color: text, border: `1px solid ${subtleBorder}` }}
                         >
                           <RotateCcw size={14} />
@@ -322,7 +323,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                         </button>
                         <button
                           onClick={() => handlePermanentDelete(task.id)}
-                          className="flex items-center justify-center w-8 h-8 rounded-xl transition-all"
+                          className="ui-motion-button ui-focus-ring flex items-center justify-center w-8 h-8 rounded-xl transition-all"
                           style={{ backgroundColor: cardBg, color: sub, border: `1px solid ${subtleBorder}` }}
                           aria-label="Hapus permanen"
                           title="Hapus Permanen"
@@ -339,7 +340,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
             <div className="p-6 flex justify-end" style={{ backgroundColor: bg, borderTop: `1px solid ${border}` }}>
               <button
                 onClick={() => setShowTrashModal(false)}
-                className="px-6 py-2 rounded-full text-xs font-bold transition-opacity"
+                className="ui-motion-button ui-focus-ring px-6 py-2 rounded-full text-xs font-bold transition-opacity"
                 style={{ backgroundColor: text, color: cardBg }}
               >
                 Tutup
@@ -368,7 +369,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
               </div>
             </div>
 
-            <div className="rounded-2xl p-2 flex flex-col gap-2 overflow-y-auto custom-scrollbar h-[320px]" style={{ backgroundColor: columnBg, border: `1px solid ${subtleBorder}`, backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}>
+            <div className="ui-motion-card rounded-2xl p-2 flex flex-col gap-2 overflow-y-auto custom-scrollbar h-[320px]" style={{ backgroundColor: columnBg, border: `1px solid ${subtleBorder}`, backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}>
               {loading ? (
                 [1, 2, 3].map(i => (
                   <div key={i} className="p-3 rounded-xl" style={{ backgroundColor: cardBg, border: `1px solid ${subtleBorder}` }}>
@@ -389,7 +390,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                         draggable
                         onDragStart={(e) => onDragStart(e, task.id)}
                         onClick={() => setEditingTask(task)}
-                        className="p-3 rounded-xl shadow-sm hover:shadow-md transition-all group cursor-pointer active:scale-95"
+                        className="ui-motion-card p-3 rounded-xl shadow-sm hover:shadow-md transition-all group cursor-pointer active:scale-95"
                         style={{ backgroundColor: cardBg, border: `1px solid ${subtleBorder}`, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
                       >
                         <div className="flex justify-between items-start mb-1.5">
@@ -416,7 +417,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                   })}
 
                   {getTasksByStatus(column.id).length === 0 && (
-                    <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl py-8" style={{ borderColor: subtleBorder }}>
+                    <div className="ui-motion-card flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl py-8" style={{ borderColor: subtleBorder }}>
                       <p className="text-[10px] font-bold uppercase tracking-tighter" style={{ color: sub, opacity: 0.5 }}>Empty</p>
                     </div>
                   )}
@@ -431,7 +432,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       <div
         onDragOver={onDragOver}
         onDrop={(e) => onDrop(e, 'trash')}
-        className="mt-6 p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all group"
+        className="ui-motion-card mt-6 p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all group"
         style={{ borderColor: subtleBorder, color: sub }}
         onMouseEnter={(e) => {
           e.currentTarget.style.borderColor = danger;
@@ -451,10 +452,10 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       {/* Add Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-6">
-          <div className="glass-target glass-target--clear w-full max-w-lg rounded-[2.5rem] shadow-2xl p-8 transform transition-all" style={{ backgroundColor: cardBg, color: text, border: `1px solid ${border}` }}>
+          <div className="ui-motion-modal glass-target glass-target--clear w-full max-w-lg rounded-[2.5rem] shadow-2xl p-8 transform transition-all" style={{ backgroundColor: cardBg, color: text, border: `1px solid ${border}` }}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-extrabold tracking-tight" style={{ color: text }}>Buat Tugas Baru</h2>
-              <button onClick={() => setShowAddModal(false)} className="p-2 rounded-full transition-colors" style={{ color: sub }}
+              <button onClick={() => setShowAddModal(false)} className="ui-motion-button ui-focus-ring p-2 rounded-full transition-colors" style={{ color: sub }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = surface}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 aria-label="Tutup"
@@ -505,7 +506,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
               </div>
 
               <div className="pt-4">
-                <button type="submit" className="w-full py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all active:scale-[0.98]" style={{ backgroundColor: accent, color: '#FFF' }}>
+                <button type="submit" className="ui-motion-button ui-focus-ring w-full py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all active:scale-[0.98]" style={{ backgroundColor: accent, color: '#FFF' }}>
                   Simpan Tugas
                 </button>
               </div>
@@ -517,16 +518,16 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       {/* Edit Modal */}
       {editingTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-6">
-          <div className="glass-target glass-target--clear w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden transform transition-all" style={{ backgroundColor: cardBg, color: text, border: `1px solid ${border}` }}>
+          <div className="ui-motion-modal glass-target glass-target--clear w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden transform transition-all" style={{ backgroundColor: cardBg, color: text, border: `1px solid ${border}` }}>
             <div className="flex justify-between items-center p-8 pb-4">
               <h2 className="text-2xl font-extrabold tracking-tight" style={{ color: text }}>Detail Tugas</h2>
               <div className="flex gap-2">
-                <button onClick={() => fetchHistory(editingTask.id)} className="p-2 rounded-full transition-colors" style={{ color: sub }}
+                <button onClick={() => fetchHistory(editingTask.id)} className="ui-motion-button ui-focus-ring p-2 rounded-full transition-colors" style={{ color: sub }}
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = surface}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   aria-label="Lihat Riwayat" title="Lihat Riwayat"
                 ><History size={20} /></button>
-                <button onClick={() => setEditingTask(null)} className="p-2 rounded-full transition-colors" style={{ color: sub }}
+                <button onClick={() => setEditingTask(null)} className="ui-motion-button ui-focus-ring p-2 rounded-full transition-colors" style={{ color: sub }}
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = surface}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   aria-label="Tutup"
@@ -537,7 +538,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
             <div className="px-8 pb-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
               {showHistory ? (
                 <div className="space-y-4">
-                  <button onClick={() => setShowHistory(false)} className="text-xs font-bold flex items-center gap-1 mb-2" style={{ color: accent }}>
+                  <button onClick={() => setShowHistory(false)} className="ui-motion-button ui-focus-ring text-xs font-bold flex items-center gap-1 mb-2" style={{ color: accent }}>
                     <ChevronDown size={14} className="rotate-90" /> Kembali
                   </button>
                   <div className="space-y-3">
@@ -605,11 +606,11 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                   <div className="pt-4 flex gap-3">
                     <button type="button"
                       onClick={() => handleDeleteTask(editingTask.id).then(() => setEditingTask(null))}
-                      className="flex-1 py-4 rounded-2xl font-bold text-sm transition-all"
+                      className="ui-motion-button ui-focus-ring flex-1 py-4 rounded-2xl font-bold text-sm transition-all"
                       style={{ backgroundColor: dangerSoft, color: danger }}
                     >Hapus</button>
                     <button type="submit"
-                      className="flex-[2] py-4 rounded-2xl font-bold text-sm shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
+                      className="ui-motion-button ui-focus-ring flex-[2] py-4 rounded-2xl font-bold text-sm shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
                       style={{ backgroundColor: accent, color: '#FFF' }}
                     >Simpan Perubahan</button>
                   </div>
@@ -629,7 +630,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       ` }} />
 
       {toast && (
-        <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
+        <div className="ui-motion-toast" style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>
           ✅ {toast}
         </div>
       )}

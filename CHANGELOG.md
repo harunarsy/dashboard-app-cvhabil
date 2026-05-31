@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.12.7-stable] - 2026-05-31
+
+### Added
+- Surface daftar dan dashboard sekarang lebih konsisten: Customer, Invoice, Tasks, Online Store, dan Ledger share motion, loading, empty state, dan error feedback yang sama.
+- Range chart, counter, dan aksi icon button di surface ini tetap mengikuti token motion yang sama dari `frontend/src/constants/ui.js`.
+
 ## [v1.12.6-stable] - 2026-05-31
 
 ### Added

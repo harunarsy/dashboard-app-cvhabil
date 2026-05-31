@@ -3,6 +3,7 @@ import { Bug, Lightbulb, CheckCircle, Clock, AlertCircle, RefreshCw, ChevronDown
 import api from '../services/api';
 import Breadcrumb from './common/Breadcrumb';
 import Skeleton from './common/Skeleton';
+import { UI_MOTION, uiTransition } from '../constants/ui';
 
 const STATUS = {
   open:        { label: 'Open',        color: '#FF3B30', bg: '#FF3B3015', icon: AlertCircle,  emoji: '🔴' },
@@ -141,7 +142,7 @@ export default function BugReports({ isDarkMode, isSidebarOpen, isMobile, isVant
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
       <Breadcrumb title="Bug Reports & Feedback" isMobile={isMobile} isDarkMode={isDarkMode} />
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}>

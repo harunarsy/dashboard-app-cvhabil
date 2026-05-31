@@ -3,6 +3,7 @@ import { Upload, DollarSign, TrendingUp, X } from 'lucide-react';
 import Breadcrumb from './common/Breadcrumb';
 import { onlineStoreAPI } from '../services/api';
 import Skeleton from './common/Skeleton';
+import { UI_MOTION, uiTransition } from '../constants/ui';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 
@@ -23,7 +24,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = '#86868B';
 
-  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), UI_MOTION.duration.toastSuccess); };
   const inputStyle = { width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, fontSize: '14px', outline: 'none', boxSizing: 'border-box' };
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' };
 
@@ -43,7 +44,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
     } catch (e) { 
       console.error(e); 
     } finally {
-      setTimeout(() => setLoading(false), 500);
+      setTimeout(() => setLoading(false), UI_MOTION.duration.loading);
     }
   };
 
@@ -70,7 +71,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
   const platformColors = { shopee: '#EE4D2D', tiktok: '#000000' };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div className="ui-motion-page" style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
       <Breadcrumb title="Toko Online & CSV" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header */}
@@ -80,10 +81,10 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
           <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>{totalOrders} total pesanan • {summary.platforms.length} platform</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={() => setShowImport(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', backgroundColor: '#EE4D2D', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' }}>
+          <button onClick={() => setShowImport(true)} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 16px', backgroundColor: '#EE4D2D', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' }}>
             <Upload size={16} /> Import CSV
           </button>
-          <button onClick={() => setShowWithdrawal(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' }}>
+          <button onClick={() => setShowWithdrawal(true)} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 16px', backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' }}>
             <DollarSign size={16} /> Tarik Saldo
           </button>
         </div>
@@ -92,7 +93,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '4px', backgroundColor: isDarkMode ? '#1C1C1E' : '#E5E5EA', borderRadius: '10px', padding: '3px', marginBottom: '1.5rem', maxWidth: '400px' }}>
         {[['summary', '📊 Rangkuman'], ['sales', '📋 Transaksi']].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)} style={{ flex: 1, padding: '8px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', backgroundColor: tab === key ? (isDarkMode ? '#2C2C2E' : '#FFF') : 'transparent', color: tab === key ? text : sub, boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none' }}>
+          <button key={key} onClick={() => setTab(key)} className="ui-motion-button ui-focus-ring" style={{ flex: 1, minHeight: '40px', padding: '8px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', backgroundColor: tab === key ? (isDarkMode ? '#2C2C2E' : '#FFF') : 'transparent', color: tab === key ? text : sub, boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none' }}>
             {label}
           </button>
         ))}
@@ -103,15 +104,15 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
         <div>
           {/* Overview Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-            <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+            <div className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
               <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Total Revenue</p>
               {loading ? <Skeleton width="120px" height="28px" marginTop="6px" /> : <p style={{ margin: '6px 0 0', fontSize: '24px', fontWeight: '800', color: '#34C759' }}>{fmtRp(totalGross)}</p>}
             </div>
-            <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+            <div className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
               <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Net Profit</p>
               {loading ? <Skeleton width="120px" height="28px" marginTop="6px" /> : <p style={{ margin: '6px 0 0', fontSize: '24px', fontWeight: '800', color: '#007AFF' }}>{fmtRp(totalNet)}</p>}
             </div>
-            <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+            <div className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
               <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Total Orders</p>
               {loading ? <Skeleton width="60px" height="28px" marginTop="6px" /> : <p style={{ margin: '6px 0 0', fontSize: '24px', fontWeight: '800', color: text }}>{totalOrders}</p>}
             </div>
@@ -123,7 +124,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
             {summary.platforms.length ? summary.platforms.map((p, i) => (
-              <div key={i} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+              <div key={i} className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <span style={{ fontSize: '16px', fontWeight: '700', color: platformColors[p.platform] || text, textTransform: 'capitalize' }}>{p.platform}</span>
                   <span style={{ fontSize: '12px', color: sub }}>{p.total_orders} pesanan</span>
@@ -196,10 +197,10 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
       {/* Import Modal */}
       {showImport && (
         <div onClick={() => setShowImport(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '520px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
+          <div onClick={e => e.stopPropagation()} className="glass-target glass-target--clear ui-motion-modal" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '520px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#EE4D2D' }}>📄 Import CSV</h3>
-              <button onClick={() => setShowImport(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
+              <button onClick={() => setShowImport(false)} aria-label="Tutup modal import CSV" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
             </div>
             <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
@@ -214,8 +215,8 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
                 <textarea value={importForm.csv_text} onChange={e => setImportForm(f => ({ ...f, csv_text: e.target.value }))} rows={8} placeholder="Paste isi CSV dari export Shopee/TikTok..." style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '12px', resize: 'vertical' }} />
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={handleImport} style={{ flex: 1, padding: '13px', backgroundColor: '#EE4D2D', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Import</button>
-                <button onClick={() => setShowImport(false)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
+                <button onClick={handleImport} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: '13px', backgroundColor: '#EE4D2D', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Import</button>
+                <button onClick={() => setShowImport(false)} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
               </div>
             </div>
           </div>
@@ -225,10 +226,10 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
       {/* Withdrawal Modal */}
       {showWithdrawal && (
         <div onClick={() => setShowWithdrawal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
+          <div onClick={e => e.stopPropagation()} className="glass-target glass-target--clear ui-motion-modal" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '420px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#34C759' }}>💰 Tarik Saldo</h3>
-              <button onClick={() => setShowWithdrawal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
+              <button onClick={() => setShowWithdrawal(false)} aria-label="Tutup modal tarik saldo" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
             </div>
             <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
@@ -241,8 +242,8 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
               <div><label style={labelStyle}>Jumlah</label><input type="number" value={wdForm.amount} onChange={e => setWdForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
               <div><label style={labelStyle}>Tanggal</label><input type="date" value={wdForm.withdrawal_date} onChange={e => setWdForm(f => ({ ...f, withdrawal_date: e.target.value }))} style={inputStyle} /></div>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={handleWithdrawal} style={{ flex: 1, padding: '13px', backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Simpan</button>
-                <button onClick={() => setShowWithdrawal(false)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
+                <button onClick={handleWithdrawal} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: '13px', backgroundColor: '#34C759', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Simpan</button>
+                <button onClick={() => setShowWithdrawal(false)} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
               </div>
             </div>
           </div>
@@ -250,7 +251,7 @@ export default function OnlineStoreDashboard({ isDarkMode, isSidebarOpen, isMobi
       )}
 
       {/* Toast */}
-      {toast && <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>✅ {toast}</div>}
+      {toast && <div className="ui-motion-toast" style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>✅ {toast}</div>}
     </div>
   );
 }

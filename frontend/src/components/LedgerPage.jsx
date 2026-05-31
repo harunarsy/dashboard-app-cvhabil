@@ -4,6 +4,7 @@ import { ledgerAPI } from '../services/api';
 import Skeleton from './common/Skeleton';
 import ConfirmModal from './common/ConfirmModal';
 import Breadcrumb from './common/Breadcrumb';
+import { UI_MOTION, uiTransition } from '../constants/ui';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -27,7 +28,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
   const text = isDarkMode ? '#FFF' : '#000';
   const sub = '#86868B';
 
-  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), UI_MOTION.duration.toastSuccess); };
   const inputStyle = { width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, fontSize: '14px', outline: 'none', boxSizing: 'border-box' };
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' };
 
@@ -60,7 +61,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
   };
 
   return (
-    <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: 'margin-left 0.3s' }}>
+    <div className="ui-motion-page" style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
       <Breadcrumb title="Buku Besar" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header */}
@@ -69,22 +70,22 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
           <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: 0, color: text }}>📒 Buku Besar</h1>
           <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>Khusus Direktur • {entries.length} entries</p>
         </div>
-        <button onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', backgroundColor: '#5856D6', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
+        <button onClick={openCreate} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 18px', backgroundColor: '#5856D6', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
           <Plus size={18} /> Buat Transaksi
         </button>
       </div>
 
       {/* Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+        <div className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
           <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Total Debit</p>
           <p style={{ margin: '6px 0 0', fontSize: '22px', fontWeight: '800', color: '#34C759' }}>{fmtRp(summary.totals?.total_debit)}</p>
         </div>
-        <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+        <div className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
           <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Total Credit</p>
           <p style={{ margin: '6px 0 0', fontSize: '22px', fontWeight: '800', color: '#FF3B30' }}>{fmtRp(summary.totals?.total_credit)}</p>
         </div>
-        <div style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
+        <div className="ui-motion-card" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: `1px solid ${border}`, borderRadius: '12px', padding: '18px' }}>
           <p style={{ margin: 0, fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase' }}>Saldo Bersih</p>
           <p style={{ margin: '6px 0 0', fontSize: '22px', fontWeight: '800', color: '#007AFF' }}>{fmtRp(summary.totals?.net_balance)}</p>
         </div>
@@ -93,7 +94,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '4px', backgroundColor: isDarkMode ? '#1C1C1E' : '#E5E5EA', borderRadius: '10px', padding: '3px', marginBottom: '1.5rem', maxWidth: '400px' }}>
         {[['entries', '📋 Jurnal'], ['categories', '📊 Per Kategori']].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)} style={{ flex: 1, padding: '8px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', backgroundColor: tab === key ? (isDarkMode ? '#2C2C2E' : '#FFF') : 'transparent', color: tab === key ? text : sub, boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none' }}>
+          <button key={key} onClick={() => setTab(key)} className="ui-motion-button ui-focus-ring" style={{ flex: 1, minHeight: '40px', padding: '8px 12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', backgroundColor: tab === key ? (isDarkMode ? '#2C2C2E' : '#FFF') : 'transparent', color: tab === key ? text : sub, boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none' }}>
             {label}
           </button>
         ))}
@@ -137,8 +138,8 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
                       <td style={{ padding: '10px 12px', fontWeight: '600', color: parseFloat(e.credit) > 0 ? '#FF3B30' : sub }}>{fmtRp(e.credit)}</td>
                       <td style={{ padding: '10px 12px' }}>
                         <div style={{ display: 'flex', gap: '4px' }}>
-                          <button onClick={() => openEdit(e)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={14} color="#007AFF" /></button>
-                          <button onClick={() => handleDelete(e.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} color="#FF3B30" /></button>
+                          <button onClick={() => openEdit(e)} aria-label={`Edit entry ${e.account_name}`} className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={14} color="#007AFF" /></button>
+                          <button onClick={() => handleDelete(e.id)} aria-label={`Hapus entry ${e.account_name}`} className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={14} color="#FF3B30" /></button>
                         </div>
                       </td>
                     </tr>
@@ -178,10 +179,10 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
       {/* Create/Edit Modal */}
       {showModal && (
         <div onClick={() => setShowModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '480px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
+          <div onClick={e => e.stopPropagation()} className="glass-target glass-target--clear ui-motion-modal" style={{ backgroundColor: cardBg, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', width: '100%', maxWidth: '480px', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
             <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>{editId ? '✏️ Edit Entry' : '➕ Entry Baru'}</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
+              <button onClick={() => setShowModal(false)} aria-label="Tutup modal entry" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
             </div>
             <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -200,8 +201,8 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
                 <div><label style={labelStyle}>Kredit</label><input type="number" value={form.credit} onChange={e => setForm(f => ({ ...f, credit: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
               </div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                <button onClick={handleSave} style={{ flex: 1, padding: '13px', backgroundColor: '#5856D6', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>{editId ? 'Simpan' : 'Buat Transaksi'}</button>
-                <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
+                <button onClick={handleSave} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: '13px', backgroundColor: '#5856D6', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>{editId ? 'Simpan' : 'Buat Transaksi'}</button>
+                <button onClick={() => setShowModal(false)} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button>
               </div>
             </div>
           </div>
@@ -219,7 +220,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
       />
 
       {/* Toast */}
-      {toast && <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>✅ {toast}</div>}
+      {toast && <div className="ui-motion-toast" style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#34C759', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>✅ {toast}</div>}
     </div>
   );
 }
