@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.11.13-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.11.14-stable', date: '31 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Nota Penjualan sekarang bisa difilter berdasarkan profitabilitas: untung tinggi, normal, tipis, atau rugi. Cocok untuk cepat cek nota yang margin-nya perlu ditinjau.',
+        dev: 'SalesOrderList.jsx: tambah filterProfit + computeNotaMargin() dari items (revenue, margin, pct), dropdown toolbar, dan empty-state aware filter aktif. Margin pakai hppFromHna(unit_hpp) agar storage HNA exc PPN tetap SSOT.'
+      },
+    ]
+  },
+  {
+    version: 'v1.11.13-stable', date: '31 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -870,7 +880,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.11.13-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.14-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -923,7 +933,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.11.13-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.14-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

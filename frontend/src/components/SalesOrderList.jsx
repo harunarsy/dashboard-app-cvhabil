@@ -32,6 +32,13 @@ const notaDaysDiff = (dateStr) => {
 };
 
 const blankItem = () => ({ product_name: '', qty: 1, unit: 'pcs', unit_price: 0, unit_hpp: 0 });
+const computeNotaMargin = (order) => {
+  const items = order.items || [];
+  const revenue = items.reduce((s, it) => s + (parseFloat(it.unit_price) || 0) * (parseFloat(it.qty) || 0), 0);
+  const margin = items.reduce((s, it) => s + ((parseFloat(it.unit_price) || 0) - hppFromHna(parseFloat(it.unit_hpp) || 0)) * (parseFloat(it.qty) || 0), 0);
+  const pct = revenue > 0 ? (margin / revenue) * 100 : 0;
+  return { revenue, margin, pct };
+};
 
 export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
 
@@ -228,6 +235,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
   // Filters
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterChannel, setFilterChannel] = useState('all');
+  const [filterProfit, setFilterProfit] = useState('all');
   const [sortKey, setSortKey] = useState('sale_date'); // 'sale_date' | 'total' | 'order_number'
   const [sortDir, setSortDir] = useState('desc'); // 'asc' | 'desc'
 
@@ -247,7 +255,13 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
       const matchesYear = isAllYear || orderDate.getFullYear() === parseInt(filterYear, 10);
       const matchesStatus = filterStatus === 'all' || o.payment_status === filterStatus;
       const matchesChannel = filterChannel === 'all' || (o.channel || 'offline') === filterChannel;
-      return matchesSearch && matchesMonth && matchesYear && matchesStatus && matchesChannel;
+      const { pct } = computeNotaMargin(o);
+      const matchesProfit = filterProfit === 'all' ||
+        (filterProfit === 'high' && pct > 20) ||
+        (filterProfit === 'normal' && pct >= 5 && pct <= 20) ||
+        (filterProfit === 'thin' && pct >= 0 && pct < 5) ||
+        (filterProfit === 'loss' && pct < 0);
+      return matchesSearch && matchesMonth && matchesYear && matchesStatus && matchesChannel && matchesProfit;
     })
     .sort((a, b) => {
       const dir = sortDir === 'asc' ? 1 : -1;
@@ -594,6 +608,14 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
           <option value="offline">🏪 Offline</option>
           <option value="online">🛒 Online</option>
         </select>
+
+        <select value={filterProfit} onChange={e => setFilterProfit(e.target.value)} style={{ ...inputStyle, width: '190px', flex: '0 0 auto', paddingRight: '32px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+          <option value="all">Semua Profit</option>
+          <option value="high">Untung tinggi (&gt;20%)</option>
+          <option value="normal">Untung normal (5–20%)</option>
+          <option value="thin">Tipis (0–5%)</option>
+          <option value="loss">Rugi (&lt;0%)</option>
+        </select>
       </div>
 
       {/* v1.7.0 Multi-select action bar */}
@@ -792,7 +814,7 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
             )}
             {!loading && !filtered.length && (
               <tr><td colSpan={8} style={{ padding: '2.5rem 1rem', textAlign: 'center', color: sub }}>
-                {search || filterMonth !== 'all' || filterYear !== 'all' || filterStatus !== 'all' || filterChannel !== 'all'
+                {search || filterMonth !== 'all' || filterYear !== 'all' || filterStatus !== 'all' || filterChannel !== 'all' || filterProfit !== 'all'
                   ? 'Tidak ada nota yang cocok dengan filter.'
                   : 'Belum ada nota penjualan.'}
               </td></tr>

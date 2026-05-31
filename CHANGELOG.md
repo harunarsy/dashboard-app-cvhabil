@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.14-stable] - 2026-05-31
+
+### Added
+- **📊 Filter Nota by Profitabilitas**: Nota Penjualan sekarang bisa difilter berdasarkan margin: Untung tinggi (>20%), Untung normal (5–20%), Tipis (0–5%), atau Rugi (<0%). Ini membantu operator/direktur cepat menemukan nota yang perlu ditinjau tanpa buka satu-satu.
+  - _Detail teknis_: `SalesOrderList.jsx`: tambah `filterProfit`, helper `computeNotaMargin()` berbasis `items`, dropdown toolbar, dan empty-state aware filter aktif. Formula margin tetap pakai `hppFromHna(unit_hpp)` sehingga storage `unit_hpp` tetap HNA exc PPN.
+
 ## [v1.11.13-stable] - 2026-05-31
 
 ### Added
