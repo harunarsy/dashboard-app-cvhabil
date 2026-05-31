@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { inventoryAPI } from '../../services/api';
-import { hppFromHna, formatRupiah, parseRupiah } from '../../utils/rupiah';
-import RupiahInput from '../common/RupiahInput';
+import { parseRupiah } from '../../utils/rupiah';
+import HnaHppInput from '../common/HnaHppInput';
 
 // Modal untuk add (qty initial via stockIn) atau edit metadata batch.
 // Mode 'add' → POST stock-in (membuat batch baru + mutation). Mode 'edit' → PUT batch (metadata only).
@@ -134,25 +134,14 @@ export default function BatchFormModal({ mode, batch, productId, productName, on
             <input type="date" value={form.expired_date} onChange={(e) => setForm({ ...form, expired_date: e.target.value })}
               style={inputStyle} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isEdit ? '1fr' : '1fr 1fr', gap: '14px' }}>
-            {!isEdit && (
-              <div>
-                <label style={labelStyle}>Qty Awal *</label>
-                <input type="number" min="1" value={form.qty}
-                  onChange={(e) => setForm({ ...form, qty: e.target.value })} style={inputStyle} />
-              </div>
-            )}
+          {!isEdit && (
             <div>
-              <label style={labelStyle}>HNA per pcs (exc PPN)</label>
-              <RupiahInput value={form.hna} decimals={2}
-                onChange={(v) => setForm({ ...form, hna: v })} style={inputStyle} />
-              {parseFloat(form.hna) > 0 && (
-                <p style={{ margin: '6px 0 0', fontSize: '11px', color: sub, lineHeight: 1.4 }}>
-                  HPP per pcs (inc PPN 11%): <strong style={{ color: text }}>{formatRupiah(hppFromHna(form.hna), 2)}</strong>
-                </p>
-              )}
+              <label style={labelStyle}>Qty Awal *</label>
+              <input type="number" min="1" value={form.qty}
+                onChange={(e) => setForm({ ...form, qty: e.target.value })} style={inputStyle} />
             </div>
-          </div>
+          )}
+          <HnaHppInput value={form.hna} onChange={(v) => setForm({ ...form, hna: v })} decimals={2} isDarkMode={isDarkMode} />
           <div>
             <label style={labelStyle}>Catatan</label>
             <input type="text" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}

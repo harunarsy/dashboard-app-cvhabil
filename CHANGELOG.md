@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.9-stable] - 2026-05-31
+
+### Added
+- **💰 HnaHppInput — dual-input HNA + HPP locked sync di Inventory**: input harga produk sekarang tampil DUA kotak bersebelahan (HNA exc PPN + HPP inc PPN 11%). Edit salah satu → yg lain otomatis ikut. User bisa input HPP langsung kalau ketemu kulak dgn harga inc PPN (gak perlu bagi 1,11 manual).
+  - _Detail teknis_: Komponen baru `frontend/src/components/common/HnaHppInput.jsx` (2-kolom grid `RupiahInput` HNA + HPP, locked sync via `hppFromHna`/`hnaFromHpp`). Replace di 3 lokasi: `InventoryDashboard` Stok Masuk (`:754`), Edit Produk (`:621`), `inventory/BatchFormModal` (`:146`). Storage tetap HNA exc PPN (SSOT, backend unchanged). Round-trip stabil: `HPP → hnaFromHpp(HPP) = HNA → hppFromHna(HNA) = HPP`.
+
+### Changed
+- **🔢 Angka kartu Dashboard nominal penuh (revert compact)**: kartu stat sekarang tampil "Rp 22.100.000" (bukan "Rp 22,1 Jt") — user mau desain spesifik dgn angka penuh. `Dashboard.formatRupiah` (`:866`) di-strip branch compact → langsung Intl id-ID currency penuh.
+
 ## [v1.11.8-stable] - 2026-05-31
 
 ### Fixed

@@ -15,7 +15,7 @@ import ProductDrawer from './inventory/ProductDrawer';
 import OpnameModal from './inventory/OpnameModal';
 import BatchFormModal from './inventory/BatchFormModal';
 import { hppFromHna, formatRupiah } from '../utils/rupiah';
-import RupiahInput from './common/RupiahInput';
+import HnaHppInput from './common/HnaHppInput';
 
 const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -609,22 +609,19 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
               <div><label style={labelStyle}>Kategori</label><input value={pForm.category} onChange={e => setPForm(p => ({ ...p, category: e.target.value }))} placeholder="Obat, Nutrisi..." style={inputStyle} /></div>
             </div>
             <div><label style={labelStyle}>Nama Produk *</label><input value={pForm.name} onChange={e => { setPForm(p => ({ ...p, name: e.target.value })); setModalError(''); }} placeholder="Paracetamol 500mg" style={inputStyle} /></div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
                 <label style={labelStyle}>Satuan Eceran *</label>
                 <select value={pForm.base_unit || pForm.unit || 'pcs'} onChange={e => setPForm(p => ({ ...p, base_unit: e.target.value, unit: e.target.value }))} style={inputStyle}>
                   {BASE_UNITS.map((u, i) => <option key={`${u.value}-${i}`} value={u.value}>{u.label}</option>)}
                 </select>
               </div>
-              <div>
-                <label style={labelStyle} title="Harga Netto Apotek (raw, exc PPN)">HNA / eceran (exc PPN)</label>
-                <RupiahInput value={pForm.hna} decimals={2} onChange={v => setPForm(p => ({ ...p, hna: v }))} style={inputStyle} />
-              </div>
               <div><label style={labelStyle}>Jual / eceran</label><input type="number" value={pForm.sell_price} onChange={e => setPForm(p => ({ ...p, sell_price: parseFloat(e.target.value) || 0 }))} style={inputStyle} /></div>
             </div>
+            <HnaHppInput value={pForm.hna} onChange={v => setPForm(p => ({ ...p, hna: v }))} decimals={2} isDarkMode={isDarkMode} />
             {parseFloat(pForm.hna) > 0 && (
               <p style={{ margin: '0 0 4px', fontSize: '11px', color: sub, padding: '6px 10px', background: surface, borderRadius: '8px' }}>
-                HPP per {pForm.base_unit || pForm.unit || 'pcs'} (inc PPN 11%): <strong style={{ color: text }}>{formatRupiah(hppFromHna(pForm.hna), 2)}</strong> · Margin: <strong style={{ color: (pForm.sell_price - hppFromHna(pForm.hna)) > 0 ? '#34C759' : '#FF3B30' }}>{formatRupiah(pForm.sell_price - hppFromHna(pForm.hna), 0)}</strong>
+                Margin per {pForm.base_unit || pForm.unit || 'pcs'} (jual − HPP inc PPN): <strong style={{ color: (pForm.sell_price - hppFromHna(pForm.hna)) > 0 ? '#34C759' : '#FF3B30' }}>{formatRupiah(pForm.sell_price - hppFromHna(pForm.hna), 0)}</strong>
               </p>
             )}
 
@@ -749,18 +746,11 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
               <div><label style={labelStyle}>No. Batch</label><input value={siForm.batch_no} onChange={e => setSiForm(p => ({ ...p, batch_no: e.target.value }))} placeholder="B2603-01" style={inputStyle} /></div>
               <div><label style={labelStyle}>Qty *</label><input type="number" value={siForm.qty} min="1" onChange={e => setSiForm(p => ({ ...p, qty: parseInt(e.target.value) || 0 }))} style={inputStyle} /></div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label style={labelStyle} title="Harga raw per pcs sebelum PPN 11%">HNA / pcs (exc PPN)</label>
-                <RupiahInput value={siForm.hna} decimals={2} onChange={v => setSiForm(p => ({ ...p, hna: v }))} style={inputStyle} />
-              </div>
-              <div><label style={labelStyle}>Tanggal Expired</label><input type="date" value={siForm.expired_date} onChange={e => setSiForm(p => ({ ...p, expired_date: e.target.value }))} style={inputStyle} /></div>
+            <HnaHppInput value={siForm.hna} onChange={v => setSiForm(p => ({ ...p, hna: v }))} decimals={2} isDarkMode={isDarkMode} />
+            <div>
+              <label style={labelStyle}>Tanggal Expired</label>
+              <input type="date" value={siForm.expired_date} onChange={e => setSiForm(p => ({ ...p, expired_date: e.target.value }))} style={inputStyle} />
             </div>
-            {parseFloat(siForm.hna) > 0 && (
-              <p style={{ margin: '-4px 0 0', fontSize: '11px', color: sub, padding: '6px 10px', background: surface, borderRadius: '8px' }}>
-                HPP per pcs (inc PPN 11%): <strong style={{ color: text }}>{formatRupiah(hppFromHna(siForm.hna), 2)}</strong>
-              </p>
-            )}
             {modalError && (
               <div style={{ backgroundColor: '#FFF5F5', border: '1px solid #FFE5E5', borderRadius: '10px', padding: '10px 14px', color: '#FF3B30', fontSize: '13px', fontWeight: '600', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} /> <span>{modalError}</span>
