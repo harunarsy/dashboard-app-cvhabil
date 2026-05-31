@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Plus, Search, AlertTriangle, Clock, Trash2, Edit2, X,
   ArrowDownCircle, ArrowUpCircle, ClipboardCheck, ChevronRight, ChevronDown,
-  Eye, AlertCircle, FileDown,
+  Eye, AlertCircle, FileDown, Camera,
 } from 'lucide-react';
 import { inventoryAPI, printSettingsAPI } from '../services/api';
 import { generateInventoryPDF } from '../utils/generateInventoryPDF';
@@ -17,6 +17,7 @@ import BatchFormModal from './inventory/BatchFormModal';
 import { hppFromHna, formatRupiah } from '../utils/rupiah';
 import HnaHppInput from './common/HnaHppInput';
 import BulkEditModal from './inventory/BulkEditModal';
+import BarcodeScanner from './common/BarcodeScanner';
 
 const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -60,6 +61,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   const [adjustForm, setAdjustForm] = useState({ new_qty: 0, reason: '' });
   const [batchActionError, setBatchActionError] = useState('');
   const [batchActionSaving, setBatchActionSaving] = useState(false);
+  const [scannerMode, setScannerMode] = useState(null); // stockIn | stockOut
 
   // Product form (v1.6.0 multi-unit: base_unit + pack_unit + pack_size + sell_price_pack; v1.7.0 tiers)
   const [pForm, setPForm] = useState({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5, base_unit: 'pcs', pack_unit: '', pack_size: 1, sell_price_pack: 0, price_tiers: [] });
@@ -147,6 +149,33 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
   const flashSuccess = (msg) => { setToast({ msg, type: 'success' }); setTimeout(() => setToast({ msg: '', type: 'success' }), 2500); };
   const flashError = (msg) => { setToast({ msg, type: 'error' }); setTimeout(() => setToast({ msg: '', type: 'success' }), 3500); };
+  const findProductByCode = (code) => {
+    const normalized = String(code || '').trim().toLowerCase();
+    if (!normalized) return null;
+    return products.find(p => String(p.code || '').trim().toLowerCase() === normalized) || null;
+  };
+  const openScanner = (mode) => {
+    setModalError('');
+    setScannerMode(mode);
+  };
+  const handleScannerResult = (code) => {
+    const product = findProductByCode(code);
+    if (!product) {
+      const msg = `Kode ${code} tidak ditemukan di inventory`;
+      setModalError(msg);
+      flashError(msg);
+      return;
+    }
+    if (scannerMode === 'stockIn') {
+      setSiForm(p => ({ ...p, product_name: product.name, hna: parseFloat(product.hna) || 0 }));
+      flashSuccess(`Produk discan: ${product.name}`);
+    }
+    if (scannerMode === 'stockOut') {
+      setSoForm(p => ({ ...p, product_id: product.id, selected_batch_id: '' }));
+      loadStockOutBatches(product.id);
+      flashSuccess(`Produk discan: ${product.name}`);
+    }
+  };
 
   const inputStyle = {
     width: '100%', padding: '10px 12px', border: `1px solid ${border}`,
@@ -764,7 +793,17 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
         <ModalShell onClose={() => setShowModal(null)} cardBg={cardBg} title="📥 Stok Masuk" titleColor="#34C759" text={text} border={border} sub={sub} isMobile={isMobile} maxWidth="480px">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
-              <label style={labelStyle}>Produk *</label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
+                <label style={{ ...labelStyle, marginBottom: 0 }}>Produk *</label>
+                <button
+                  type="button"
+                  onClick={() => openScanner('stockIn')}
+                  style={{ minHeight: '34px', padding: '7px 11px', border: `1px solid ${border}`, borderRadius: '9px', background: surface, color: text, fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  aria-label="Scan barcode produk untuk stok masuk"
+                >
+                  <Camera size={14} /> Scan
+                </button>
+              </div>
               <MasterSelect
                 value={siForm.product_name}
                 onChange={v => {
@@ -806,7 +845,17 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
         <ModalShell onClose={() => setShowModal(null)} cardBg={cardBg} title="📤 Stok Keluar" titleColor="#FF9500" text={text} border={border} sub={sub} isMobile={isMobile} maxWidth="480px">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
-              <label style={labelStyle}>Produk *</label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
+                <label style={{ ...labelStyle, marginBottom: 0 }}>Produk *</label>
+                <button
+                  type="button"
+                  onClick={() => openScanner('stockOut')}
+                  style={{ minHeight: '34px', padding: '7px 11px', border: `1px solid ${border}`, borderRadius: '9px', background: surface, color: text, fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  aria-label="Scan barcode produk untuk stok keluar"
+                >
+                  <Camera size={14} /> Scan
+                </button>
+              </div>
               <select value={soForm.product_id} onChange={e => {
                 const newId = parseInt(e.target.value) || '';
                 setSoForm(p => ({ ...p, product_id: newId, selected_batch_id: '' }));
@@ -860,6 +909,14 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
           onClose={() => setShowModal(null)}
           onSaved={(msg) => { flashSuccess(msg); fetchProducts(); fetchAlerts(); setBatchesCache({}); }}
           onProductsChanged={() => { fetchProducts(); }}
+        />
+      )}
+
+      {scannerMode && (
+        <BarcodeScanner
+          isDarkMode={isDarkMode}
+          onClose={() => setScannerMode(null)}
+          onScan={handleScannerResult}
         />
       )}
 

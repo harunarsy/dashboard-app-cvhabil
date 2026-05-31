@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.11.15-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.12.0-stable', date: '31 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Inventory sekarang bisa scan barcode/QR produk lewat kamera untuk Stok Masuk, Stok Keluar, dan Opname. Operator tinggal tap Scan, arahkan kamera ke kode produk, lalu produk otomatis terpilih.',
+        dev: 'Tambah html5-qrcode + BarcodeScanner.jsx dengan cleanup kamera saat unmount, guard multi-scan, permission/error state, dan retry. InventoryDashboard.jsx integrasi scanner ke siForm/soForm; OpnameModal.jsx scan produk lalu select, scroll, dan highlight row.'
+      },
+    ]
+  },
+  {
+    version: 'v1.11.15-stable', date: '31 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -878,7 +888,6 @@ const RELEASES = [
 const upcoming = [
   { priority: 'high', title: 'Export PDF / Excel', desc: 'Export faktur individual atau rekap bulanan ke PDF & Excel untuk laporan dan arsip' },
   { priority: 'high', title: 'Halaman Finance & Karyawan', desc: 'Modul lanjutan untuk penggajian dan manajemen hutang/piutang' },
-  { priority: 'medium', title: 'QR / Barcode Scanner', desc: 'Scan barcode produk untuk stok masuk / keluar / opname lebih cepat' },
   { priority: 'medium', title: 'Predictive Restocking', desc: 'Alert otomatis kapan harus restock berdasarkan velocity penjualan + lead time supplier' },
   { priority: 'low', title: 'TypeScript Migration', desc: 'Full type safety untuk seluruh codebase' },
 ];
@@ -890,7 +899,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.11.15-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -950,7 +959,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.11.15-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.0-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

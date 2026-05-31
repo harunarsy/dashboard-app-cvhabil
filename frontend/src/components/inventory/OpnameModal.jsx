@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { X, Search, ClipboardCheck, ChevronRight, CheckCircle2, Plus, Sliders, Pencil, Trash2, FileText, Check } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { X, Search, ClipboardCheck, ChevronRight, CheckCircle2, Plus, Sliders, Pencil, Trash2, FileText, Check, Camera } from 'lucide-react';
 import { inventoryAPI, printSettingsAPI } from '../../services/api';
 import BatchFormModal from './BatchFormModal';
 import { generateOpnamePDF } from '../../utils/generateOpnamePDF';
+import BarcodeScanner from '../common/BarcodeScanner';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
@@ -35,6 +36,9 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
   const [codeInput, setCodeInput] = useState('');
   const [codeMap, setCodeMap] = useState({}); // patch lokal { productId: newCode }
   const [exporting, setExporting] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [highlightProductId, setHighlightProductId] = useState(null);
+  const productRowRefs = useRef({});
 
   const bg = isDarkMode ? '#1C1C1E' : '#FFF';
   const border = isDarkMode ? '#2C2C2E' : '#E5E5EA';
@@ -46,6 +50,27 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
     borderRadius: '6px', cursor: 'pointer', color: sub,
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   };
+  const findProductByCode = useCallback((code) => {
+    const normalized = String(code || '').trim().toLowerCase();
+    if (!normalized) return null;
+    return products.find(p => String(codeMap[p.id] ?? p.code ?? '').trim().toLowerCase() === normalized) || null;
+  }, [products, codeMap]);
+
+  const handleScanProduct = useCallback((code) => {
+    const product = findProductByCode(code);
+    if (!product) {
+      setActionError(`Kode ${code} tidak ditemukan di inventory`);
+      return;
+    }
+    setActionError('');
+    setSearch('');
+    setSelectedProductId(product.id);
+    setHighlightProductId(product.id);
+    setTimeout(() => {
+      productRowRefs.current[product.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+    setTimeout(() => setHighlightProductId(null), 1800);
+  }, [findProductByCode]);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -266,7 +291,8 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
             maxHeight: isMobile ? '180px' : 'auto',
           }}>
             <div style={{ padding: '12px', borderBottom: `1px solid ${border}` }}>
-              <div style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
                 <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: sub }} />
                 <input value={search} onChange={(e) => setSearch(e.target.value)}
                   placeholder="Cari produk..."
@@ -276,16 +302,33 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
                     outline: 'none', boxSizing: 'border-box',
                   }} />
               </div>
+              <button
+                type="button"
+                onClick={() => { setActionError(''); setScannerOpen(true); }}
+                aria-label="Scan barcode produk untuk opname"
+                style={{
+                  minHeight: '36px', padding: '8px 11px', border: `1px solid ${border}`,
+                  borderRadius: '10px', background: bg, color: text, cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  fontSize: '12px', fontWeight: '800', flexShrink: 0,
+                }}
+              >
+                <Camera size={14} /> Scan
+              </button>
+              </div>
             </div>
             <div style={{ flex: 1, overflow: 'auto' }}>
               {filteredProducts.map(p => {
                 const productInputCount = Object.values(inputs).filter(v => v.product_id === p.id && v.physical_qty !== '').length;
                 const isSelected = selectedProductId === p.id;
+                const isHighlighted = highlightProductId === p.id;
                 return (
-                  <button key={p.id} onClick={() => setSelectedProductId(p.id)} style={{
-                    width: '100%', padding: '10px 14px', textAlign: 'left', background: isSelected ? '#007AFF15' : 'transparent',
+                  <button key={p.id} ref={el => { if (el) productRowRefs.current[p.id] = el; }} onClick={() => setSelectedProductId(p.id)} style={{
+                    width: '100%', padding: '10px 14px', textAlign: 'left', background: isHighlighted ? '#34C75922' : isSelected ? '#007AFF15' : 'transparent',
                     border: 'none', borderLeft: isSelected ? '3px solid #007AFF' : '3px solid transparent',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                    boxShadow: isHighlighted ? 'inset 0 0 0 1px #34C75966' : 'none',
+                    transition: 'background 0.2s, box-shadow 0.2s',
                   }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
@@ -572,6 +615,13 @@ export default function OpnameModal({ products, isDarkMode, isMobile, onClose, o
             </div>
           </div>
         </div>
+      )}
+      {scannerOpen && (
+        <BarcodeScanner
+          isDarkMode={isDarkMode}
+          onClose={() => setScannerOpen(false)}
+          onScan={handleScanProduct}
+        />
       )}
     </div>
   );

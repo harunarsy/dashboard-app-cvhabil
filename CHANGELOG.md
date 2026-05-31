@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.12.0-stable] - 2026-05-31
+
+### Added
+- **📷 Barcode/QR Scanner Kamera untuk Inventory**: Stok Masuk, Stok Keluar, dan Opname sekarang punya tombol **Scan**. Scan kode produk lewat kamera HP/laptop → produk otomatis terpilih. Kalau kode tidak ditemukan, sistem menampilkan error yang jelas.
+  - _Detail teknis_: install `html5-qrcode`; tambah `frontend/src/components/common/BarcodeScanner.jsx` dengan cleanup kamera saat unmount, guard multi-scan, permission denied/error state, beep success, dan retry. `InventoryDashboard.jsx`: integrasi scan ke `siForm` dan `soForm` + auto-load batch Stok Keluar. `inventory/OpnameModal.jsx`: scan produk, select row, scroll, dan highlight sementara.
+
 ## [v1.11.15-stable] - 2026-05-31
 
 ### Added
