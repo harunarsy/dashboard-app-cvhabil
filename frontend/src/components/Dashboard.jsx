@@ -6,22 +6,22 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.12.0-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.12.1-stable', date: '31 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Stiker barcode batch sekarang bisa dicetak langsung dari Inventory. Pilih beberapa produk, atur qty stiker per produk, pilih layout A4, lalu generate PDF Code128 siap cetak.',
+        dev: 'Tambah PrintBarcodeModal.jsx + generateBarcodePDF.js, lazy-load jsbarcode dari PDF generator, integrasi tombol di sticky multi-select InventoryDashboard. Produk tanpa kode diskip, layout support 21/33/custom per A4.'
+      },
+    ]
+  },
+  {
+    version: 'v1.12.0-stable', date: '31 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
         text: 'Inventory sekarang bisa scan barcode/QR produk lewat kamera untuk Stok Masuk, Stok Keluar, dan Opname. Operator tinggal tap Scan, arahkan kamera ke kode produk, lalu produk otomatis terpilih.',
         dev: 'Tambah html5-qrcode + BarcodeScanner.jsx dengan cleanup kamera saat unmount, guard multi-scan, permission/error state, dan retry. InventoryDashboard.jsx integrasi scanner ke siForm/soForm; OpnameModal.jsx scan produk lalu select, scroll, dan highlight row.'
-      },
-    ]
-  },
-  {
-    version: 'v1.11.15-stable', date: '31 Mei 2026', status: 'stable',
-    changes: [
-      {
-        type: 'feat',
-        text: 'Dashboard sekarang menampilkan snapshot profitabilitas bulan ini: margin per channel dan top kategori berdasarkan kontribusi laba. Data hanya menghitung nota paid/final supaya angka operasional tidak tercampur draft/piutang.',
-        dev: 'backend/routes/dashboard.js: extend /dashboard/stats dengan marginByChannel + topCategoryMargins, formula margin tetap qty × (unit_price − unit_hpp × (1 + PPN_RATE)), null channel fallback offline, category join via product_master name snapshot. Dashboard.jsx render dua panel ringkas setelah stat cards.'
       },
     ]
   },
@@ -899,7 +899,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.12.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.1-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -959,7 +959,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.12.0-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.1-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

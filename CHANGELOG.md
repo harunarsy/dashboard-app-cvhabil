@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.12.1-stable] - 2026-05-31
+
+### Added
+- **🏷️ Print Stiker Barcode Batch**: dari Inventory, sekarang bisa pilih beberapa produk lalu generate PDF stiker barcode siap cetak. Setiap produk bisa diatur jumlah stikernya, layout bisa 21 per A4, 33 per A4, atau custom. Produk tanpa kode akan otomatis dilewati.
+  - _Detail teknis_: `frontend/src/components/inventory/PrintBarcodeModal.jsx` (BARU) + `frontend/src/utils/generateBarcodePDF.js` (BARU). `InventoryDashboard.jsx`: sticky multi-select bar tambah tombol `Cetak Stiker Barcode`. Generator PDF lazy-load `jsbarcode`, render Code128 per stiker, support page break, dan skip item tanpa `code`.
+
 ## [v1.12.0-stable] - 2026-05-31
 
 ### Added

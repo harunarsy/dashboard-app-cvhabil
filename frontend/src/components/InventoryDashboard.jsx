@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Plus, Search, AlertTriangle, Clock, Trash2, Edit2, X,
   ArrowDownCircle, ArrowUpCircle, ClipboardCheck, ChevronRight, ChevronDown,
-  Eye, AlertCircle, FileDown, Camera,
+  Eye, AlertCircle, FileDown, Camera, Barcode,
 } from 'lucide-react';
 import { inventoryAPI, printSettingsAPI } from '../services/api';
 import { generateInventoryPDF } from '../utils/generateInventoryPDF';
@@ -18,6 +18,7 @@ import { hppFromHna, formatRupiah } from '../utils/rupiah';
 import HnaHppInput from './common/HnaHppInput';
 import BulkEditModal from './inventory/BulkEditModal';
 import BarcodeScanner from './common/BarcodeScanner';
+import PrintBarcodeModal from './inventory/PrintBarcodeModal';
 
 const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -62,6 +63,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
   const [batchActionError, setBatchActionError] = useState('');
   const [batchActionSaving, setBatchActionSaving] = useState(false);
   const [scannerMode, setScannerMode] = useState(null); // stockIn | stockOut
+  const [barcodePrintOpen, setBarcodePrintOpen] = useState(false);
 
   // Product form (v1.6.0 multi-unit: base_unit + pack_unit + pack_size + sell_price_pack; v1.7.0 tiers)
   const [pForm, setPForm] = useState({ code: '', name: '', unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5, base_unit: 'pcs', pack_unit: '', pack_size: 1, sell_price_pack: 0, price_tiers: [] });
@@ -146,6 +148,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
   // v1.10.2: total nilai persediaan = Σ HPP(inc PPN) × stok (ikut filter aktif)
   const totalNilai = useMemo(() => filtered.reduce((s, p) => s + hppFromHna(p.hna) * (parseInt(p.total_stock) || 0), 0), [filtered]);
+  const selectedBarcodeProducts = useMemo(() => products.filter(p => selectedProductIds.has(p.id)), [products, selectedProductIds]);
 
   const flashSuccess = (msg) => { setToast({ msg, type: 'success' }); setTimeout(() => setToast({ msg: '', type: 'success' }), 2500); };
   const flashError = (msg) => { setToast({ msg, type: 'error' }); setTimeout(() => setToast({ msg: '', type: 'success' }), 3500); };
@@ -940,6 +943,15 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
             }}
           ><Edit2 size={13} /> Edit Massal</button>
           <button
+            onClick={() => setBarcodePrintOpen(true)}
+            style={{
+              padding: '8px 14px', background: '#111111', color: '#FFF', border: 'none',
+              borderRadius: '8px', fontWeight: '600', fontSize: '12px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+            aria-label="Cetak stiker barcode"
+          ><Barcode size={13} /> Cetak Stiker Barcode</button>
+          <button
             onClick={() => setSelectedProductIds(new Set())}
             style={{
               padding: '8px 12px', background: 'transparent', color: sub,
@@ -965,6 +977,19 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
             }
           }}
           isDarkMode={isDarkMode}
+        />
+      )}
+
+      {barcodePrintOpen && (
+        <PrintBarcodeModal
+          products={selectedBarcodeProducts}
+          isDarkMode={isDarkMode}
+          onClose={() => setBarcodePrintOpen(false)}
+          onGenerated={({ printed, skippedCount }) => {
+            if (printed > 0) {
+              flashSuccess(`${printed} stiker barcode siap dicetak${skippedCount > 0 ? ` · ${skippedCount} produk dilewati` : ''}`);
+            }
+          }}
         />
       )}
 
