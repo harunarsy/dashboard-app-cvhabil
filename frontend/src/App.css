@@ -29,9 +29,7 @@ html:has(body.vanta-active) {
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background:
-    radial-gradient(circle at top, color-mix(in srgb, var(--color-primary) 12%, transparent) 0%, transparent 36%),
-    linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 8%, var(--color-bg)) 0%, var(--color-bg) 100%);
+  background: var(--color-bg);
 }
 
 .login-card {
@@ -81,7 +79,10 @@ html:has(body.vanta-active) {
   font-size: 1rem;
   color: var(--color-text);
   background: var(--color-surface);
-  transition: border-color 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1), background-color 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .form-group input:focus {
@@ -96,8 +97,13 @@ html:has(body.vanta-active) {
 }
 
 .error-box {
-  background-color: color-mix(in srgb, var(--color-danger) 10%, var(--color-surface));
-  border: 1px solid color-mix(in srgb, var(--color-danger) 28%, var(--color-border));
+  background-color: color-mix(
+    in srgb,
+    var(--color-danger) 10%,
+    var(--color-surface)
+  );
+  border: 1px solid
+    color-mix(in srgb, var(--color-danger) 28%, var(--color-border));
   color: var(--color-danger);
   padding: 1rem;
   border-radius: 0.75rem;
@@ -115,7 +121,10 @@ html:has(body.vanta-active) {
   font-weight: 700;
   cursor: pointer;
   box-shadow: var(--shadow-flat);
-  transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 100ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 100ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-login:hover {
@@ -128,7 +137,11 @@ html:has(body.vanta-active) {
 }
 
 .btn-login:disabled {
-  background-color: color-mix(in srgb, var(--color-primary) 44%, var(--color-bg));
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 44%,
+    var(--color-bg)
+  );
   cursor: not-allowed;
   opacity: 0.78;
 }
@@ -244,16 +257,28 @@ html:has(body.vanta-active) {
 }
 
 .status-completed {
-  background-color: color-mix(in srgb, var(--color-success) 12%, var(--color-surface));
+  background-color: color-mix(
+    in srgb,
+    var(--color-success) 12%,
+    var(--color-surface)
+  );
   color: var(--color-success);
 }
 
 .status-pending {
-  background-color: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface));
+  background-color: color-mix(
+    in srgb,
+    var(--color-warning) 12%,
+    var(--color-surface)
+  );
   color: var(--color-warning);
 }
 
 .status-default {
-  background-color: color-mix(in srgb, var(--color-border) 48%, var(--color-surface));
+  background-color: color-mix(
+    in srgb,
+    var(--color-border) 48%,
+    var(--color-surface)
+  );
   color: var(--color-text-muted);
 }

@@ -1,35 +1,64 @@
-import React, { useState, useContext, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, Package, DollarSign, Users, ChevronLeft, ChevronRight, Sun, LogOut, Bug, X, Moon, FileText, BarChart3, Briefcase, Printer, Menu } from 'lucide-react';
-import api from '../services/api';
-import { UI_MOTION, uiTransition } from '../constants/ui';
-import { AuthContext } from '../context/AuthContext';
-import Tooltip from './common/Tooltip';
+import React, { useState, useContext, useEffect, useMemo, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  Home,
+  ShoppingCart,
+  Package,
+  DollarSign,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  Sun,
+  LogOut,
+  Bug,
+  X,
+  Moon,
+  FileText,
+  BarChart3,
+  Briefcase,
+  Printer,
+  Menu,
+} from "lucide-react";
+import api from "../services/api";
+import { UI_MOTION, uiTransition } from "../constants/ui";
+import { AuthContext } from "../context/AuthContext";
+import Tooltip from "./common/Tooltip";
 
-export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setIsSidebarOpen }) {
+export default function Sidebar({
+  isDarkMode,
+  setIsDarkMode,
+  isSidebarOpen,
+  setIsSidebarOpen,
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useContext(AuthContext);
   const [showBugModal, setShowBugModal] = useState(false);
-  const [bugType, setBugType] = useState('bug');
-  const [bugForm, setBugForm] = useState({ title: '', description: '', steps: '', contact: '' });
+  const [bugType, setBugType] = useState("bug");
+  const [bugForm, setBugForm] = useState({
+    title: "",
+    description: "",
+    steps: "",
+    contact: "",
+  });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [bugError, setBugError] = useState('');
+  const [bugError, setBugError] = useState("");
   // Mobile state
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [mobileOpen, setMobileOpen] = useState(false);
   const drawerRef = useRef(null);
-  const touchStartXRef = useRef(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Close mobile sidebar on route change
-  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   // Prevent body scroll when modal drawer open (mobile only)
   useEffect(() => {
@@ -37,8 +66,8 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
     if (!mobileOpen) return;
     const prevOverflow = document.body.style.overflow;
     const prevTouchAction = document.body.style.touchAction;
-    document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
     return () => {
       document.body.style.overflow = prevOverflow;
       document.body.style.touchAction = prevTouchAction;
@@ -47,61 +76,97 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
 
   const userDisplayName = useMemo(() => {
     const u = user || {};
-    return (
-      u.name ||
-      u.full_name ||
-      u.username ||
-      u.email ||
-      u.user ||
-      'Admin'
-    );
+    return u.name || u.full_name || u.username || u.email || u.user || "Admin";
   }, [user]);
 
   const handleLogout = () => {
     // Clear release modal keys so next login sees "Apa yang Baru"
-    Object.keys(sessionStorage).forEach(key => {
-      if (key.startsWith('habil_release_seen_')) sessionStorage.removeItem(key);
+    Object.keys(sessionStorage).forEach((key) => {
+      if (key.startsWith("habil_release_seen_")) sessionStorage.removeItem(key);
     });
-    localStorage.removeItem('token');
-    navigate('/login');
+    localStorage.removeItem("token");
+    navigate("/login");
   };
 
-  const role = user?.role || 'admin';
+  const role = user?.role || "admin";
 
   // Role-based menu: admin gets operations, direktur gets everything
   const menuItems = [
-    { icon: Home, label: 'Dashboard', path: '/dashboard', active: true },
-    { icon: FileText, label: 'Nota Penjualan', path: '/sales', active: true },
-    { icon: Users, label: 'Customer', path: '/customers', active: true },
-    { icon: Package, label: 'Faktur Pembelian', path: '/invoices', active: true },
-    { icon: ShoppingCart, label: 'Surat Pesanan', path: '/orders', active: true },
-    { icon: Package, label: 'Inventory', path: '/inventory', active: true },
-    { icon: ShoppingCart, label: 'Toko Online', path: '/online-store', active: true },
-    { icon: Printer, label: 'Pengaturan', path: '/print-settings', active: true },
-    ...(role === 'direktur' ? [
-      { icon: BarChart3, label: 'Buku Besar', path: '/ledger', active: true },
-      { icon: DollarSign, label: 'Finance', path: '/finance', active: false },
-      { icon: Briefcase, label: 'Karyawan', path: '/employees', active: false },
-    ] : []),
+    { icon: Home, label: "Dashboard", path: "/dashboard", active: true },
+    { icon: FileText, label: "Nota Penjualan", path: "/sales", active: true },
+    { icon: Users, label: "Customer", path: "/customers", active: true },
+    {
+      icon: Package,
+      label: "Faktur Pembelian",
+      path: "/invoices",
+      active: true,
+    },
+    {
+      icon: ShoppingCart,
+      label: "Surat Pesanan",
+      path: "/orders",
+      active: true,
+    },
+    { icon: Package, label: "Inventory", path: "/inventory", active: true },
+    {
+      icon: ShoppingCart,
+      label: "Toko Online",
+      path: "/online-store",
+      active: true,
+    },
+    {
+      icon: Printer,
+      label: "Pengaturan",
+      path: "/print-settings",
+      active: true,
+    },
+    ...(role === "direktur"
+      ? [
+          {
+            icon: BarChart3,
+            label: "Buku Besar",
+            path: "/ledger",
+            active: true,
+          },
+          {
+            icon: DollarSign,
+            label: "Finance",
+            path: "/finance",
+            active: false,
+          },
+          {
+            icon: Briefcase,
+            label: "Karyawan",
+            path: "/employees",
+            active: false,
+          },
+        ]
+      : []),
   ];
 
   const handleSubmitBug = async () => {
-    if (!bugForm.title.trim()) { setBugError('Judul wajib diisi'); return; }
-    setBugError('');
+    if (!bugForm.title.trim()) {
+      setBugError("Judul wajib diisi");
+      return;
+    }
+    setBugError("");
     setSubmitting(true);
     try {
-      await api.post('/bugs', {
+      await api.post("/bugs", {
         title: bugForm.title,
         description: bugForm.description,
-        steps: bugType === 'bug' ? bugForm.steps : '',
+        steps: bugType === "bug" ? bugForm.steps : "",
         contact: bugForm.contact,
         type: bugType,
-        reported_at: new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }).replace(' ', 'T') + '+07:00',
+        reported_at:
+          new Date()
+            .toLocaleString("sv-SE", { timeZone: "Asia/Jakarta" })
+            .replace(" ", "T") + "+07:00",
         user_agent: navigator.userAgent,
       });
       setSubmitted(true);
     } catch (e) {
-      setBugError('Gagal mengirim: ' + (e.response?.data?.error || e.message));
+      setBugError("Gagal mengirim: " + (e.response?.data?.error || e.message));
     } finally {
       setSubmitting(false);
     }
@@ -110,17 +175,32 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
   const resetModal = () => {
     setShowBugModal(false);
     setSubmitted(false);
-    setBugType('bug');
-    setBugForm({ title: '', description: '', steps: '', contact: '' });
+    setBugType("bug");
+    setBugForm({ title: "", description: "", steps: "", contact: "" });
   };
 
-  const bg = isDarkMode ? '#000' : '#FFF';
-  const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
-  const txt = isDarkMode ? '#FFF' : '#000';
-  const sub = isDarkMode ? 'var(--color-text-subtle)' : 'var(--color-text-muted)';
-  const appVersion = 'v1.13.1-stable';
-  const TooltipButton = ({ label, children, className = '', style = {}, ...buttonProps }) => (
-    <Tooltip text={label} position="right" wrapperClassName="block w-full" wrapperStyle={{ display: 'block', width: '100%' }}>
+  const bg = isDarkMode ? "#000" : "#FFF";
+  const border = isDarkMode
+    ? "var(--color-surface-raised)"
+    : "var(--color-border)";
+  const txt = isDarkMode ? "#FFF" : "#000";
+  const sub = isDarkMode
+    ? "var(--color-text-subtle)"
+    : "var(--color-text-muted)";
+  const appVersion = "v1.13.2-stable";
+  const TooltipButton = ({
+    label,
+    children,
+    className = "",
+    style = {},
+    ...buttonProps
+  }) => (
+    <Tooltip
+      text={label}
+      position="right"
+      wrapperClassName="block w-full"
+      wrapperStyle={{ display: "block", width: "100%" }}
+    >
       <button
         {...buttonProps}
         aria-label={label}
@@ -151,21 +231,23 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
     const focusables = () =>
       Array.from(
         root.querySelectorAll(
-          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
-        )
-      ).filter((el) => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter(
+        (el) => !el.hasAttribute("disabled") && !el.getAttribute("aria-hidden"),
+      );
 
     // Focus first actionable item (close button if exists, else first menu)
     const first = focusables()[0];
     if (first) first.focus();
 
     const onKeyDown = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         e.stopPropagation();
         closeMobileDrawer();
         return;
       }
-      if (e.key !== 'Tab') return;
+      if (e.key !== "Tab") return;
       const items = focusables();
       if (items.length === 0) return;
       const firstEl = items[0];
@@ -185,50 +267,50 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
       }
     };
 
-    document.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
     return () => {
-      document.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener("keydown", onKeyDown, true);
       if (prevActive && prevActive.focus) prevActive.focus();
     };
   }, [isMobile, mobileOpen]);
-
-  const onDrawerTouchStart = (e) => {
-    if (!isMobile || !mobileOpen) return;
-    touchStartXRef.current = e.touches?.[0]?.clientX ?? null;
-  };
-  const onDrawerTouchMove = (e) => {
-    if (!isMobile || !mobileOpen) return;
-    const startX = touchStartXRef.current;
-    const x = e.touches?.[0]?.clientX ?? null;
-    if (startX == null || x == null) return;
-    const deltaX = x - startX;
-    if (deltaX < -60) {
-      touchStartXRef.current = null;
-      closeMobileDrawer();
-    }
-  };
 
   return (
     <>
       {/* Mobile Hamburger Button */}
       {isMobile && (
         <Tooltip
-          text={mobileOpen ? 'Tutup menu' : 'Buka menu'}
+          text={mobileOpen ? "Tutup menu" : "Buka menu"}
           position="right"
-          wrapperStyle={{ position: 'fixed', top: '14px', left: '14px', zIndex: 100 }}
+          wrapperStyle={{
+            position: "fixed",
+            top: "14px",
+            left: "14px",
+            zIndex: 100,
+          }}
         >
           <button
-            onClick={() => setMobileOpen(o => !o)}
+            onClick={() => setMobileOpen((o) => !o)}
             style={{
-              background: bg, border: `1px solid ${border}`, borderRadius: '10px',
-              width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+              background: bg,
+              border: `1px solid ${border}`,
+              borderRadius: "10px",
+              width: "40px",
+              height: "40px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
             }}
-            aria-label={mobileOpen ? 'Tutup menu' : 'Buka menu'}
+            aria-label={mobileOpen ? "Tutup menu" : "Buka menu"}
             aria-expanded={mobileOpen}
             aria-controls="mobile-navigation-drawer"
           >
-            {mobileOpen ? <X size={18} color={txt} /> : <Menu size={18} color={txt} />}
+            {mobileOpen ? (
+              <X size={18} color={txt} />
+            ) : (
+              <Menu size={18} color={txt} />
+            )}
           </button>
         </Tooltip>
       )}
@@ -236,12 +318,13 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
       {/* Mobile Overlay */}
       {isMobile && (
         <div
-          onClick={closeMobileDrawer}
           className={[
-            'fixed inset-0 z-[90] transition-opacity duration-300',
-            'bg-black/50 backdrop-blur-[2px]',
-            mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
-          ].join(' ')}
+            "fixed inset-0 z-[90] transition-opacity duration-300",
+            "bg-black/50",
+            mobileOpen
+              ? "opacity-100 pointer-events-auto"
+              : "opacity-0 pointer-events-none",
+          ].join(" ")}
           aria-hidden={!mobileOpen}
         />
       )}
@@ -250,45 +333,65 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
       <div
         id="mobile-navigation-drawer"
         ref={drawerRef}
-        role={isMobile ? 'dialog' : undefined}
+        role={isMobile ? "dialog" : undefined}
         aria-modal={isMobile ? true : undefined}
-        aria-label={isMobile ? 'Navigasi' : undefined}
-        onTouchStart={onDrawerTouchStart}
-        onTouchMove={onDrawerTouchMove}
-        className={isMobile ? [
-          'glass-target',
-          'fixed left-0 top-0 z-[100] h-dvh',
-          'w-[80vw] max-w-[300px]',
-          'rounded-r-2xl',
-          'shadow-[12px_0_40px_rgba(0,0,0,0.35)]',
-          'transition-transform duration-[280ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]',
-          mobileOpen ? 'translate-x-0' : '-translate-x-full',
-          'flex flex-col',
-        ].join(' ') : 'glass-target'}
-        style={isMobile ? {
-          backgroundColor: isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)',
-          backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-          borderRight: `1px solid ${border}`,
-        } : {
-          position: 'fixed', left: '14px', top: '14px', height: 'calc(100vh - 28px)',
-          width: isSidebarOpen ? '256px' : '80px',
-          backgroundColor: isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)',
-          backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-          border: `1px solid ${border}`,
-          borderRadius: '20px',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
-          overflow: 'hidden',
-          display: 'flex', flexDirection: 'column',
-          transition: uiTransition('width', UI_MOTION.duration.page),
-          zIndex: 40,
-          transform: 'translateX(0)',
-        }}
+        aria-label={isMobile ? "Navigasi" : undefined}
+        className={
+          isMobile
+            ? [
+                "fixed left-0 top-0 z-[100] h-dvh",
+                "w-[80vw] max-w-[300px]",
+                "rounded-r-2xl",
+                "shadow-[12px_0_40px_rgba(0,0,0,0.35)]",
+                "transition-transform duration-[280ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]",
+                mobileOpen ? "translate-x-0" : "-translate-x-full",
+                "flex flex-col",
+              ].join(" ")
+            : ""
+        }
+        style={
+          isMobile
+            ? {
+                backgroundColor: isDarkMode
+                  ? "var(--color-surface-elevated)"
+                  : "var(--color-surface)",
+                borderRight: `1px solid ${border}`,
+              }
+            : {
+                position: "fixed",
+                left: "14px",
+                top: "14px",
+                height: "calc(100vh - 28px)",
+                width: isSidebarOpen ? "256px" : "80px",
+                backgroundColor: isDarkMode
+                  ? "var(--color-surface-elevated)"
+                  : "var(--color-surface)",
+                border: `1px solid ${border}`,
+                borderRadius: "20px",
+                boxShadow: "0 12px 40px rgba(0,0,0,0.15)",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                transition: uiTransition("width", UI_MOTION.duration.page),
+                zIndex: 40,
+                transform: "translateX(0)",
+              }
+        }
       >
-        
         {/* Header */}
         <div
-          className={isMobile ? 'px-5 pt-6 pb-4' : undefined}
-          style={isMobile ? { borderBottom: `1px solid ${border}` } : { padding: '1.5rem', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: (isSidebarOpen ? 'space-between' : 'center') }}
+          className={isMobile ? "px-5 pt-6 pb-4" : undefined}
+          style={
+            isMobile
+              ? { borderBottom: `1px solid ${border}` }
+              : {
+                  padding: "1.5rem",
+                  borderBottom: `1px solid ${border}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: isSidebarOpen ? "space-between" : "center",
+                }
+          }
         >
           {isMobile ? (
             <div className="flex items-start justify-between gap-3">
@@ -296,13 +399,19 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
                 <div className="flex items-center gap-3">
                   <div
                     className="h-11 w-11 rounded-2xl shadow-sm flex items-center justify-center text-white font-black tracking-tight"
-                    style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)' }}
+                    style={{
+                      background:
+                        "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)",
+                    }}
                     aria-hidden="true"
                   >
                     H
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[11px] font-extrabold uppercase tracking-wider" style={{ color: sub }}>
+                    <div
+                      className="text-[11px] font-extrabold uppercase tracking-wider"
+                      style={{ color: sub }}
+                    >
                       HABIL SUPERAPP
                     </div>
                     <div
@@ -319,7 +428,12 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
                 <button
                   onClick={closeMobileDrawer}
                   className="shrink-0 p-2 rounded-xl"
-                  style={{ color: txt, backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)' }}
+                  style={{
+                    color: txt,
+                    backgroundColor: isDarkMode
+                      ? "var(--color-surface-elevated)"
+                      : "var(--color-bg)",
+                  }}
                   aria-label="Tutup navigasi"
                 >
                   <X size={18} />
@@ -329,15 +443,48 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
           ) : (
             isSidebarOpen && (
               <div>
-                <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0 0 0.25rem 0', color: txt }}>Dashboard</h1>
-                <p style={{ fontSize: '0.875rem', color: sub, margin: 0 }}>HABIL SUPERAPP</p>
+                <h1
+                  style={{
+                    fontSize: "1.25rem",
+                    fontWeight: "bold",
+                    margin: "0 0 0.25rem 0",
+                    color: txt,
+                  }}
+                >
+                  Dashboard
+                </h1>
+                <p style={{ fontSize: "0.875rem", color: sub, margin: 0 }}>
+                  HABIL SUPERAPP
+                </p>
               </div>
             )
           )}
           {!isMobile && (
-            <Tooltip text={isSidebarOpen ? 'Sembunyikan sidebar' : 'Tampilkan sidebar'} position="left">
-              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-label={isSidebarOpen ? 'Sembunyikan sidebar' : 'Tampilkan sidebar'} className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', color: txt }}>
-                {isSidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+            <Tooltip
+              text={isSidebarOpen ? "Sembunyikan sidebar" : "Tampilkan sidebar"}
+              position="left"
+            >
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                aria-label={
+                  isSidebarOpen ? "Sembunyikan sidebar" : "Tampilkan sidebar"
+                }
+                className="ui-motion-button ui-focus-ring"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "0.5rem",
+                  display: "flex",
+                  alignItems: "center",
+                  color: txt,
+                }}
+              >
+                {isSidebarOpen ? (
+                  <ChevronLeft size={20} />
+                ) : (
+                  <ChevronRight size={20} />
+                )}
               </button>
             </Tooltip>
           )}
@@ -345,7 +492,11 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
 
         {/* Menu */}
         <nav
-          style={{ flex: 1, padding: isMobile ? '1rem 0.75rem' : '1rem', overflowY: 'auto' }}
+          style={{
+            flex: 1,
+            padding: isMobile ? "1rem 0.75rem" : "1rem",
+            overflowY: "auto",
+          }}
           aria-label="Menu utama"
         >
           {menuItems.map((item, index) => {
@@ -358,47 +509,61 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
                 key={index}
                 onClick={() => handleNavigate(item.path, isActive)}
                 style={{
-                  width: '100%',
-                  minHeight: '44px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: showLabel ? 'flex-start' : 'center',
-                  gap: '0.75rem',
-                  padding: showLabel ? '0.75rem 1rem' : '0.75rem 0',
-                  marginBottom: '0.5rem',
-                  borderRadius: '0.75rem',
-                  border: 'none',
-                  cursor: isActive ? 'pointer' : 'not-allowed',
+                  width: "100%",
+                  minHeight: "44px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: showLabel ? "flex-start" : "center",
+                  gap: "0.75rem",
+                  padding: showLabel ? "0.75rem 1rem" : "0.75rem 0",
+                  marginBottom: "0.5rem",
+                  borderRadius: "0.75rem",
+                  border: "none",
+                  cursor: isActive ? "pointer" : "not-allowed",
                   backgroundColor: isCurrent
-                    ? 'var(--color-primary)'
-                    : (isActive ? (isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)') : 'transparent'),
+                    ? "var(--color-primary)"
+                    : isActive
+                      ? isDarkMode
+                        ? "var(--color-surface-elevated)"
+                        : "var(--color-bg)"
+                      : "transparent",
                   color: isCurrent
-                    ? '#FFF'
-                    : (isActive ? txt : (isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)')),
+                    ? "#FFF"
+                    : isActive
+                      ? txt
+                      : isDarkMode
+                        ? "var(--color-border-strong)"
+                        : "var(--color-border)",
                   opacity: isActive ? 1 : 0.5,
-                  fontSize: '0.875rem',
-                  fontWeight: isCurrent ? '700' : '600',
-                  textAlign: 'left',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
+                  fontSize: "0.875rem",
+                  fontWeight: isCurrent ? "700" : "600",
+                  textAlign: "left",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
                 }}
               >
-                <Icon size={20} style={{ minWidth: '20px' }} />
+                <Icon size={20} style={{ minWidth: "20px" }} />
                 {showLabel && (
                   <>
                     <span>{item.label}</span>
-                    {!isActive && <span style={{ marginLeft: 'auto', fontSize: '0.7rem' }}>Soon</span>}
+                    {!isActive && (
+                      <span style={{ marginLeft: "auto", fontSize: "0.7rem" }}>
+                        Soon
+                      </span>
+                    )}
                   </>
                 )}
               </button>
             );
-            return showLabel ? menuButton : (
+            return showLabel ? (
+              menuButton
+            ) : (
               <Tooltip
                 key={index}
                 text={item.label}
                 position="right"
                 wrapperClassName="block w-full"
-                wrapperStyle={{ display: 'block', width: '100%' }}
+                wrapperStyle={{ display: "block", width: "100%" }}
               >
                 {menuButton}
               </Tooltip>
@@ -407,29 +572,112 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
         </nav>
 
         {/* Footer */}
-        <div style={{ padding: isMobile ? '0.75rem 0.75rem 1rem' : '1rem', borderTop: `1px solid ${border}` }}>
+        <div
+          style={{
+            padding: isMobile ? "0.75rem 0.75rem 1rem" : "1rem",
+            borderTop: `1px solid ${border}`,
+          }}
+        >
           {/* Bug Report button */}
-          <TooltipButton onClick={() => { if (isMobile) closeMobileDrawer(); setShowBugModal(true); }} label="Bug / Saran Fitur" className=""
-            style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? '#2C1A00' : 'var(--color-warning-soft)', color: 'var(--color-warning)', fontSize: '0.875rem', fontWeight: '700' }}>
-            <Bug size={20} style={{ minWidth: '20px' }} />
+          <TooltipButton
+            onClick={() => {
+              if (isMobile) closeMobileDrawer();
+              setShowBugModal(true);
+            }}
+            label="Bug / Saran Fitur"
+            className=""
+            style={{
+              width: "100%",
+              minHeight: "44px",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              padding: "0.75rem 1rem",
+              marginBottom: "0.5rem",
+              borderRadius: "0.75rem",
+              border: "none",
+              cursor: "pointer",
+              backgroundColor: isDarkMode
+                ? "#2C1A00"
+                : "var(--color-warning-soft)",
+              color: "var(--color-warning)",
+              fontSize: "0.875rem",
+              fontWeight: "700",
+            }}
+          >
+            <Bug size={20} style={{ minWidth: "20px" }} />
             {(isMobile || isSidebarOpen) && <span>Bug / Saran Fitur</span>}
           </TooltipButton>
 
-          <TooltipButton onClick={() => { setIsDarkMode(!isDarkMode); if (isMobile) closeMobileDrawer(); }} label={isDarkMode ? 'Light Mode' : 'Dark Mode'} className=""
-            style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)', color: txt, fontSize: '0.875rem', fontWeight: '600' }}>
-            {isDarkMode ? <Sun size={20} style={{ minWidth: '20px' }} /> : <Moon size={20} style={{ minWidth: '20px' }} />}
-            {(isMobile || isSidebarOpen) && <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>}
+          <TooltipButton
+            onClick={() => {
+              setIsDarkMode(!isDarkMode);
+              if (isMobile) closeMobileDrawer();
+            }}
+            label={isDarkMode ? "Light Mode" : "Dark Mode"}
+            className=""
+            style={{
+              width: "100%",
+              minHeight: "44px",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              padding: "0.75rem 1rem",
+              marginBottom: "0.5rem",
+              borderRadius: "0.75rem",
+              border: "none",
+              cursor: "pointer",
+              backgroundColor: isDarkMode
+                ? "var(--color-surface-elevated)"
+                : "var(--color-bg)",
+              color: txt,
+              fontSize: "0.875rem",
+              fontWeight: "600",
+            }}
+          >
+            {isDarkMode ? (
+              <Sun size={20} style={{ minWidth: "20px" }} />
+            ) : (
+              <Moon size={20} style={{ minWidth: "20px" }} />
+            )}
+            {(isMobile || isSidebarOpen) && (
+              <span>{isDarkMode ? "Light Mode" : "Dark Mode"}</span>
+            )}
           </TooltipButton>
 
-          <TooltipButton onClick={() => { if (isMobile) closeMobileDrawer(); handleLogout(); }} label="Logout" className=""
-            style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', backgroundColor: 'var(--color-danger)', color: 'white', fontSize: '0.875rem', fontWeight: '700' }}>
-            <LogOut size={20} style={{ minWidth: '20px' }} />
+          <TooltipButton
+            onClick={() => {
+              if (isMobile) closeMobileDrawer();
+              handleLogout();
+            }}
+            label="Logout"
+            className=""
+            style={{
+              width: "100%",
+              minHeight: "44px",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              padding: "0.75rem 1rem",
+              borderRadius: "0.75rem",
+              border: "none",
+              cursor: "pointer",
+              backgroundColor: "var(--color-danger)",
+              color: "white",
+              fontSize: "0.875rem",
+              fontWeight: "700",
+            }}
+          >
+            <LogOut size={20} style={{ minWidth: "20px" }} />
             {(isMobile || isSidebarOpen) && <span>Logout</span>}
           </TooltipButton>
 
           {isMobile && (
             <div className="mt-3 px-2">
-              <div className="text-[11px] font-semibold" style={{ color: sub, opacity: 0.75 }}>
+              <div
+                className="text-[11px] font-semibold"
+                style={{ color: sub, opacity: 0.75 }}
+              >
                 Sistem {appVersion}
               </div>
             </div>
@@ -439,101 +687,396 @@ export default function Sidebar({ isDarkMode, setIsDarkMode, isSidebarOpen, setI
 
       {/* Bug/Fitur Modal */}
       {showBugModal && (
-        <div onClick={resetModal} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div onClick={e => e.stopPropagation()} className="ui-motion-modal" style={{ backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : '#FFF', borderRadius: '16px', width: '100%', maxWidth: '460px', boxShadow: '0 32px 64px rgba(0,0,0,0.35)', overflow: 'hidden' }}>
-            
+        <div
+          onClick={resetModal}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "1rem",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="ui-motion-modal"
+            style={{
+              backgroundColor: isDarkMode
+                ? "var(--color-surface-elevated)"
+                : "#FFF",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "460px",
+              boxShadow: "0 32px 64px rgba(0,0,0,0.35)",
+              overflow: "hidden",
+            }}
+          >
             {/* Modal Header */}
-            <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: isDarkMode ? '#000' : 'var(--color-bg)' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: txt }}>
-                {submitted ? '🎉 Terima Kasih!' : '📢 Kirim Laporan'}
+            <div
+              style={{
+                padding: "18px 22px",
+                borderBottom: `1px solid ${border}`,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                backgroundColor: isDarkMode ? "#000" : "var(--color-bg)",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "16px",
+                  fontWeight: "700",
+                  color: txt,
+                }}
+              >
+                {submitted ? "🎉 Terima Kasih!" : "📢 Kirim Laporan"}
               </h3>
-              <button onClick={resetModal} aria-label="Tutup laporan" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color="var(--color-text-subtle)" /></button>
+              <button
+                onClick={resetModal}
+                aria-label="Tutup laporan"
+                className="ui-motion-button ui-focus-ring"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={18} color="var(--color-text-subtle)" />
+              </button>
             </div>
 
             {submitted ? (
               /* Success state */
-              <div style={{ padding: '36px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-                <p style={{ fontSize: '16px', fontWeight: '700', color: txt, margin: '0 0 8px' }}>Laporan berhasil dikirim!</p>
-                <p style={{ fontSize: '14px', color: 'var(--color-text-subtle)', margin: '0 0 24px', lineHeight: '1.5' }}>
-                  {bugType === 'bug'
-                    ? 'Bug kamu sudah kami catat dan akan segera ditangani oleh developer.'
-                    : 'Saran fitur kamu sudah kami terima dan akan dipertimbangkan untuk update berikutnya.'}
+              <div style={{ padding: "36px 24px", textAlign: "center" }}>
+                <div style={{ fontSize: "48px", marginBottom: "16px" }}>✅</div>
+                <p
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "700",
+                    color: txt,
+                    margin: "0 0 8px",
+                  }}
+                >
+                  Laporan berhasil dikirim!
                 </p>
-                <button onClick={resetModal} className="ui-motion-button ui-focus-ring" style={{ padding: '12px 28px', backgroundColor: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    color: "var(--color-text-subtle)",
+                    margin: "0 0 24px",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  {bugType === "bug"
+                    ? "Bug kamu sudah kami catat dan akan segera ditangani oleh developer."
+                    : "Saran fitur kamu sudah kami terima dan akan dipertimbangkan untuk update berikutnya."}
+                </p>
+                <button
+                  onClick={resetModal}
+                  className="ui-motion-button ui-focus-ring"
+                  style={{
+                    padding: "12px 28px",
+                    backgroundColor: "var(--color-primary)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    fontWeight: "700",
+                    fontSize: "14px",
+                  }}
+                >
                   OK
                 </button>
               </div>
             ) : (
               /* Form */
-              <div style={{ padding: '20px 22px' }}>
+              <div style={{ padding: "20px 22px" }}>
                 {/* Type toggle */}
-                <div style={{ display: 'flex', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', borderRadius: '10px', padding: '3px', marginBottom: '16px' }}>
-                  {[['bug', '🐛 Laporkan Bug', 'var(--color-danger)'], ['feature', '💡 Saran Fitur', 'var(--color-primary)']].map(([key, label, color]) => (
-                    <button key={key} onClick={() => setBugType(key)} className="ui-motion-button ui-focus-ring"
-                      style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', transition: uiTransition('all', UI_MOTION.duration.fast),
-                        backgroundColor: bugType === key ? (isDarkMode ? 'var(--color-surface-elevated)' : '#FFF') : 'transparent',
-                        color: bugType === key ? color : 'var(--color-text-subtle)',
-                        boxShadow: bugType === key ? '0 1px 4px rgba(0,0,0,0.15)' : 'none' }}>
+                <div
+                  style={{
+                    display: "flex",
+                    backgroundColor: isDarkMode
+                      ? "var(--color-surface-raised)"
+                      : "var(--color-bg)",
+                    borderRadius: "10px",
+                    padding: "3px",
+                    marginBottom: "16px",
+                  }}
+                >
+                  {[
+                    ["bug", "🐛 Laporkan Bug", "var(--color-danger)"],
+                    ["feature", "💡 Saran Fitur", "var(--color-primary)"],
+                  ].map(([key, label, color]) => (
+                    <button
+                      key={key}
+                      onClick={() => setBugType(key)}
+                      className="ui-motion-button ui-focus-ring"
+                      style={{
+                        flex: 1,
+                        padding: "8px",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        fontSize: "13px",
+                        fontWeight: "700",
+                        transition: uiTransition(
+                          "all",
+                          UI_MOTION.duration.fast,
+                        ),
+                        backgroundColor:
+                          bugType === key
+                            ? isDarkMode
+                              ? "var(--color-surface-elevated)"
+                              : "#FFF"
+                            : "transparent",
+                        color:
+                          bugType === key ? color : "var(--color-text-subtle)",
+                        boxShadow:
+                          bugType === key
+                            ? "0 1px 4px rgba(0,0,0,0.15)"
+                            : "none",
+                      }}
+                    >
                       {label}
                     </button>
                   ))}
                 </div>
 
                 {/* Form fields */}
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-border-strong)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
-                    {bugType === 'bug' ? 'Judul Bug *' : 'Nama Fitur *'}
+                <div style={{ marginBottom: "12px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      color: isDarkMode
+                        ? "var(--color-text-muted)"
+                        : "var(--color-border-strong)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    {bugType === "bug" ? "Judul Bug *" : "Nama Fitur *"}
                   </label>
-                  <input value={bugForm.title} onChange={e => setBugForm(p => ({ ...p, title: e.target.value }))}
-                    placeholder={bugType === 'bug' ? 'Contoh: Tombol simpan tidak merespon' : 'Contoh: Export ke PDF'}
-                    style={{ width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: txt, fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                  <input
+                    value={bugForm.title}
+                    onChange={(e) =>
+                      setBugForm((p) => ({ ...p, title: e.target.value }))
+                    }
+                    placeholder={
+                      bugType === "bug"
+                        ? "Contoh: Tombol simpan tidak merespon"
+                        : "Contoh: Export ke PDF"
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      border: `1px solid ${border}`,
+                      borderRadius: "10px",
+                      backgroundColor: isDarkMode
+                        ? "var(--color-surface-raised)"
+                        : "var(--color-bg)",
+                      color: txt,
+                      fontSize: "14px",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
                 </div>
 
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-border-strong)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
-                    {bugType === 'bug' ? 'Deskripsi' : 'Deskripsi Fitur'}
+                <div style={{ marginBottom: "12px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      color: isDarkMode
+                        ? "var(--color-text-muted)"
+                        : "var(--color-border-strong)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    {bugType === "bug" ? "Deskripsi" : "Deskripsi Fitur"}
                   </label>
-                  <textarea value={bugForm.description} onChange={e => setBugForm(p => ({ ...p, description: e.target.value }))}
+                  <textarea
+                    value={bugForm.description}
+                    onChange={(e) =>
+                      setBugForm((p) => ({ ...p, description: e.target.value }))
+                    }
                     rows={3}
-                    placeholder={bugType === 'bug' ? 'Apa yang terjadi? Apa yang diharapkan?' : 'Jelaskan fitur yang kamu inginkan...'}
-                    style={{ width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: txt, fontSize: '14px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                    placeholder={
+                      bugType === "bug"
+                        ? "Apa yang terjadi? Apa yang diharapkan?"
+                        : "Jelaskan fitur yang kamu inginkan..."
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      border: `1px solid ${border}`,
+                      borderRadius: "10px",
+                      backgroundColor: isDarkMode
+                        ? "var(--color-surface-raised)"
+                        : "var(--color-bg)",
+                      color: txt,
+                      fontSize: "14px",
+                      outline: "none",
+                      resize: "vertical",
+                      fontFamily: "inherit",
+                      boxSizing: "border-box",
+                    }}
+                  />
                 </div>
 
-                {bugType === 'bug' && (
-                  <div style={{ marginBottom: '12px' }}>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-border-strong)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                {bugType === "bug" && (
+                  <div style={{ marginBottom: "12px" }}>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        color: isDarkMode
+                          ? "var(--color-text-muted)"
+                          : "var(--color-border-strong)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        marginBottom: "6px",
+                      }}
+                    >
                       Langkah Reproduksi
                     </label>
-                    <textarea value={bugForm.steps} onChange={e => setBugForm(p => ({ ...p, steps: e.target.value }))}
+                    <textarea
+                      value={bugForm.steps}
+                      onChange={(e) =>
+                        setBugForm((p) => ({ ...p, steps: e.target.value }))
+                      }
                       rows={3}
-                      placeholder={'1. Buka halaman invoice\n2. Klik tombol ...\n3. Bug muncul'}
-                      style={{ width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: txt, fontSize: '14px', outline: 'none', resize: 'vertical', fontFamily: 'monospace', boxSizing: 'border-box' }} />
+                      placeholder={
+                        "1. Buka halaman invoice\n2. Klik tombol ...\n3. Bug muncul"
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        border: `1px solid ${border}`,
+                        borderRadius: "10px",
+                        backgroundColor: isDarkMode
+                          ? "var(--color-surface-raised)"
+                          : "var(--color-bg)",
+                        color: txt,
+                        fontSize: "14px",
+                        outline: "none",
+                        resize: "vertical",
+                        fontFamily: "monospace",
+                        boxSizing: "border-box",
+                      }}
+                    />
                   </div>
                 )}
 
-                <div style={{ marginBottom: '18px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: isDarkMode ? 'var(--color-text-muted)' : 'var(--color-border-strong)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                <div style={{ marginBottom: "18px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      color: isDarkMode
+                        ? "var(--color-text-muted)"
+                        : "var(--color-border-strong)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      marginBottom: "6px",
+                    }}
+                  >
                     Nama / Kontak (opsional)
                   </label>
-                  <input value={bugForm.contact} onChange={e => setBugForm(p => ({ ...p, contact: e.target.value }))}
+                  <input
+                    value={bugForm.contact}
+                    onChange={(e) =>
+                      setBugForm((p) => ({ ...p, contact: e.target.value }))
+                    }
                     placeholder="Nama atau nomor HP"
-                    style={{ width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: txt, fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      border: `1px solid ${border}`,
+                      borderRadius: "10px",
+                      backgroundColor: isDarkMode
+                        ? "var(--color-surface-raised)"
+                        : "var(--color-bg)",
+                      color: txt,
+                      fontSize: "14px",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
                 </div>
 
                 {bugError && (
-                  <div style={{ padding: '10px 12px', backgroundColor: 'var(--color-danger-soft)', color: 'var(--color-danger)', borderRadius: '10px', fontSize: '13px', fontWeight: '600', marginBottom: '10px' }}>
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      backgroundColor: "var(--color-danger-soft)",
+                      color: "var(--color-danger)",
+                      borderRadius: "10px",
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      marginBottom: "10px",
+                    }}
+                  >
                     {bugError}
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={handleSubmitBug} disabled={submitting} className="ui-motion-button ui-focus-ring"
-                    style={{ flex: 1, padding: '13px', backgroundColor: bugType === 'bug' ? 'var(--color-danger)' : 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '10px', cursor: submitting ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', opacity: submitting ? 0.6 : 1 }}>
-                    {submitting ? 'Mengirim...' : (bugType === 'bug' ? '🐛 Kirim Bug Report' : '💡 Kirim Saran')}
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    onClick={handleSubmitBug}
+                    disabled={submitting}
+                    className="ui-motion-button ui-focus-ring"
+                    style={{
+                      flex: 1,
+                      padding: "13px",
+                      backgroundColor:
+                        bugType === "bug"
+                          ? "var(--color-danger)"
+                          : "var(--color-primary)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "10px",
+                      cursor: submitting ? "not-allowed" : "pointer",
+                      fontWeight: "700",
+                      fontSize: "14px",
+                      opacity: submitting ? 0.6 : 1,
+                    }}
+                  >
+                    {submitting
+                      ? "Mengirim..."
+                      : bugType === "bug"
+                        ? "🐛 Kirim Bug Report"
+                        : "💡 Kirim Saran"}
                   </button>
-                  <button onClick={resetModal} className="ui-motion-button ui-focus-ring"
-                    style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: txt, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>
+                  <button
+                    onClick={resetModal}
+                    className="ui-motion-button ui-focus-ring"
+                    style={{
+                      flex: 1,
+                      padding: "13px",
+                      backgroundColor: isDarkMode
+                        ? "var(--color-surface-raised)"
+                        : "var(--color-bg)",
+                      color: txt,
+                      border: "none",
+                      borderRadius: "10px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      fontWeight: "600",
+                    }}
+                  >
                     Batal
                   </button>
                 </div>

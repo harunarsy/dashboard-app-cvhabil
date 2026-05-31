@@ -8,24 +8,62 @@
 @import "@fontsource/jetbrains-mono/600.css";
 
 :root {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', SFMono-Regular, Consolas, 'Liberation Mono', monospace;
-  --font-features: 'cv02' 1, 'cv03' 1, 'cv04' 1, 'cv11' 1, 'ss01' 1, 'tnum' 1;
+  --font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, "SFMono-Regular", SFMono-Regular, Consolas,
+    "Liberation Mono", monospace;
+  --font-features: "cv02" 1, "cv03" 1, "cv04" 1, "cv11" 1, "ss01" 1, "tnum" 1;
+  --ui-motion-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ui-motion-press: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ui-motion-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ui-motion-fast: 150ms;
+  --ui-motion-base: 200ms;
+  --ui-motion-modal: 250ms;
+  --ui-motion-page: 300ms;
 
   --color-primary: #6366f1;
   --color-primary-hover: #4f46e5;
   --color-primary-pressed: #4338ca;
-  --color-primary-soft: color-mix(in srgb, var(--color-primary) 12%, transparent);
-  --color-primary-soft-strong: color-mix(in srgb, var(--color-primary) 18%, transparent);
-  --color-primary-soft-weak: color-mix(in srgb, var(--color-primary) 8%, transparent);
-  --color-primary-border: color-mix(in srgb, var(--color-primary) 28%, transparent);
-  --color-primary-border-strong: color-mix(in srgb, var(--color-primary) 38%, transparent);
+  --color-primary-soft: color-mix(
+    in srgb,
+    var(--color-primary) 12%,
+    transparent
+  );
+  --color-primary-soft-strong: color-mix(
+    in srgb,
+    var(--color-primary) 18%,
+    transparent
+  );
+  --color-primary-soft-weak: color-mix(
+    in srgb,
+    var(--color-primary) 8%,
+    transparent
+  );
+  --color-primary-border: color-mix(
+    in srgb,
+    var(--color-primary) 28%,
+    transparent
+  );
+  --color-primary-border-strong: color-mix(
+    in srgb,
+    var(--color-primary) 38%,
+    transparent
+  );
 
   --color-accent: #f59e0b;
   --color-success: #10b981;
-  --color-success-soft: color-mix(in srgb, var(--color-success) 12%, transparent);
+  --color-success-soft: color-mix(
+    in srgb,
+    var(--color-success) 12%,
+    transparent
+  );
   --color-warning: #f59e0b;
-  --color-warning-soft: color-mix(in srgb, var(--color-warning) 12%, transparent);
+  --color-warning-soft: color-mix(
+    in srgb,
+    var(--color-warning) 12%,
+    transparent
+  );
   --color-danger: #ef4444;
   --color-danger-soft: color-mix(in srgb, var(--color-danger) 12%, transparent);
 
@@ -41,8 +79,18 @@
   --color-text-subtle: #78716c;
   --color-focus: color-mix(in srgb, var(--color-primary) 38%, white);
 
-  --gradient-hero: linear-gradient(135deg, #4f46e5 0%, #6366f1 46%, #8b5cf6 80%, #f59e0b 150%);
-  --gradient-soft: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 16%, transparent) 0%, color-mix(in srgb, var(--color-accent) 10%, transparent) 100%);
+  --gradient-hero: linear-gradient(
+    135deg,
+    #4f46e5 0%,
+    #6366f1 46%,
+    #8b5cf6 80%,
+    #f59e0b 150%
+  );
+  --gradient-soft: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-primary) 16%, transparent) 0%,
+    color-mix(in srgb, var(--color-accent) 10%, transparent) 100%
+  );
 
   --shadow-flat: 0 1px 2px rgba(15, 23, 42, 0.04);
   --shadow-card: 0 10px 28px rgba(15, 23, 42, 0.06);
@@ -75,11 +123,31 @@ body.dark {
   --color-text-subtle: #a8a29e;
   --color-focus: color-mix(in srgb, var(--color-primary) 46%, white);
 
-  --color-primary-soft: color-mix(in srgb, var(--color-primary) 16%, transparent);
-  --color-primary-soft-strong: color-mix(in srgb, var(--color-primary) 24%, transparent);
-  --color-primary-soft-weak: color-mix(in srgb, var(--color-primary) 10%, transparent);
-  --color-primary-border: color-mix(in srgb, var(--color-primary) 34%, transparent);
-  --color-primary-border-strong: color-mix(in srgb, var(--color-primary) 46%, transparent);
+  --color-primary-soft: color-mix(
+    in srgb,
+    var(--color-primary) 16%,
+    transparent
+  );
+  --color-primary-soft-strong: color-mix(
+    in srgb,
+    var(--color-primary) 24%,
+    transparent
+  );
+  --color-primary-soft-weak: color-mix(
+    in srgb,
+    var(--color-primary) 10%,
+    transparent
+  );
+  --color-primary-border: color-mix(
+    in srgb,
+    var(--color-primary) 34%,
+    transparent
+  );
+  --color-primary-border-strong: color-mix(
+    in srgb,
+    var(--color-primary) 46%,
+    transparent
+  );
 
   --shadow-flat: 0 1px 2px rgba(0, 0, 0, 0.28);
   --shadow-card: 0 10px 28px rgba(0, 0, 0, 0.24);
@@ -107,7 +175,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--color-bg);
   color: var(--color-text);
-  transition: background-color 220ms cubic-bezier(0.16, 1, 0.3, 1), color 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    background-color 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body.dark {
@@ -140,7 +210,11 @@ samp {
   cursor: pointer;
   font-size: 1rem;
   font-weight: 600;
-  transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms cubic-bezier(0.16, 1, 0.3, 1), color 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 100ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition:
+    background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 100ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .btn:active {
@@ -158,7 +232,8 @@ samp {
   --magnetic-x: 0px;
   --magnetic-y: 0px;
   --magnetic-scale: 1;
-  transform: translate3d(var(--magnetic-x), var(--magnetic-y), 0) scale(var(--magnetic-scale));
+  transform: translate3d(var(--magnetic-x), var(--magnetic-y), 0)
+    scale(var(--magnetic-scale));
   will-change: transform;
   transition:
     background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -177,11 +252,16 @@ samp {
 }
 
 .btn-primary[data-magnetic="true"]:active {
-  transform: translate3d(var(--magnetic-x), var(--magnetic-y), 0) scale(calc(var(--magnetic-scale) * 0.98));
+  transform: translate3d(var(--magnetic-x), var(--magnetic-y), 0)
+    scale(calc(var(--magnetic-scale) * 0.98));
 }
 
 .btn-primary:disabled {
-  background-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-bg));
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 40%,
+    var(--color-bg)
+  );
   cursor: not-allowed;
   opacity: 0.75;
 }
@@ -212,9 +292,15 @@ samp {
 }
 
 @keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.45; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 .animate-pulse {
@@ -222,12 +308,20 @@ samp {
 }
 
 .skeleton {
-  background-color: color-mix(in srgb, var(--color-border) 72%, var(--color-surface));
+  background-color: color-mix(
+    in srgb,
+    var(--color-border) 72%,
+    var(--color-surface)
+  );
   border-radius: 0.5rem;
 }
 
 .dark .skeleton {
-  background-color: color-mix(in srgb, var(--color-border) 88%, var(--color-surface));
+  background-color: color-mix(
+    in srgb,
+    var(--color-border) 88%,
+    var(--color-surface)
+  );
 }
 
 .ui-surface-panel,
@@ -255,7 +349,9 @@ samp {
 .ui-row-action {
   opacity: 0;
   transform: translateY(2px);
-  transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .ui-row:hover .ui-row-action,
@@ -268,6 +364,243 @@ samp {
   border: 1px dashed var(--color-border);
   border-radius: 1rem;
   background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--color-primary) 10%, transparent) 0%, transparent 55%),
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--color-primary) 10%, transparent) 0%,
+      transparent 55%
+    ),
     var(--color-surface);
+}
+
+.ui-motion-page {
+  animation: ui-fade-scale-in var(--ui-motion-page) var(--ui-motion-enter) both;
+}
+
+.ui-motion-modal {
+  animation: ui-fade-scale-in var(--ui-motion-modal) var(--ui-motion-enter) both;
+}
+
+.ui-motion-toast {
+  animation: ui-toast-in var(--ui-motion-modal) var(--ui-motion-enter) both;
+}
+
+.ui-motion-card {
+  transition:
+    transform var(--ui-motion-base) var(--ui-motion-enter),
+    box-shadow var(--ui-motion-base) var(--ui-motion-enter),
+    border-color var(--ui-motion-base) var(--ui-motion-enter),
+    background-color var(--ui-motion-base) var(--ui-motion-enter);
+  will-change: transform, box-shadow;
+}
+
+.ui-motion-card:hover {
+  transform: translateY(-2px);
+}
+
+.ui-motion-button {
+  transition:
+    transform var(--ui-motion-fast) var(--ui-motion-press),
+    box-shadow var(--ui-motion-base) var(--ui-motion-enter),
+    background-color var(--ui-motion-base) var(--ui-motion-enter),
+    border-color var(--ui-motion-base) var(--ui-motion-enter),
+    color var(--ui-motion-base) var(--ui-motion-enter);
+}
+
+.ui-motion-button:active {
+  transform: scale(0.97);
+}
+
+.ui-hover-delight {
+  transition:
+    transform var(--ui-motion-base) var(--ui-motion-enter),
+    box-shadow var(--ui-motion-base) var(--ui-motion-enter),
+    border-color var(--ui-motion-base) var(--ui-motion-enter),
+    background-color var(--ui-motion-base) var(--ui-motion-enter);
+}
+
+.ui-hover-delight:hover,
+.ui-hover-delight:focus-within {
+  transform: translateY(-2px);
+  box-shadow:
+    var(--shadow-hover),
+    0 0 0 1px color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+.ui-focus-ring:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-focus) 42%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-focus) 72%, transparent);
+}
+
+.ui-skeleton-shimmer {
+  background: linear-gradient(
+    135deg,
+    rgba(229, 231, 235, 0.64) 20%,
+    rgba(243, 244, 246, 0.96) 35%,
+    rgba(229, 231, 235, 0.64) 50%
+  );
+  background-size: 200% 100%;
+  animation: ui-shimmer 1200ms linear infinite;
+}
+
+.dark .ui-skeleton-shimmer {
+  background: linear-gradient(
+    135deg,
+    rgba(55, 65, 81, 0.72) 20%,
+    rgba(75, 85, 99, 0.96) 35%,
+    rgba(55, 65, 81, 0.72) 50%
+  );
+  background-size: 200% 100%;
+}
+
+.ui-skeleton-wave {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-border) 72%, var(--color-surface)) 25%,
+    color-mix(in srgb, var(--color-surface) 92%, white) 37%,
+    color-mix(in srgb, var(--color-border) 72%, var(--color-surface)) 63%
+  );
+  background-size: 200% 100%;
+  animation: ui-skeleton-wave var(--ui-motion-page) linear infinite;
+}
+
+.dark .ui-skeleton-wave {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-border) 84%, var(--color-surface)) 25%,
+    color-mix(in srgb, var(--color-surface) 88%, white) 37%,
+    color-mix(in srgb, var(--color-border) 84%, var(--color-surface)) 63%
+  );
+  background-size: 200% 100%;
+}
+
+.ui-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.route-fade {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity var(--route-fade-duration, var(--ui-motion-page))
+      var(--ui-motion-enter),
+    transform var(--route-fade-duration, var(--ui-motion-page))
+      var(--ui-motion-enter);
+  will-change: opacity, transform;
+}
+
+.route-fade--entered {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ui-tooltip-anchor {
+  display: inline-flex;
+}
+
+.ui-tooltip {
+  position: fixed;
+  z-index: 100000;
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-elevated) 88%,
+    transparent
+  );
+  color: var(--color-text);
+  box-shadow: var(--shadow-floating);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px) scale(0.98);
+  transition:
+    opacity var(--tooltip-fade-duration, var(--ui-motion-fast))
+      var(--ui-motion-enter),
+    transform var(--tooltip-fade-duration, var(--ui-motion-fast))
+      var(--ui-motion-enter);
+  will-change: opacity, transform;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.ui-tooltip[data-open="true"] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.ui-modal-shell {
+  width: 100%;
+  max-width: min(560px, calc(100vw - 32px));
+  margin-inline: auto;
+}
+
+@keyframes ui-fade-scale-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ui-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ui-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes ui-skeleton-wave {
+  0% {
+    background-position: -180% 0;
+  }
+  100% {
+    background-position: 180% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .ui-motion-page,
+  .ui-motion-modal,
+  .ui-motion-toast,
+  .ui-motion-card,
+  .ui-motion-button,
+  .ui-hover-delight,
+  .route-fade {
+    animation: none !important;
+    transform: none !important;
+  }
 }

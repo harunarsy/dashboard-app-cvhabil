@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.13.2-stable] - 2026-06-01
+
+### Changed
+- Apple Liquid Glass dipurge total dari frontend runtime, release modal Dashboard dibuka lewat portal setelah transisi route selesai, dan sidebar overlay tetap fixed/stabil tanpa dismiss yang tidak eksplisit.
+- Label versi canonical di Login, Sidebar, index.js, Dashboard, CHANGELOG, dan SUPERAPP_BRAIN disinkronkan ke `v1.13.2-stable`.
+- `generateNotaPDF.js` tetap tidak disentuh.
+
 ## [v1.13.1-stable] - 2026-06-01
 
 ### Changed
