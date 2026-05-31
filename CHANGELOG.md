@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.13-stable] - 2026-05-31
+
+### Added
+- **🗃️ Inventory — Bulk Edit Kode & Kategori**: di list Inventory, sekarang ada checkbox di kiri tiap baris produk (+ select-all di header). Centang ≥1 produk → sticky bar muncul di bawah dgn tombol "Edit Massal" → modal kasih tabel mapping per-produk (input Kode Baru + Kategori Baru, kategori auto-suggest dari yg sudah ada). Mode selector: `[Kode saja] [Kategori saja] [Kode + Kategori]`. Validasi: duplicate kode di-block dgn warning merah. Progress indicator "Menyimpan x/N". Hemat waktu standardize kode/kategori banyak produk sekaligus.
+  - _Detail teknis_: `frontend/src/components/inventory/BulkEditModal.jsx` (BARU). `InventoryDashboard.jsx`: +`selectedProductIds` Set state, checkbox column (header indeterminate + select-all `filtered`, per-row toggle), sticky bottom bar `position:fixed`. Sequential save loop pakai `inventoryAPI.updateProduct` (backend butuh full body — spread dari product object existing). colSpan adjustments: tfoot 8→9, expanded 10→11, empty 11→12.
+
 ## [v1.11.12-stable] - 2026-05-31
 
 ### Fixed

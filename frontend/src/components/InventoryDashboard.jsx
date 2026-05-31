@@ -16,6 +16,7 @@ import OpnameModal from './inventory/OpnameModal';
 import BatchFormModal from './inventory/BatchFormModal';
 import { hppFromHna, formatRupiah } from '../utils/rupiah';
 import HnaHppInput from './common/HnaHppInput';
+import BulkEditModal from './inventory/BulkEditModal';
 
 const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -47,6 +48,9 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
   // Expand + Drawer state (Phase 2 additions)
   const [expandedIds, setExpandedIds] = useState(new Set());
+  // v1.11.13: bulk edit selection
+  const [selectedProductIds, setSelectedProductIds] = useState(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [batchesCache, setBatchesCache] = useState({});
   const [batchesLoading, setBatchesLoading] = useState({});
   const [drawerProductId, setDrawerProductId] = useState(null);
@@ -394,6 +398,19 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '760px' }}>
               <thead>
                 <tr style={{ backgroundColor: surface }}>
+                  <th style={{ ...thStyle(sub, border), width: '40px', textAlign: 'center' }} aria-label="Pilih semua">
+                    <input
+                      type="checkbox"
+                      checked={filtered.length > 0 && filtered.every(p => selectedProductIds.has(p.id))}
+                      ref={el => { if (el) el.indeterminate = selectedProductIds.size > 0 && !filtered.every(p => selectedProductIds.has(p.id)); }}
+                      onChange={e => {
+                        if (e.target.checked) setSelectedProductIds(new Set(filtered.map(p => p.id)));
+                        else setSelectedProductIds(new Set());
+                      }}
+                      style={{ cursor: 'pointer', width: '14px', height: '14px' }}
+                      aria-label="Pilih semua produk (filtered)"
+                    />
+                  </th>
                   <th style={thStyle(sub, border)} aria-label="Expand"></th>
                   <th style={thStyle(sub, border)}>Kode</th>
                   <th style={thStyle(sub, border)}>Nama Produk</th>
@@ -412,6 +429,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                   [...Array(5)].map((_, i) => (
                     <tr key={i} style={{ borderBottom: `1px solid ${border}` }}>
                       <td style={tdStyle}></td>
+                      <td style={tdStyle}></td>
                       <td style={tdStyle}><Skeleton width="60px" height="14px" /></td>
                       <td style={tdStyle}><Skeleton width="150px" height="14px" /></td>
                       <td style={tdStyle}><Skeleton width="40px" height="14px" /></td>
@@ -419,6 +437,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                       <td style={tdStyle}><Skeleton width="80px" height="14px" /></td>
                       <td style={tdStyle}><Skeleton width="80px" height="14px" /></td>
                       <td style={tdStyle}><Skeleton width="40px" height="14px" /></td>
+                      <td style={tdStyle}><Skeleton width="80px" height="14px" /></td>
                       <td style={tdStyle}><Skeleton width="100px" height="18px" /></td>
                       <td style={tdStyle}><Skeleton width="80px" height="20px" /></td>
                     </tr>
@@ -434,9 +453,26 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                     // Bar visible HANYA bila min_stock terdefinisi (> 0). Tanpa threshold = no gauge.
                     const stockPct = hasMinStock ? Math.min(100, (stock / (minStockNum * 2)) * 100) : 0;
                     const stockColor = stock <= 0 ? '#FF3B30' : isLowStock ? '#FF9500' : '#34C759';
+                    const isSelected = selectedProductIds.has(p.id);
                     return (
                       <React.Fragment key={p.id}>
-                        <tr style={{ borderBottom: `1px solid ${border}`, background: isExpanded ? surface : 'transparent' }}>
+                        <tr style={{ borderBottom: `1px solid ${border}`, background: isSelected ? (isDarkMode ? '#007AFF15' : '#007AFF08') : (isExpanded ? surface : 'transparent') }}>
+                          <td style={{ ...tdStyle, width: '40px', textAlign: 'center' }}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {
+                                setSelectedProductIds(prev => {
+                                  const next = new Set(prev);
+                                  if (next.has(p.id)) next.delete(p.id);
+                                  else next.add(p.id);
+                                  return next;
+                                });
+                              }}
+                              style={{ cursor: 'pointer', width: '14px', height: '14px' }}
+                              aria-label={`Pilih ${p.name}`}
+                            />
+                          </td>
                           <td style={{ ...tdStyle, width: '36px' }}>
                             <button onClick={() => toggleExpand(p.id)} aria-label={isExpanded ? 'Tutup batch' : 'Lihat batch'} style={{
                               background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px',
@@ -499,7 +535,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                         {isExpanded && (
                           <tr style={{ background: surface, borderBottom: `1px solid ${border}` }}>
                             <td></td>
-                            <td colSpan={10} style={{ padding: '8px 14px 16px' }}>
+                            <td colSpan={11} style={{ padding: '8px 14px 16px' }}>
                               <ExpandedBatches
                                 product={p}
                                 batches={batchesCache[p.id]}
@@ -519,14 +555,14 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
                   })
                 )}
                 {!loading && !filtered.length && (
-                  <tr><td colSpan={11} style={{ padding: '3rem 1rem', textAlign: 'center', color: sub }}>
+                  <tr><td colSpan={12} style={{ padding: '3rem 1rem', textAlign: 'center', color: sub }}>
                     {search || statusFilter !== 'all' ? 'Tidak ada produk yang cocok dengan filter.' : 'Belum ada produk. Klik "Produk" untuk menambahkan.'}
                   </td></tr>
                 )}
               </tbody>
               <tfoot>
                 <tr style={{ borderTop: `2px solid ${border}` }}>
-                  <td colSpan={8} style={{ ...tdStyle, textAlign: 'right', fontWeight: '700', color: text }}>Total Nilai Inventaris (inc PPN) <span style={{ fontWeight: '400', color: sub, fontSize: '11px' }}>(sesuai filter aktif)</span></td>
+                  <td colSpan={9} style={{ ...tdStyle, textAlign: 'right', fontWeight: '700', color: text }}>Total Nilai Inventaris (inc PPN) <span style={{ fontWeight: '400', color: sub, fontSize: '11px' }}>(sesuai filter aktif)</span></td>
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '800', color: text, fontVariantNumeric: 'tabular-nums' }}>{fmtRp(totalNilai)}</td>
                   <td colSpan={2} />
                 </tr>
@@ -824,6 +860,54 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
           onClose={() => setShowModal(null)}
           onSaved={(msg) => { flashSuccess(msg); fetchProducts(); fetchAlerts(); setBatchesCache({}); }}
           onProductsChanged={() => { fetchProducts(); }}
+        />
+      )}
+
+      {/* v1.11.13: Sticky action bar — muncul kalau ada produk dipilih */}
+      {selectedProductIds.size > 0 && (
+        <div style={{
+          position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
+          background: isDarkMode ? '#1C1C1E' : '#FFFFFF', color: text,
+          border: `1px solid ${border}`, borderRadius: '14px',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.2)', padding: '10px 16px',
+          display: 'flex', alignItems: 'center', gap: '14px', zIndex: 1000,
+          fontSize: '13px', fontWeight: '600',
+        }}>
+          <span><strong style={{ color: '#007AFF' }}>{selectedProductIds.size}</strong> produk dipilih</span>
+          <button
+            onClick={() => setBulkEditOpen(true)}
+            style={{
+              padding: '8px 14px', background: '#007AFF', color: '#FFF', border: 'none',
+              borderRadius: '8px', fontWeight: '600', fontSize: '12px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+          ><Edit2 size={13} /> Edit Massal</button>
+          <button
+            onClick={() => setSelectedProductIds(new Set())}
+            style={{
+              padding: '8px 12px', background: 'transparent', color: sub,
+              border: `1px solid ${border}`, borderRadius: '8px',
+              fontWeight: '600', fontSize: '12px', cursor: 'pointer',
+            }}
+          >Batal</button>
+        </div>
+      )}
+
+      {/* v1.11.13: Bulk edit modal */}
+      {bulkEditOpen && (
+        <BulkEditModal
+          products={products.filter(p => selectedProductIds.has(p.id))}
+          allProducts={products}
+          allCategories={Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort()}
+          onClose={() => setBulkEditOpen(false)}
+          onSaved={(n) => {
+            if (n > 0) {
+              fetchProducts();
+              setSelectedProductIds(new Set());
+              flashSuccess(`${n} produk berhasil di-update`);
+            }
+          }}
+          isDarkMode={isDarkMode}
         />
       )}
 

@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.11.12-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.11.13-stable', date: '31 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Inventory — Bulk Edit Kode & Kategori: centang banyak produk → tombol "Edit Massal" muncul di bawah → modal kasih tabel mapping (nama produk + input kode baru + input kategori baru per row). Hemat waktu kalau mau standardize kode/kategori banyak produk sekaligus (mis. tambah prefix "OBT-" ke semua obat).',
+        dev: 'frontend/src/components/inventory/BulkEditModal.jsx (BARU): mapping table, mode selector [Kode|Kategori|Kode+Kategori], duplicate kode validation, sequential save loop dgn progress + result per-row. InventoryDashboard.jsx: +selectedProductIds Set state, checkbox column (header select-all filtered + per row), sticky bottom bar conditional render. Update colSpan tfoot 8→9, expanded 10→11, empty 11→12.'
+      },
+    ]
+  },
+  {
+    version: 'v1.11.12-stable', date: '31 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'fix',
@@ -860,7 +870,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.11.12-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.13-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -913,7 +923,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.11.12-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.13-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
