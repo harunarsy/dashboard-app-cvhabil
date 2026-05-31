@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.10-stable] - 2026-05-31
+
+### Added
+- **🧾 Faktur Pembelian — Diskon per produk: toggle persen (%) atau nominal (Rp)**: kotak Disc per produk di form Faktur sekarang punya toggle `[% | Rp]` di pojok kanan atas. Pilih `%` untuk input persentase (mis. 20%), atau `Rp` untuk input nominal langsung (mis. Rp 758.100). Sesuai faktur fisik yg sering nulis disc nominal langsung. Helper text otomatis tampil konversi balik.
+  - _Detail teknis_: `InvoiceList.jsx` — `blankItem` +`disc_mode` (`percent`|`nominal`) +`disc_input` (raw string). `calcItem` switch by mode: nominal → ambil `disc_input` langsung, derive `disc_percent`; percent → derive `disc_nominal`. Keduanya tetap disimpan ke DB (kolom `disc_percent` + `disc_nominal` existing, no migration). UI: card terpisah dgn segmented toggle + helper conversion. Grid disc-col `0.7fr`→`1fr`. Backward compat: old data dgn `disc_percent` → mode `percent` auto.
+
 ## [v1.11.9-stable] - 2026-05-31
 
 ### Added

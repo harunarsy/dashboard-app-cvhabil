@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.11.9-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.11.10-stable', date: '31 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Diskon per produk di Faktur Pembelian sekarang bisa pakai persen (%) atau nominal (Rp) — tinggal klik toggle [% | Rp] di pojok kanan atas kotak Disc. Sesuai faktur asli yang kadang nulis disc nominal langsung (mis. Rp 758.100), bukan persen. Helper text otomatis tampil konversi balik (mis. "= 20%" kalau input nominal).',
+        dev: 'InvoiceList.jsx: blankItem +disc_mode (percent|nominal), +disc_input (raw). calcItem switch by mode — derive yg lain otomatis. Keduanya tetap disimpan ke DB (disc_percent + disc_nominal kolom existing, no migration). UI: card terpisah dgn segmented toggle + helper conversion. Grid disc-col 0.7fr→1fr (lebih lega). Backward compat: old data disc_percent → mode percent auto.'
+      },
+    ]
+  },
+  {
+    version: 'v1.11.9-stable', date: '31 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -820,7 +830,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.11.9-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.10-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -873,7 +883,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.11.9-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.10-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

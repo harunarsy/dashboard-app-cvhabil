@@ -82,9 +82,11 @@ const blankItem = () => ({
   product_name: '', batch_number: '', expired_date: '', quantity: '', hna: '',
   hna_times_qty: 0, disc_percent: '', disc_nominal: 0, hna_baru: 0, hna_per_item: 0,
   price_basis: 'hna_exc', // hna_exc | hpp_inc. Canonical saved value remains raw HNA exc PPN.
+  disc_mode: 'percent', // v1.11.10: 'percent' | 'nominal'
+  disc_input: '', // v1.11.10: raw input field (interpretation tergantung disc_mode)
   unit: 'pcs', // v1.6.0 multi-unit: unit input dari distributor (pcs/karton/dus/etc)
 });
-const normalizeItem = (item) => ({ price_basis: 'hna_exc', ...item });
+const normalizeItem = (item) => ({ price_basis: 'hna_exc', disc_mode: 'percent', ...item });
 const displayUnitPrice = (item) => {
   const hna = parseNum(item.hna);
   return item.price_basis === 'hpp_inc' ? hna * (1 + PPN_RATE) : hna;
@@ -103,13 +105,23 @@ const calcItem = (item, disc_cod_per_item = 0) => {
   const qty = parseNum(item.quantity);
   const hna = parseNum(item.hna);
   const hna_times_qty = hna * qty;
-  const disc_percent = parseNum(item.disc_percent);
-  const disc_nominal = hna_times_qty * (disc_percent / 100);
+  // v1.11.10: disc bisa mode 'percent' atau 'nominal' — derive yg lain otomatis
+  const disc_mode = item.disc_mode || 'percent';
+  let disc_percent, disc_nominal;
+  if (disc_mode === 'nominal') {
+    disc_nominal = parseNum(item.disc_input);
+    disc_percent = hna_times_qty > 0 ? (disc_nominal / hna_times_qty) * 100 : 0;
+  } else {
+    // backward compat: kalau disc_input kosong tp disc_percent ada (old data), pakai disc_percent
+    const raw = item.disc_input !== '' && item.disc_input !== undefined && item.disc_input !== null ? item.disc_input : item.disc_percent;
+    disc_percent = parseNum(raw);
+    disc_nominal = hna_times_qty * (disc_percent / 100);
+  }
   const hna_baru = hna_times_qty - disc_nominal;
   const hna_after_cod = hna_baru - disc_cod_per_item;
   const hna_per_item = qty > 0 ? hna_baru / qty : 0;
   const hpp_inc_ppn = qty > 0 ? (hna_after_cod / qty) * (1 + PPN_RATE) : 0;
-  return { ...item, hna_times_qty, disc_nominal, hna_baru, hna_per_item, disc_cod_per_item, hna_after_cod, hpp_inc_ppn };
+  return { ...item, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, disc_cod_per_item, hna_after_cod, hpp_inc_ppn };
 };
 const calcTotals = (items, form) => {
   const total_hna = items.reduce((s, i) => s + i.hna_times_qty, 0);
@@ -548,7 +560,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
         status: invoice.status,
       });
       setItems(invItems.length > 0
-        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', batch_number: i.batch_number||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0, price_basis: 'hna_exc', unit: i.unit||'pcs' }))
+        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', batch_number: i.batch_number||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, disc_mode: 'percent', disc_input: i.disc_percent ? String(i.disc_percent) : '', hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0, price_basis: 'hna_exc', unit: i.unit||'pcs' }))
         : [blankItem()]
       );
       setEditingId(existingId);
@@ -571,7 +583,7 @@ export default function InvoiceList({ isDarkMode, isSidebarOpen, isMobile, isVan
         status: invoice.status,
       });
       setItems(invItems.length > 0
-        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', batch_number: i.batch_number||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0, price_basis: 'hna_exc', unit: i.unit||'pcs' }))
+        ? invItems.map(i => calcItem({ _id: Math.random().toString(36).slice(2), product_name: i.product_name||'', batch_number: i.batch_number||'', expired_date: i.expired_date?.split('T')[0]||'', quantity: i.quantity||'', hna: i.hna||i.unit_price||'', hna_times_qty: i.hna_times_qty||0, disc_percent: i.disc_percent||'', disc_nominal: i.disc_nominal||0, disc_mode: 'percent', disc_input: i.disc_percent ? String(i.disc_percent) : '', hna_baru: i.hna_baru||0, hna_per_item: i.hna_per_item||0, price_basis: 'hna_exc', unit: i.unit||'pcs' }))
         : [blankItem()]
       );
       setEditingId(inv.id); setShowModal(true);
@@ -1325,7 +1337,7 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                     </div>
                   ) : null;
                 })()}
-                <div style={{ display: 'grid', gridTemplateColumns: '0.7fr 0.8fr 1.35fr 0.7fr', gap: '10px', marginBottom: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '0.7fr 0.8fr 1.35fr 1fr', gap: '10px', marginBottom: '10px' }}>
                   <div><label style={S.label}>QTY</label><input style={S.input} type="number" min="0" value={item.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} placeholder="0" /></div>
                   <div>
                     <label style={S.label}>Satuan</label>
@@ -1363,7 +1375,27 @@ function InvoiceModal({ isDarkMode, form, items, totals, editingId, distributors
                         : `Estimasi HPP inc PPN: ${formatRp(parseNum(item.hna) * (1 + PPN_RATE), true)}`}
                     </p>
                   </div>
-                  <div><label style={S.label}>Disc %</label><input style={S.input} type="number" min="0" max="100" step="0.01" value={item.disc_percent} onChange={e => updateItem(idx, 'disc_percent', e.target.value)} placeholder="0" /></div>
+                  <div style={{ background: isDarkMode ? '#1C1C1E' : '#FFFFFF', border: `1px solid ${isDarkMode ? '#3A3A3C' : '#D1D1D6'}`, borderRadius: '12px', padding: '8px 10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <label style={{ ...S.label, marginBottom: 0 }}>Disc</label>
+                      <div style={{ display: 'inline-flex', background: isDarkMode ? '#2C2C2E' : '#F2F2F7', borderRadius: '6px', padding: '2px' }}>
+                        <button type="button" onClick={() => updateItem(idx, 'disc_mode', 'percent')} style={{ padding: '2px 8px', fontSize: '10px', fontWeight: '700', border: 'none', borderRadius: '4px', cursor: 'pointer', background: (item.disc_mode || 'percent') === 'percent' ? '#007AFF' : 'transparent', color: (item.disc_mode || 'percent') === 'percent' ? '#FFF' : (isDarkMode ? '#86868B' : '#6E6E73') }}>%</button>
+                        <button type="button" onClick={() => updateItem(idx, 'disc_mode', 'nominal')} style={{ padding: '2px 8px', fontSize: '10px', fontWeight: '700', border: 'none', borderRadius: '4px', cursor: 'pointer', background: item.disc_mode === 'nominal' ? '#007AFF' : 'transparent', color: item.disc_mode === 'nominal' ? '#FFF' : (isDarkMode ? '#86868B' : '#6E6E73') }}>Rp</button>
+                      </div>
+                    </div>
+                    {item.disc_mode === 'nominal' ? (
+                      <RupiahInput style={{ ...S.input, padding: '8px 10px' }} value={item.disc_input || ''} decimals={2} onChange={v => updateItem(idx, 'disc_input', v)} placeholder="Rp 0" />
+                    ) : (
+                      <input style={{ ...S.input, padding: '8px 10px' }} type="number" min="0" max="100" step="0.01" value={item.disc_input || ''} onChange={e => updateItem(idx, 'disc_input', e.target.value)} placeholder="0" />
+                    )}
+                    {(item.disc_nominal > 0 || parseNum(item.disc_input) > 0) && (
+                      <p style={{ margin: '4px 0 0', fontSize: '10px', color: '#86868B', lineHeight: 1.3 }}>
+                        {item.disc_mode === 'nominal'
+                          ? `= ${item.disc_percent.toFixed(2)}%`
+                          : `= ${formatRp(item.disc_nominal, true)}`}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 {/* HPP Final highlight + Detail toggle (v1.8.0 simplified) */}
                 {(() => {
