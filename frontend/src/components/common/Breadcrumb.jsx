@@ -11,6 +11,7 @@ export default function Breadcrumb({ title, isMobile, isDarkMode }) {
     return (
       <button 
         onClick={() => navigate(-1)} 
+        className="ui-motion-button ui-focus-ring"
         style={{ 
           display: 'flex', alignItems: 'center', gap: '4px', 
           color: text, fontSize: '14px', fontWeight: '600', 
@@ -27,6 +28,7 @@ export default function Breadcrumb({ title, isMobile, isDarkMode }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '500', color: sub, marginBottom: '12px' }}>
       <span 
         onClick={() => navigate('/dashboard')} 
+        className="ui-focus-ring"
         style={{ cursor: 'pointer', transition: 'color 0.2s' }} 
         onMouseEnter={e => e.target.style.color = text} 
         onMouseLeave={e => e.target.style.color = sub}

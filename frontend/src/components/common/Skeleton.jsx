@@ -11,7 +11,7 @@ import React from 'react';
 const Skeleton = ({ width, height, borderRadius, className = '', style = {} }) => {
   return (
     <div
-      className={`skeleton animate-pulse ${className}`}
+      className={`skeleton ui-skeleton-shimmer ${className}`}
       style={{
         width: width || '100%',
         height: height || '20px',

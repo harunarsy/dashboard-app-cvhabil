@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.12.4-stable] - 2026-05-31
+
+### Added
+- Fondasi motion ringan: modal entrance, toast slide-in, hover/press feedback, focus ring halus, dan skeleton shimmer yang konsisten.
+- `frontend/src/constants/ui.js` jadi SSOT timing UI supaya delay kecil tidak nyebar sebagai magic number.
+- Aksesibilitas dan affordance tombol diperbaiki di surface utama, termasuk cleanup silent catch dan label untuk icon button yang sempat bocor.
+
 ## [v1.12.3-stable] - 2026-05-31
 
 ### Fixed

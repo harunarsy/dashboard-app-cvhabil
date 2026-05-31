@@ -15,6 +15,14 @@
 
 /* ─── Design tokens ─────────────────────────────────────────────────────── */
 :root {
+  --ui-motion-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ui-motion-press: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ui-motion-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ui-motion-fast: 150ms;
+  --ui-motion-base: 200ms;
+  --ui-motion-modal: 250ms;
+  --ui-motion-page: 300ms;
+
   --glass-frost-regular: 18px;
   --glass-frost-clear: 24px;
   --glass-frost-ultra: 12px;
@@ -41,6 +49,94 @@
     background-color 350ms cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 350ms cubic-bezier(0.4, 0, 0.2, 1),
     border-color 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes ui-fade-scale-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ui-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ui-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.ui-motion-page {
+  animation: ui-fade-scale-in var(--ui-motion-page) var(--ui-motion-enter) both;
+}
+
+.ui-motion-modal {
+  animation: ui-fade-scale-in var(--ui-motion-modal) var(--ui-motion-enter) both;
+}
+
+.ui-motion-toast {
+  animation: ui-toast-in var(--ui-motion-modal) var(--ui-motion-enter) both;
+}
+
+.ui-motion-card {
+  transition:
+    transform var(--ui-motion-base) var(--ui-motion-enter),
+    box-shadow var(--ui-motion-base) var(--ui-motion-enter),
+    border-color var(--ui-motion-base) var(--ui-motion-enter),
+    background-color var(--ui-motion-base) var(--ui-motion-enter);
+  will-change: transform, box-shadow;
+}
+
+.ui-motion-card:hover {
+  transform: translateY(-2px);
+}
+
+.ui-motion-button {
+  transition:
+    transform var(--ui-motion-fast) var(--ui-motion-press),
+    box-shadow var(--ui-motion-base) var(--ui-motion-enter),
+    background-color var(--ui-motion-base) var(--ui-motion-enter),
+    border-color var(--ui-motion-base) var(--ui-motion-enter),
+    color var(--ui-motion-base) var(--ui-motion-enter);
+}
+
+.ui-motion-button:active {
+  transform: scale(0.97);
+}
+
+.ui-focus-ring:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(0, 122, 255, 0.18),
+    0 0 0 1px rgba(0, 122, 255, 0.52);
+}
+
+.ui-skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(229, 231, 235, 0.65) 25%, rgba(243, 244, 246, 0.95) 37%, rgba(229, 231, 235, 0.65) 63%);
+  background-size: 200% 100%;
+  animation: ui-shimmer var(--ui-motion-page) linear infinite;
+}
+
+.dark .ui-skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(55, 65, 81, 0.7) 25%, rgba(75, 85, 99, 0.95) 37%, rgba(55, 65, 81, 0.7) 63%);
+  background-size: 200% 100%;
+}
+
+.ui-touch-target {
+  min-height: 44px;
+  min-width: 44px;
 }
 
 /* ─── Base glass-target (regular tier) — light mode ─────────────────────── */
@@ -151,8 +247,15 @@ body {
   .liquid-glass-active .glass-target,
   .liquid-glass-active .glass-target--clear,
   .liquid-glass-active .glass-target--ultra,
-  .glass-toggle-btn {
+  .glass-toggle-btn,
+  .ui-motion-page,
+  .ui-motion-modal,
+  .ui-motion-toast,
+  .ui-motion-card,
+  .ui-motion-button,
+  .ui-skeleton-shimmer {
     transition: none !important;
+    animation: none !important;
   }
 }
 

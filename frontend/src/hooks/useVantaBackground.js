@@ -34,7 +34,9 @@ export default function useVantaBackground(isDarkMode = false) {
       const urlVal = params.get(URL_PARAM);
       if (urlVal === 'off') return false;
       if (urlVal === 'on') {
-        try { localStorage.setItem(STORAGE_KEY, '1'); } catch {}
+        try { localStorage.setItem(STORAGE_KEY, '1'); } catch (e) {
+          console.warn('[Vanta] localStorage persist failed:', e.message);
+        }
         return true;
       }
       if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false;
@@ -42,7 +44,8 @@ export default function useVantaBackground(isDarkMode = false) {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored === null) return true; // default ON
       return stored === '1';
-    } catch {
+    } catch (e) {
+      console.warn('[Vanta] init state failed:', e);
       return false;
     }
   });
@@ -60,13 +63,17 @@ export default function useVantaBackground(isDarkMode = false) {
     try {
       if (enabled) document.body.classList.add('vanta-active');
       else document.body.classList.remove('vanta-active');
-    } catch {}
+    } catch (e) {
+      console.warn('[Vanta] body class toggle failed:', e);
+    }
   }, [enabled]);
 
   useEffect(() => {
     if (!enabled) {
       if (effectRef.current) {
-        try { effectRef.current.destroy(); } catch {}
+        try { effectRef.current.destroy(); } catch (e) {
+          console.warn('[Vanta] destroy failed:', e);
+        }
         effectRef.current = null;
       }
       return;
@@ -75,7 +82,9 @@ export default function useVantaBackground(isDarkMode = false) {
 
     // Destroy prev instance sebelum re-init (dark mode swap)
     if (effectRef.current) {
-      try { effectRef.current.destroy(); } catch {}
+      try { effectRef.current.destroy(); } catch (e) {
+        console.warn('[Vanta] destroy failed:', e);
+      }
       effectRef.current = null;
     }
 
@@ -106,12 +115,16 @@ export default function useVantaBackground(isDarkMode = false) {
     } catch (e) {
       console.warn('[Vanta] init failed — disabling:', e.message);
       setEnabledState(false);
-      try { localStorage.setItem(STORAGE_KEY, '0'); } catch {}
+      try { localStorage.setItem(STORAGE_KEY, '0'); } catch (persistErr) {
+        console.warn('[Vanta] localStorage persist failed:', persistErr.message);
+      }
     }
 
     return () => {
       if (effectRef.current) {
-        try { effectRef.current.destroy(); } catch {}
+        try { effectRef.current.destroy(); } catch (e) {
+          console.warn('[Vanta] destroy failed:', e);
+        }
         effectRef.current = null;
       }
     };

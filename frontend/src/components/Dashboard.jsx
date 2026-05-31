@@ -1,14 +1,25 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Info, X, Activity, ShoppingCart, Package, Plus, Sparkles, Wrench, Palette, Zap, BarChart3, Tags, ArrowUpRight, ArrowDownRight, Users, TrendingUp } from 'lucide-react';
 import api from '../services/api';
 import TasksKanban from './TasksKanban';
 import Skeleton from './common/Skeleton';
+import { UI_MOTION } from '../constants/ui';
 
 const StockMovementChart = lazy(() => import('./dashboard/StockMovementChart'));
 
 const RELEASES = [
   {
-    version: 'v1.12.3-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.12.4-stable', date: '31 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'ui',
+        text: 'Motion foundation dan accessibility polish: modal/ drawer entrance, toast slide-in, button press feedback, focus ring, skeleton shimmer, dan cleanup silent catch / icon button label di surface utama.',
+        dev: 'frontend/src/constants/ui.js: SSOT timing motion. liquid-glass.css: ui-motion classes + reduced-motion. Shared surfaces (Skeleton, ConfirmModal, Breadcrumb, BarcodeScanner) dikunci ke micro-interaction yang konsisten.'
+      },
+    ]
+  },
+  {
+    version: 'v1.12.3-stable', date: '31 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'fix',
@@ -914,6 +925,50 @@ const upcoming = [
   { priority: 'low', title: 'TypeScript Migration', desc: 'Full type safety untuk seluruh codebase' },
 ];
 
+function CountUpValue({ value, formatter, loading }) {
+  const [display, setDisplay] = useState(parseFloat(value) || 0);
+  const frameRef = useRef(null);
+  const lastValueRef = useRef(parseFloat(value) || 0);
+
+  useEffect(() => {
+    const target = parseFloat(value) || 0;
+    if (loading) {
+      setDisplay(target);
+      lastValueRef.current = target;
+      return undefined;
+    }
+
+    const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
+      setDisplay(target);
+      lastValueRef.current = target;
+      return undefined;
+    }
+
+    const startValue = lastValueRef.current ?? 0;
+    const delta = target - startValue;
+    const duration = UI_MOTION.duration.countUp;
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(startValue + (delta * eased));
+      if (progress < 1) {
+        frameRef.current = requestAnimationFrame(tick);
+      } else {
+        lastValueRef.current = target;
+      }
+    };
+
+    cancelAnimationFrame(frameRef.current);
+    frameRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameRef.current);
+  }, [loading, value]);
+
+  return <>{formatter(display)}</>;
+}
+
 export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
   const [showModal, setShowModal] = useState(false);
   const [showDevNotes, setShowDevNotes] = useState(false);
@@ -921,7 +976,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.12.3-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.4-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -977,7 +1032,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
       } catch (error) {
         console.error('Failed to fetch dashboard stats', error);
       } finally {
-        setTimeout(() => setLoading(false), 500); // Small delay for smooth transition
+        setTimeout(() => setLoading(false), UI_MOTION.duration.page);
       }
     };
     fetchStats();
@@ -985,7 +1040,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.12.3-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.4-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -1029,7 +1084,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
 
   return (
-    <div className="font-sans min-h-screen transition-all duration-300" style={{ padding: isMobile ? '1rem' : '2.5rem', paddingTop: isMobile ? '4rem' : '2.5rem', backgroundColor: isVantaMode ? 'transparent' : bg }}>
+    <div className="ui-motion-page font-sans min-h-screen transition-all duration-300" style={{ padding: isMobile ? '1rem' : '2.5rem', paddingTop: isMobile ? '4rem' : '2.5rem', backgroundColor: isVantaMode ? 'transparent' : bg }}>
       
       {/* Header Section */}
       <div className="flex justify-between items-center mb-10">
@@ -1041,7 +1096,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
         {/* Version Badge & Changelog Trigger */}
         <button 
           onClick={() => setShowModal(true)}
-          className="glass-target glass-target--ultra flex items-center gap-2 px-4 py-2 rounded-full border transition-colors hover:shadow-sm"
+          className="ui-motion-button ui-focus-ring glass-target glass-target--ultra flex items-center gap-2 px-4 py-2 rounded-full border transition-colors hover:shadow-sm"
           style={{ borderColor: border, color: text }}
         >
           <Info size={16} className="text-blue-500" />
@@ -1051,7 +1106,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
       </div>
 
       {/* Kanban Tasks Section - MOVED TO TOP. v1.8.8: hapus inline bg supaya CSS glass-target tint apply */}
-      <div className="glass-target mb-10 rounded-3xl p-8 border shadow-sm" style={{ borderColor: border }}>
+      <div className="ui-motion-card glass-target mb-10 rounded-3xl p-8 border shadow-sm" style={{ borderColor: border }}>
         <TasksKanban isDarkMode={isDarkMode} isMobile={isMobile} />
       </div>
 
@@ -1063,7 +1118,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
           { label: 'Surat Pesanan Aktif', value: stats.suratPesananAktif, type: 'number', tint: 'orange', icon: <ShoppingCart size={24} className="text-orange-500"/> },
           { label: 'Stok Low/Expired', value: stats.stokLowExpired, type: 'number', tint: 'purple', icon: <Package size={24} className="text-red-500"/> },
         ].map((stat, i) => (
-          <div key={i} className={`glass-target glass-target--tint-${stat.tint} rounded-2xl p-6 border shadow-sm`} style={{ borderColor: border }}>
+          <div key={i} className={`ui-motion-card glass-target glass-target--tint-${stat.tint} rounded-2xl p-6 border shadow-sm`} style={{ borderColor: border }}>
             <div className="flex justify-between items-start mb-4">
               <div className="p-3 bg-gray-50 rounded-xl dark:bg-gray-800">{stat.icon}</div>
             </div>
@@ -1071,7 +1126,11 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
               <Skeleton width="80%" height="36px" className="mb-2" />
             ) : (
               <h3 className="text-3xl font-bold mb-1" style={{ color: text }}>
-                {stat.type === 'currency' ? formatRupiah(stat.value) : stat.value.toString()}
+                <CountUpValue
+                  value={stat.value}
+                  loading={loading}
+                  formatter={stat.type === 'currency' ? formatRupiah : formatQty}
+                />
               </h3>
             )}
             <p className="text-sm font-medium" style={{ color: sub }}>{stat.label}</p>
@@ -1081,7 +1140,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
       {/* Profitability Snapshot */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
-        <section className="glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+        <section className="ui-motion-card glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
               <h2 className="text-lg font-bold" style={{ color: text }}>Margin per Channel</h2>
@@ -1132,7 +1191,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
           )}
         </section>
 
-        <section className="glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+        <section className="ui-motion-card glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
               <h2 className="text-lg font-bold" style={{ color: text }}>Top Kategori Margin</h2>
@@ -1178,7 +1237,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
-        <section className="glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+        <section className="ui-motion-card glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
               <h2 className="text-lg font-bold" style={{ color: text }}>Top 5 Customer Bulan Ini</h2>
@@ -1229,7 +1288,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
           )}
         </section>
 
-        <section className="glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+        <section className="ui-motion-card glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
               <h2 className="text-lg font-bold" style={{ color: text }}>Pergerakan Stok 30 Hari</h2>
@@ -1260,19 +1319,19 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
       {/* Quick Access Section - Compacted Row */}
       <div className="flex flex-col md:flex-row gap-6 mb-10">
-        <div className="glass-target flex-1 rounded-3xl p-6 border shadow-sm flex items-center justify-between" style={{ backgroundColor: cardBg, borderColor: border }}>
+        <div className="ui-motion-card glass-target flex-1 rounded-3xl p-6 border shadow-sm flex items-center justify-between" style={{ backgroundColor: cardBg, borderColor: border }}>
           <div className="flex items-center gap-6">
             <h2 className="text-lg font-bold" style={{ color: text }}>Akses Cepat</h2>
             <div className="flex flex-wrap gap-3">
-              <a href="/sales" className="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-1"><Plus size={14} /> Buat Nota</a>
-              <a href="/orders" className="px-4 py-2 rounded-xl border text-xs font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-1" style={{ borderColor: border, color: text }}><Plus size={14} /> Buat SP</a>
-              <a href="/online-store" className="px-4 py-2 rounded-xl border text-xs font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800" style={{ borderColor: border, color: text }}>CSV Online</a>
+              <a href="/sales" className="ui-motion-button px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-1"><Plus size={14} /> Buat Nota</a>
+              <a href="/orders" className="ui-motion-button px-4 py-2 rounded-xl border text-xs font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-1" style={{ borderColor: border, color: text }}><Plus size={14} /> Buat SP</a>
+              <a href="/online-store" className="ui-motion-button px-4 py-2 rounded-xl border text-xs font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800" style={{ borderColor: border, color: text }}>CSV Online</a>
             </div>
           </div>
           
           <button 
             onClick={() => setShowDevNotes(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-100 bg-blue-50/30 text-blue-600 hover:bg-blue-50 transition-colors"
+            className="ui-motion-button ui-focus-ring flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-100 bg-blue-50/30 text-blue-600 hover:bg-blue-50 transition-colors"
           >
             <Info size={14} />
             <span className="text-xs font-bold">Catatan Developer</span>
@@ -1284,7 +1343,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
       {showReleaseModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
           <div
-            className="glass-target glass-target--clear w-full max-w-lg overflow-hidden rounded-3xl shadow-2xl flex flex-col transform transition-all scale-100"
+            className="ui-motion-modal glass-target glass-target--clear w-full max-w-lg overflow-hidden rounded-3xl shadow-2xl flex flex-col transform transition-all scale-100"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             {/* Spotlight Header */}
@@ -1343,7 +1402,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
             <div className="p-6 pt-4 flex justify-center" style={{ backgroundColor: bg }}>
               <button 
                 onClick={closeReleaseModal}
-                className="w-full py-3.5 rounded-xl text-white font-bold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all outline-none focus:ring-4 focus:ring-blue-500/50"
+                className="ui-motion-button ui-focus-ring w-full py-3.5 rounded-xl text-white font-bold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all outline-none focus:ring-4 focus:ring-blue-500/50"
                 style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)' }}
               >
                 Siap, Gas!
@@ -1357,7 +1416,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
           <div
-            className="glass-target glass-target--clear w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col"
+            className="ui-motion-modal glass-target glass-target--clear w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             {/* Modal Header */}
@@ -1366,7 +1425,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                 <h2 className="text-xl font-bold" style={{ color: text }}>🚀 Changelog & Roadmap</h2>
                 <p className="text-xs mt-1" style={{ color: sub }}>Aktual: {RELEASES[0]?.version} - Terakhir diupdate {RELEASES[0]?.date}</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <button onClick={() => setShowModal(false)} aria-label="Tutup changelog" className="ui-motion-button ui-focus-ring p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />
               </button>
             </div>
@@ -1451,7 +1510,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                   {upcoming.map((item, i) => {
                     const cfg = priorityConfig[item.priority];
                     return (
-                      <div key={i} className="rounded-2xl p-5 mb-3 border flex gap-4 items-start shadow-sm transition-transform hover:-translate-y-0.5" style={{ backgroundColor: cardBg, borderColor: border }}>
+                      <div key={i} className="ui-motion-card rounded-2xl p-5 mb-3 border flex gap-4 items-start shadow-sm transition-transform hover:-translate-y-0.5" style={{ backgroundColor: cardBg, borderColor: border }}>
                         <div className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: cfg.color, boxShadow: `0 0 8px ${cfg.color}80` }} />
                         <div className="flex-1">
                           <div className="flex justify-between items-center mb-1.5">
@@ -1474,7 +1533,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
             <div className="p-4 border-t flex justify-end" style={{ borderColor: border, backgroundColor: cardBg }}>
               <button 
                 onClick={() => setShowModal(false)}
-                className="px-6 py-2 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors"
+                className="ui-motion-button ui-focus-ring px-6 py-2 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors"
               >
                 Tutup
               </button>
@@ -1486,7 +1545,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
       {showDevNotes && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
           <div
-            className="glass-target glass-target--clear w-full max-w-md overflow-hidden rounded-3xl shadow-2xl flex flex-col"
+            className="ui-motion-modal glass-target glass-target--clear w-full max-w-md overflow-hidden rounded-3xl shadow-2xl flex flex-col"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div className="flex justify-between items-center p-6 border-b" style={{ borderColor: border }}>
@@ -1494,7 +1553,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
                 <Info size={20} />
                 <h2 className="text-lg font-bold">Catatan Developer</h2>
               </div>
-              <button onClick={() => setShowDevNotes(false)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <button onClick={() => setShowDevNotes(false)} aria-label="Tutup catatan developer" className="ui-motion-button ui-focus-ring p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <X size={20} style={{ color: sub }} />
               </button>
             </div>
@@ -1512,7 +1571,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
             <div className="p-4 border-t flex justify-center" style={{ borderColor: border, backgroundColor: bg }}>
               <button 
                 onClick={() => setShowDevNotes(false)}
-                className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all"
+                className="ui-motion-button ui-focus-ring w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all"
               >
                 Tutup Catatan
               </button>

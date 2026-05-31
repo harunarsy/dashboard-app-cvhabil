@@ -22,7 +22,9 @@ export default function useGlassMode() {
       const urlVal = params.get(URL_PARAM);
       if (urlVal === 'off') return false;
       if (urlVal === 'on') {
-        try { localStorage.setItem(STORAGE_KEY, '1'); } catch {}
+        try { localStorage.setItem(STORAGE_KEY, '1'); } catch (e) {
+          console.warn('[GlassMode] localStorage persist failed:', e.message);
+        }
         return true;
       }
       // 2. OS preference wins
@@ -30,7 +32,8 @@ export default function useGlassMode() {
       // 3. localStorage — v1.8.7: default ON kalau user belum pernah toggle
       const stored = localStorage.getItem(STORAGE_KEY);
       return stored === null ? true : stored === '1';
-    } catch {
+    } catch (e) {
+      console.warn('[GlassMode] init state failed:', e);
       return false;
     }
   });

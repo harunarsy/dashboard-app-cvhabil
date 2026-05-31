@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Lock, User, AlertCircle, Building2, Sun, Moon, Sparkles } from 'lucide-react';
+import { UI_MOTION } from '../constants/ui';
 
 export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode = false, setIsGlassMode, isVantaMode = false }) {
   const [username, setUsername] = useState('');
@@ -49,7 +50,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
   const toggleGlass = () => {
     if (!setIsGlassMode) return;
     setGlassClicked(true);
-    setTimeout(() => setGlassClicked(false), 200);
+    setTimeout(() => setGlassClicked(false), UI_MOTION.duration.press);
     // First-time enable → tampil warning sekali aja
     const warned = localStorage.getItem('habil_glass_warned') === '1';
     if (!isGlassMode && !warned) {
@@ -60,7 +61,9 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
   };
 
   const confirmGlassWarning = () => {
-    try { localStorage.setItem('habil_glass_warned', '1'); } catch {}
+    try { localStorage.setItem('habil_glass_warned', '1'); } catch (e) {
+      console.warn('[Login] glass warning persist failed:', e);
+    }
     setShowGlassWarning(false);
     setIsGlassMode?.(true);
   };
@@ -70,7 +73,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
 
   return (
     <div
-      className="min-h-screen flex flex-col justify-center items-center p-4 font-sans transition-colors duration-300"
+      className="ui-motion-page min-h-screen flex flex-col justify-center items-center p-4 font-sans transition-colors duration-300"
       style={{ backgroundColor: isVantaMode ? 'transparent' : bg, color: text }}
     >
       {/* Theme toggles (floating top-right) — Glass + Dark Mode (Vanta selalu ON, no toggle) */}
@@ -81,7 +84,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
             aria-label={isGlassMode ? 'Matikan Liquid Glass mode' : 'Aktifkan Liquid Glass mode (Beta)'}
             aria-pressed={isGlassMode}
             title={isGlassMode ? 'Liquid Glass aktif' : 'Liquid Glass (Beta)'}
-            className={`glass-toggle-btn ${isGlassMode ? 'glass-target glass-target--ultra' : ''}`}
+            className={`ui-motion-button ui-focus-ring glass-toggle-btn ${isGlassMode ? 'glass-target glass-target--ultra' : ''}`}
             style={{
               width: '40px', height: '40px', borderRadius: '12px',
               background: isGlassMode ? 'transparent' : card,
@@ -104,6 +107,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
             onClick={toggleTheme}
             aria-label={isDarkMode ? 'Aktifkan light mode' : 'Aktifkan dark mode'}
             title={isDarkMode ? 'Light mode' : 'Dark mode'}
+            className="ui-motion-button ui-focus-ring"
             style={{
               width: '40px', height: '40px', borderRadius: '12px',
               background: card, border: `1px solid ${cardBorder}`,
@@ -130,7 +134,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="glass-target glass-target--clear"
+            className="ui-motion-modal glass-target glass-target--clear"
             style={{
               background: card, color: text, borderRadius: '20px', padding: '28px',
               width: '100%', maxWidth: '420px', textAlign: 'center',
@@ -164,6 +168,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
               <button
                 onClick={() => setShowGlassWarning(false)}
+                className="ui-motion-button ui-focus-ring"
                 style={{
                   flex: 1, padding: '12px', background: inputBg, color: text,
                   border: `1px solid ${inputBorder}`, borderRadius: '10px',
@@ -172,6 +177,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
               >Batal</button>
               <button
                 onClick={confirmGlassWarning}
+                className="ui-motion-button ui-focus-ring"
                 style={{
                   flex: 1, padding: '12px',
                   background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
@@ -195,7 +201,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
             <Building2 size={32} />
           </div>
           <h1 className="text-3xl font-bold tracking-tight" style={{ color: text }}>HABIL SUPERAPP</h1>
-          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.12.3-stable — 2026</p>
+          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>HABIL SUPERAPP v1.12.4-stable — 2026</p>
         </div>
 
         <div
@@ -234,7 +240,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl"
+                  className="ui-focus-ring w-full pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl"
                   style={{
                     backgroundColor: inputBg,
                     border: `1px solid ${inputBorder}`,
@@ -259,7 +265,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl"
+                  className="ui-focus-ring w-full pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl"
                   style={{
                     backgroundColor: inputBg,
                     border: `1px solid ${inputBorder}`,
@@ -277,7 +283,7 @@ export default function Login({ isDarkMode = false, setIsDarkMode, isGlassMode =
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-4 text-white font-medium text-sm rounded-xl transition-colors shadow-sm focus:outline-none mt-2"
+              className="ui-motion-button ui-focus-ring w-full py-3.5 px-4 text-white font-medium text-sm rounded-xl transition-colors shadow-sm focus:outline-none mt-2"
               style={{
                 backgroundColor: focusRing,
                 opacity: loading ? 0.6 : 1,
