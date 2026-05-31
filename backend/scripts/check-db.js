@@ -8,7 +8,9 @@ try {
   if (currentBranch === 'dev' && fs.existsSync(path.join(__dirname, '../.env.dev'))) {
     envFile = '.env.dev';
   }
-} catch (e) {}
+} catch (e) {
+  console.warn('[check-db] git branch detection failed, defaulting to .env:', e.message);
+}
 
 require('dotenv').config({ path: path.join(__dirname, '../', envFile) });
 const { Pool } = require('pg');

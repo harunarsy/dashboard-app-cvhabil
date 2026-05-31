@@ -270,7 +270,6 @@ router.post('/', auth, async (req, res) => {
         }
         if (remaining > 0) {
           await client.query('ROLLBACK');
-          client.release();
           return res.status(400).json({ error: `Stok ${product.name} tidak mencukupi (kurang: ${remaining} ${product.base_unit || 'pcs'})` });
         }
       }
@@ -288,15 +287,21 @@ router.post('/', auth, async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    await client.query('ROLLBACK');
-    client.release();
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('[sales] rollback failed:', rollbackErr);
+    }
     if (err.code === '23505' && (err.constraint === 'sales_orders_order_number_key' || err.message.includes('order_number'))) {
       return res.status(400).json({ error: 'Nomor Nota sudah digunakan. Gunakan nomor lain.' });
     }
     return res.status(500).json({ error: err.message });
   } finally {
-    // Only release if not already released (early return path releases manually)
-    try { client.release(); } catch (_) {}
+    try {
+      client.release();
+    } catch (releaseErr) {
+      console.error('[sales] client release failed:', releaseErr);
+    }
   }
 });
 

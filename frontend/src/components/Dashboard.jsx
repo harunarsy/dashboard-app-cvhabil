@@ -9,7 +9,17 @@ const StockMovementChart = lazy(() => import('./dashboard/StockMovementChart'));
 
 const RELEASES = [
   {
-    version: 'v1.12.7-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.12.8-stable', date: '31 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'fix',
+        text: 'Stabilitas backend diperketat: draft invoice tetap per-user, settings counter auth-gated, rollback/release error tidak silent, dan lookup produk di hot path tetap pakai indeks yang aman.',
+        dev: 'backend/routes/invoices.js, settings.js, sales.js, purchaseOrders.js, bugs.js, dan scripts/check-db.js diperbarui logging/rollback-nya. Backend tetap source of truth, sementara badge versi di frontend ikut naik ke release terakhir.'
+      },
+    ]
+  },
+  {
+    version: 'v1.12.7-stable', date: '31 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'ui',
@@ -986,7 +996,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.12.7-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.8-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -1050,7 +1060,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.12.7-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.8-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

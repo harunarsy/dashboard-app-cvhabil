@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.12.8-stable] - 2026-05-31
+
+### Fixed
+- Stabilitas backend diperketat: draft invoice tetap per-user, settings counter auth-gated, rollback/release error tidak silent, dan lookup produk di hot path tetap pakai indeks yang aman.
+- DB check dan schema bootstrap yang tadinya diam-diam sekarang memberi log yang jelas kalau ada masalah, jadi audit lebih enak dibaca.
+
 ## [v1.12.7-stable] - 2026-05-31
 
 ### Added

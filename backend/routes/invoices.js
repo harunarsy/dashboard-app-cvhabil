@@ -235,7 +235,11 @@ router.post('/draft', auth, async (req, res) => {
     await client.query('COMMIT');
     res.json({ id: r.rows[0].id, saved: true });
   } catch (err) {
-    try { await client.query('ROLLBACK'); } catch (_) {}
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('[invoices] draft save rollback failed:', rollbackErr);
+    }
     res.status(500).json({ error: err.message });
   }
   finally { client.release(); }

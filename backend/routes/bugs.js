@@ -22,7 +22,9 @@ pool.query(`
 ).catch(console.error);
 
 // Add type column if not exists (for existing DBs)
-pool.query(`ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'bug'`).catch(() => {});
+pool.query(`ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'bug'`).catch((err) => {
+  console.error('[bugs] add type column failed:', err);
+});
 
 // POST — submit bug report (no auth required, user bisa submit)
 router.post('/', async (req, res) => {
