@@ -575,7 +575,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
 
       {/* ─── Product Modal ──────────────────────────────────────────────── */}
       {showModal === 'product' && (
-        <ModalShell onClose={() => setShowModal(null)} cardBg={cardBg} title={editId ? 'Edit Produk' : 'Produk Baru'} text={text} border={border} sub={sub} isMobile={isMobile} maxWidth={editId ? '760px' : '520px'}>
+        <ModalShell onClose={() => setShowModal(null)} cardBg={cardBg} title={editId ? 'Edit Produk' : 'Produk Baru'} text={text} border={border} sub={sub} isMobile={isMobile} maxWidth={editId ? '760px' : '520px'} hidden={!!batchModal || !!adjustBatch}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {editId && (
               <div role="tablist" aria-label="Edit produk" style={{ display: 'flex', gap: '4px', background: surface, borderRadius: '10px', padding: '3px', marginBottom: '4px' }}>
@@ -715,6 +715,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
             {(!editId || productModalTab === 'profile') && (
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
               <button onClick={saveProduct} disabled={modalSaving} style={primaryBtn('#007AFF', modalSaving)}>{modalSaving ? 'Menyimpan...' : (editId ? 'Simpan' : 'Tambah')}</button>
+              {/* v1.11.12: tombol Simpan warna konsistensi — semua biru */}
               <button onClick={() => setShowModal(null)} disabled={modalSaving} style={secondaryBtn(surface, text, border)}>Batal</button>
             </div>
             )}
@@ -757,7 +758,7 @@ export default function InventoryDashboard({ isDarkMode, isSidebarOpen, isMobile
               </div>
             )}
             <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-              <button onClick={saveStockIn} disabled={modalSaving} style={primaryBtn('#34C759', modalSaving)}>{modalSaving ? 'Menyimpan...' : 'Simpan'}</button>
+              <button onClick={saveStockIn} disabled={modalSaving} style={primaryBtn('#007AFF', modalSaving)}>{modalSaving ? 'Menyimpan...' : 'Simpan'}</button>
               <button onClick={() => setShowModal(null)} disabled={modalSaving} style={secondaryBtn(surface, text, border)}>Batal</button>
             </div>
           </div>
@@ -1087,16 +1088,17 @@ function ProductBatchPanel({ product, batches, loading, sub, text, border, cardB
   );
 }
 
-function ModalShell({ onClose, cardBg, title, titleColor, text, border, sub, isMobile, maxWidth = '480px', children }) {
+function ModalShell({ onClose, cardBg, title, titleColor, text, border, sub, isMobile, maxWidth = '480px', hidden = false, children }) {
   useEffect(() => {
+    if (hidden) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, hidden]);
   return (
-    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{
+    <div onClick={(e) => !hidden && e.target === e.currentTarget && onClose()} style={{
       position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: isMobile ? 0 : '1rem',
+      display: hidden ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: isMobile ? 0 : '1rem',
     }}>
       <div className="glass-target glass-target--clear" style={{
         backgroundColor: cardBg, borderRadius: isMobile ? 0 : '16px', width: '100%',

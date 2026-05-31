@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const tax = require('../utils/tax');
 const uom = require('../utils/uom');
 
 // ─── Auto-create tables ─────────────────────────────────────────────────────
@@ -191,7 +192,8 @@ router.post('/', auth, async (req, res) => {
     let gross_profit = 0;
     items.forEach(it => { 
       total += (it.qty || 1) * (it.unit_price || 0);
-      gross_profit += (it.qty || 1) * ((it.unit_price || 0) - (it.unit_hpp || 0));
+      // v1.11.12: unit_hpp = HNA exc PPN (SSOT). Margin real = vs HPP inc PPN.
+      gross_profit += (it.qty || 1) * ((it.unit_price || 0) - (it.unit_hpp || 0) * (1 + tax.PPN_RATE));
     });
 
     const { rows } = await client.query(
@@ -312,7 +314,8 @@ router.put('/:id', auth, async (req, res) => {
     let gross_profit = 0;
     items.forEach(it => {
       total += (it.qty || 1) * (it.unit_price || 0);
-      gross_profit += (it.qty || 1) * ((it.unit_price || 0) - (it.unit_hpp || 0));
+      // v1.11.12: unit_hpp = HNA exc PPN (SSOT). Margin real = vs HPP inc PPN.
+      gross_profit += (it.qty || 1) * ((it.unit_price || 0) - (it.unit_hpp || 0) * (1 + tax.PPN_RATE));
     });
 
     const { rowCount } = await client.query(

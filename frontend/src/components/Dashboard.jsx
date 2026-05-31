@@ -6,7 +6,27 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.11.11-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.11.12-stable', date: '31 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'fix',
+        text: 'KRITIS — Dashboard kartu "Laba Kotor bln ini" sebelumnya OVERSTATE ~11% karena formula backend lupa hitung PPN masukan (cost beli yg gak ke-account). Contoh: HNA 100rb jual 130rb → sebelumnya tampil margin 30rb, sekarang benar 19rb (= 130 − 100×1,11). Skala bulanan bisa beda jutaan. Sekarang konsisten dgn kolom Margin di list Nota expanded.',
+        dev: 'backend/routes/dashboard.js: rewrite query total_laba → JOIN sales_items, hitung SUM(qty × (unit_price − unit_hpp × 1.11)) langsung. Bypass field sales_orders.gross_profit (jadi legacy). backend/routes/sales.js: fix formula gross_profit INSERT+UPDATE pakai × 1.11 utk konsistensi data baru. Field legacy gak di-backfill — Dashboard skrg gak baca field itu lagi.'
+      },
+      {
+        type: 'ui',
+        text: 'Polish modal Edit Batch: dulu kalau buka dari tab Batch di Edit Produk, 2 modal numpuk visible. Sekarang modal Edit Produk auto-hide pas Edit Batch/Adjust Qty kebuka — modal kedua jadi clean, state Edit Produk preserved pas balik.',
+        dev: 'ModalShell tambah prop hidden — set display:none kalau batchModal||adjustBatch aktif. Tutup BatchFormModal → parent ModalShell muncul lagi dgn state utuh (gak re-mount).'
+      },
+      {
+        type: 'ui',
+        text: 'Tombol Simpan di modal Stok Masuk dulu hijau, sekarang biru — konsisten dgn semua tombol Simpan di modal lain (Edit Produk, Edit Batch). Warna hijau dipertahankan utk badge LUNAS/sukses, bukan tombol aksi.',
+        dev: 'InventoryDashboard:761 primaryBtn(#34C759)→primaryBtn(#007AFF) di Simpan Stok Masuk.'
+      },
+    ]
+  },
+  {
+    version: 'v1.11.11-stable', date: '31 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -840,7 +860,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.11.11-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.12-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -893,7 +913,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.11.11-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.12-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.12-stable] - 2026-05-31
+
+### Fixed
+- **🚨 KRITIS — Dashboard "Laba Kotor bln ini" OVERSTATE ~11% PPN masukan**: kartu stat Dashboard sebelumnya pakai field `sales_orders.gross_profit` yang dihitung dgn formula `(unit_price − unit_hpp) × qty` — padahal `unit_hpp` = HNA exc PPN (SSOT). PPN masukan (= 11% × harga modal) tidak ke-account sebagai cost → margin overstate. Contoh: HNA 100rb jual 130rb, sebelumnya tampil margin 30rb, sekarang benar Rp 19rb. Skala bulanan beda jutaan.
+  - _Detail teknis_: `backend/routes/dashboard.js` query `total_laba` di-rewrite → JOIN `sales_items`, `SUM(qty × (unit_price − unit_hpp × 1.11))` langsung. Bypass field `sales_orders.gross_profit` (jadi legacy unused di Dashboard). `backend/routes/sales.js:194,315` fix formula `gross_profit` INSERT + UPDATE pakai `× (1 + PPN_RATE)` utk konsistensi data baru. Data lama gak di-backfill — Dashboard skrg gak baca field itu lagi.
+- **🪟 Modal stacking: Edit Batch tidak numpuk lagi di atas Edit Produk**: kalau buka tab Batch di Edit Produk → klik pensil di batch → modal Edit Produk auto-hide selama Edit Batch/Adjust kebuka. Tutup Edit Batch → Edit Produk balik dgn state utuh.
+  - _Detail teknis_: `ModalShell` (`InventoryDashboard.jsx:1090`) tambah prop `hidden` → set `display:none` kalau `batchModal || adjustBatch` aktif. Backdrop juga di-disable saat hidden.
+
+### Changed
+- **🎨 Tombol Simpan warna konsistensi**: Stok Masuk dulu hijau `#34C759`, sekarang biru `#007AFF` — konsisten dgn Simpan Edit Produk + Edit Batch. Hijau dipertahankan utk badge LUNAS/sukses status, bukan tombol aksi.
+
 ## [v1.11.11-stable] - 2026-05-31
 
 ### Added

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const tax = require('../utils/tax');
 
 // GET dashboard statistics
 router.get('/stats', auth, async (req, res) => {
@@ -15,14 +16,19 @@ router.get('/stats', auth, async (req, res) => {
         AND DATE_TRUNC('month', sale_date) = DATE_TRUNC('month', CURRENT_DATE)
     `);
 
-    // 1b. Laba Kotor bln ini (Paid only)
+    // 1b. Laba Kotor bln ini (Paid only) — v1.11.12 fix: pakai HPP inc PPN.
+    // SEBELUMNYA: SUM(sales_orders.gross_profit) — formula sales.js pakai (unit_price - unit_hpp),
+    // padahal unit_hpp = HNA exc PPN → margin overstate ~11% (PPN masukan = cost yg gak ke-account).
+    // SEKARANG: recompute on-the-fly dari sales_items dgn HPP inc PPN = unit_hpp × (1 + PPN_RATE).
+    // Field sales_orders.gross_profit dibiarkan legacy (audit) — gak diapus.
     const { rows: [{ total_laba }] } = await pool.query(`
-      SELECT COALESCE(SUM(gross_profit), 0) AS total_laba
-      FROM sales_orders
-      WHERE is_deleted = false
-        AND payment_status = 'paid'
-        AND status = 'final'
-        AND DATE_TRUNC('month', sale_date) = DATE_TRUNC('month', CURRENT_DATE)
+      SELECT COALESCE(SUM(si.qty * (si.unit_price - si.unit_hpp * ${1 + tax.PPN_RATE})), 0) AS total_laba
+      FROM sales_orders so
+      JOIN sales_items si ON si.sales_order_id = so.id
+      WHERE so.is_deleted = false
+        AND so.payment_status = 'paid'
+        AND so.status = 'final'
+        AND DATE_TRUNC('month', so.sale_date) = DATE_TRUNC('month', CURRENT_DATE)
     `);
 
     // 2. Surat Pesanan Aktif
