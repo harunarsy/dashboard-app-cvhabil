@@ -745,23 +745,44 @@ export default function SalesOrderList({ isDarkMode, isSidebarOpen, isMobile, is
                       <td colSpan={8} style={{ padding: '0 14px 14px', backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', fontSize: '12px' }}>
                           <thead><tr>
-                            {['Produk', 'Qty', 'Satuan', 'HPP', 'Harga', 'Subtotal'].map(h => (
-                              <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: '600', color: sub, borderBottom: `1px solid ${border}` }}>{h}</th>
+                            {['Produk', 'Qty', 'Satuan', 'HPP', 'Harga', 'Subtotal', 'Margin'].map(h => (
+                              <th key={h} style={{ padding: '6px 10px', textAlign: h === 'Margin' ? 'right' : 'left', fontWeight: '600', color: sub, borderBottom: `1px solid ${border}` }}>{h}</th>
                             ))}
                           </tr></thead>
                           <tbody>
-                            {o.items.map((it, idx) => (
-                              <tr key={idx}>
-                                <td style={{ padding: '6px 10px', color: text }}>{it.product_name}</td>
-                                <td style={{ padding: '6px 10px', color: text }}>{it.qty}</td>
-                                <td style={{ padding: '6px 10px', color: sub }}>{it.unit}</td>
-                                <td style={{ padding: '6px 10px', color: sub }}>{fmtRp(hppFromHna(it.unit_hpp))}</td>
-                                <td style={{ padding: '6px 10px', color: text }}>{fmtRp(it.unit_price)}</td>
-                                <td style={{ padding: '6px 10px', fontWeight: '600', color: text }}>{fmtRp(it.subtotal)}</td>
-                              </tr>
-                            ))}
+                            {o.items.map((it, idx) => {
+                              const hppInc = hppFromHna(it.unit_hpp);
+                              const margin = (parseFloat(it.unit_price) - hppInc) * parseFloat(it.qty || 0);
+                              return (
+                                <tr key={idx}>
+                                  <td style={{ padding: '6px 10px', color: text }}>{it.product_name}</td>
+                                  <td style={{ padding: '6px 10px', color: text }}>{it.qty}</td>
+                                  <td style={{ padding: '6px 10px', color: sub }}>{it.unit}</td>
+                                  <td style={{ padding: '6px 10px', color: sub }}>{fmtRp(hppInc)}</td>
+                                  <td style={{ padding: '6px 10px', color: text }}>{fmtRp(it.unit_price)}</td>
+                                  <td style={{ padding: '6px 10px', fontWeight: '600', color: text }}>{fmtRp(it.subtotal)}</td>
+                                  <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: '600', color: margin >= 0 ? '#34C759' : '#FF3B30' }}>{fmtRp(margin)}</td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
+                          <tfoot>
+                            {(() => {
+                              const totalMargin = o.items.reduce((s, it) => s + (parseFloat(it.unit_price) - hppFromHna(it.unit_hpp)) * parseFloat(it.qty || 0), 0);
+                              return (
+                                <tr style={{ borderTop: `2px solid ${border}` }}>
+                                  <td colSpan={6} style={{ padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: sub }}>Total Margin Nota</td>
+                                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: '700', fontSize: '13px', color: totalMargin >= 0 ? '#34C759' : '#FF3B30' }}>{fmtRp(totalMargin)}</td>
+                                </tr>
+                              );
+                            })()}
+                          </tfoot>
                         </table>
+                        {o.items.some(it => !parseFloat(it.unit_hpp)) && (
+                          <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#FF9500', fontWeight: '600' }}>
+                            ⚠️ Beberapa produk HPP belum diisi — margin mungkin overstate. Update HPP di Inventory.
+                          </p>
+                        )}
                         {o.notes && <p style={{ margin: '8px 0 0', fontSize: '12px', color: sub }}>📝 {o.notes}</p>}
                       </td>
                     </tr>

@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.11.10-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.11.11-stable', date: '31 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Di list Nota Penjualan, expand baris nota → sekarang ada kolom Margin per produk + Total Margin Nota di footer. Hijau = untung, merah = jual rugi. UI-ONLY (PDF cetak nota TIDAK ada margin — pembeli gak boleh lihat modal/keuntungan).',
+        dev: 'SalesOrderList expanded row (:745): tambah th Margin (right) + td margin per item (hijau≥0 / merah<0) + tfoot Total Margin colSpan=6. Margin = (unit_price − hppFromHna(unit_hpp)) × qty. Hint kuning kalau ada item HPP=0 (overstate). generateNotaPDF.js UNCHANGED.'
+      },
+    ]
+  },
+  {
+    version: 'v1.11.10-stable', date: '31 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -830,7 +840,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.11.10-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.11-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -883,7 +893,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.11.10-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.11-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

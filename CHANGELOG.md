@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.11-stable] - 2026-05-31
+
+### Added
+- **💵 List Nota — kolom Margin per produk + Total Margin Nota (UI-ONLY)**: expand baris nota → sekarang tampil kolom **Margin** di kanan (per produk: `(harga jual − HPP inc PPN) × qty`) + footer **Total Margin Nota**. Hijau = untung, merah = rugi. Kalau ada produk HPP=0, hint kuning "margin mungkin overstate".
+  - _Detail teknis_: `SalesOrderList.jsx` expanded row (`:745`): tambah `th` Margin + `td` per item dgn warna (`#34C759` ≥0 / `#FF3B30` <0) + `tfoot` Total Margin (`colSpan={6}`). **PDF cetak nota TIDAK berubah** — `generateNotaPDF.js` unchanged. Pembeli gak boleh lihat modal/keuntungan.
+
 ## [v1.11.10-stable] - 2026-05-31
 
 ### Added
