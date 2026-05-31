@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.8-stable] - 2026-05-31
+
+### Fixed
+- **🔢 Angka kartu Dashboard pakai istilah Indonesia**: "Jt" (Juta) & "M" (Miliar) — sebelumnya semua angka ≥1 juta tampil pakai "M" (Million ala Inggris) yang rancu. Contoh: Rp 20,6 Jt.
+  - _Detail teknis_: `Dashboard.formatRupiah` (`:856`) — ≥1M→"Rp X,XX M" (Miliar), ≥1jt→"Rp X,X Jt", else format Rupiah penuh. (Catatan: ini perbaikan yang di v1.11.7 sempat tercatat di changelog tapi gagal ke-apply ke kode karena string-mismatch.)
+
 ## [v1.11.7-stable] - 2026-05-30
 
 ### Fixed

@@ -6,7 +6,17 @@ import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.11.7-stable', date: '30 Mei 2026', status: 'latest',
+    version: 'v1.11.8-stable', date: '31 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'ui',
+        text: 'Angka di kartu Dashboard pakai istilah Indonesia: "Jt" (Juta) & "M" (Miliar) — bukan "M" gaya Inggris yang rancu. Contoh: Rp 20,6 Jt.',
+        dev: 'Dashboard formatRupiah (:856) dibenerin beneran (edit sebelumnya gagal string-mismatch): ≥1M→"Rp X,XX M"(Miliar), ≥1jt→"Rp X,X Jt", else Intl id-ID penuh. Sebelumnya semua ≥1jt tampil "M" + nominal <1jt format inkonsisten.'
+      },
+    ]
+  },
+  {
+    version: 'v1.11.7-stable', date: '30 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'fix',
@@ -795,7 +805,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.11.7-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.8-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -848,16 +858,17 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.11.7-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.8-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
 
   const formatRupiah = (number) => {
-    if (number >= 1000000) {
-      return 'Rp ' + (number / 1000000).toFixed(1) + 'M';
-    }
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+    const n = parseFloat(number) || 0;
+    // Format Indonesia: M = Miliar, Jt = Juta (hindari ambigu "M" = Million)
+    if (n >= 1_000_000_000) return 'Rp ' + (n / 1_000_000_000).toFixed(2).replace('.', ',') + ' M';
+    if (n >= 1_000_000) return 'Rp ' + (n / 1_000_000).toFixed(1).replace('.', ',') + ' Jt';
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
   };
 
 
