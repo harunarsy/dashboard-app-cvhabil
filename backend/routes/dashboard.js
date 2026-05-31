@@ -7,6 +7,8 @@ const tax = require('../utils/tax');
 // GET dashboard statistics
 router.get('/stats', auth, async (req, res) => {
   try {
+    const hppMultiplier = 1 + tax.PPN_RATE;
+
     // 1. Total Penjualan bln ini
     const { rows: [{ total_penjualan }] } = await pool.query(`
       SELECT COALESCE(SUM(total), 0) AS total_penjualan 
@@ -22,14 +24,81 @@ router.get('/stats', auth, async (req, res) => {
     // SEKARANG: recompute on-the-fly dari sales_items dgn HPP inc PPN = unit_hpp × (1 + PPN_RATE).
     // Field sales_orders.gross_profit dibiarkan legacy (audit) — gak diapus.
     const { rows: [{ total_laba }] } = await pool.query(`
-      SELECT COALESCE(SUM(si.qty * (si.unit_price - si.unit_hpp * ${1 + tax.PPN_RATE})), 0) AS total_laba
+      SELECT COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - COALESCE(si.unit_hpp, 0) * $1)), 0) AS total_laba
       FROM sales_orders so
       JOIN sales_items si ON si.sales_order_id = so.id
       WHERE so.is_deleted = false
         AND so.payment_status = 'paid'
         AND so.status = 'final'
         AND DATE_TRUNC('month', so.sale_date) = DATE_TRUNC('month', CURRENT_DATE)
-    `);
+    `, [hppMultiplier]);
+
+    // 1c. Margin by channel bln ini (Paid + Final only) — same formula as total_laba.
+    const { rows: marginByChannelRows } = await pool.query(`
+      WITH scoped_items AS (
+        SELECT
+          CASE
+            WHEN LOWER(TRIM(COALESCE(so.channel, ''))) IN ('online', 'offline') THEN LOWER(TRIM(so.channel))
+            WHEN so.channel IS NULL OR TRIM(so.channel) = '' THEN 'offline'
+            ELSE LOWER(TRIM(so.channel))
+          END AS channel,
+          so.id AS order_id,
+          COALESCE(si.qty, 0) AS qty,
+          COALESCE(si.unit_price, 0) AS unit_price,
+          COALESCE(si.unit_hpp, 0) AS unit_hpp
+        FROM sales_orders so
+        JOIN sales_items si ON si.sales_order_id = so.id
+        WHERE so.is_deleted = false
+          AND so.payment_status = 'paid'
+          AND so.status = 'final'
+          AND DATE_TRUNC('month', so.sale_date) = DATE_TRUNC('month', CURRENT_DATE)
+      )
+      SELECT
+        channel,
+        COUNT(DISTINCT order_id) AS order_count,
+        COALESCE(SUM(qty * unit_price), 0) AS revenue,
+        COALESCE(SUM(qty * (unit_price - unit_hpp * $1)), 0) AS margin,
+        CASE
+          WHEN COALESCE(SUM(qty * unit_price), 0) > 0
+          THEN COALESCE(SUM(qty * (unit_price - unit_hpp * $1)), 0) / SUM(qty * unit_price) * 100
+          ELSE 0
+        END AS margin_pct
+      FROM scoped_items
+      GROUP BY channel
+      ORDER BY margin DESC
+    `, [hppMultiplier]);
+
+    // 1d. Top kategori by margin bln ini. Join by product name karena sales_items menyimpan snapshot nama.
+    const { rows: topCategoryRows } = await pool.query(`
+      SELECT
+        COALESCE(NULLIF(TRIM(pm.category), ''), '(tanpa kategori)') AS category,
+        COUNT(DISTINCT so.id) AS order_count,
+        COALESCE(SUM(si.qty), 0) AS qty,
+        COALESCE(SUM(COALESCE(si.qty, 0) * COALESCE(si.unit_price, 0)), 0) AS revenue,
+        COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - COALESCE(si.unit_hpp, 0) * $1)), 0) AS margin,
+        CASE
+          WHEN COALESCE(SUM(COALESCE(si.qty, 0) * COALESCE(si.unit_price, 0)), 0) > 0
+          THEN COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - COALESCE(si.unit_hpp, 0) * $1)), 0)
+            / SUM(COALESCE(si.qty, 0) * COALESCE(si.unit_price, 0)) * 100
+          ELSE 0
+        END AS margin_pct
+      FROM sales_orders so
+      JOIN sales_items si ON si.sales_order_id = so.id
+      LEFT JOIN LATERAL (
+        SELECT category
+        FROM product_master
+        WHERE LOWER(TRIM(name)) = LOWER(TRIM(si.product_name))
+        ORDER BY is_active DESC, updated_at DESC NULLS LAST, id DESC
+        LIMIT 1
+      ) pm ON TRUE
+      WHERE so.is_deleted = false
+        AND so.payment_status = 'paid'
+        AND so.status = 'final'
+        AND DATE_TRUNC('month', so.sale_date) = DATE_TRUNC('month', CURRENT_DATE)
+      GROUP BY COALESCE(NULLIF(TRIM(pm.category), ''), '(tanpa kategori)')
+      ORDER BY margin DESC
+      LIMIT 5
+    `, [hppMultiplier]);
 
     // 2. Surat Pesanan Aktif
     const { rows: [{ active_po }] } = await pool.query(`
@@ -71,7 +140,23 @@ router.get('/stats', auth, async (req, res) => {
       totalLaba: parseFloat(total_laba),
       suratPesananAktif: parseInt(active_po),
       stokLowExpired: lowExpiredTotal,
-      totalCustomer: parseInt(total_customer)
+      totalCustomer: parseInt(total_customer),
+      marginByChannel: marginByChannelRows.map(row => ({
+        channel: row.channel || 'offline',
+        label: row.channel === 'online' ? 'Online' : row.channel === 'offline' ? 'Offline' : row.channel || '(tanpa channel)',
+        orderCount: parseInt(row.order_count) || 0,
+        revenue: parseFloat(row.revenue) || 0,
+        margin: parseFloat(row.margin) || 0,
+        marginPct: parseFloat(row.margin_pct) || 0
+      })),
+      topCategoryMargins: topCategoryRows.map(row => ({
+        category: row.category || '(tanpa kategori)',
+        orderCount: parseInt(row.order_count) || 0,
+        qty: parseFloat(row.qty) || 0,
+        revenue: parseFloat(row.revenue) || 0,
+        margin: parseFloat(row.margin) || 0,
+        marginPct: parseFloat(row.margin_pct) || 0
+      }))
     });
   } catch (err) { 
     console.error('Dashboard Stats Error:', err);

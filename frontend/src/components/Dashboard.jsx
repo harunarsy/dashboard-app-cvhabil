@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Info, X, Activity, ShoppingCart, Package, Plus, Sparkles, Wrench, Palette, Zap } from 'lucide-react';
+import { Info, X, Activity, ShoppingCart, Package, Plus, Sparkles, Wrench, Palette, Zap, BarChart3, Tags, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import api from '../services/api';
 import TasksKanban from './TasksKanban';
 import Skeleton from './common/Skeleton';
 
 const RELEASES = [
   {
-    version: 'v1.11.14-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.11.15-stable', date: '31 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Dashboard sekarang menampilkan snapshot profitabilitas bulan ini: margin per channel dan top kategori berdasarkan kontribusi laba. Data hanya menghitung nota paid/final supaya angka operasional tidak tercampur draft/piutang.',
+        dev: 'backend/routes/dashboard.js: extend /dashboard/stats dengan marginByChannel + topCategoryMargins, formula margin tetap qty × (unit_price − unit_hpp × (1 + PPN_RATE)), null channel fallback offline, category join via product_master name snapshot. Dashboard.jsx render dua panel ringkas setelah stat cards.'
+      },
+    ]
+  },
+  {
+    version: 'v1.11.14-stable', date: '31 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -880,7 +890,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.11.14-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.15-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -913,7 +923,9 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
     totalLaba: 0,
     suratPesananAktif: 0,
     stokLowExpired: 0,
-    totalCustomer: 0
+    totalCustomer: 0,
+    marginByChannel: [],
+    topCategoryMargins: []
   });
 
   useEffect(() => {
@@ -921,7 +933,12 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
       setLoading(true);
       try {
         const { data } = await api.get('/dashboard/stats');
-        setStats(data);
+        setStats(prev => ({
+          ...prev,
+          ...data,
+          marginByChannel: Array.isArray(data?.marginByChannel) ? data.marginByChannel : [],
+          topCategoryMargins: Array.isArray(data?.topCategoryMargins) ? data.topCategoryMargins : []
+        }));
       } catch (error) {
         console.error('Failed to fetch dashboard stats', error);
       } finally {
@@ -933,7 +950,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.11.14-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.11.15-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };
@@ -943,6 +960,15 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
     // v1.11.9: nominal penuh utk SEMUA nilai (sebelumnya compact Jt/M — user mau spesifik utk desain kartu)
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
   };
+
+  const formatPercent = (number) => `${(parseFloat(number) || 0).toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+  const formatQty = (number) => (parseFloat(number) || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+  const channelMargins = stats.marginByChannel || [];
+  const topCategoryMargins = stats.topCategoryMargins || [];
+  const maxChannelRevenue = Math.max(1, ...channelMargins.map(row => Math.abs(parseFloat(row.revenue) || 0)));
+  const maxCategoryMargin = Math.max(1, ...topCategoryMargins.map(row => Math.abs(parseFloat(row.margin) || 0)));
+  const marginColor = (value) => (parseFloat(value) || 0) >= 0 ? '#34C759' : '#FF3B30';
+  const channelColor = (channel) => channel === 'online' ? '#007AFF' : channel === 'offline' ? '#8E8E93' : '#FF9500';
 
 
   return (
@@ -994,6 +1020,104 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
             <p className="text-sm font-medium" style={{ color: sub }}>{stat.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Profitability Snapshot */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+        <section className="glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <h2 className="text-lg font-bold" style={{ color: text }}>Margin per Channel</h2>
+              <p className="text-xs font-medium mt-1" style={{ color: sub }}>Nota paid/final bulan ini</p>
+            </div>
+            <div className="p-3 rounded-xl" style={{ backgroundColor: '#007AFF18', color: '#007AFF' }}>
+              <BarChart3 size={22} />
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="flex flex-col gap-4">
+              {[0, 1].map(i => <Skeleton key={i} width="100%" height="58px" />)}
+            </div>
+          ) : channelMargins.length ? (
+            <div className="flex flex-col">
+              {channelMargins.map((row, idx) => {
+                const accent = channelColor(row.channel);
+                const valueWidth = `${Math.min(100, ((Math.abs(parseFloat(row.revenue) || 0) / maxChannelRevenue) * 100))}%`;
+                const TrendIcon = (parseFloat(row.margin) || 0) >= 0 ? ArrowUpRight : ArrowDownRight;
+                return (
+                  <div key={row.channel || idx} className="py-4" style={{ borderTop: idx ? `1px solid ${border}` : 'none' }}>
+                    <div className="flex items-center justify-between gap-4 mb-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: accent }} />
+                          <span className="text-sm font-bold truncate" style={{ color: text }}>{row.label}</span>
+                        </div>
+                        <p className="text-xs mt-1" style={{ color: sub }}>{row.orderCount} nota · Omzet {formatRupiah(row.revenue)}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="flex items-center justify-end gap-1 text-sm font-bold" style={{ color: marginColor(row.margin) }}>
+                          <TrendIcon size={14} />
+                          {formatRupiah(row.margin)}
+                        </div>
+                        <p className="text-xs font-semibold" style={{ color: sub }}>{formatPercent(row.marginPct)}</p>
+                      </div>
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA' }}>
+                      <div className="h-full rounded-full" style={{ width: valueWidth, backgroundColor: accent }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm font-medium py-6" style={{ color: sub }}>Belum ada nota paid/final bulan ini.</p>
+          )}
+        </section>
+
+        <section className="glass-target rounded-3xl p-6 border shadow-sm" style={{ backgroundColor: cardBg, borderColor: border }}>
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <h2 className="text-lg font-bold" style={{ color: text }}>Top Kategori Margin</h2>
+              <p className="text-xs font-medium mt-1" style={{ color: sub }}>Urutan kontribusi laba bulan ini</p>
+            </div>
+            <div className="p-3 rounded-xl" style={{ backgroundColor: '#34C75918', color: '#34C759' }}>
+              <Tags size={22} />
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="flex flex-col gap-4">
+              {[0, 1, 2].map(i => <Skeleton key={i} width="100%" height="52px" />)}
+            </div>
+          ) : topCategoryMargins.length ? (
+            <div className="flex flex-col">
+              {topCategoryMargins.map((row, idx) => {
+                const color = marginColor(row.margin);
+                const valueWidth = `${Math.min(100, ((Math.abs(parseFloat(row.margin) || 0) / maxCategoryMargin) * 100))}%`;
+                return (
+                  <div key={row.category || idx} className="py-3.5" style={{ borderTop: idx ? `1px solid ${border}` : 'none' }}>
+                    <div className="flex items-center justify-between gap-4 mb-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold truncate" style={{ color: text }}>{row.category}</p>
+                        <p className="text-xs mt-1" style={{ color: sub }}>{formatQty(row.qty)} qty · {row.orderCount} nota</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-bold" style={{ color }}>{formatRupiah(row.margin)}</p>
+                        <p className="text-xs font-semibold" style={{ color: sub }}>{formatPercent(row.marginPct)}</p>
+                      </div>
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA' }}>
+                      <div className="h-full rounded-full" style={{ width: valueWidth, backgroundColor: color }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm font-medium py-6" style={{ color: sub }}>Belum ada kategori dengan margin bulan ini.</p>
+          )}
+        </section>
       </div>
 
       {/* Quick Access Section - Compacted Row */}

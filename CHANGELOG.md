@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.11.15-stable] - 2026-05-31
+
+### Added
+- **📈 Dashboard Profitability Snapshot**: Dashboard sekarang menampilkan dua insight laba bulan ini setelah kartu statistik: **Margin per Channel** dan **Top Kategori Margin**. Angka hanya memakai nota `paid` + `final` + belum dihapus, jadi lebih cocok untuk monitoring laba real.
+  - _Detail teknis_: `backend/routes/dashboard.js`: extend `GET /dashboard/stats` dengan `marginByChannel` dan `topCategoryMargins`. Formula margin tetap `qty × (unit_price − unit_hpp × (1 + PPN_RATE))` memakai `tax.PPN_RATE`, bukan hardcode. `Dashboard.jsx`: tambah panel responsive dengan omzet, margin, margin %, jumlah nota, dan empty/loading state.
+
 ## [v1.11.14-stable] - 2026-05-31
 
 ### Added
