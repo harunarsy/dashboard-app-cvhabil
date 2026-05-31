@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.12.3-stable] - 2026-05-31
+
+### Fixed
+- **Audit/Stability Pass v1.12.3**: draft invoice sekarang per-user, endpoint settings/counters diproteksi auth, lookup nama produk di hot path diindeks, dan note audit overwrite disimpan dengan benar.
+  - _Detail teknis_: `backend/routes/invoices.js` tagging draft via `draft_data.__meta.owner_id` + fallback legacy draft ter-claim sekali, `backend/routes/settings.js` now auth-gated + validasi payload counter, `backend/routes/inventory.js` tambah functional index `LOWER(TRIM(name))`, dan `backend/routes/sales.js`/`purchaseOrders.js`/`invoices.js` samakan lookup ke predicate yang ter-normalisasi.
+
 ## [v1.12.2-stable] - 2026-05-31
 
 ### Added

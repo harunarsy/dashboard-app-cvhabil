@@ -84,6 +84,21 @@ const logAudit = async (invoiceId, invoiceNumber, action, snapshot, note = '') =
   } catch (e) { console.error('Audit log error:', e.message); }
 };
 
+const DRAFT_OWNER_META_KEY = '__meta';
+const getDraftOwnerId = (req) => String(req.user?.id || '');
+const buildOwnedDraftData = (draftData, ownerId) => {
+  const payload = draftData && typeof draftData === 'object' && !Array.isArray(draftData)
+    ? { ...draftData }
+    : {};
+  const existingMeta = payload[DRAFT_OWNER_META_KEY];
+  payload[DRAFT_OWNER_META_KEY] = {
+    ...(existingMeta && typeof existingMeta === 'object' ? existingMeta : {}),
+    owner_id: ownerId,
+    saved_at: new Date().toISOString(),
+  };
+  return payload;
+};
+
 // GET all invoices
 router.get('/', auth, async (req, res) => {
   try {
@@ -120,8 +135,27 @@ router.get('/trash', auth, async (req, res) => {
 // GET draft
 router.get('/draft', auth, async (req, res) => {
   try {
+    const ownerId = getDraftOwnerId(req);
+    const { rows: ownedRows } = await pool.query(
+      `SELECT * FROM invoices
+       WHERE is_draft = TRUE
+         AND deleted_at IS NULL
+         AND COALESCE(draft_data->'__meta'->>'owner_id', '') = $1
+       ORDER BY updated_at DESC
+       LIMIT 1`,
+      [ownerId]
+    );
+    if (ownedRows[0]) {
+      return res.json(ownedRows[0]);
+    }
+
     const result = await pool.query(
-      `SELECT * FROM invoices WHERE is_draft = TRUE AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1`
+      `SELECT * FROM invoices
+       WHERE is_draft = TRUE
+         AND deleted_at IS NULL
+         AND COALESCE(draft_data->'__meta'->>'owner_id', '') = ''
+       ORDER BY updated_at DESC
+       LIMIT 1`
     );
     res.json(result.rows[0] || null);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -151,27 +185,76 @@ router.get('/:id', auth, async (req, res) => {
 // SAVE DRAFT
 router.post('/draft', auth, async (req, res) => {
   const { draft_data } = req.body;
+  const ownerId = getDraftOwnerId(req);
+  const ownedDraftData = buildOwnedDraftData(draft_data, ownerId);
+  const client = await pool.connect();
   try {
-    const existing = await pool.query(`SELECT id FROM invoices WHERE is_draft = TRUE AND deleted_at IS NULL LIMIT 1`);
+    await client.query('BEGIN');
+    const existing = await client.query(
+      `SELECT id FROM invoices
+       WHERE is_draft = TRUE
+         AND deleted_at IS NULL
+         AND COALESCE(draft_data->'__meta'->>'owner_id', '') = $1
+       ORDER BY updated_at DESC
+       LIMIT 1
+       FOR UPDATE`,
+      [ownerId]
+    );
     if (existing.rows.length > 0) {
-      await pool.query(`UPDATE invoices SET draft_data = $1, updated_at = NOW() WHERE id = $2`,
-        [JSON.stringify(draft_data), existing.rows[0].id]);
-      res.json({ id: existing.rows[0].id, saved: true });
-    } else {
-      const r = await pool.query(
-        `INSERT INTO invoices (invoice_number, purchase_date, distributor_name, status, is_draft, draft_data)
-         VALUES ('DRAFT-' || extract(epoch from now())::bigint, NOW(), 'DRAFT', 'Pending', TRUE, $1) RETURNING id`,
-        [JSON.stringify(draft_data)]
+      await client.query(
+        `UPDATE invoices SET draft_data = $1, updated_at = NOW() WHERE id = $2`,
+        [JSON.stringify(ownedDraftData), existing.rows[0].id]
       );
-      res.json({ id: r.rows[0].id, saved: true });
+      await client.query('COMMIT');
+      return res.json({ id: existing.rows[0].id, saved: true });
     }
-  } catch (err) { res.status(500).json({ error: err.message }); }
+
+    const legacyDraft = await client.query(
+      `SELECT id FROM invoices
+       WHERE is_draft = TRUE
+         AND deleted_at IS NULL
+         AND COALESCE(draft_data->'__meta'->>'owner_id', '') = ''
+       ORDER BY updated_at DESC
+       LIMIT 1
+       FOR UPDATE SKIP LOCKED`
+    );
+    if (legacyDraft.rows.length > 0) {
+      await client.query(
+        `UPDATE invoices SET draft_data = $1, updated_at = NOW() WHERE id = $2`,
+        [JSON.stringify(ownedDraftData), legacyDraft.rows[0].id]
+      );
+      await client.query('COMMIT');
+      return res.json({ id: legacyDraft.rows[0].id, saved: true });
+    }
+
+    const r = await client.query(
+      `INSERT INTO invoices (invoice_number, purchase_date, distributor_name, status, is_draft, draft_data)
+       VALUES ('DRAFT-' || extract(epoch from now())::bigint, NOW(), 'DRAFT', 'Pending', TRUE, $1) RETURNING id`,
+      [JSON.stringify(ownedDraftData)]
+    );
+    await client.query('COMMIT');
+    res.json({ id: r.rows[0].id, saved: true });
+  } catch (err) {
+    try { await client.query('ROLLBACK'); } catch (_) {}
+    res.status(500).json({ error: err.message });
+  }
+  finally { client.release(); }
 });
 
 // DELETE DRAFT
 router.delete('/draft/clear', auth, async (req, res) => {
   try {
-    await pool.query(`DELETE FROM invoices WHERE is_draft = TRUE`);
+    const ownerId = getDraftOwnerId(req);
+    await pool.query(
+      `DELETE FROM invoices
+       WHERE is_draft = TRUE
+         AND deleted_at IS NULL
+         AND (
+           COALESCE(draft_data->'__meta'->>'owner_id', '') = $1
+           OR COALESCE(draft_data->'__meta'->>'owner_id', '') = ''
+         )`,
+      [ownerId]
+    );
     res.json({ cleared: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -205,7 +288,7 @@ router.post('/', auth, async (req, res) => {
       invoiceId = existing.rows[0].id;
       // snapshot before update
       const snap = await client.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
-      await logAudit(invoiceId, invoice_number, 'UPDATE', snap.rows[0], null, 'Overwrite via POST');
+      await logAudit(invoiceId, invoice_number, 'UPDATE', snap.rows[0], 'Overwrite via POST');
 
       await client.query(
         `UPDATE invoices SET purchase_date=$1, distributor_name=$2,
@@ -251,7 +334,7 @@ router.post('/', auth, async (req, res) => {
       for (const item of items) {
         if (productMap.has(item.product_name)) continue;
         const { rows: [p] } = await client.query(
-          'SELECT id, hna, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
+          'SELECT id, hna, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE LIMIT 1',
           [item.product_name]
         );
         if (p) productMap.set(item.product_name, p);
@@ -427,7 +510,7 @@ router.put('/:id', auth, async (req, res) => {
         if (parseFloat(item.hna) > 0) {
           await pool.query(
             `UPDATE product_master SET hna = $1, updated_at = NOW()
-             WHERE LOWER(name) = LOWER($2) AND is_active = TRUE`,
+             WHERE LOWER(TRIM(name)) = LOWER(TRIM($2)) AND is_active = TRUE`,
             [parseFloat(item.hna), item.product_name]
           );
         }

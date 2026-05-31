@@ -60,6 +60,7 @@ const ensureSchema = async () => {
     CREATE INDEX IF NOT EXISTS idx_mutations_product ON inventory_mutations(product_id);
     CREATE INDEX IF NOT EXISTS idx_mutations_created ON inventory_mutations(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_opname_date ON stock_opname(opname_date DESC);
+    CREATE INDEX IF NOT EXISTS idx_product_master_name_lc ON product_master ((LOWER(TRIM(name))));
   `);
   // Add hna column to inventory_batches if not exists
   await pool.query(`

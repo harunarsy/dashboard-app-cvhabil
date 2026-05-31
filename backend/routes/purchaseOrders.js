@@ -147,7 +147,7 @@ router.post('/', auth, async (req, res) => {
     for (const item of items) {
       if (productMap.has(item.product_name)) continue;
       const { rows: [p] } = await client.query(
-        'SELECT id, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
+        'SELECT id, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE LIMIT 1',
         [item.product_name]
       );
       if (p) productMap.set(item.product_name, p);
@@ -195,11 +195,11 @@ router.put('/:id', auth, async (req, res) => {
       // v1.6.0 multi-unit: resolve products + convert qty to base
       const productMap = new Map();
       for (const item of items) {
-        if (productMap.has(item.product_name)) continue;
-        const { rows: [p] } = await client.query(
-          'SELECT id, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
-          [item.product_name]
-        );
+      if (productMap.has(item.product_name)) continue;
+      const { rows: [p] } = await client.query(
+        'SELECT id, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE LIMIT 1',
+        [item.product_name]
+      );
         if (p) productMap.set(item.product_name, p);
       }
       for (const item of items) {
@@ -264,7 +264,7 @@ router.post('/:id/receive', auth, async (req, res) => {
       );
       if (!current) continue;
       let { rows: [product] } = await client.query(
-        'SELECT id, hna, base_unit, pack_unit, pack_size FROM product_master WHERE name = $1 AND is_active = TRUE', [current.product_name]
+        'SELECT id, hna, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE', [current.product_name]
       );
       // Jaring pengaman: produk belum terdaftar (SP lama / produk dinonaktifkan) → daftarkan dulu supaya stok tidak hilang diam-diam
       if (!product) {

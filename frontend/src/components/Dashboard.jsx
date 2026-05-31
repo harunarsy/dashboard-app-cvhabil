@@ -8,7 +8,17 @@ const StockMovementChart = lazy(() => import('./dashboard/StockMovementChart'));
 
 const RELEASES = [
   {
-    version: 'v1.12.2-stable', date: '31 Mei 2026', status: 'latest',
+    version: 'v1.12.3-stable', date: '31 Mei 2026', status: 'latest',
+    changes: [
+      {
+        type: 'fix',
+        text: 'Audit/stability pass: draft invoice sekarang per-user, endpoint settings/counters diproteksi auth, lookup nama produk di hot path diindeks, dan note audit overwrite disimpan dengan benar.',
+        dev: 'backend/routes/invoices.js: draft autosave pakai owner_id di draft_data.__meta + claim legacy draft sekali. backend/routes/settings.js: auth gate + validasi payload counter. backend/routes/inventory.js: functional index LOWER(TRIM(name)). backend/routes/sales.js / purchaseOrders.js / invoices.js: samakan predicate lookup ke bentuk normalisasi.'
+      },
+    ]
+  },
+  {
+    version: 'v1.12.2-stable', date: '31 Mei 2026', status: 'stable',
     changes: [
       {
         type: 'feat',
@@ -911,7 +921,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(() => {
-    const latestVersion = RELEASES[0]?.version || 'v1.12.2-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.3-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     return !sessionStorage.getItem(storageKey);
   });
@@ -975,7 +985,7 @@ export default function Dashboard({ isDarkMode, isSidebarOpen, isMobile, isVanta
 
   const closeReleaseModal = () => {
     setShowReleaseModal(false);
-    const latestVersion = RELEASES[0]?.version || 'v1.12.2-stable';
+    const latestVersion = RELEASES[0]?.version || 'v1.12.3-stable';
     const storageKey = `habil_release_seen_${latestVersion.replace(/\./g, '_')}`;
     sessionStorage.setItem(storageKey, 'true');
   };

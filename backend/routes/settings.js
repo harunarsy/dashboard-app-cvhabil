@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
+const auth = require('../middleware/auth');
 
 const DEFAULT_PROFIT_THRESHOLDS = {
   high: 20,
@@ -28,6 +29,8 @@ const ensureSchema = async () => {
 };
 ensureSchema().catch(console.error);
 
+router.use(auth);
+
 const parseThresholds = (value = {}) => {
   const raw = value && typeof value === 'object' ? value : {};
   const toNumber = (input, fallback) => {
@@ -48,6 +51,15 @@ const readProfitThresholds = async () => {
   );
   const value = rows[0]?.setting_value || DEFAULT_PROFIT_THRESHOLDS;
   return parseThresholds(value);
+};
+
+const ALLOWED_COUNTER_DOC_TYPES = new Set(['NOTA', 'SP']);
+const parseBoolean = (value) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    return ['true', '1', 'yes', 'on'].includes(value.toLowerCase());
+  }
+  return Boolean(value);
 };
 
 // GET /api/settings/counters
@@ -118,12 +130,20 @@ router.put('/profit-thresholds', async (req, res) => {
 // PUT /api/settings/counters/:doc_type
 router.put('/counters/:doc_type', async (req, res) => {
   const { doc_type } = req.params;
-  const { last_number, is_locked } = req.body;
+  const parsedLastNumber = Number.parseInt(req.body?.last_number, 10);
+  const is_locked = parseBoolean(req.body?.is_locked);
+
+  if (!ALLOWED_COUNTER_DOC_TYPES.has(doc_type)) {
+    return res.status(400).json({ error: 'Unsupported counter type' });
+  }
+  if (!Number.isInteger(parsedLastNumber) || parsedLastNumber < 0) {
+    return res.status(400).json({ error: 'last_number must be a non-negative integer' });
+  }
   
   try {
     const { rows } = await pool.query(
       'UPDATE document_counters SET last_number = $1, is_locked = $2, updated_at = CURRENT_TIMESTAMP WHERE doc_type = $3 RETURNING *',
-      [last_number, is_locked, doc_type]
+      [parsedLastNumber, is_locked, doc_type]
     );
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Counter not found' });

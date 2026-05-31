@@ -208,7 +208,7 @@ router.post('/', auth, async (req, res) => {
     for (const it of items) {
       if (productMap.has(it.product_name)) continue;
       const { rows: [p] } = await client.query(
-        'SELECT id, name, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
+        'SELECT id, name, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE LIMIT 1',
         [it.product_name]
       );
       if (!p) continue;
@@ -352,7 +352,7 @@ router.put('/:id', auth, async (req, res) => {
     for (const it of items) {
       if (productMap.has(it.product_name)) continue;
       const { rows: [p] } = await client.query(
-        'SELECT id, name, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(name) = LOWER($1) AND is_active = TRUE LIMIT 1',
+        'SELECT id, name, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE LIMIT 1',
         [it.product_name]
       );
       if (!p) continue;
