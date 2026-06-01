@@ -121,6 +121,19 @@ export default function PurchaseOrderList({
   const text = isDarkMode ? "#FFF" : "#000";
   const sub = "var(--color-text-subtle)";
   useBodyScrollLock(showModal || !!deleteConfirmId);
+  useEffect(() => {
+    if (!showModal) return;
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      if (showModal === "distributor") {
+        setShowModal("create");
+        return;
+      }
+      setShowModal(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [showModal]);
   const TooltipButton = ({
     label,
     children,
@@ -747,6 +760,7 @@ export default function PurchaseOrderList({
                   return (
                     <React.Fragment key={o.id}>
                       <tr
+                        className="ui-row ui-hover-delight"
                         style={{
                           borderBottom: `1px solid ${border}`,
                           cursor: "pointer",

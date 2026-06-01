@@ -132,6 +132,26 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
   const danger = "var(--color-danger)";
   const dangerSoft = "var(--color-danger-soft)";
   useBodyScrollLock(showAddModal || showTrashModal || !!editingTask);
+  useEffect(() => {
+    if (!showAddModal && !showTrashModal && !editingTask) return;
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      if (showTrashModal) {
+        setShowTrashModal(false);
+        return;
+      }
+      if (editingTask) {
+        setShowHistory(false);
+        setEditingTask(null);
+        return;
+      }
+      if (showAddModal) {
+        setShowAddModal(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [showAddModal, showTrashModal, editingTask]);
 
   useEffect(() => {
     fetchTasks();

@@ -30,9 +30,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.14.2-stable",
+    version: "v1.14.3-stable",
     date: "1 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Hover row table di Nota dan SP sekarang konsisten dengan lift+glow dashboard cards, dan modal page-level utama menutup dengan Escape secara seragam tanpa ganggu modal child yang sudah punya handling sendiri.",
+        dev: "frontend/src/components/SalesOrderList.jsx, PurchaseOrderList.jsx, InvoiceList.jsx, TasksKanban.jsx, serta label versi canonical di Login.jsx, Sidebar.jsx, index.js, CHANGELOG.md, dan SUPERAPP_BRAIN.md disinkronkan ke v1.14.3. generateNotaPDF.js tetap tidak disentuh.",
+      },
+    ],
+  },
+  {
+    version: "v1.14.2-stable",
+    date: "1 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -1817,7 +1829,7 @@ export default function Dashboard({
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.14.2-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.14.3-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)

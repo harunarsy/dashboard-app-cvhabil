@@ -1182,11 +1182,11 @@ export default function InvoiceList({
     }
   };
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setForm(blankForm());
     setItems([blankItem()]);
     setEditingId(null);
-  };
+  }, []);
   const loadDraft = () => {
     if (!savedDraft) return;
     if (savedDraft.form) setForm(savedDraft.form);
@@ -1215,6 +1215,36 @@ export default function InvoiceList({
       console.error("Error loading invoice audit log:", e);
     }
   };
+
+  useEffect(() => {
+    if (!showModal && !showTrash && !dupConfirm && !deleteConfirm && !auditModal)
+      return;
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      if (auditModal) {
+        setAuditModal(null);
+        return;
+      }
+      if (dupConfirm) {
+        setDupConfirm(null);
+        return;
+      }
+      if (deleteConfirm) {
+        setDeleteConfirm(null);
+        return;
+      }
+      if (showTrash) {
+        setShowTrash(false);
+        return;
+      }
+      if (showModal) {
+        setShowModal(false);
+        resetForm();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [showModal, showTrash, dupConfirm, deleteConfirm, auditModal, resetForm]);
 
   const summaryData = filteredInvoices.length > 0 ? filteredInvoices : invoices;
   const sumHna = summaryData.reduce(

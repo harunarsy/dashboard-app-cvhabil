@@ -195,6 +195,25 @@ export default function SalesOrderList({
   const text = isDarkMode ? "#FFF" : "#000";
   const sub = "var(--color-text-subtle)";
   useBodyScrollLock(showModal || showPrintModal || !!deleteConfirmId);
+  useEffect(() => {
+    if (!showModal && !showPrintModal && !paymentModal.open) return;
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      if (paymentModal.open) {
+        setPaymentModal({ open: false, order: null, date: "", mode: "pay" });
+        return;
+      }
+      if (showPrintModal) {
+        setShowPrintModal(false);
+        return;
+      }
+      if (showModal) {
+        setShowModal(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [paymentModal.open, showModal, showPrintModal]);
   const labelStyle = {
     display: "block",
     fontSize: "12px",
@@ -1276,7 +1295,7 @@ export default function SalesOrderList({
               : filtered.map((o) => (
                   <React.Fragment key={o.id}>
                     <tr
-                      className="ui-row"
+                      className="ui-row ui-hover-delight"
                       style={{
                         borderBottom: `1px solid ${border}`,
                         cursor: "pointer",

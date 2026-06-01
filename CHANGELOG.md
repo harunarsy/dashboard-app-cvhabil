@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.14.3-stable] - 2026-06-01
+
+### Fixed
+
+- Hover row di Sales Order dan Purchase Order sekarang konsisten dengan lift + glow `ui-hover-delight`, sementara row utama Faktur tetap memakai pola yang sama.
+- ESC close untuk modal page-level diseragamkan di halaman transaksi utama supaya pengguna bisa keluar dengan satu tombol tanpa menyentuh modal child yang sudah punya handler sendiri.
+- `Dashboard.jsx`, `Login.jsx`, `Sidebar.jsx`, `index.js`, dan `SUPERAPP_BRAIN.md` disinkronkan ke `v1.14.3-stable`.
+- `generateNotaPDF.js` tetap tidak disentuh.
+
 ## [v1.14.2-stable] - 2026-06-01
 
 ### Fixed
