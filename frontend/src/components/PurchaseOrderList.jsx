@@ -1,14 +1,1928 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Search, Trash2, Edit2, X, CheckCircle, FileText } from 'lucide-react';
-import { purchaseOrdersAPI, distributorsAPI, inventoryAPI, countersAPI, printSettingsAPI } from '../services/api';
-import { getProductUnits, formatQtyWithConversion } from '../constants/units';
-import { generateSPPDF } from '../utils/generateSPPDF';
-import MasterSelect from './MasterSelect';
-import Skeleton from './common/Skeleton';
-import ConfirmModal from './common/ConfirmModal';
-import Breadcrumb from './common/Breadcrumb';
-import SPPreview from './common/SPPreview';
-import { UI_MOTION, uiTransition } from '../constants/ui'; const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
-const blankItem = () => ({ product_name: '', qty: 1, unit: 'pcs', unit_price: 0, _custom_unit: false }); const statusColors = { draft: { bg: 'var(--color-warning-soft)', color: 'var(--color-warning)', label: 'Draft' }, sent: { bg: 'var(--color-primary-soft)', color: 'var(--color-primary)', label: 'Dikirim' }, partial: { bg: 'var(--color-primary-hover)18', color: 'var(--color-primary-hover)', label: 'Partial' }, received: { bg: 'var(--color-success-soft)', color: 'var(--color-success)', label: 'Diterima' },
-}; export default function PurchaseOrderList({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) { const [orders, setOrders] = useState([]); const [distributors, setDistributors] = useState([]); const [products, setProducts] = useState([]); const [search, setSearch] = useState(''); const [showModal, setShowModal] = useState(null); // null | 'create' | 'receive' | 'distributor' const [editId, setEditId] = useState(null); const [expandedId, setExpandedId] = useState(null); const [toast, setToast] = useState(''); const [loading, setLoading] = useState(true); const [deleteConfirmId, setDeleteConfirmId] = useState(null); const [saveError, setSaveError] = useState(''); const [isSaving, setIsSaving] = useState(false); const [pdfLoading, setPdfLoading] = useState(null); // order id being printed const [sortKeys, setSortKeys] = useState([]); const [isAutoSP, setIsAutoSP] = useState(true); const [manualNumber, setManualNumber] = useState(''); const [spCounter, setSpCounter] = useState({ prefix: 'SP', last_number: 0 }); const numberInputRef = useRef(null); const [form, setForm] = useState({ po_number: '', distributor_name: '', distributor_address: '', pic_name: 'Harun Al Rasyid', order_date: new Date().toISOString().split('T')[0], expected_date: '', notes: '' }); const [distForm, setDistForm] = useState({ name: '', short_code: '', salesman_name: '', salesman_phone: '' }); const [items, setItems] = useState([blankItem()]); const [receiveItems, setReceiveItems] = useState([]); const [layoutSettings, setLayoutSettings] = useState(null); const bg = isDarkMode ? '#000' : 'var(--color-bg)'; const cardBg = isDarkMode ? 'rgba(28,28,30,0.7)' : 'rgba(255,255,255,0.7)'; const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)'; const text = isDarkMode ? '#FFF' : '#000'; const sub = 'var(--color-text-subtle)'; const TooltipButton = ({ label, children, className = '', style = {}, ...buttonProps }) => ( <span className="group relative inline-flex"> <button {...buttonProps} aria-label={label} className={`ui-motion-button ui-focus-ring ${className}`.trim()} style={style} > {children} </button> <span role="tooltip" className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-md border px-2.5 py-1 text-[10px] font-semibold shadow-lg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100" style={{ backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : '#FFF', color: isDarkMode ? '#FFF' : '#000', borderColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)' }} > {label} </span> </span> ); const fetchOrders = async () => { setLoading(true); try { const { data } = await purchaseOrdersAPI.getAll(); setOrders(data); } catch (e) { console.error(e); } finally { setTimeout(() => setLoading(false), UI_MOTION.duration.loading); } }; const fetchDistributors = async () => { try { const { data } = await distributorsAPI.getAll(); setDistributors(data); } catch (e) { console.error(e); } }; const fetchProducts = async () => { try { const { data } = await inventoryAPI.getProducts(); setProducts(data); } catch (e) { console.error(e); } }; const fetchCounters = async () => { try { const { data } = await countersAPI.getAll(); const sp = data.find(c => c.doc_type === 'SP'); if (sp) setSpCounter(sp); } catch (e) { console.error(e); } }; const fetchSettings = async () => { try { const { data } = await printSettingsAPI.get(); setLayoutSettings(data.nota_layout); } catch (e) { console.error(e); } }; useEffect(() => { fetchOrders(); fetchDistributors(); fetchProducts(); fetchCounters(); fetchSettings(); }, []); const filtered = orders.filter(o => o.po_number.toLowerCase().includes(search.toLowerCase()) || o.distributor_name.toLowerCase().includes(search.toLowerCase()) ); const handleSort = (field, isShift) => { setSortKeys(prev => { const idx = prev.findIndex(k => k.field === field); if (isShift) { if (idx >= 0) { if (prev[idx].dir === 'asc') return prev.map(k => k.field === field ? {...k, dir: 'desc'} : k); return prev.filter(k => k.field !== field); } return [...prev, {field, dir: 'asc'}]; } else { if (prev.length === 1 && prev[0].field === field) return [{field, dir: prev[0].dir === 'asc' ? 'desc' : 'asc'}]; return [{field, dir: 'asc'}]; } }); }; const sorted = sortKeys.length ? [...filtered].sort((a, b) => { for (const {field, dir} of sortKeys) { let va = a[field], vb = b[field]; if (field === 'order_date') { va = new Date(va || 0); vb = new Date(vb || 0); } else if (field === 'total') { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; } else { va = String(va || '').toLowerCase(); vb = String(vb || '').toLowerCase(); } if (va < vb) return dir === 'asc' ? -1 : 1; if (va > vb) return dir === 'asc' ? 1 : -1; } return 0; }) : filtered; const flash = (msg) => { setToast(msg); setTimeout(() => setToast(''), UI_MOTION.duration.toastSuccess); }; const inputStyle = { width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: '10px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, fontSize: '14px', outline: 'none', boxSizing: 'border-box', }; const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '700', color: sub, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }; const openCreate = () => { setIsAutoSP(true); setManualNumber(''); setEditId(null); setSaveError(''); setForm({ po_number: '', distributor_name: '', distributor_address: '', pic_name: 'Harun Al Rasyid', order_date: new Date().toISOString().split('T')[0], expected_date: '', notes: '' }); setItems([blankItem()]); fetchCounters(); setShowModal('create'); }; const openEdit = (o) => { setEditId(o.id); setForm({ po_number: o.po_number, distributor_name: o.distributor_name, distributor_address: o.distributor_address || '', pic_name: o.pic_name || 'Harun Al Rasyid', order_date: o.order_date?.split('T')[0] || '', expected_date: o.expected_date?.split('T')[0] || '', notes: o.notes || '' }); setItems(o.items?.length ? o.items.map(i => ({ product_name: i.product_name, qty: i.qty, unit: i.unit || 'pcs', unit_price: parseFloat(i.unit_price) || 0 })) : [blankItem()]); setShowModal('create'); }; const openReceive = (o) => { setEditId(o.id); setReceiveItems(o.items?.map(i => ({ po_item_id: i.id, product_name: i.product_name, ordered_qty: i.qty, already_received: i.received_qty || 0, received_qty: 0, batch_no: '', expired_date: '' })) || []); setShowModal('receive'); }; const handleSave = async () => { setSaveError(''); if (!form.distributor_name.trim()) return flash('Nama distributor wajib'); const validItems = items.filter(i => i.product_name.trim()); if (!validItems.length) return flash('Min 1 produk'); setIsSaving(true); try { const payload = { ...form, items: validItems }; if (!isAutoSP && !manualNumber && !editId) { setIsSaving(false); return flash('Nomor SP wajib diisi secara manual (Sistem sedang dalam mode Manual)'); } if (!isAutoSP && !editId) { payload.po_number = spCounter.prefix + manualNumber; } if (isAutoSP && !editId) { delete payload.po_number; } if (editId) { await purchaseOrdersAPI.update(editId, payload); flash('SP diperbarui'); } else { await purchaseOrdersAPI.create(payload); flash('SP berhasil dibuat'); fetchCounters(); } setShowModal(null); fetchOrders(); } catch (e) { setSaveError(e.response?.data?.error || e.message); } finally { setIsSaving(false); } }; const handleSaveDistributor = async () => { if (!distForm.name.trim()) return flash('Nama distributor wajib'); try { const res = await distributorsAPI.add(distForm); // Backend handles UPSERT using name flash('Data Distributor Disimpan'); setForm(p => ({ ...p, distributor_name: res.data.name })); fetchDistributors(); setShowModal('create'); } catch (e) { flash(e.response?.data?.error || e.message); } }; const handleReceive = async () => { const toReceive = receiveItems.filter(i => (parseInt(i.received_qty) || 0) > 0); if (!toReceive.length) return flash('Masukkan qty yang diterima'); try { await purchaseOrdersAPI.receive(editId, { items: toReceive }); flash('Barang diterima & stok diperbarui'); setShowModal(null); fetchOrders(); } catch (e) { flash(e.response?.data?.error || e.message); } }; const handleDelete = (id) => setDeleteConfirmId(id); const confirmDelete = async () => { if (!deleteConfirmId) return; try { await purchaseOrdersAPI.remove(deleteConfirmId); flash('SP dihapus'); fetchOrders(); } catch (e) { flash(e.response?.data?.error || e.message); } finally { setDeleteConfirmId(null); } }; // MasterSelect handlers for Distributor const handleAddDistributor = async (name) => { await distributorsAPI.add(name); fetchDistributors(); }; const handleRemoveDistributor = async (name) => { await distributorsAPI.remove(name); fetchDistributors(); }; const handleRenameDistributor = async (oldName, newName) => { await distributorsAPI.rename(oldName, newName); fetchDistributors(); }; // MasterSelect handlers for Produk (mirror Nota — tambah produk baru langsung daftar ke Inventory) const handleAddProduct = async (name) => { try { await inventoryAPI.createProduct({ name, unit: 'pcs', hna: 0, sell_price: 0, category: '', min_stock: 5 }); flash('Produk ditambahkan'); fetchProducts(); } catch (e) { flash(e.response?.data?.error || e.message); } }; const handleRemoveProduct = async (name) => { try { const product = products.find(p => p.name === name); if (product) { await inventoryAPI.deleteProduct(product.id); flash('Produk dinonaktifkan'); fetchProducts(); } } catch (e) { flash(e.response?.data?.error || e.message); } }; const handleRenameProduct = async (oldName, newName) => { try { const product = products.find(p => p.name === oldName); if (product) { await inventoryAPI.updateProduct(product.id, { name: newName, code: product.code, unit: product.unit, hna: product.hna, sell_price: product.sell_price, category: product.category, min_stock: product.min_stock }); flash('Nama produk diubah'); fetchProducts(); } } catch (e) { flash(e.response?.data?.error || e.message); } }; const addItem = () => setItems([...items, blankItem()]); const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx)); const updateItem = (idx, f, v) => { const n = [...items]; const updated = { ...n[idx], [f]: v }; if (f === 'product_name') { const match = products.find(p => p.name?.toLowerCase() === v?.toLowerCase()); if (match) updated.unit = match.base_unit || match.unit || 'pcs'; } n[idx] = updated; setItems(n); }; const selectedDistributorInfo = distributors.find(d => d.name === form.distributor_name); const handlePrintSP = async (o) => { if (pdfLoading) return; setPdfLoading(o.id); try { const bInfo = await printSettingsAPI.get(); const settings = bInfo.data.nota_layout || undefined; const sInfo = distributors.find(d => d.name === o.distributor_name) || {}; const doc = generateSPPDF(o, { format: 'A6', salesmanInfo: sInfo, settings }); doc.save(`SP_${o.po_number}.pdf`); flash('Cetak SP Berhasil'); await purchaseOrdersAPI.update(o.id, { status: 'sent' }); fetchOrders(); } catch (e) { flash('Gagal buat PDF: ' + e.message); } finally { setPdfLoading(null); } }; return ( <div style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}> <Breadcrumb title="Surat Pesanan" isMobile={isMobile} isDarkMode={isDarkMode} /> {/* Header */} <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '12px' }}> <div> <h1 style={{ fontSize: '2rem', fontWeight: '700', margin: 0, color: text }}>📋 Surat Pesanan</h1> <p style={{ margin: '4px 0 0', fontSize: '14px', color: sub }}>{loading ? <Skeleton width="130px" height="14px" /> : `${orders.length} SP tercatat`}</p> </div> <button onClick={openCreate} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}> <Plus size={18} /> Buat SP </button> </div> {/* Search */} <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}> <div style={{ position: 'relative', maxWidth: '400px', flex: 1 }}> <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: sub }} /> <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nomor SP atau distributor..." style={{ ...inputStyle, paddingLeft: '36px' }} /> </div> {sortKeys.length > 0 && ( <button onClick={() => setSortKeys([])} style={{ padding: '10px 14px', border: `1px solid ${border}`, borderRadius: '10px', background: 'none', color: sub, fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>↺ Reset Sort</button> )} </div> {/* Table */} <div className="ui-hover-delight" style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: '12px', overflowX: 'auto' }}> <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '640px' }}> <thead> <tr style={{ backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-bg)' }}> {[ { label: 'No. SP', field: 'po_number' }, { label: 'Tanggal', field: 'order_date' }, { label: 'Distributor', field: 'distributor_name' }, { label: 'Status', field: 'status' }, { label: 'Aksi', field: null }, ].map(({ label, field }) => { const keyInfo = field ? sortKeys.find(k => k.field === field) : null; const priority = field ? sortKeys.findIndex(k => k.field === field) + 1 : 0; return ( <th key={label} onClick={field ? (e) => handleSort(field, e.shiftKey) : undefined} title={field ? 'Klik sort · Shift+klik multi-sort' : undefined} style={{ padding: '12px 14px', textAlign: 'left', fontWeight: '700', color: field && keyInfo ? text : sub, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${border}`, cursor: field ? 'pointer' : 'default', userSelect: 'none', whiteSpace: 'nowrap' }}> {label}{field && (keyInfo ? ` ${sortKeys.length > 1 ? priority : ''}${keyInfo.dir === 'asc' ? '▲' : '▼'}` : ' ↕')} </th> );})} </tr> </thead> <tbody> {loading ? ( [...Array(5)].map((_, i) => ( <tr key={i} style={{ borderBottom: `1px solid ${border}` }}> <td style={{ padding: '12px 14px' }}><Skeleton width="80px" height="14px" /></td> <td style={{ padding: '12px 14px' }}><Skeleton width="90px" height="14px" /></td> <td style={{ padding: '12px 14px' }}><Skeleton width="150px" height="14px" /></td> <td style={{ padding: '12px 14px' }}><Skeleton width="60px" height="18px" /></td> <td style={{ padding: '12px 14px' }}><Skeleton width="80px" height="20px" /></td> </tr> )) ) : ( sorted.map(o => { const sc = statusColors[o.status] || statusColors.draft; return ( <React.Fragment key={o.id}> <tr style={{ borderBottom: `1px solid ${border}`, cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}> <td style={{ padding: '12px 14px', fontWeight: '600', color: 'var(--color-primary-hover)' }}>{o.po_number}</td> <td style={{ padding: '12px 14px', color: text }}>{fmtDate(o.order_date)}</td> <td style={{ padding: '12px 14px', color: text }}>{o.distributor_name}</td> <td style={{ padding: '12px 14px' }}> <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px', backgroundColor: sc.bg, color: sc.color }}>{sc.label}</span> </td> <td style={{ padding: '12px 14px' }}> <div style={{ display: 'flex', gap: '4px' }} onClick={e => e.stopPropagation()}> <TooltipButton label="Cetak SP" disabled={pdfLoading === o.id} onClick={() => handlePrintSP(o)} style={{ background: 'none', border: 'none', cursor: pdfLoading === o.id ? 'not-allowed' : 'pointer', padding: '4px', opacity: pdfLoading === o.id ? 0.5 : 1 }}><FileText size={15} color="var(--color-primary-hover)" /></TooltipButton> {o.status !== 'received' && <TooltipButton label="Terima Barang" onClick={() => openReceive(o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><CheckCircle size={15} color="var(--color-success)" /></TooltipButton>} <TooltipButton label="Edit pesanan" onClick={() => openEdit(o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Edit2 size={15} color="var(--color-primary)" /></TooltipButton> <TooltipButton label="Hapus pesanan" onClick={() => handleDelete(o.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} color="var(--color-danger)" /></TooltipButton> </div> </td> </tr> {expandedId === o.id && o.items?.length > 0 && ( <tr> <td colSpan={5} style={{ padding: '0 14px 14px', backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}> <div style={{ overflowX: 'auto' }}> <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', fontSize: '12px', minWidth: '400px' }}> <thead><tr> {['Produk', 'Qty', 'Satuan', 'Diterima'].map(h => ( <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: '600', color: sub, borderBottom: `1px solid ${border}` }}>{h}</th> ))} </tr></thead> <tbody> {o.items.map((it, idx) => ( <tr key={idx}> <td style={{ padding: '6px 10px', color: text }}>{it.product_name}</td> <td style={{ padding: '6px 10px', color: text }}>{it.qty}</td> <td style={{ padding: '6px 10px', color: sub }}>{it.unit}</td> <td style={{ padding: '6px 10px', fontWeight: '600', color: (it.received_qty || 0) >= it.qty ? 'var(--color-success)' : 'var(--color-warning)' }}> {it.received_qty || 0}/{it.qty} </td> </tr> ))} </tbody> </table> </div> {o.notes && <p style={{ margin: '8px 0 0', fontSize: '12px', color: sub }}>📝 {o.notes}</p>} </td> </tr> )} </React.Fragment> ); }) )} {!loading && !sorted.length && <tr><td colSpan={5} style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', textAlign: 'center', color: sub }}>Belum ada Surat Pesanan.</td></tr>} </tbody> </table> </div> {/* Create/Edit Modal */} {showModal === 'create' && ( <div onClick={() => setShowModal(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}> <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: 'min(1100px, calc(100vw - 32px))', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}> <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: cardBg, zIndex: 1 }}> <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>{editId ? '✏️ Edit SP' : '📋 Buat SP Baru'}</h3> <button onClick={() => setShowModal(null)} aria-label="Tutup modal SP" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button> </div> <div style={{ padding: '20px 22px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr', gap: '20px', alignItems: 'start' }}> <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}> {!editId && ( <div> <label style={labelStyle}>Nomor SP *</label> <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}> <input value={spCounter.prefix} disabled style={{ ...inputStyle, width: '130px', backgroundColor: isDarkMode ? '#333' : 'var(--color-bg)', opacity: 0.7, fontWeight: '600', textAlign: 'center' }} /> <input ref={numberInputRef} value={isAutoSP ? String(spCounter.last_number + 1).padStart(4, '0') : manualNumber} onChange={e => !isAutoSP && setManualNumber(e.target.value.replace(/\D/g, ''))} disabled={isAutoSP} placeholder="0001" style={{ ...inputStyle, flex: 1, backgroundColor: isAutoSP ? (isDarkMode ? '#333' : 'var(--color-bg)') : cardBg, opacity: isAutoSP ? 0.7 : 1 }} /> <button type="button" onClick={() => { const newMode = !isAutoSP; setIsAutoSP(newMode); if (!newMode) { setManualNumber(String(spCounter.last_number + 1).padStart(4, '0')); setTimeout(() => { if (numberInputRef.current) { numberInputRef.current.focus(); numberInputRef.current.select(); } }, UI_MOTION.duration.micro); } else { setManualNumber(''); } }} style={{ padding: '10px 14px', borderRadius: '8px', border: `1px solid ${border}`, backgroundColor: isAutoSP ? '#E8F5E9' : '#FFF3E0', color: isAutoSP ? '#2E7D32' : '#E65100', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', minWidth: '110px', justifyContent: 'center' }} > {isAutoSP ? '🔒 Auto' : '🔓 Manual'} </button> </div> {!isAutoSP && <p style={{ fontSize: '10px', color: '#E65100', marginTop: '4px' }}>Mode Manual: Counter sistem tidak akan bertambah.</p>} {saveError && <p style={{ fontSize: '12px', color: 'var(--color-danger)', marginTop: '6px', fontWeight: '500' }}>{saveError}</p>} </div> )} {editId && ( <div> <label style={labelStyle}>Nomor SP</label> <input value={form.po_number} disabled style={{...inputStyle, opacity: 0.6}} /> </div> )} <div> <label style={labelStyle}>Distributor *</label> <MasterSelect value={form.distributor_name} onChange={v => { setForm(p => ({ ...p, distributor_name: v })); const match = distributors.find(d => d.name === v); if (match) setForm(p => ({ ...p, distributor_address: match.address || '' })); }} options={distributors} onAdd={handleAddDistributor} onRemove={handleRemoveDistributor} onRename={handleRenameDistributor} isDarkMode={isDarkMode} placeholder="Pilih atau tambah distributor..." /> {selectedDistributorInfo && ( <div style={{ marginTop: '8px', padding: '10px 12px', backgroundColor: isDarkMode ? '#222' : '#F9F9F9', borderRadius: '8px', border: `1px solid ${border}`, fontSize: '12px', color: sub, display: 'flex', gap: '16px' }}> <div><strong style={{color: text}}>Salesman:</strong> {selectedDistributorInfo.salesman_name || '-'}</div> <div><strong style={{color: text}}>Phone:</strong> {selectedDistributorInfo.salesman_phone || '-'}</div> </div> )} </div> <div><label style={labelStyle}>Alamat</label><input value={form.distributor_address} onChange={e => setForm(p => ({ ...p, distributor_address: e.target.value }))} style={inputStyle} /></div> <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}> <div><label style={labelStyle}>PIC</label> <select value={form.pic_name} onChange={e => setForm(p => ({ ...p, pic_name: e.target.value }))} style={inputStyle}> <option value="Harun Al Rasyid">Harun Al Rasyid</option> <option value="Fivin Soehaeni">Fivin Soehaeni</option> </select> </div> <div><label style={labelStyle}>Tanggal SP</label><input type="date" value={form.order_date} onChange={e => setForm(p => ({ ...p, order_date: e.target.value }))} style={inputStyle} /></div> <div><label style={labelStyle}>Estimasi Tiba</label><input type="date" value={form.expected_date} onChange={e => setForm(p => ({ ...p, expected_date: e.target.value }))} style={inputStyle} /></div> </div> <div> <label style={labelStyle}>Produk</label> {items.map((it, idx) => { const product = products.find(p => p.name?.toLowerCase() === it.product_name?.toLowerCase()); const unitOptions = getProductUnits(product); const showPreview = product && product.pack_unit && (parseInt(product.pack_size) || 1) > 1; return ( <div key={idx} style={{ marginBottom: '8px' }}> <div style={{ display: 'grid', gridTemplateColumns: '2fr 70px 110px 30px', gap: '6px', alignItems: 'center' }}> <MasterSelect value={it.product_name} onChange={v => updateItem(idx, 'product_name', v)} options={products.map(p => ({ name: p.name }))} onAdd={handleAddProduct} onRemove={handleRemoveProduct} onRename={handleRenameProduct} isDarkMode={isDarkMode} placeholder="Nama produk" /> <input type="number" value={it.qty} onChange={e => updateItem(idx, 'qty', parseInt(e.target.value) || 0)} min="1" style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px', textAlign: 'center' }} /> <select value={it.unit} onChange={e => updateItem(idx, 'unit', e.target.value)} style={{ ...inputStyle, fontSize: '13px', padding: '8px 6px' }}> {unitOptions.map((u, i) => <option key={`${u.value}-${i}`} value={u.value}>{u.label}</option>)} </select> {items.length > 1 && <TooltipButton label="Hapus baris produk" onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><Trash2 size={14} color="var(--color-danger)" /></TooltipButton>} </div> {showPreview && it.qty > 0 && ( <p style={{ margin: '4px 0 0 8px', fontSize: '11px', color: sub }}>📐 {formatQtyWithConversion(it.qty, it.unit, product)}</p> )} </div> ); })} <button onClick={addItem} style={{ fontSize: '13px', color: 'var(--color-primary-hover)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600', marginTop: '4px' }}>+ Tambah Produk</button> </div> <div><label style={labelStyle}>Catatan</label><textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} /></div> {saveError && editId && ( <p style={{ fontSize: '12px', color: 'var(--color-danger)', margin: '0', fontWeight: '500' }}>{saveError}</p> )} <div style={{ display: 'flex', gap: '10px' }}> <button onClick={handleSave} disabled={isSaving} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', opacity: isSaving ? 0.7 : 1 }}>{isSaving ? 'Menyimpan...' : (editId ? 'Simpan' : 'Buat SP')}</button> <button onClick={() => setShowModal(null)} disabled={isSaving} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: '600', opacity: isSaving ? 0.7 : 1 }}>Batal</button> </div> </div> {!isMobile && ( <div style={{ position: 'sticky', top: 0, alignSelf: 'start' }}> <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: sub, marginBottom: '8px', letterSpacing: '0.05em' }}>📄 Preview Live</div> <SPPreview form={{ ...form, po_number: editId ? form.po_number : `${spCounter.prefix || ''}${isAutoSP ? String(spCounter.last_number + 1).padStart(4, '0') : manualNumber}` }} items={items} settings={layoutSettings || {}} /> </div> )} </div> </div> </div> )} {/* Receive Modal */} {showModal === 'receive' && ( <div onClick={() => setShowModal(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}> <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}> <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, backgroundColor: cardBg, zIndex: 1 }}> <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: 'var(--color-success)' }}>✅ Terima Barang</h3> <button onClick={() => setShowModal(null)} aria-label="Tutup modal terima barang" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button> </div> <div style={{ padding: '20px 22px' }}> <p style={{ fontSize: '13px', color: sub, margin: '0 0 12px' }}>Masukkan qty yang diterima, batch, dan tanggal expired. Stok akan otomatis bertambah.</p> <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}> <thead><tr> {['Produk', 'Pesan', 'Sudah', 'Terima', 'Batch', 'Expired'].map(h => ( <th key={h} style={{ padding: '6px 8px', textAlign: 'left', fontWeight: '700', color: sub, fontSize: '10px', textTransform: 'uppercase', borderBottom: `1px solid ${border}` }}>{h}</th> ))} </tr></thead> <tbody> {receiveItems.map((ri, idx) => ( <tr key={idx} style={{ borderBottom: `1px solid ${border}` }}> <td style={{ padding: '6px 8px', fontWeight: '600', color: text }}>{ri.product_name}</td> <td style={{ padding: '6px 8px', color: sub }}>{ri.ordered_qty}</td> <td style={{ padding: '6px 8px', color: ri.already_received >= ri.ordered_qty ? 'var(--color-success)' : 'var(--color-warning)' }}>{ri.already_received}</td> <td style={{ padding: '6px 8px' }}> <input type="number" value={ri.received_qty} min="0" max={ri.ordered_qty - ri.already_received} onChange={e => { const n = [...receiveItems]; n[idx] = { ...n[idx], received_qty: parseInt(e.target.value) || 0 }; setReceiveItems(n); }} style={{ ...inputStyle, width: '60px', padding: '4px 6px', fontSize: '12px', textAlign: 'center' }} /> </td> <td style={{ padding: '6px 8px' }}> <input value={ri.batch_no} onChange={e => { const n = [...receiveItems]; n[idx] = { ...n[idx], batch_no: e.target.value }; setReceiveItems(n); }} placeholder="Batch" style={{ ...inputStyle, width: '80px', padding: '4px 6px', fontSize: '12px' }} /> </td> <td style={{ padding: '6px 8px' }}> <input type="date" value={ri.expired_date} onChange={e => { const n = [...receiveItems]; n[idx] = { ...n[idx], expired_date: e.target.value }; setReceiveItems(n); }} style={{ ...inputStyle, width: '120px', padding: '4px 6px', fontSize: '12px' }} /> </td> </tr> ))} </tbody> </table> <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}> <button onClick={handleReceive} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-success)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Terima & Update Stok</button> <button onClick={() => setShowModal(null)} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button> </div> </div> </div> </div> )} {/* Edit Distributor Modal */} {showModal === 'distributor' && ( <div onClick={() => setShowModal('create')} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, padding: '1rem' }}> <div onClick={e => e.stopPropagation()} style={{ backgroundColor: cardBg, borderRadius: '16px', width: '100%', maxWidth: '480px', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}> <div style={{ padding: '18px 22px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}> <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: text }}>🏢 Master Data Distributor</h3> <button onClick={() => setShowModal('create')} aria-label="Tutup modal distributor" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button> </div> <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: '14px' }}> <div><label style={labelStyle}>Nama Distributor *</label><input value={distForm.name} onChange={e => setDistForm(p => ({...p, name: e.target.value}))} style={inputStyle} placeholder="Contoh: PT. Bintang Jadi" /></div> <div><label style={labelStyle}>Kode Singkat (Short Code)</label><input value={distForm.short_code} onChange={e => setDistForm(p => ({...p, short_code: e.target.value}))} style={inputStyle} placeholder="Contoh: BTG" /></div> <div><label style={labelStyle}>Nama Salesman</label><input value={distForm.salesman_name} onChange={e => setDistForm(p => ({...p, salesman_name: e.target.value}))} style={inputStyle} placeholder="Nama PIC dari distributor" /></div> <div><label style={labelStyle}>No. HP Salesman</label><input value={distForm.salesman_phone} onChange={e => setDistForm(p => ({...p, salesman_phone: e.target.value}))} style={inputStyle} placeholder="0812xxx" /></div> <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}> <button onClick={handleSaveDistributor} className="btn-primary ui-motion-button ui-focus-ring" data-magnetic="true" style={{ flex: 1, padding: '13px', backgroundColor: 'var(--color-primary)', color: '#FFF', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>Simpan Data Master</button> <button onClick={() => setShowModal('create')} style={{ flex: 1, padding: '13px', backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Batal</button> </div> </div> </div> </div> )} {/* Delete Confirm Modal */} <ConfirmModal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} onConfirm={confirmDelete} title="Hapus SP" message="Apakah Anda yakin ingin menghapus Surat Pesanan ini?" isDarkMode={isDarkMode} /> {/* Toast */} {toast && ( <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: 'var(--color-success)', color: '#FFF', padding: '12px 20px', borderRadius: '10px', fontWeight: '600', fontSize: '14px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}> ✅ {toast} </div> )} </div> );
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Plus,
+  Search,
+  Trash2,
+  Edit2,
+  X,
+  CheckCircle,
+  FileText,
+} from "lucide-react";
+import {
+  purchaseOrdersAPI,
+  distributorsAPI,
+  inventoryAPI,
+  countersAPI,
+  printSettingsAPI,
+} from "../services/api";
+import { getProductUnits, formatQtyWithConversion } from "../constants/units";
+import { generateSPPDF } from "../utils/generateSPPDF";
+import MasterSelect from "./MasterSelect";
+import Skeleton from "./common/Skeleton";
+import ConfirmModal from "./common/ConfirmModal";
+import Breadcrumb from "./common/Breadcrumb";
+import SPPreview from "./common/SPPreview";
+import { UI_MOTION, uiTransition } from "../constants/ui";
+
+const fmtDate = (d) =>
+  d
+    ? new Date(d).toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "-";
+const blankItem = () => ({
+  product_name: "",
+  qty: 1,
+  unit: "pcs",
+  unit_price: 0,
+  _custom_unit: false,
+});
+
+const statusColors = {
+  draft: {
+    bg: "var(--color-warning-soft)",
+    color: "var(--color-warning)",
+    label: "Draft",
+  },
+  sent: {
+    bg: "var(--color-primary-soft)",
+    color: "var(--color-primary)",
+    label: "Dikirim",
+  },
+  partial: {
+    bg: "var(--color-primary-hover)18",
+    color: "var(--color-primary-hover)",
+    label: "Partial",
+  },
+  received: {
+    bg: "var(--color-success-soft)",
+    color: "var(--color-success)",
+    label: "Diterima",
+  },
+};
+
+export default function PurchaseOrderList({
+  isDarkMode,
+  isSidebarOpen,
+  isMobile,
+  isVantaMode,
+}) {
+  const [orders, setOrders] = useState([]);
+  const [distributors, setDistributors] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(null); // null | 'create' | 'receive' | 'distributor'
+  const [editId, setEditId] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
+  const [toast, setToast] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [saveError, setSaveError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(null); // order id being printed
+  const [sortKeys, setSortKeys] = useState([]);
+
+  const [isAutoSP, setIsAutoSP] = useState(true);
+  const [manualNumber, setManualNumber] = useState("");
+  const [spCounter, setSpCounter] = useState({ prefix: "SP", last_number: 0 });
+  const numberInputRef = useRef(null);
+  const [form, setForm] = useState({
+    po_number: "",
+    distributor_name: "",
+    distributor_address: "",
+    pic_name: "Harun Al Rasyid",
+    order_date: new Date().toISOString().split("T")[0],
+    expected_date: "",
+    notes: "",
+  });
+  const [distForm, setDistForm] = useState({
+    name: "",
+    short_code: "",
+    salesman_name: "",
+    salesman_phone: "",
+  });
+  const [items, setItems] = useState([blankItem()]);
+  const [receiveItems, setReceiveItems] = useState([]);
+  const [layoutSettings, setLayoutSettings] = useState(null);
+
+  const bg = isDarkMode ? "#000" : "var(--color-bg)";
+  const cardBg = isDarkMode ? "rgba(28,28,30,0.7)" : "rgba(255,255,255,0.7)";
+  const border = isDarkMode
+    ? "var(--color-surface-raised)"
+    : "var(--color-border)";
+  const text = isDarkMode ? "#FFF" : "#000";
+  const sub = "var(--color-text-subtle)";
+  const TooltipButton = ({
+    label,
+    children,
+    className = "",
+    style = {},
+    ...buttonProps
+  }) => (
+    <span className="group relative inline-flex">
+      <button
+        {...buttonProps}
+        aria-label={label}
+        className={`ui-motion-button ui-focus-ring ${className}`.trim()}
+        style={style}
+      >
+        {children}
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-md border px-2.5 py-1 text-[10px] font-semibold shadow-lg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+        style={{
+          backgroundColor: isDarkMode
+            ? "var(--color-surface-elevated)"
+            : "#FFF",
+          color: isDarkMode ? "#FFF" : "#000",
+          borderColor: isDarkMode
+            ? "var(--color-surface-raised)"
+            : "var(--color-border)",
+        }}
+      >
+        {label}
+      </span>
+    </span>
+  );
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const { data } = await purchaseOrdersAPI.getAll();
+      setOrders(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setTimeout(() => setLoading(false), UI_MOTION.duration.loading);
+    }
+  };
+  const fetchDistributors = async () => {
+    try {
+      const { data } = await distributorsAPI.getAll();
+      setDistributors(data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  const fetchProducts = async () => {
+    try {
+      const { data } = await inventoryAPI.getProducts();
+      setProducts(data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  const fetchCounters = async () => {
+    try {
+      const { data } = await countersAPI.getAll();
+      const sp = data.find((c) => c.doc_type === "SP");
+      if (sp) setSpCounter(sp);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  const fetchSettings = async () => {
+    try {
+      const { data } = await printSettingsAPI.get();
+      setLayoutSettings(data.nota_layout);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+    fetchDistributors();
+    fetchProducts();
+    fetchCounters();
+    fetchSettings();
+  }, []);
+
+  const filtered = orders.filter(
+    (o) =>
+      o.po_number.toLowerCase().includes(search.toLowerCase()) ||
+      o.distributor_name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const handleSort = (field, isShift) => {
+    setSortKeys((prev) => {
+      const idx = prev.findIndex((k) => k.field === field);
+      if (isShift) {
+        if (idx >= 0) {
+          if (prev[idx].dir === "asc")
+            return prev.map((k) =>
+              k.field === field ? { ...k, dir: "desc" } : k,
+            );
+          return prev.filter((k) => k.field !== field);
+        }
+        return [...prev, { field, dir: "asc" }];
+      } else {
+        if (prev.length === 1 && prev[0].field === field)
+          return [{ field, dir: prev[0].dir === "asc" ? "desc" : "asc" }];
+        return [{ field, dir: "asc" }];
+      }
+    });
+  };
+
+  const sorted = sortKeys.length
+    ? [...filtered].sort((a, b) => {
+        for (const { field, dir } of sortKeys) {
+          let va = a[field],
+            vb = b[field];
+          if (field === "order_date") {
+            va = new Date(va || 0);
+            vb = new Date(vb || 0);
+          } else if (field === "total") {
+            va = parseFloat(va) || 0;
+            vb = parseFloat(vb) || 0;
+          } else {
+            va = String(va || "").toLowerCase();
+            vb = String(vb || "").toLowerCase();
+          }
+          if (va < vb) return dir === "asc" ? -1 : 1;
+          if (va > vb) return dir === "asc" ? 1 : -1;
+        }
+        return 0;
+      })
+    : filtered;
+
+  const flash = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), UI_MOTION.duration.toastSuccess);
+  };
+  const inputStyle = {
+    width: "100%",
+    padding: "10px 12px",
+    border: `1px solid ${border}`,
+    borderRadius: "10px",
+    backgroundColor: isDarkMode
+      ? "var(--color-surface-raised)"
+      : "var(--color-bg)",
+    color: text,
+    fontSize: "14px",
+    outline: "none",
+    boxSizing: "border-box",
+  };
+  const labelStyle = {
+    display: "block",
+    fontSize: "11px",
+    fontWeight: "700",
+    color: sub,
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    marginBottom: "6px",
+  };
+
+  const openCreate = () => {
+    setIsAutoSP(true);
+    setManualNumber("");
+    setEditId(null);
+    setSaveError("");
+    setForm({
+      po_number: "",
+      distributor_name: "",
+      distributor_address: "",
+      pic_name: "Harun Al Rasyid",
+      order_date: new Date().toISOString().split("T")[0],
+      expected_date: "",
+      notes: "",
+    });
+    setItems([blankItem()]);
+    fetchCounters();
+    setShowModal("create");
+  };
+
+  const openEdit = (o) => {
+    setEditId(o.id);
+    setForm({
+      po_number: o.po_number,
+      distributor_name: o.distributor_name,
+      distributor_address: o.distributor_address || "",
+      pic_name: o.pic_name || "Harun Al Rasyid",
+      order_date: o.order_date?.split("T")[0] || "",
+      expected_date: o.expected_date?.split("T")[0] || "",
+      notes: o.notes || "",
+    });
+    setItems(
+      o.items?.length
+        ? o.items.map((i) => ({
+            product_name: i.product_name,
+            qty: i.qty,
+            unit: i.unit || "pcs",
+            unit_price: parseFloat(i.unit_price) || 0,
+          }))
+        : [blankItem()],
+    );
+    setShowModal("create");
+  };
+
+  const openReceive = (o) => {
+    setEditId(o.id);
+    setReceiveItems(
+      o.items?.map((i) => ({
+        po_item_id: i.id,
+        product_name: i.product_name,
+        ordered_qty: i.qty,
+        already_received: i.received_qty || 0,
+        received_qty: 0,
+        batch_no: "",
+        expired_date: "",
+      })) || [],
+    );
+    setShowModal("receive");
+  };
+
+  const handleSave = async () => {
+    setSaveError("");
+    if (!form.distributor_name.trim()) return flash("Nama distributor wajib");
+    const validItems = items.filter((i) => i.product_name.trim());
+    if (!validItems.length) return flash("Min 1 produk");
+    setIsSaving(true);
+    try {
+      const payload = { ...form, items: validItems };
+      if (!isAutoSP && !manualNumber && !editId) {
+        setIsSaving(false);
+        return flash(
+          "Nomor SP wajib diisi secara manual (Sistem sedang dalam mode Manual)",
+        );
+      }
+      if (!isAutoSP && !editId) {
+        payload.po_number = spCounter.prefix + manualNumber;
+      }
+      if (isAutoSP && !editId) {
+        delete payload.po_number;
+      }
+      if (editId) {
+        await purchaseOrdersAPI.update(editId, payload);
+        flash("SP diperbarui");
+      } else {
+        await purchaseOrdersAPI.create(payload);
+        flash("SP berhasil dibuat");
+        fetchCounters();
+      }
+      setShowModal(null);
+      fetchOrders();
+    } catch (e) {
+      setSaveError(e.response?.data?.error || e.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveDistributor = async () => {
+    if (!distForm.name.trim()) return flash("Nama distributor wajib");
+    try {
+      const res = await distributorsAPI.add(distForm); // Backend handles UPSERT using name
+      flash("Data Distributor Disimpan");
+      setForm((p) => ({ ...p, distributor_name: res.data.name }));
+      fetchDistributors();
+      setShowModal("create");
+    } catch (e) {
+      flash(e.response?.data?.error || e.message);
+    }
+  };
+
+  const handleReceive = async () => {
+    const toReceive = receiveItems.filter(
+      (i) => (parseInt(i.received_qty) || 0) > 0,
+    );
+    if (!toReceive.length) return flash("Masukkan qty yang diterima");
+    try {
+      await purchaseOrdersAPI.receive(editId, { items: toReceive });
+      flash("Barang diterima & stok diperbarui");
+      setShowModal(null);
+      fetchOrders();
+    } catch (e) {
+      flash(e.response?.data?.error || e.message);
+    }
+  };
+
+  const handleDelete = (id) => setDeleteConfirmId(id);
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      await purchaseOrdersAPI.remove(deleteConfirmId);
+      flash("SP dihapus");
+      fetchOrders();
+    } catch (e) {
+      flash(e.response?.data?.error || e.message);
+    } finally {
+      setDeleteConfirmId(null);
+    }
+  };
+
+  // MasterSelect handlers for Distributor
+  const handleAddDistributor = async (name) => {
+    await distributorsAPI.add(name);
+    fetchDistributors();
+  };
+
+  const handleRemoveDistributor = async (name) => {
+    await distributorsAPI.remove(name);
+    fetchDistributors();
+  };
+
+  const handleRenameDistributor = async (oldName, newName) => {
+    await distributorsAPI.rename(oldName, newName);
+    fetchDistributors();
+  };
+
+  // MasterSelect handlers for Produk (mirror Nota — tambah produk baru langsung daftar ke Inventory)
+  const handleAddProduct = async (name) => {
+    try {
+      await inventoryAPI.createProduct({
+        name,
+        unit: "pcs",
+        hna: 0,
+        sell_price: 0,
+        category: "",
+        min_stock: 5,
+      });
+      flash("Produk ditambahkan");
+      fetchProducts();
+    } catch (e) {
+      flash(e.response?.data?.error || e.message);
+    }
+  };
+  const handleRemoveProduct = async (name) => {
+    try {
+      const product = products.find((p) => p.name === name);
+      if (product) {
+        await inventoryAPI.deleteProduct(product.id);
+        flash("Produk dinonaktifkan");
+        fetchProducts();
+      }
+    } catch (e) {
+      flash(e.response?.data?.error || e.message);
+    }
+  };
+  const handleRenameProduct = async (oldName, newName) => {
+    try {
+      const product = products.find((p) => p.name === oldName);
+      if (product) {
+        await inventoryAPI.updateProduct(product.id, {
+          name: newName,
+          code: product.code,
+          unit: product.unit,
+          hna: product.hna,
+          sell_price: product.sell_price,
+          category: product.category,
+          min_stock: product.min_stock,
+        });
+        flash("Nama produk diubah");
+        fetchProducts();
+      }
+    } catch (e) {
+      flash(e.response?.data?.error || e.message);
+    }
+  };
+
+  const addItem = () => setItems([...items, blankItem()]);
+  const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx));
+  const updateItem = (idx, f, v) => {
+    const n = [...items];
+    const updated = { ...n[idx], [f]: v };
+    if (f === "product_name") {
+      const match = products.find(
+        (p) => p.name?.toLowerCase() === v?.toLowerCase(),
+      );
+      if (match) updated.unit = match.base_unit || match.unit || "pcs";
+    }
+    n[idx] = updated;
+    setItems(n);
+  };
+  const selectedDistributorInfo = distributors.find(
+    (d) => d.name === form.distributor_name,
+  );
+
+  const handlePrintSP = async (o) => {
+    if (pdfLoading) return;
+    setPdfLoading(o.id);
+    try {
+      const bInfo = await printSettingsAPI.get();
+      const settings = bInfo.data.nota_layout || undefined;
+      const sInfo =
+        distributors.find((d) => d.name === o.distributor_name) || {};
+      const doc = generateSPPDF(o, {
+        format: "A6",
+        salesmanInfo: sInfo,
+        settings,
+      });
+      doc.save(`SP_${o.po_number}.pdf`);
+      flash("Cetak SP Berhasil");
+      await purchaseOrdersAPI.update(o.id, { status: "sent" });
+      fetchOrders();
+    } catch (e) {
+      flash("Gagal buat PDF: " + e.message);
+    } finally {
+      setPdfLoading(null);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        padding: isMobile ? "1rem" : "2rem",
+        paddingTop: isMobile ? "4rem" : "2rem",
+        backgroundColor: isVantaMode ? "transparent" : bg,
+        minHeight: "100vh",
+        transition: uiTransition(
+          "margin-left",
+          UI_MOTION.duration.page,
+          UI_MOTION.easing.standard,
+        ),
+      }}
+    >
+      <Breadcrumb
+        title="Surat Pesanan"
+        isMobile={isMobile}
+        isDarkMode={isDarkMode}
+      />
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "1.5rem",
+          flexWrap: "wrap",
+          gap: "12px",
+        }}
+      >
+        <div>
+          <h1
+            style={{
+              fontSize: "2rem",
+              fontWeight: "700",
+              margin: 0,
+              color: text,
+            }}
+          >
+            📋 Surat Pesanan
+          </h1>
+          <p style={{ margin: "4px 0 0", fontSize: "14px", color: sub }}>
+            {loading ? (
+              <Skeleton width="130px" height="14px" />
+            ) : (
+              `${orders.length} SP tercatat`
+            )}
+          </p>
+        </div>
+        <button
+          onClick={openCreate}
+          className="btn-primary ui-motion-button ui-focus-ring"
+          data-magnetic="true"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "10px 18px",
+            backgroundColor: "var(--color-primary-hover)",
+            color: "#FFF",
+            border: "none",
+            borderRadius: "10px",
+            cursor: "pointer",
+            fontWeight: "700",
+            fontSize: "14px",
+          }}
+        >
+          <Plus size={18} /> Buat SP
+        </button>
+      </div>
+
+      {/* Search */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          marginBottom: "1.5rem",
+        }}
+      >
+        <div style={{ position: "relative", maxWidth: "400px", flex: 1 }}>
+          <Search
+            size={16}
+            style={{
+              position: "absolute",
+              left: "12px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: sub,
+            }}
+          />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari nomor SP atau distributor..."
+            style={{ ...inputStyle, paddingLeft: "36px" }}
+          />
+        </div>
+        {sortKeys.length > 0 && (
+          <button
+            onClick={() => setSortKeys([])}
+            style={{
+              padding: "10px 14px",
+              border: `1px solid ${border}`,
+              borderRadius: "10px",
+              background: "none",
+              color: sub,
+              fontSize: "12px",
+              fontWeight: "600",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            ↺ Reset Sort
+          </button>
+        )}
+      </div>
+
+      {/* Table */}
+      <div
+        className="ui-hover-delight"
+        style={{
+          backgroundColor: cardBg,
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          border: `1px solid ${border}`,
+          borderRadius: "12px",
+          overflowX: "auto",
+        }}
+      >
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            fontSize: "13px",
+            minWidth: "640px",
+          }}
+        >
+          <thead>
+            <tr
+              style={{
+                backgroundColor: isDarkMode
+                  ? "var(--color-surface-elevated)"
+                  : "var(--color-bg)",
+              }}
+            >
+              {[
+                { label: "No. SP", field: "po_number" },
+                { label: "Tanggal", field: "order_date" },
+                { label: "Distributor", field: "distributor_name" },
+                { label: "Status", field: "status" },
+                { label: "Aksi", field: null },
+              ].map(({ label, field }) => {
+                const keyInfo = field
+                  ? sortKeys.find((k) => k.field === field)
+                  : null;
+                const priority = field
+                  ? sortKeys.findIndex((k) => k.field === field) + 1
+                  : 0;
+                return (
+                  <th
+                    key={label}
+                    onClick={
+                      field ? (e) => handleSort(field, e.shiftKey) : undefined
+                    }
+                    title={
+                      field ? "Klik sort · Shift+klik multi-sort" : undefined
+                    }
+                    style={{
+                      padding: "12px 14px",
+                      textAlign: "left",
+                      fontWeight: "700",
+                      color: field && keyInfo ? text : sub,
+                      fontSize: "11px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      borderBottom: `1px solid ${border}`,
+                      cursor: field ? "pointer" : "default",
+                      userSelect: "none",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {label}
+                    {field &&
+                      (keyInfo
+                        ? ` ${sortKeys.length > 1 ? priority : ""}${keyInfo.dir === "asc" ? "▲" : "▼"}`
+                        : " ↕")}
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {loading
+              ? [...Array(5)].map((_, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${border}` }}>
+                    <td style={{ padding: "12px 14px" }}>
+                      <Skeleton width="80px" height="14px" />
+                    </td>
+                    <td style={{ padding: "12px 14px" }}>
+                      <Skeleton width="90px" height="14px" />
+                    </td>
+                    <td style={{ padding: "12px 14px" }}>
+                      <Skeleton width="150px" height="14px" />
+                    </td>
+                    <td style={{ padding: "12px 14px" }}>
+                      <Skeleton width="60px" height="18px" />
+                    </td>
+                    <td style={{ padding: "12px 14px" }}>
+                      <Skeleton width="80px" height="20px" />
+                    </td>
+                  </tr>
+                ))
+              : sorted.map((o) => {
+                  const sc = statusColors[o.status] || statusColors.draft;
+                  return (
+                    <React.Fragment key={o.id}>
+                      <tr
+                        style={{
+                          borderBottom: `1px solid ${border}`,
+                          cursor: "pointer",
+                        }}
+                        onClick={() =>
+                          setExpandedId(expandedId === o.id ? null : o.id)
+                        }
+                      >
+                        <td
+                          style={{
+                            padding: "12px 14px",
+                            fontWeight: "600",
+                            color: "var(--color-primary-hover)",
+                          }}
+                        >
+                          {o.po_number}
+                        </td>
+                        <td style={{ padding: "12px 14px", color: text }}>
+                          {fmtDate(o.order_date)}
+                        </td>
+                        <td style={{ padding: "12px 14px", color: text }}>
+                          {o.distributor_name}
+                        </td>
+                        <td style={{ padding: "12px 14px" }}>
+                          <span
+                            style={{
+                              fontSize: "10px",
+                              fontWeight: "700",
+                              padding: "2px 8px",
+                              borderRadius: "4px",
+                              backgroundColor: sc.bg,
+                              color: sc.color,
+                            }}
+                          >
+                            {sc.label}
+                          </span>
+                        </td>
+                        <td style={{ padding: "12px 14px" }}>
+                          <div
+                            style={{ display: "flex", gap: "4px" }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <TooltipButton
+                              label="Cetak SP"
+                              disabled={pdfLoading === o.id}
+                              onClick={() => handlePrintSP(o)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor:
+                                  pdfLoading === o.id
+                                    ? "not-allowed"
+                                    : "pointer",
+                                padding: "4px",
+                                opacity: pdfLoading === o.id ? 0.5 : 1,
+                              }}
+                            >
+                              <FileText
+                                size={15}
+                                color="var(--color-primary-hover)"
+                              />
+                            </TooltipButton>
+                            {o.status !== "received" && (
+                              <TooltipButton
+                                label="Terima Barang"
+                                onClick={() => openReceive(o)}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  padding: "4px",
+                                }}
+                              >
+                                <CheckCircle
+                                  size={15}
+                                  color="var(--color-success)"
+                                />
+                              </TooltipButton>
+                            )}
+                            <TooltipButton
+                              label="Edit pesanan"
+                              onClick={() => openEdit(o)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                padding: "4px",
+                              }}
+                            >
+                              <Edit2 size={15} color="var(--color-primary)" />
+                            </TooltipButton>
+                            <TooltipButton
+                              label="Hapus pesanan"
+                              onClick={() => handleDelete(o.id)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                padding: "4px",
+                              }}
+                            >
+                              <Trash2 size={15} color="var(--color-danger)" />
+                            </TooltipButton>
+                          </div>
+                        </td>
+                      </tr>
+                      {expandedId === o.id && o.items?.length > 0 && (
+                        <tr>
+                          <td
+                            colSpan={5}
+                            style={{
+                              padding: "0 14px 14px",
+                              backgroundColor: isDarkMode
+                                ? "#0A0A0A"
+                                : "#FAFAFA",
+                            }}
+                          >
+                            <div style={{ overflowX: "auto" }}>
+                              <table
+                                style={{
+                                  width: "100%",
+                                  borderCollapse: "collapse",
+                                  marginTop: "8px",
+                                  fontSize: "12px",
+                                  minWidth: "400px",
+                                }}
+                              >
+                                <thead>
+                                  <tr>
+                                    {[
+                                      "Produk",
+                                      "Qty",
+                                      "Satuan",
+                                      "Diterima",
+                                    ].map((h) => (
+                                      <th
+                                        key={h}
+                                        style={{
+                                          padding: "6px 10px",
+                                          textAlign: "left",
+                                          fontWeight: "600",
+                                          color: sub,
+                                          borderBottom: `1px solid ${border}`,
+                                        }}
+                                      >
+                                        {h}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {o.items.map((it, idx) => (
+                                    <tr key={idx}>
+                                      <td
+                                        style={{
+                                          padding: "6px 10px",
+                                          color: text,
+                                        }}
+                                      >
+                                        {it.product_name}
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: "6px 10px",
+                                          color: text,
+                                        }}
+                                      >
+                                        {it.qty}
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: "6px 10px",
+                                          color: sub,
+                                        }}
+                                      >
+                                        {it.unit}
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: "6px 10px",
+                                          fontWeight: "600",
+                                          color:
+                                            (it.received_qty || 0) >= it.qty
+                                              ? "var(--color-success)"
+                                              : "var(--color-warning)",
+                                        }}
+                                      >
+                                        {it.received_qty || 0}/{it.qty}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            {o.notes && (
+                              <p
+                                style={{
+                                  margin: "8px 0 0",
+                                  fontSize: "12px",
+                                  color: sub,
+                                }}
+                              >
+                                📝 {o.notes}
+                              </p>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+            {!loading && !sorted.length && (
+              <tr>
+                <td
+                  colSpan={5}
+                  style={{
+                    padding: isMobile ? "1rem" : "2rem",
+                    paddingTop: isMobile ? "4rem" : "2rem",
+                    textAlign: "center",
+                    color: sub,
+                  }}
+                >
+                  Belum ada Surat Pesanan.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Create/Edit Modal */}
+      {showModal === "create" && (
+        <div
+          onClick={() => setShowModal(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "1rem",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: cardBg,
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "min(1100px, calc(100vw - 32px))",
+              maxHeight: "90vh",
+              overflow: "auto",
+              boxShadow: "0 32px 64px rgba(0,0,0,0.35)",
+            }}
+          >
+            <div
+              style={{
+                padding: "18px 22px",
+                borderBottom: `1px solid ${border}`,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                position: "sticky",
+                top: 0,
+                backgroundColor: cardBg,
+                zIndex: 1,
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "16px",
+                  fontWeight: "700",
+                  color: text,
+                }}
+              >
+                {editId ? "✏️ Edit SP" : "📋 Buat SP Baru"}
+              </h3>
+              <button
+                onClick={() => setShowModal(null)}
+                aria-label="Tutup modal SP"
+                className="ui-motion-button ui-focus-ring"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={18} color={sub} />
+              </button>
+            </div>
+            <div
+              style={{
+                padding: "20px 22px",
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr",
+                gap: "20px",
+                alignItems: "start",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "14px",
+                  minWidth: 0,
+                }}
+              >
+                {!editId && (
+                  <div>
+                    <label style={labelStyle}>Nomor SP *</label>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "8px",
+                        alignItems: "center",
+                      }}
+                    >
+                      <input
+                        value={spCounter.prefix}
+                        disabled
+                        style={{
+                          ...inputStyle,
+                          width: "130px",
+                          backgroundColor: isDarkMode
+                            ? "#333"
+                            : "var(--color-bg)",
+                          opacity: 0.7,
+                          fontWeight: "600",
+                          textAlign: "center",
+                        }}
+                      />
+                      <input
+                        ref={numberInputRef}
+                        value={
+                          isAutoSP
+                            ? String(spCounter.last_number + 1).padStart(4, "0")
+                            : manualNumber
+                        }
+                        onChange={(e) =>
+                          !isAutoSP &&
+                          setManualNumber(e.target.value.replace(/\D/g, ""))
+                        }
+                        disabled={isAutoSP}
+                        placeholder="0001"
+                        style={{
+                          ...inputStyle,
+                          flex: 1,
+                          backgroundColor: isAutoSP
+                            ? isDarkMode
+                              ? "#333"
+                              : "var(--color-bg)"
+                            : cardBg,
+                          opacity: isAutoSP ? 0.7 : 1,
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newMode = !isAutoSP;
+                          setIsAutoSP(newMode);
+                          if (!newMode) {
+                            setManualNumber(
+                              String(spCounter.last_number + 1).padStart(
+                                4,
+                                "0",
+                              ),
+                            );
+                            setTimeout(() => {
+                              if (numberInputRef.current) {
+                                numberInputRef.current.focus();
+                                numberInputRef.current.select();
+                              }
+                            }, UI_MOTION.duration.micro);
+                          } else {
+                            setManualNumber("");
+                          }
+                        }}
+                        style={{
+                          padding: "10px 14px",
+                          borderRadius: "8px",
+                          border: `1px solid ${border}`,
+                          backgroundColor: isAutoSP ? "#E8F5E9" : "#FFF3E0",
+                          color: isAutoSP ? "#2E7D32" : "#E65100",
+                          fontWeight: "600",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          cursor: "pointer",
+                          minWidth: "110px",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {isAutoSP ? "🔒 Auto" : "🔓 Manual"}
+                      </button>
+                    </div>
+                    {!isAutoSP && (
+                      <p
+                        style={{
+                          fontSize: "10px",
+                          color: "#E65100",
+                          marginTop: "4px",
+                        }}
+                      >
+                        Mode Manual: Counter sistem tidak akan bertambah.
+                      </p>
+                    )}
+                    {saveError && (
+                      <p
+                        style={{
+                          fontSize: "12px",
+                          color: "var(--color-danger)",
+                          marginTop: "6px",
+                          fontWeight: "500",
+                        }}
+                      >
+                        {saveError}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {editId && (
+                  <div>
+                    <label style={labelStyle}>Nomor SP</label>
+                    <input
+                      value={form.po_number}
+                      disabled
+                      style={{ ...inputStyle, opacity: 0.6 }}
+                    />
+                  </div>
+                )}
+                <div>
+                  <label style={labelStyle}>Distributor *</label>
+                  <MasterSelect
+                    value={form.distributor_name}
+                    onChange={(v) => {
+                      setForm((p) => ({ ...p, distributor_name: v }));
+                      const match = distributors.find((d) => d.name === v);
+                      if (match)
+                        setForm((p) => ({
+                          ...p,
+                          distributor_address: match.address || "",
+                        }));
+                    }}
+                    options={distributors}
+                    onAdd={handleAddDistributor}
+                    onRemove={handleRemoveDistributor}
+                    onRename={handleRenameDistributor}
+                    isDarkMode={isDarkMode}
+                    placeholder="Pilih atau tambah distributor..."
+                  />
+                  {selectedDistributorInfo && (
+                    <div
+                      style={{
+                        marginTop: "8px",
+                        padding: "10px 12px",
+                        backgroundColor: isDarkMode ? "#222" : "#F9F9F9",
+                        borderRadius: "8px",
+                        border: `1px solid ${border}`,
+                        fontSize: "12px",
+                        color: sub,
+                        display: "flex",
+                        gap: "16px",
+                      }}
+                    >
+                      <div>
+                        <strong style={{ color: text }}>Salesman:</strong>{" "}
+                        {selectedDistributorInfo.salesman_name || "-"}
+                      </div>
+                      <div>
+                        <strong style={{ color: text }}>Phone:</strong>{" "}
+                        {selectedDistributorInfo.salesman_phone || "-"}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label style={labelStyle}>Alamat</label>
+                  <input
+                    value={form.distributor_address}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        distributor_address: e.target.value,
+                      }))
+                    }
+                    style={inputStyle}
+                  />
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr 1fr",
+                    gap: "12px",
+                  }}
+                >
+                  <div>
+                    <label style={labelStyle}>PIC</label>
+                    <select
+                      value={form.pic_name}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, pic_name: e.target.value }))
+                      }
+                      style={inputStyle}
+                    >
+                      <option value="Harun Al Rasyid">Harun Al Rasyid</option>
+                      <option value="Fivin Soehaeni">Fivin Soehaeni</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Tanggal SP</label>
+                    <input
+                      type="date"
+                      value={form.order_date}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, order_date: e.target.value }))
+                      }
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Estimasi Tiba</label>
+                    <input
+                      type="date"
+                      value={form.expected_date}
+                      onChange={(e) =>
+                        setForm((p) => ({
+                          ...p,
+                          expected_date: e.target.value,
+                        }))
+                      }
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>Produk</label>
+                  {items.map((it, idx) => {
+                    const product = products.find(
+                      (p) =>
+                        p.name?.toLowerCase() ===
+                        it.product_name?.toLowerCase(),
+                    );
+                    const unitOptions = getProductUnits(product);
+                    const showPreview =
+                      product &&
+                      product.pack_unit &&
+                      (parseInt(product.pack_size) || 1) > 1;
+                    return (
+                      <div key={idx} style={{ marginBottom: "8px" }}>
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "2fr 70px 110px 30px",
+                            gap: "6px",
+                            alignItems: "center",
+                          }}
+                        >
+                          <MasterSelect
+                            value={it.product_name}
+                            onChange={(v) => updateItem(idx, "product_name", v)}
+                            options={products.map((p) => ({ name: p.name }))}
+                            onAdd={handleAddProduct}
+                            onRemove={handleRemoveProduct}
+                            onRename={handleRenameProduct}
+                            isDarkMode={isDarkMode}
+                            placeholder="Nama produk"
+                          />
+                          <input
+                            type="number"
+                            value={it.qty}
+                            onChange={(e) =>
+                              updateItem(
+                                idx,
+                                "qty",
+                                parseInt(e.target.value) || 0,
+                              )
+                            }
+                            min="1"
+                            style={{
+                              ...inputStyle,
+                              fontSize: "13px",
+                              padding: "8px 6px",
+                              textAlign: "center",
+                            }}
+                          />
+                          <select
+                            value={it.unit}
+                            onChange={(e) =>
+                              updateItem(idx, "unit", e.target.value)
+                            }
+                            style={{
+                              ...inputStyle,
+                              fontSize: "13px",
+                              padding: "8px 6px",
+                            }}
+                          >
+                            {unitOptions.map((u, i) => (
+                              <option key={`${u.value}-${i}`} value={u.value}>
+                                {u.label}
+                              </option>
+                            ))}
+                          </select>
+                          {items.length > 1 && (
+                            <TooltipButton
+                              label="Hapus baris produk"
+                              onClick={() => removeItem(idx)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                padding: 0,
+                              }}
+                            >
+                              <Trash2 size={14} color="var(--color-danger)" />
+                            </TooltipButton>
+                          )}
+                        </div>
+                        {showPreview && it.qty > 0 && (
+                          <p
+                            style={{
+                              margin: "4px 0 0 8px",
+                              fontSize: "11px",
+                              color: sub,
+                            }}
+                          >
+                            📐{" "}
+                            {formatQtyWithConversion(it.qty, it.unit, product)}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <button
+                    onClick={addItem}
+                    style={{
+                      fontSize: "13px",
+                      color: "var(--color-primary-hover)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: "600",
+                      marginTop: "4px",
+                    }}
+                  >
+                    + Tambah Produk
+                  </button>
+                </div>
+                <div>
+                  <label style={labelStyle}>Catatan</label>
+                  <textarea
+                    value={form.notes}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, notes: e.target.value }))
+                    }
+                    rows={2}
+                    style={{
+                      ...inputStyle,
+                      resize: "vertical",
+                      fontFamily: "inherit",
+                    }}
+                  />
+                </div>
+                {saveError && editId && (
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      color: "var(--color-danger)",
+                      margin: "0",
+                      fontWeight: "500",
+                    }}
+                  >
+                    {saveError}
+                  </p>
+                )}
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="btn-primary ui-motion-button ui-focus-ring"
+                    data-magnetic="true"
+                    style={{
+                      flex: 1,
+                      padding: "13px",
+                      backgroundColor: "var(--color-primary-hover)",
+                      color: "#FFF",
+                      border: "none",
+                      borderRadius: "10px",
+                      cursor: isSaving ? "not-allowed" : "pointer",
+                      fontWeight: "700",
+                      fontSize: "14px",
+                      opacity: isSaving ? 0.7 : 1,
+                    }}
+                  >
+                    {isSaving ? "Menyimpan..." : editId ? "Simpan" : "Buat SP"}
+                  </button>
+                  <button
+                    onClick={() => setShowModal(null)}
+                    disabled={isSaving}
+                    style={{
+                      flex: 1,
+                      padding: "13px",
+                      backgroundColor: isDarkMode
+                        ? "var(--color-surface-raised)"
+                        : "var(--color-bg)",
+                      color: text,
+                      border: "none",
+                      borderRadius: "10px",
+                      cursor: isSaving ? "not-allowed" : "pointer",
+                      fontSize: "14px",
+                      fontWeight: "600",
+                      opacity: isSaving ? 0.7 : 1,
+                    }}
+                  >
+                    Batal
+                  </button>
+                </div>
+              </div>
+              {!isMobile && (
+                <div style={{ position: "sticky", top: 0, alignSelf: "start" }}>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      textTransform: "uppercase",
+                      color: sub,
+                      marginBottom: "8px",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    📄 Preview Live
+                  </div>
+                  <SPPreview
+                    form={{
+                      ...form,
+                      po_number: editId
+                        ? form.po_number
+                        : `${spCounter.prefix || ""}${isAutoSP ? String(spCounter.last_number + 1).padStart(4, "0") : manualNumber}`,
+                    }}
+                    items={items}
+                    settings={layoutSettings || {}}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Receive Modal */}
+      {showModal === "receive" && (
+        <div
+          onClick={() => setShowModal(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "1rem",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: cardBg,
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "640px",
+              maxHeight: "90vh",
+              overflow: "auto",
+              boxShadow: "0 32px 64px rgba(0,0,0,0.35)",
+            }}
+          >
+            <div
+              style={{
+                padding: "18px 22px",
+                borderBottom: `1px solid ${border}`,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                position: "sticky",
+                top: 0,
+                backgroundColor: cardBg,
+                zIndex: 1,
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "16px",
+                  fontWeight: "700",
+                  color: "var(--color-success)",
+                }}
+              >
+                ✅ Terima Barang
+              </h3>
+              <button
+                onClick={() => setShowModal(null)}
+                aria-label="Tutup modal terima barang"
+                className="ui-motion-button ui-focus-ring"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={18} color={sub} />
+              </button>
+            </div>
+            <div style={{ padding: "20px 22px" }}>
+              <p style={{ fontSize: "13px", color: sub, margin: "0 0 12px" }}>
+                Masukkan qty yang diterima, batch, dan tanggal expired. Stok
+                akan otomatis bertambah.
+              </p>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  fontSize: "12px",
+                }}
+              >
+                <thead>
+                  <tr>
+                    {[
+                      "Produk",
+                      "Pesan",
+                      "Sudah",
+                      "Terima",
+                      "Batch",
+                      "Expired",
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        style={{
+                          padding: "6px 8px",
+                          textAlign: "left",
+                          fontWeight: "700",
+                          color: sub,
+                          fontSize: "10px",
+                          textTransform: "uppercase",
+                          borderBottom: `1px solid ${border}`,
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {receiveItems.map((ri, idx) => (
+                    <tr
+                      key={idx}
+                      style={{ borderBottom: `1px solid ${border}` }}
+                    >
+                      <td
+                        style={{
+                          padding: "6px 8px",
+                          fontWeight: "600",
+                          color: text,
+                        }}
+                      >
+                        {ri.product_name}
+                      </td>
+                      <td style={{ padding: "6px 8px", color: sub }}>
+                        {ri.ordered_qty}
+                      </td>
+                      <td
+                        style={{
+                          padding: "6px 8px",
+                          color:
+                            ri.already_received >= ri.ordered_qty
+                              ? "var(--color-success)"
+                              : "var(--color-warning)",
+                        }}
+                      >
+                        {ri.already_received}
+                      </td>
+                      <td style={{ padding: "6px 8px" }}>
+                        <input
+                          type="number"
+                          value={ri.received_qty}
+                          min="0"
+                          max={ri.ordered_qty - ri.already_received}
+                          onChange={(e) => {
+                            const n = [...receiveItems];
+                            n[idx] = {
+                              ...n[idx],
+                              received_qty: parseInt(e.target.value) || 0,
+                            };
+                            setReceiveItems(n);
+                          }}
+                          style={{
+                            ...inputStyle,
+                            width: "60px",
+                            padding: "4px 6px",
+                            fontSize: "12px",
+                            textAlign: "center",
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: "6px 8px" }}>
+                        <input
+                          value={ri.batch_no}
+                          onChange={(e) => {
+                            const n = [...receiveItems];
+                            n[idx] = { ...n[idx], batch_no: e.target.value };
+                            setReceiveItems(n);
+                          }}
+                          placeholder="Batch"
+                          style={{
+                            ...inputStyle,
+                            width: "80px",
+                            padding: "4px 6px",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: "6px 8px" }}>
+                        <input
+                          type="date"
+                          value={ri.expired_date}
+                          onChange={(e) => {
+                            const n = [...receiveItems];
+                            n[idx] = {
+                              ...n[idx],
+                              expired_date: e.target.value,
+                            };
+                            setReceiveItems(n);
+                          }}
+                          style={{
+                            ...inputStyle,
+                            width: "120px",
+                            padding: "4px 6px",
+                            fontSize: "12px",
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                <button
+                  onClick={handleReceive}
+                  className="btn-primary ui-motion-button ui-focus-ring"
+                  data-magnetic="true"
+                  style={{
+                    flex: 1,
+                    padding: "13px",
+                    backgroundColor: "var(--color-success)",
+                    color: "#FFF",
+                    border: "none",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    fontWeight: "700",
+                    fontSize: "14px",
+                  }}
+                >
+                  Terima & Update Stok
+                </button>
+                <button
+                  onClick={() => setShowModal(null)}
+                  style={{
+                    flex: 1,
+                    padding: "13px",
+                    backgroundColor: isDarkMode
+                      ? "var(--color-surface-raised)"
+                      : "var(--color-bg)",
+                    color: text,
+                    border: "none",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                  }}
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Distributor Modal */}
+      {showModal === "distributor" && (
+        <div
+          onClick={() => setShowModal("create")}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 99999,
+            padding: "1rem",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: cardBg,
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "480px",
+              boxShadow: "0 32px 64px rgba(0,0,0,0.35)",
+            }}
+          >
+            <div
+              style={{
+                padding: "18px 22px",
+                borderBottom: `1px solid ${border}`,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "16px",
+                  fontWeight: "700",
+                  color: text,
+                }}
+              >
+                🏢 Master Data Distributor
+              </h3>
+              <button
+                onClick={() => setShowModal("create")}
+                aria-label="Tutup modal distributor"
+                className="ui-motion-button ui-focus-ring"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                <X size={18} color={sub} />
+              </button>
+            </div>
+            <div
+              style={{
+                padding: "20px 22px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "14px",
+              }}
+            >
+              <div>
+                <label style={labelStyle}>Nama Distributor *</label>
+                <input
+                  value={distForm.name}
+                  onChange={(e) =>
+                    setDistForm((p) => ({ ...p, name: e.target.value }))
+                  }
+                  style={inputStyle}
+                  placeholder="Contoh: PT. Bintang Jadi"
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Kode Singkat (Short Code)</label>
+                <input
+                  value={distForm.short_code}
+                  onChange={(e) =>
+                    setDistForm((p) => ({ ...p, short_code: e.target.value }))
+                  }
+                  style={inputStyle}
+                  placeholder="Contoh: BTG"
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Nama Salesman</label>
+                <input
+                  value={distForm.salesman_name}
+                  onChange={(e) =>
+                    setDistForm((p) => ({
+                      ...p,
+                      salesman_name: e.target.value,
+                    }))
+                  }
+                  style={inputStyle}
+                  placeholder="Nama PIC dari distributor"
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>No. HP Salesman</label>
+                <input
+                  value={distForm.salesman_phone}
+                  onChange={(e) =>
+                    setDistForm((p) => ({
+                      ...p,
+                      salesman_phone: e.target.value,
+                    }))
+                  }
+                  style={inputStyle}
+                  placeholder="0812xxx"
+                />
+              </div>
+              <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+                <button
+                  onClick={handleSaveDistributor}
+                  className="btn-primary ui-motion-button ui-focus-ring"
+                  data-magnetic="true"
+                  style={{
+                    flex: 1,
+                    padding: "13px",
+                    backgroundColor: "var(--color-primary)",
+                    color: "#FFF",
+                    border: "none",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    fontWeight: "700",
+                    fontSize: "14px",
+                  }}
+                >
+                  Simpan Data Master
+                </button>
+                <button
+                  onClick={() => setShowModal("create")}
+                  style={{
+                    flex: 1,
+                    padding: "13px",
+                    backgroundColor: isDarkMode
+                      ? "var(--color-surface-raised)"
+                      : "var(--color-bg)",
+                    color: text,
+                    border: "none",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                  }}
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm Modal */}
+      <ConfirmModal
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={confirmDelete}
+        title="Hapus SP"
+        message="Apakah Anda yakin ingin menghapus Surat Pesanan ini?"
+        isDarkMode={isDarkMode}
+      />
+
+      {/* Toast */}
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+            backgroundColor: "var(--color-success)",
+            color: "#FFF",
+            padding: "12px 20px",
+            borderRadius: "10px",
+            fontWeight: "600",
+            fontSize: "14px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+            zIndex: 99999,
+          }}
+        >
+          ✅ {toast}
+        </div>
+      )}
+    </div>
+  );
 }

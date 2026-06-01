@@ -1,8 +1,9 @@
 # 🧠 HABIL SUPERAPP — Source of Truth
-> **Current Version: v1.13.2-stable
-System Version: v1.13.2-stable
-Status: PROD-STABLE
-> **VERSI SISTEM**: v1.13.2-stable
+
+> **Current Version: v1.13.3-stable
+> System Version: v1.13.3-stable
+> Status: PROD-STABLE
+> **VERSI SISTEM\*\*: v1.13.3-stable
 
 > **CREDENTIALS (LOKAL):** Lihat `CREDENTIALS.local.md` di root project untuk semua akses: DB URL, JWT, Vercel, GitHub. File ini hanya ada di lokal (tidak di-commit).
 
@@ -44,10 +45,12 @@ Status: PROD-STABLE
 **Tujuan:** Memastikan label versi di seluruh file sinkron dengan CHANGELOG.md sebelum commit.
 
 1. **Mandatory Grep Check sebelum commit:**
+
    ```bash
    grep -r "v1\.3\.[0-9]*-" frontend/src \
    --include="*.jsx" --include="*.js"
    ```
+
    Jika ada 1 file saja yang versinya berbeda, **JANGAN commit**. Fix semua terlebih dahulu agar semua file menunjukkan versi yang sama.
 
 2. **File Wajib Dicek setiap Shutdown (Versi Harus Konsisten):**
@@ -105,8 +108,8 @@ Status: PROD-STABLE
 2. **Infrastructure Switch (Supabase -> Neon)**: Migrasi seluruh data operasional ke Neon.tech untuk mengatasi keterbatasan performa Supabase Free Tier (v1.3.9).
 3. **Deep Data Parity (v1.3.11)**: Penemuan data kosong pada tabel `employees`, `products`, dan `bug_reports` di Neon setelah migrasi awal. Diselesaikan dengan `deep_migrate.js` yang melakukan iterasi baris demi baris dan audit parity 100%.
 4. **Database Schema Mismatch (Production)**: Kegagalan simpan tugas (Error 500) karena tertinggalnya script migrasi tabel `tasks`. Diselesaikan dengan iterasi eksekusi DDL via endpoint Vercel sementara (v1.3.6).
-4. **Database Reliability**: Konsolidasi connection pool ke *shared config* untuk mengatasi "MaxClients reached" (v1.3.3).
-5. **Optimasi Kanban & Layout**: Implementasi fitur Pro (PIC Assignment, Trash, edit, history).
+5. **Database Reliability**: Konsolidasi connection pool ke _shared config_ untuk mengatasi "MaxClients reached" (v1.3.3).
+6. **Optimasi Kanban & Layout**: Implementasi fitur Pro (PIC Assignment, Trash, edit, history).
 
 ---
 
@@ -137,5 +140,6 @@ Status: PROD-STABLE
 - **Migration**: `node scripts/run_production_migration.js`
 
 ---
-*Dokumen Master Brain ini menggantikan README, Master Framework, dan Roadmap lama.*
-*Terakhir diupdate: v1.13.2-stable (1 Juni 2026) — prosedur Auto-Versioning sejak v1.3.16-stable*
+
+_Dokumen Master Brain ini menggantikan README, Master Framework, dan Roadmap lama._
+_Terakhir diupdate: v1.13.3-stable (1 Juni 2026) — prosedur Auto-Versioning sejak v1.3.16-stable_

@@ -27,14 +27,14 @@ const StockMovementChart = lazy(() => import("./dashboard/StockMovementChart"));
 
 const RELEASES = [
   {
-    version: "v1.13.2-stable",
+    version: "v1.13.3-stable",
     date: "1 Juni 2026",
     status: "latest",
     changes: [
       {
         type: "ui",
-        text: "Apple Liquid Glass dipurge total, release modal dibuka lewat portal setelah transisi route, dan sidebar tetap fixed/stabil tanpa dismiss yang tidak eksplisit.",
-        dev: "frontend/src/components/Dashboard.jsx, InventoryDashboard.jsx, TasksKanban.jsx, InvoiceList.jsx, PurchaseOrderList.jsx, Sidebar.jsx, LedgerPage.jsx, OpnameModal.jsx, Login.jsx, index.js, CHANGELOG.md, dan SUPERAPP_BRAIN.md disinkronkan ke v1.13.2-stable. generateNotaPDF.js tetap tidak disentuh.",
+        text: "HOTFIX: lima page kritikal yang sempat ter-mash oleh sweep otomatis di v1.13.2 dipulihkan, lalu glass-target dibersihkan manual lewat edit proper tanpa merusak JSX.",
+        dev: "frontend/src/components/InventoryDashboard.jsx, InvoiceList.jsx, PurchaseOrderList.jsx, SalesOrderList.jsx, dan TasksKanban.jsx dipulihkan dari baseline lalu dipurge manual untuk glass-target. generateNotaPDF.js tetap tidak disentuh.",
       },
     ],
   },
@@ -1778,7 +1778,7 @@ export default function Dashboard({
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.13.2-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.13.3-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)
