@@ -462,6 +462,25 @@ samp {
     0 0 0 1px color-mix(in srgb, var(--color-primary) 14%, transparent);
 }
 
+tr.ui-row.ui-hover-delight {
+  transition:
+    background-color var(--ui-motion-base) var(--ui-motion-enter),
+    box-shadow var(--ui-motion-base) var(--ui-motion-enter);
+}
+
+tr.ui-row.ui-hover-delight:hover,
+tr.ui-row.ui-hover-delight:focus-within {
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 6%,
+    transparent
+  ) !important;
+  box-shadow:
+    inset 3px 0 0 var(--color-primary),
+    inset 0 -1px 0 color-mix(in srgb, var(--color-primary) 22%, transparent);
+  transform: none;
+}
+
 .dark .ui-motion-card:hover,
 .dark .ui-hover-delight:hover,
 .dark .ui-hover-delight:focus-within {

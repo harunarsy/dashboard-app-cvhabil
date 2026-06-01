@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.14.4-stable] - 2026-06-01
+
+### Fixed
+
+- Micro-hotfix row hover regression: row Nota Penjualan mendapat highlight table-friendly khusus `<tr>` karena transform table row tidak reliable di browser.
+- Card Customer sekarang memakai `ui-hover-delight` penuh sehingga hover lift + soft glow terasa jelas.
+- `Dashboard.jsx`, `Login.jsx`, `Sidebar.jsx`, `index.js`, dan `SUPERAPP_BRAIN.md` disinkronkan ke `v1.14.4-stable`.
+- `generateNotaPDF.js` tetap tidak disentuh.
+
 ## [v1.14.3-stable] - 2026-06-01
 
 ### Fixed

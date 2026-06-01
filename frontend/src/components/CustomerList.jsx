@@ -389,7 +389,7 @@ export default function CustomerList({
               return (
                 <div
                   key={c.id}
-                  className="ui-motion-card"
+                  className="ui-hover-delight"
                   style={{
                     backgroundColor: cardBg,
                     border: `1px solid ${border}`,
@@ -398,17 +398,6 @@ export default function CustomerList({
                     display: "flex",
                     flexDirection: "column",
                     gap: "12px",
-                    transition: `${uiTransition("transform", UI_MOTION.duration.fast)}, ${uiTransition("box-shadow", UI_MOTION.duration.fast)}`,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-1px)";
-                    e.currentTarget.style.boxShadow = isDarkMode
-                      ? "0 4px 14px rgba(0,0,0,0.4)"
-                      : "0 4px 14px rgba(0,0,0,0.06)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "none";
                   }}
                 >
                   {/* Header */}

@@ -30,9 +30,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.14.3-stable",
+    version: "v1.14.4-stable",
     date: "1 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Micro-hotfix row hover: row Nota sekarang pakai highlight table-friendly yang benar-benar terlihat di browser, dan card Customer mendapat hover glow yang lebih jelas.",
+        dev: "frontend/src/index.css dan CustomerList.jsx disesuaikan untuk hover visual tanpa menyentuh generateNotaPDF.js atau business logic. Label versi canonical disinkronkan ke v1.14.4.",
+      },
+    ],
+  },
+  {
+    version: "v1.14.3-stable",
+    date: "1 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -1829,7 +1841,7 @@ export default function Dashboard({
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.14.3-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.14.4-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)
