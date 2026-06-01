@@ -112,17 +112,20 @@
 }
 
 body.dark {
-  --color-bg: #0c0a09;
-  --color-bg-subtle: #161311;
-  --color-surface: #161311;
-  --color-surface-elevated: #1c1917;
-  --color-surface-raised: #292524;
-  --color-border: #292524;
-  --color-border-strong: #3f3c3a;
+  --color-bg: #0a0a0a;
+  --color-bg-subtle: #141414;
+  --color-surface: #18181b;
+  --color-surface-elevated: #27272a;
+  --color-surface-raised: #3f3f46;
+  --color-border: #2f2f35;
+  --color-border-strong: #474752;
   --color-text: #fafaf9;
-  --color-text-muted: #d6d3d1;
-  --color-text-subtle: #a8a29e;
+  --color-text-muted: #d4d4d8;
+  --color-text-subtle: #a1a1aa;
   --color-focus: color-mix(in srgb, var(--color-primary) 46%, white);
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
 
   --color-primary-soft: color-mix(
     in srgb,
@@ -374,6 +377,11 @@ samp {
   opacity: 0.8;
 }
 
+.ui-form-field::placeholder {
+  color: var(--color-text-subtle);
+  opacity: 1;
+}
+
 .ui-row-action {
   opacity: 0;
   transform: translateY(2px);
@@ -452,6 +460,28 @@ samp {
   box-shadow:
     var(--shadow-hover),
     0 0 0 1px color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+.dark .ui-motion-card:hover,
+.dark .ui-hover-delight:hover,
+.dark .ui-hover-delight:focus-within {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-primary) 28%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    var(--shadow-hover);
+  border-color: color-mix(
+    in srgb,
+    var(--color-primary) 30%,
+    var(--color-border)
+  );
+}
+
+.dark .ui-surface-panel,
+.dark .ui-surface-card,
+.dark .ui-surface-elevated {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-border) 88%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
 }
 
 .ui-focus-ring:focus-visible {

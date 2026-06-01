@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle } from "lucide-react";
 export default function ConfirmModal({
@@ -9,10 +9,18 @@ export default function ConfirmModal({
   message,
   isDarkMode,
 }) {
-  if (!isOpen) return null;
   const bg = isDarkMode ? "var(--color-surface-elevated)" : "#FFF";
   const text = isDarkMode ? "#FFF" : "#000";
   const sub = "var(--color-text-subtle)";
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isOpen, onClose]);
+  if (!isOpen) return null;
   const modal = (
     <div
       onClick={onClose}

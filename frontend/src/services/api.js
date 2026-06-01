@@ -146,6 +146,7 @@ export const onlineStoreAPI = {
 export const tasksAPI = {
   getAll: () => api.get('/tasks'),
   getTrash: () => api.get('/tasks/trash'),
+  getHistory: (id) => api.get(`/tasks/${id}/history`),
   create: (data) => api.post('/tasks', data),
   update: (id, data) => api.put(`/tasks/${id}`, data),
   softDelete: (id) => api.patch(`/tasks/${id}/soft-delete`),

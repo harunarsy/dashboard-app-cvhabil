@@ -3,12 +3,8 @@ import { createPortal } from "react-dom";
 import {
   Plus,
   Search,
-  Edit2,
-  Trash2,
   Phone,
   MapPin,
-  X,
-  Users,
   FileText,
   AlertCircle,
 } from "lucide-react";
@@ -16,6 +12,8 @@ import { customersAPI } from "../services/api";
 import Skeleton from "./common/Skeleton";
 import ConfirmModal from "./common/ConfirmModal";
 import Breadcrumb from "./common/Breadcrumb";
+import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
+import Icons from "./common/Icon";
 import { UI_MOTION, uiTransition } from "../constants/ui";
 
 const fmtRp = (n) =>
@@ -308,6 +306,7 @@ export default function CustomerList({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari nama, telepon, atau alamat..."
+            className="ui-form-field ui-focus-ring"
             style={{ ...inputStyle, paddingLeft: "36px" }}
           />
         </div>
@@ -487,7 +486,7 @@ export default function CustomerList({
                         className="ui-motion-button ui-focus-ring"
                         style={iconBtnStyle}
                       >
-                        <Edit2 size={16} color="var(--color-primary)" />
+                        <Icons.Edit2 size={16} color="var(--color-primary)" />
                       </button>
                       <button
                         onClick={() => handleDelete(c.id)}
@@ -496,7 +495,7 @@ export default function CustomerList({
                         className="ui-motion-button ui-focus-ring"
                         style={iconBtnStyle}
                       >
-                        <Trash2 size={16} color="var(--color-danger)" />
+                        <Icons.Trash2 size={16} color="var(--color-danger)" />
                       </button>
                     </div>
                   </div>
@@ -624,66 +623,43 @@ export default function CustomerList({
               );
             })}
             {!filtered.length && !loading && (
-              <div
-                style={{
-                  gridColumn: "1 / -1",
-                  padding: "4rem 1rem",
-                  textAlign: "center",
-                  color: sub,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "12px",
-                }}
-              >
-                <div
-                  style={{
-                    width: "64px",
-                    height: "64px",
-                    borderRadius: "50%",
-                    background: surface,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: sub,
-                  }}
-                >
-                  <Users size={32} />
-                </div>
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: "15px",
-                    color: text,
-                    fontWeight: "600",
-                  }}
-                >
-                  {search
+            <div style={{ gridColumn: "1 / -1", padding: "1.5rem 1rem" }}>
+              <EmptyState
+                compact
+                icon={EmptyStateIcons.users}
+                title={
+                  search
                     ? "Tidak ada customer cocok dengan pencarian"
-                    : "Belum ada customer terdaftar"}
-                </h3>
-                {!search && (
-                  <button
-                    onClick={openAdd}
-                    style={{
-                      marginTop: "4px",
-                      padding: "10px 18px",
-                      background: "var(--color-primary)",
-                      color: "#FFF",
-                      border: "none",
-                      borderRadius: "10px",
-                      cursor: "pointer",
-                      fontWeight: "600",
-                      fontSize: "13px",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    <Plus size={14} /> Tambah Customer Pertama
-                  </button>
-                )}
-              </div>
+                    : "Belum ada customer terdaftar"
+                }
+                description="Data customer yang aktif akan tampil di sini untuk memudahkan transaksi berikutnya."
+                action={
+                  !search ? (
+                    <button
+                      onClick={openAdd}
+                      className="btn-primary ui-motion-button ui-focus-ring"
+                      data-magnetic="true"
+                      style={{
+                        marginTop: "4px",
+                        padding: "10px 18px",
+                        background: "var(--color-primary)",
+                        color: "#FFF",
+                        border: "none",
+                        borderRadius: "10px",
+                        cursor: "pointer",
+                        fontWeight: "700",
+                        fontSize: "13px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <Plus size={14} /> Tambah Customer Pertama
+                    </button>
+                  ) : null
+                }
+              />
+            </div>
             )}
           </>
         )}
@@ -747,7 +723,7 @@ export default function CustomerList({
                   padding: "4px",
                 }}
               >
-                <X size={18} color={sub} />
+                <Icons.X size={18} color={sub} />
               </button>
             </div>
             <div
@@ -766,6 +742,7 @@ export default function CustomerList({
                     setForm((p) => ({ ...p, name: e.target.value }))
                   }
                   placeholder="Nama customer"
+                  className="ui-form-field ui-focus-ring"
                   style={inputStyle}
                   autoFocus
                 />
@@ -782,6 +759,7 @@ export default function CustomerList({
                   }
                   inputMode="tel"
                   placeholder="08xx xxxx xxxx"
+                  className="ui-form-field ui-focus-ring"
                   style={inputStyle}
                 />
               </div>
@@ -794,6 +772,7 @@ export default function CustomerList({
                   }
                   rows={2}
                   placeholder="Alamat"
+                  className="ui-form-field ui-focus-ring"
                   style={{
                     ...inputStyle,
                     resize: "vertical",
@@ -808,6 +787,7 @@ export default function CustomerList({
                   onChange={(e) =>
                     setForm((p) => ({ ...p, type: e.target.value }))
                   }
+                  className="ui-form-field ui-focus-ring"
                   style={inputStyle}
                 >
                   <option value="offline">Offline</option>

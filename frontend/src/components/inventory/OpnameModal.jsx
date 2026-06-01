@@ -541,6 +541,7 @@ export default function OpnameModal({
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Cari produk..."
+                    className="ui-form-field ui-focus-ring"
                     style={{
                       width: "100%",
                       padding: "8px 12px 8px 34px",
@@ -735,6 +736,7 @@ export default function OpnameModal({
                               if (e.key === "Escape") setEditingCode(false);
                             }}
                             placeholder="Kode produk"
+                            className="ui-form-field ui-focus-ring"
                             style={{
                               padding: "3px 8px",
                               border: `1px solid ${border}`,
@@ -1065,6 +1067,7 @@ export default function OpnameModal({
                                 handleInput(b, selectedProduct, e.target.value)
                               }
                               placeholder={String(b.qty_current)}
+                              className="ui-form-field ui-focus-ring"
                               style={{
                                 width: "100%",
                                 padding: "8px 10px",

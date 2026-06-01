@@ -7,7 +7,6 @@ import {
   Clock,
   Trash2,
   Edit2,
-  X,
   ArrowDownCircle,
   ArrowUpCircle,
   ClipboardCheck,
@@ -35,6 +34,8 @@ import BulkEditModal from "./inventory/BulkEditModal";
 import BarcodeScanner from "./common/BarcodeScanner";
 import PrintBarcodeModal from "./inventory/PrintBarcodeModal";
 import Tooltip from "./common/Tooltip";
+import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
+import Icons from "./common/Icon";
 import { UI_MOTION, UI_SIZE, uiTransition } from "../constants/ui";
 
 const renderPortal = (node) =>
@@ -1302,13 +1303,13 @@ export default function InventoryDashboard({
                                 <IconBtn
                                   onClick={() => openEditProduct(p)}
                                   label="Edit Produk"
-                                  Icon={Edit2}
+                                  Icon={Icons.Edit2}
                                   color="var(--color-primary)"
                                 />
                                 <IconBtn
                                   onClick={() => setDeleteConfirmId(p.id)}
                                   label="Nonaktifkan"
-                                  Icon={Trash2}
+                                  Icon={Icons.Trash2}
                                   color="var(--color-danger)"
                                 />
                               </div>
@@ -1356,17 +1357,42 @@ export default function InventoryDashboard({
                     })}
                 {!loading && !filtered.length && (
                   <tr>
-                    <td
-                      colSpan={12}
-                      style={{
-                        padding: "3rem 1rem",
-                        textAlign: "center",
-                        color: sub,
-                      }}
-                    >
-                      {search || statusFilter !== "all"
-                        ? "Tidak ada produk yang cocok dengan filter."
-                        : 'Belum ada produk. Klik "Produk" untuk menambahkan.'}
+                    <td colSpan={12} style={{ padding: "2rem 1rem" }}>
+                      <EmptyState
+                        compact
+                        icon={EmptyStateIcons.box}
+                        title={
+                          search || statusFilter !== "all"
+                            ? "Tidak ada produk yang cocok dengan filter."
+                            : 'Belum ada produk. Klik "Produk" untuk menambahkan.'
+                        }
+                        description={
+                          search || statusFilter !== "all"
+                            ? "Coba ubah kata kunci atau reset filter untuk melihat hasil lain."
+                            : "Produk baru akan langsung muncul di inventaris setelah disimpan."
+                        }
+                        action={
+                          !(search || statusFilter !== "all") ? (
+                            <button
+                              onClick={openAddProduct}
+                              className="btn-primary ui-motion-button ui-focus-ring"
+                              data-magnetic="true"
+                              style={{
+                                padding: "10px 14px",
+                                backgroundColor: "var(--color-primary)",
+                                color: "#FFF",
+                                border: "none",
+                                borderRadius: "10px",
+                                cursor: "pointer",
+                                fontWeight: "700",
+                                fontSize: "13px",
+                              }}
+                            >
+                              + Produk
+                            </button>
+                          ) : null
+                        }
+                      />
                     </td>
                   </tr>
                 )}
@@ -2911,38 +2937,31 @@ function ExpandedBatches({
     );
   if (!batches || batches.length === 0) {
     return (
-      <div
-        style={{
-          padding: "12px 16px",
-          background: cardBg,
-          border: `1px dashed ${border}`,
-          borderRadius: "10px",
-          fontSize: "12px",
-          color: sub,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <span>Belum ada batch tercatat.</span>
-        <button
-          onClick={onAddBatch}
-          className="btn-primary ui-motion-button ui-focus-ring"
-          data-magnetic="true"
-          style={{
-            background: "var(--color-success)",
-            color: "#FFF",
-            border: "none",
-            padding: "6px 12px",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "600",
-            fontSize: "12px",
-          }}
-        >
-          + Stok Masuk
-        </button>
-      </div>
+      <EmptyState
+        compact
+        icon={EmptyStateIcons.box}
+        title="Belum ada batch tercatat."
+        description="Batch pertama bisa dibuat dari stok masuk atau dari tombol batch baru."
+        action={
+          <button
+            onClick={onAddBatch}
+            className="btn-primary ui-motion-button ui-focus-ring"
+            data-magnetic="true"
+            style={{
+              background: "var(--color-success)",
+              color: "#FFF",
+              border: "none",
+              padding: "10px 14px",
+              borderRadius: "10px",
+              cursor: "pointer",
+              fontWeight: "700",
+              fontSize: "12px",
+            }}
+          >
+            + Stok Masuk
+          </button>
+        }
+      />
     );
   }
   return (
@@ -3267,19 +3286,31 @@ function ProductBatchPanel({
         </button>
       </div>
       {rows.length === 0 ? (
-        <div
-          style={{
-            padding: "24px",
-            background: surface,
-            border: `1px dashed ${border}`,
-            borderRadius: "12px",
-            textAlign: "center",
-            color: sub,
-            fontSize: "13px",
-          }}
-        >
-          Belum ada batch untuk produk ini.
-        </div>
+        <EmptyState
+          compact
+          icon={EmptyStateIcons.box}
+          title="Belum ada batch untuk produk ini."
+          description="Tambah batch baru untuk mulai mencatat stok fisik per produk."
+          action={
+            <button
+              onClick={onAddBatch}
+              className="btn-primary ui-motion-button ui-focus-ring"
+              data-magnetic="true"
+              style={{
+                background: "var(--color-primary)",
+                color: "#FFF",
+                border: "none",
+                padding: "10px 14px",
+                borderRadius: "10px",
+                cursor: "pointer",
+                fontWeight: "700",
+                fontSize: "12px",
+              }}
+            >
+              + Batch Baru
+            </button>
+          }
+        />
       ) : (
         <div
           style={{
@@ -3513,7 +3544,7 @@ function ModalShell({
               padding: "4px",
             }}
           >
-            <X size={18} color={sub} />
+            <Icons.X size={18} color={sub} />
           </button>
         </div>
         <div style={{ padding: "20px 22px" }}>{children}</div>

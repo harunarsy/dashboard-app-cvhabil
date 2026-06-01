@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
-  X,
   Edit2,
   Trash2,
   Plus,
@@ -15,6 +14,7 @@ import { inventoryAPI } from "../../services/api";
 import BatchFormModal from "./BatchFormModal";
 import { hppFromHna } from "../../utils/rupiah";
 import { UI_MOTION, UI_SIZE, uiTransition } from "../../constants/ui";
+import Icons from "../common/Icon";
 
 const fmtRp = (n, decimals = 0) =>
   new Intl.NumberFormat("id-ID", {
@@ -310,7 +310,7 @@ export default function ProductDrawer({
               color: text,
             }}
           >
-            <X size={UI_SIZE.icon.md} />
+            <Icons.X size={UI_SIZE.icon.md} />
           </button>
         </div>
 

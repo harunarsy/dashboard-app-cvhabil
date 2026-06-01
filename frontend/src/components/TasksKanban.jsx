@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import axios from "axios";
 import Select from "react-select";
 import {
   Plus,
@@ -18,17 +17,12 @@ import {
 } from "lucide-react";
 import { tasksAPI } from "../services/api";
 import Skeleton from "./common/Skeleton";
+import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import { UI_MOTION } from "../constants/ui";
 import Tooltip from "./common/Tooltip";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
-
-const API_BASE =
-  process.env.REACT_APP_API_URL ||
-  (window.location.hostname === "localhost"
-    ? "http://localhost:5001/api"
-    : "/api");
 
 const COLUMNS = [
   {
@@ -262,7 +256,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
 
   const fetchHistory = async (taskId) => {
     try {
-      const historyRes = await axios.get(`${API_BASE}/tasks/${taskId}/history`);
+      const historyRes = await tasksAPI.getHistory(taskId);
       setTaskHistory(historyRes.data);
       setShowHistory(true);
     } catch (err) {
@@ -994,12 +988,12 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                         </div>
                       ))
                     ) : (
-                      <p
-                        className="text-center py-4 text-xs font-medium"
-                        style={{ color: sub }}
-                      >
-                        Belum ada riwayat
-                      </p>
+                      <EmptyState
+                        compact
+                        icon={EmptyStateIcons.checklist}
+                        title="Belum ada riwayat"
+                        description="Perubahan task akan muncul di sini setelah ada aktivitas."
+                      />
                     )}
                   </div>
                 </div>

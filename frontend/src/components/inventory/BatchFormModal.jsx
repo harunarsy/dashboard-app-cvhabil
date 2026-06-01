@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { inventoryAPI } from "../../services/api";
 import { parseRupiah } from "../../utils/rupiah";
 import HnaHppInput from "../common/HnaHppInput";
+import Icons from "../common/Icon";
 
 // Modal untuk add (qty initial via stockIn) atau edit metadata batch.
 // Mode 'add' → POST stock-in (membuat batch baru + mutation). Mode 'edit' → PUT batch (metadata only).
@@ -176,7 +177,7 @@ export default function BatchFormModal({
               padding: "4px",
             }}
           >
-            <X size={20} />
+            <Icons.X size={20} />
           </button>
         </div>
         {productName && (
@@ -218,6 +219,7 @@ export default function BatchFormModal({
               value={form.batch_no}
               onChange={(e) => setForm({ ...form, batch_no: e.target.value })}
               placeholder="contoh: B2603-01"
+              className="ui-form-field ui-focus-ring"
               style={inputStyle}
             />
           </div>
@@ -229,6 +231,7 @@ export default function BatchFormModal({
               onChange={(e) =>
                 setForm({ ...form, expired_date: e.target.value })
               }
+              className="ui-form-field ui-focus-ring"
               style={inputStyle}
             />
           </div>
@@ -240,6 +243,7 @@ export default function BatchFormModal({
                 min="1"
                 value={form.qty}
                 onChange={(e) => setForm({ ...form, qty: e.target.value })}
+                className="ui-form-field ui-focus-ring"
                 style={inputStyle}
               />
             </div>
@@ -257,6 +261,7 @@ export default function BatchFormModal({
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
               placeholder="opsional"
+              className="ui-form-field ui-focus-ring"
               style={inputStyle}
             />
           </div>

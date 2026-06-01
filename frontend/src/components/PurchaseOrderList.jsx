@@ -4,7 +4,6 @@ import {
   Plus,
   Search,
   Trash2,
-  Edit2,
   X,
   CheckCircle,
   FileText,
@@ -23,6 +22,8 @@ import Skeleton from "./common/Skeleton";
 import ConfirmModal from "./common/ConfirmModal";
 import Breadcrumb from "./common/Breadcrumb";
 import SPPreview from "./common/SPPreview";
+import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
+import Icons from "./common/Icon";
 import { UI_MOTION, uiTransition } from "../constants/ui";
 
 const renderPortal = (node) =>
@@ -833,7 +834,7 @@ export default function PurchaseOrderList({
                                 padding: "4px",
                               }}
                             >
-                              <Edit2 size={15} color="var(--color-primary)" />
+                              <Icons.Edit2 size={15} color="var(--color-primary)" />
                             </TooltipButton>
                             <TooltipButton
                               label="Hapus pesanan"
@@ -845,7 +846,7 @@ export default function PurchaseOrderList({
                                 padding: "4px",
                               }}
                             >
-                              <Trash2 size={15} color="var(--color-danger)" />
+                              <Icons.Trash2 size={15} color="var(--color-danger)" />
                             </TooltipButton>
                           </div>
                         </td>
@@ -957,16 +958,13 @@ export default function PurchaseOrderList({
                 })}
             {!loading && !sorted.length && (
               <tr>
-                <td
-                  colSpan={5}
-                  style={{
-                    padding: isMobile ? "1rem" : "2rem",
-                    paddingTop: isMobile ? "4rem" : "2rem",
-                    textAlign: "center",
-                    color: sub,
-                  }}
-                >
-                  Belum ada Surat Pesanan.
+                <td colSpan={5} style={{ padding: isMobile ? "1rem" : "2rem" }}>
+                  <EmptyState
+                    compact
+                    icon={EmptyStateIcons.receipt}
+                    title="Belum ada Surat Pesanan."
+                    description="Buat SP baru untuk mulai menyusun pesanan ke distributor."
+                  />
                 </td>
               </tr>
             )}

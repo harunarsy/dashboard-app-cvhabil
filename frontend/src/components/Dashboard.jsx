@@ -4,6 +4,7 @@ import Icons from "./common/Icon";
 import api from "../services/api";
 import TasksKanban from "./TasksKanban";
 import Skeleton from "./common/Skeleton";
+import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import { UI_MOTION } from "../constants/ui";
 import useCountUp from "../hooks/useCountUp";
 const StockMovementChart = lazy(() => import("./dashboard/StockMovementChart"));
@@ -29,9 +30,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.14.0-stable",
+    version: "v1.14.1-stable",
     date: "1 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Close gap v1.14.0 diselesaikan: ESC handler untuk modal shared, empty state inline SVG, dark mode atmosphere lebih dalam, form polish lebih konsisten, dan icon wrapper dipakai di kontrol yang paling sering disentuh.",
+        dev: "frontend/src/components/common/ConfirmModal.jsx, inventory/PrintBarcodeModal.jsx, EmptyState.jsx, index.css, InventoryDashboard.jsx, InvoiceList.jsx, SalesOrderList.jsx, PurchaseOrderList.jsx, CustomerList.jsx, BatchFormModal.jsx, ProductDrawer.jsx, OpnameModal.jsx, dan common/Icon.jsx disinkronkan ke v1.14.1. generateNotaPDF.js tetap tidak disentuh.",
+      },
+    ],
+  },
+  {
+    version: "v1.14.0-stable",
+    date: "1 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -1792,7 +1805,7 @@ export default function Dashboard({
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.14.0-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.14.1-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)
@@ -2385,9 +2398,12 @@ export default function Dashboard({
               })}
             </div>
           ) : (
-            <p className="text-sm font-medium py-6" style={{ color: sub }}>
-              Belum ada nota paid/final bulan ini.
-            </p>
+            <EmptyState
+              compact
+              icon={EmptyStateIcons.chart}
+              title="Belum ada nota paid/final bulan ini."
+              description="Ringkasan performa akan muncul begitu ada transaksi final yang masuk ke bulan ini."
+            />
           )}
         </section>
 
@@ -2474,9 +2490,12 @@ export default function Dashboard({
               })}
             </div>
           ) : (
-            <p className="text-sm font-medium py-6" style={{ color: sub }}>
-              Belum ada kategori dengan margin bulan ini.
-            </p>
+            <EmptyState
+              compact
+              icon={EmptyStateIcons.chart}
+              title="Belum ada kategori dengan margin bulan ini."
+              description="Kategori dengan kontribusi margin akan tampil otomatis setelah ada nota final."
+            />
           )}
         </section>
       </div>
@@ -2582,9 +2601,12 @@ export default function Dashboard({
               })}
             </div>
           ) : (
-            <p className="text-sm font-medium py-6" style={{ color: sub }}>
-              Belum ada customer dengan transaksi bulan ini.
-            </p>
+            <EmptyState
+              compact
+              icon={EmptyStateIcons.users}
+              title="Belum ada customer dengan transaksi bulan ini."
+              description="Daftar pelanggan aktif akan muncul setelah ada nota yang selesai diproses."
+            />
           )}
         </section>
 

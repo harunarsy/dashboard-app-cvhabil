@@ -4,7 +4,6 @@ import {
   Plus,
   Search,
   Trash2,
-  Edit2,
   X,
   FileText,
   ChevronsUpDown,
@@ -33,6 +32,8 @@ import Skeleton from "./common/Skeleton";
 import ConfirmModal from "./common/ConfirmModal";
 import Breadcrumb from "./common/Breadcrumb";
 import NotaPreview from "./common/NotaPreview";
+import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
+import Icons from "./common/Icon";
 import { UI_MOTION, uiTransition } from "../constants/ui";
 
 const renderPortal = (node) =>
@@ -1502,7 +1503,7 @@ export default function SalesOrderList({
                               padding: "4px",
                             }}
                           >
-                            <Edit2 size={15} color="var(--color-primary)" />
+                            <Icons.Edit2 size={15} color="var(--color-primary)" />
                           </button>
                           <button
                             onClick={(e) => {
@@ -1518,7 +1519,7 @@ export default function SalesOrderList({
                               padding: "4px",
                             }}
                           >
-                            <Trash2 size={15} color="var(--color-danger)" />
+                            <Icons.Trash2 size={15} color="var(--color-danger)" />
                           </button>
                         </div>
                       </td>
@@ -1716,22 +1717,22 @@ export default function SalesOrderList({
                 ))}
             {!loading && !filtered.length && (
               <tr>
-                <td
-                  colSpan={8}
-                  style={{
-                    padding: "2.5rem 1rem",
-                    textAlign: "center",
-                    color: sub,
-                  }}
-                >
-                  {search ||
-                  filterMonth !== "all" ||
-                  filterYear !== "all" ||
-                  filterStatus !== "all" ||
-                  filterChannel !== "all" ||
-                  filterProfit !== "all"
-                    ? "Tidak ada nota yang cocok dengan filter."
-                    : "Belum ada nota penjualan."}
+                <td colSpan={8} style={{ padding: "2rem 1rem" }}>
+                  <EmptyState
+                    compact
+                    icon={EmptyStateIcons.receipt}
+                    title={
+                      search ||
+                      filterMonth !== "all" ||
+                      filterYear !== "all" ||
+                      filterStatus !== "all" ||
+                      filterChannel !== "all" ||
+                      filterProfit !== "all"
+                        ? "Tidak ada nota yang cocok dengan filter."
+                        : "Belum ada nota penjualan."
+                    }
+                    description="Nota final dan paid akan muncul di sini, lengkap dengan ringkasan margin."
+                  />
                 </td>
               </tr>
             )}

@@ -187,6 +187,7 @@ export default function MasterSelect({
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Cari..."
+              className="ui-form-field ui-focus-ring"
               style={{
                 flex: 1, border: 'none', outline: 'none',
                 backgroundColor: 'transparent',
@@ -253,6 +254,7 @@ export default function MasterSelect({
                         if (e.key === 'Escape') setRenaming(null);
                       }}
                       autoFocus
+                      className="ui-form-field ui-focus-ring"
                       style={{ width: '90px', padding: '3px 6px', border: `1px solid ${accent}`, borderRadius: '5px', fontSize: '12px', backgroundColor: bg, color: txt, outline: 'none' }}
                     />
                     <button onClick={async () => {
@@ -341,6 +343,7 @@ export default function MasterSelect({
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   placeholder="Nama baru..."
+                  className="ui-form-field ui-focus-ring"
                   style={{
                     flex: 1, padding: '8px 10px',
                     border: `1.5px solid ${accent}`,

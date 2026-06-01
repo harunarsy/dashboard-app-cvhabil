@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  X,
   FileDown,
   Barcode,
   LayoutGrid,
@@ -11,6 +10,7 @@ import {
 import { printSettingsAPI } from "../../services/api";
 import { generateBarcodePDF } from "../../utils/generateBarcodePDF";
 import { UI_SIZE } from "../../constants/ui";
+import Icons from "../common/Icon";
 export default function PrintBarcodeModal({
   products,
   isDarkMode,
@@ -55,6 +55,13 @@ export default function PrintBarcodeModal({
       prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)),
     );
   };
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape" && !generating) onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [generating, onClose]);
   const handleGenerate = async () => {
     setError("");
     if (printableRows.length === 0) {
@@ -183,7 +190,7 @@ export default function PrintBarcodeModal({
             }}
           >
             {" "}
-            <X size={UI_SIZE.icon.lg} />{" "}
+            <Icons.X size={UI_SIZE.icon.lg} />{" "}
           </button>{" "}
         </div>{" "}
         <div

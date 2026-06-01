@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.14.1-stable] - 2026-06-01
+
+### Fixed
+
+- Close gap v1.14.0 diselesaikan: modal shared punya ESC handler, empty state pakai ilustrasi inline SVG, dark mode lebih dalam, form surface lebih konsisten, dan wrapper icon dipakai di kontrol yang paling sering disentuh.
+- `Dashboard.jsx`, `Login.jsx`, `Sidebar.jsx`, `index.js`, dan `SUPERAPP_BRAIN.md` disinkronkan ke `v1.14.1-stable`.
+- `generateNotaPDF.js` tetap tidak disentuh.
+
 ## [v1.14.0-stable] - 2026-06-01
 
 ### Changed

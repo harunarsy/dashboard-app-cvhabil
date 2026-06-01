@@ -29,8 +29,10 @@ import {
 import MasterSelect from "./MasterSelect";
 import Skeleton from "./common/Skeleton";
 import Breadcrumb from "./common/Breadcrumb";
+import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import { PPN_RATE } from "../utils/rupiah";
 import RupiahInput from "./common/RupiahInput";
+import Icons from "./common/Icon";
 import { UI_MOTION, uiTransition } from "../constants/ui";
 
 const renderPortal = (node) =>
@@ -2407,17 +2409,24 @@ export default function InvoiceList({
             </div>
           ))
         ) : paginatedInvoices.length === 0 ? (
-          <div
-            style={{
-              padding: "3rem",
-              textAlign: "center",
-              color: "var(--color-text-subtle)",
-            }}
-          >
-            {invoices.length === 0
-              ? "Belum ada faktur"
-              : "Tidak ada yang cocok"}
-          </div>
+          <tr>
+            <td colSpan={12} style={{ padding: "2rem 1rem" }}>
+              <EmptyState
+                compact
+                icon={EmptyStateIcons.invoice}
+                title={
+                  invoices.length === 0
+                    ? "Belum ada faktur"
+                    : "Tidak ada yang cocok"
+                }
+                description={
+                  invoices.length === 0
+                    ? "Buat faktur baru untuk mulai mencatat transaksi dan rekap PPN."
+                    : "Coba ubah kata kunci atau filter untuk menemukan faktur yang relevan."
+                }
+              />
+            </td>
+          </tr>
         ) : (
           paginatedInvoices.map((inv) => (
             <InvoiceRow
@@ -3627,7 +3636,7 @@ function InvoiceRow({
             }
             onClick={onDelete}
           >
-            <Trash2 size={13} />
+            <Icons.Trash2 size={13} />
           </IconTooltipButton>
         </div>
       </div>
