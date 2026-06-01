@@ -33,10 +33,11 @@ export function generateNotaPDF(order, options = {}) {
 
   const isA6 = format.toUpperCase() === 'A6';
   const isA5 = format.toUpperCase() === 'A5';
+  const compactPaper = isA5 || isA6;
 
-  // v1.8.5.5: A6 brutal compress (font 7 + margin 6)
-  const baseFontSize = isA6 ? 7 : (isA5 ? 9 : 10);
-  const margin = isA6 ? 6 : (isA5 ? 10 : 12);
+  // Compact paper tune-up: A5/A6 tighter spacing + smaller footer/sign blocks.
+  const baseFontSize = isA6 ? 7 : (isA5 ? 8 : 10);
+  const margin = isA6 ? 5 : (isA5 ? 8 : 12);
   const accentColor = [0, 122, 255]; // Premium Blue
 
   // ─── Header Section ───────────────────────────────────────────────────
@@ -47,7 +48,7 @@ export function generateNotaPDF(order, options = {}) {
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize - 1);
-  doc.setTextColor(80, 80, 80);
+  doc.setTextColor(40, 40, 40);
   doc.text(String(settings.address || '-'), margin, margin + 11);
 
   // Phone number (if available)
@@ -65,7 +66,7 @@ export function generateNotaPDF(order, options = {}) {
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize - 1.5);
-  doc.setTextColor(60, 60, 60);
+  doc.setTextColor(50, 50, 50);
   doc.text(`No: ${String(order.order_number || '-')}`, infoX, titleY + 5, { align: 'right' });
   const saleDateStr = order.sale_date
     ? new Date(order.sale_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -101,7 +102,7 @@ export function generateNotaPDF(order, options = {}) {
   if (order.customer_address) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(baseFontSize - 2);
-    doc.setTextColor(80, 80, 80);
+    doc.setTextColor(40, 40, 40);
     const addrOffset = isA6 ? 4 : 5;
     addressY += addrOffset;
     doc.text(String(order.customer_address), margin + (isA6 ? 18 : 22), addressY);
@@ -166,7 +167,7 @@ export function generateNotaPDF(order, options = {}) {
     : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']];
 
   // v1.8.5.8: tableStartY pushed below customerY (margin+23 A6, margin+30 A4/A5) +3mm
-  const tableStartY = margin + (isA6 ? 26 : 33);
+  const tableStartY = margin + (isA6 ? 24 : (isA5 ? 31 : 33));
   autoTable(doc, {
     startY: tableStartY,
     head: tableHead,
@@ -186,8 +187,8 @@ export function generateNotaPDF(order, options = {}) {
     },
     alternateRowStyles: { fillColor: [248, 248, 250] },
     styles: {
-      fontSize: baseFontSize - 1.5,
-      cellPadding: isA6 ? 0.7 : 1.8,
+      fontSize: baseFontSize - (compactPaper ? 1.8 : 1.5),
+      cellPadding: isA6 ? 0.45 : (isA5 ? 0.6 : 1.8),
       lineWidth: 0,
     },
     columnStyles: {
@@ -210,7 +211,7 @@ export function generateNotaPDF(order, options = {}) {
 
   // ─── Summary ──────────────────────────────────────────────────────────
   const tableEndY = (doc.lastAutoTable?.finalY || 0);
-  let finalY = tableEndY > 0 ? tableEndY + 5 : margin + (isA6 ? 30 : 50);
+  let finalY = tableEndY > 0 ? tableEndY + (compactPaper ? 3.5 : 5) : margin + (isA6 ? 28 : 50);
 
   if (type !== 'terima') {
     // v1.8.1: tax-friendly breakdown — DPP (subtotal exc PPN) + PPN 11% + Grand Total
@@ -225,22 +226,22 @@ export function generateNotaPDF(order, options = {}) {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 80, 80);
     doc.text(`Subtotal (DPP): ${fmtRp(dpp)}`, rightX, finalY, { align: 'right' });
-    finalY += isA6 ? 2.8 : 4.5;
+    finalY += isA6 ? 2.4 : (isA5 ? 3.3 : 4.5);
     doc.text(`PPN 11%: ${fmtRp(ppn)}`, rightX, finalY, { align: 'right' });
-    finalY += isA6 ? 3 : 5;
+    finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
 
     doc.setFontSize(baseFontSize + 1);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0);
     doc.text(`GRAND TOTAL: ${fmtRp(grandTotal)}`, rightX, finalY, { align: 'right' });
 
-    finalY += isA6 ? 3 : 5;
+    finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
     doc.setFontSize(baseFontSize - 2);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(100);
     const words = (angkaKeTerbilang(grandTotal) + " Rupiah").trim();
     doc.text(`Terbilang: ${words}`, margin, finalY);
-    finalY += (isA6 ? 3 : 6);
+    finalY += (isA6 ? 2.6 : (isA5 ? 4 : 6));
     doc.setTextColor(0);
   }
 
@@ -253,14 +254,14 @@ export function generateNotaPDF(order, options = {}) {
   }
 
   // v1.8.5.6: A6 sigBlockH 15 (sigGap 4 + sigNameOffset 11). lineH 2.5 keep.
-  const lineH = isA6 ? 2.5 : 4;
-  const sigBlockH = isA6 ? 15 : 24;
-  const footerGap = isA6 ? 2 : 4;
+  const lineH = isA6 ? 2.1 : (isA5 ? 2.6 : 4);
+  const sigBlockH = isA6 ? 11 : (isA5 ? 14 : 24);
+  const footerGap = isA6 ? 1.5 : (isA5 ? 2.5 : 4);
 
   let bankH = 0;
   if (bankInfo && type !== 'terima') {
-    bankH = isA6 ? 9 : 10; // pad(3) + REK text(3) + advance(3) = 9 for A6
-    if (qrisText) bankH += isA6 ? 3 : 5;
+    bankH = isA6 ? 7 : (isA5 ? 8 : 10);
+    if (qrisText) bankH += isA6 ? 2.5 : (isA5 ? 3.5 : 5);
   }
   const tailGroupH = bankH + sigBlockH + footerGap;
   const tailThreshold = pageHeight - margin;
@@ -281,13 +282,13 @@ export function generateNotaPDF(order, options = {}) {
   // v1.8.5.4: A6 include ketentuan kembali. Kalau overflow → fallback addPage acceptable.
   if (ketentuan && type !== 'terima') {
     const ketentuanLines = ketentuan.split('\n').filter(l => l.trim());
-    finalY += isA6 ? 1.5 : 3;
-    ensureSpace(isA6 ? 3 : 4);
-    doc.setFontSize(isA6 ? baseFontSize - 2 : baseFontSize - 2);
+    finalY += isA6 ? 1.2 : (isA5 ? 2 : 3);
+    ensureSpace(isA6 ? 2.5 : (isA5 ? 3 : 4));
+    doc.setFontSize(baseFontSize - 2);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(255, 59, 48);
     doc.text('NOTE:', margin, finalY);
-    finalY += isA6 ? 3 : 4;
+    finalY += isA6 ? 2.5 : (isA5 ? 3 : 4);
     doc.setFont('helvetica', 'normal');
     ketentuanLines.forEach((line, i) => {
       const wrapped = doc.splitTextToSize(`${i + 1}. ${line}`, pageWidth - margin * 2);
@@ -306,23 +307,23 @@ export function generateNotaPDF(order, options = {}) {
 
   // ─── Bank Info ────────────────────────────────────────────────────────
   if (bankInfo && type !== 'terima') {
-    finalY += isA6 ? 3 : 5;
+    finalY += isA6 ? 2.5 : (isA5 ? 3.5 : 5);
     doc.setFontSize(baseFontSize - 1);
     doc.setTextColor(0);
     doc.setFont('helvetica', 'bold');
     doc.text(`REK ${bankInfo}`, pageWidth / 2, finalY, { align: 'center' });
-    finalY += isA6 ? 3 : 4; // v1.8.5.6: explicit advance past REK text height biar gak collide sig
+    finalY += isA6 ? 2.5 : (isA5 ? 3.3 : 4); // explicit advance past REK text height biar gak collide sig
     if (qrisText) {
       doc.text(qrisText, pageWidth / 2, finalY, { align: 'center' });
-      finalY += isA6 ? 3 : 4;
+      finalY += isA6 ? 2.5 : (isA5 ? 3.3 : 4);
     }
   }
 
   // ─── Signatures ──────────────────────────────────────────────────────
   // v1.8.5.6: sigGap A6 4mm (clear REK text). Sig footprint masih compact 11mm total.
-  const sigGap = isA6 ? 4 : 3;
-  const sigLineOffset = isA6 ? 7 : 16;
-  const sigNameOffset = isA6 ? 11 : 21;
+  const sigGap = isA6 ? 2.5 : (isA5 ? 3 : 3);
+  const sigLineOffset = isA6 ? 5.5 : (isA5 ? 8.5 : 16);
+  const sigNameOffset = isA6 ? 8.5 : (isA5 ? 11 : 21);
   const sigHalfWidth = isA6 ? 30 : 45;
   const sigCenter = isA6 ? 15 : 22;
   const sigY = finalY + sigGap;
@@ -346,7 +347,7 @@ export function generateNotaPDF(order, options = {}) {
 
   // ─── Footer ───────────────────────────────────────────────────────────
   if (footerText) {
-    doc.setFontSize(isA6 ? 5 : 6);
+    doc.setFontSize(isA6 ? 4.5 : (isA5 ? 5 : 6));
     doc.setTextColor(180);
     doc.text(String(footerText), pageWidth / 2, pageHeight - 4, { align: 'center' });
   }

@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { X, AlertCircle, CheckCircle2 } from "lucide-react";
 import { inventoryAPI } from "../../services/api";
 import { UI_MOTION } from "../../constants/ui";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 export default function BulkEditModal({
   products,
@@ -41,6 +42,7 @@ export default function BulkEditModal({
     ? "var(--color-surface-raised)"
     : "var(--color-bg)";
   const cellBg = isDarkMode ? "#0A0A0A" : "#FAFAFA";
+  useBodyScrollLock(true);
 
   // Validate: kode duplicate check (terhadap allProducts, exclude self)
   const duplicates = useMemo(() => {

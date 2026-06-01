@@ -20,6 +20,7 @@ import Skeleton from "./common/Skeleton";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import { UI_MOTION } from "../constants/ui";
 import Tooltip from "./common/Tooltip";
+import useBodyScrollLock from "../hooks/useBodyScrollLock";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -130,6 +131,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
   const accent = "var(--color-primary)";
   const danger = "var(--color-danger)";
   const dangerSoft = "var(--color-danger-soft)";
+  useBodyScrollLock(showAddModal || showTrashModal || !!editingTask);
 
   useEffect(() => {
     fetchTasks();

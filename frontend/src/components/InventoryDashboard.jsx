@@ -37,6 +37,7 @@ import Tooltip from "./common/Tooltip";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import Icons from "./common/Icon";
 import { UI_MOTION, UI_SIZE, uiTransition } from "../constants/ui";
+import useBodyScrollLock from "../hooks/useBodyScrollLock";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -176,6 +177,9 @@ export default function InventoryDashboard({
     : "var(--color-border)";
   const text = isDarkMode ? "#FFF" : "#000";
   const sub = "var(--color-text-subtle)";
+  useBodyScrollLock(
+    showModal || bulkEditOpen || barcodePrintOpen || !!drawerProductId || !!deleteConfirmId,
+  );
   const surface = isDarkMode
     ? "var(--color-surface-raised)"
     : "var(--color-bg)";

@@ -39,6 +39,9 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
   const headerNo = order_number || 'AUTO';
   const headerDate = sale_date ? fmtDate(sale_date) : fmtDate(new Date());
   const displayNo = headerNo.startsWith('HSB-') ? headerNo : `HSB-NOTA-${headerNo}`;
+  const bodyText = '#000';
+  const mutedText = '#333';
+  const subText = '#555';
 
   return (
     <div style={{
@@ -50,18 +53,18 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--color-primary)', marginBottom: '3px' }}>{companyName}</div>
-          {address && <div style={{ fontSize: '9px', color: '#555', lineHeight: '1.4' }}>{address}</div>}
-          {phone && <div style={{ fontSize: '9px', color: '#555' }}>{phone}</div>}
+          {address && <div style={{ fontSize: '11px', color: subText, lineHeight: '1.45' }}>{address}</div>}
+          {phone && <div style={{ fontSize: '11px', color: subText }}>{phone}</div>}
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: '11px', fontWeight: '800', color: '#000', marginBottom: '2px' }}>NOTA PENJUALAN</div>
-          <div style={{ fontSize: '8px', color: '#777' }}>No: {displayNo}</div>
-          <div style={{ fontSize: '8px', color: '#777' }}>{headerDate}</div>
+          <div style={{ fontSize: '14px', fontWeight: '800', color: bodyText, marginBottom: '2px' }}>NOTA PENJUALAN</div>
+          <div style={{ fontSize: '11px', color: mutedText }}>No: {displayNo}</div>
+          <div style={{ fontSize: '11px', color: mutedText }}>{headerDate}</div>
           {due_date && !isCash && (
-            <div style={{ fontSize: '8px', color: 'var(--color-danger)', fontWeight: '700', marginTop: '2px' }}>JT: {fmtDate(due_date)}</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-danger)', fontWeight: '700', marginTop: '2px' }}>JT: {fmtDate(due_date)}</div>
           )}
           {payment_method && (
-            <div style={{ fontSize: '8px', color: '#555', marginTop: '2px' }}>Metode: {payment_method}</div>
+            <div style={{ fontSize: '11px', color: subText, marginTop: '2px' }}>Metode: {payment_method}</div>
           )}
         </div>
       </div>
@@ -70,27 +73,27 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
 
       {/* Customer */}
       <div style={{ marginBottom: '8px' }}>
-        <span style={{ fontSize: '9px', color: '#555' }}>Kepada Yth: </span>
-        <span style={{ fontSize: '9px', fontWeight: '700', color: '#000' }}>{customer_name || '—'}</span>
-        {customer_address && <div style={{ fontSize: '8px', color: '#777', marginLeft: '52px' }}>{customer_address}</div>}
-        {customer_phone && <div style={{ fontSize: '8px', color: '#777', marginLeft: '52px' }}>Telp: {customer_phone}</div>}
+        <span style={{ fontSize: '11px', color: subText }}>Kepada Yth: </span>
+        <span style={{ fontSize: '11px', fontWeight: '700', color: bodyText }}>{customer_name || '—'}</span>
+        {customer_address && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px' }}>{customer_address}</div>}
+        {customer_phone && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px' }}>Telp: {customer_phone}</div>}
       </div>
 
       {/* Items table */}
       <div style={{ backgroundColor: 'var(--color-bg)', borderRadius: '6px', overflow: 'hidden', marginBottom: '8px', border: '1px solid var(--color-primary)' }}>
-        <table style={{ width: '100%', fontSize: '8px', borderCollapse: 'collapse' }}>
+        <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ backgroundColor: 'var(--color-primary)', color: '#FFF' }}>
-              <th style={{ padding: '4px 5px', textAlign: 'center', width: '24px' }}>No</th>
-              <th style={{ padding: '4px 5px', textAlign: 'left' }}>Nama Barang</th>
-              <th style={{ padding: '4px 5px', textAlign: 'center', width: '48px' }}>Qty</th>
-              <th style={{ padding: '4px 5px', textAlign: 'right', width: '70px' }}>Harga</th>
-              <th style={{ padding: '4px 5px', textAlign: 'right', width: '80px' }}>Total</th>
+              <th style={{ padding: '5px 5px', textAlign: 'center', width: '24px' }}>No</th>
+              <th style={{ padding: '5px 5px', textAlign: 'left' }}>Nama Barang</th>
+              <th style={{ padding: '5px 5px', textAlign: 'center', width: '48px' }}>Qty</th>
+              <th style={{ padding: '5px 5px', textAlign: 'right', width: '70px' }}>Harga</th>
+              <th style={{ padding: '5px 5px', textAlign: 'right', width: '80px' }}>Total</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: '12px', textAlign: 'center', color: '#999', fontStyle: 'italic' }}>Belum ada produk</td></tr>
+              <tr><td colSpan={5} style={{ padding: '12px', textAlign: 'center', color: '#999', fontStyle: 'italic', fontSize: '11px' }}>Belum ada produk</td></tr>
             )}
             {items.map((it, idx) => {
               const qty = parseFloat(it.qty_in_unit ?? it.qty) || 0;
@@ -100,20 +103,20 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
               const hasMeta = it.batch_no_snapshot || ed;
               return (
                 <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#FFF' : '#FAFAFA' }}>
-                  <td style={{ padding: '4px 5px', textAlign: 'center', color: 'var(--color-border-strong)', verticalAlign: 'top' }}>{idx + 1}</td>
-                  <td style={{ padding: '4px 5px', color: 'var(--color-border-strong)' }}>
+                  <td style={{ padding: '5px 5px', textAlign: 'center', color: bodyText, verticalAlign: 'top', fontSize: '11px' }}>{idx + 1}</td>
+                  <td style={{ padding: '5px 5px', color: bodyText, fontSize: '11px' }}>
                     <div>{it.product_name || '—'}</div>
                     {hasMeta && (
-                      <div style={{ fontSize: '7px', color: '#777', marginTop: '1px' }}>
+                      <div style={{ fontSize: '10px', color: mutedText, marginTop: '1px' }}>
                         {it.batch_no_snapshot ? `Batch: ${it.batch_no_snapshot}` : ''}
                         {it.batch_no_snapshot && ed ? ' · ' : ''}
                         {ed ? `ED: ${ed}` : ''}
                       </div>
                     )}
                   </td>
-                  <td style={{ padding: '4px 5px', textAlign: 'center', color: 'var(--color-border-strong)', verticalAlign: 'top' }}>{qty} {it.unit || 'pcs'}</td>
-                  <td style={{ padding: '4px 5px', textAlign: 'right', color: 'var(--color-border-strong)', verticalAlign: 'top' }}>{fmtRp(price)}</td>
-                  <td style={{ padding: '4px 5px', textAlign: 'right', color: 'var(--color-border-strong)', verticalAlign: 'top', fontWeight: '600' }}>{fmtRp(lineTotal)}</td>
+                  <td style={{ padding: '5px 5px', textAlign: 'center', color: bodyText, verticalAlign: 'top', fontSize: '11px' }}>{qty} {it.unit || 'pcs'}</td>
+                  <td style={{ padding: '5px 5px', textAlign: 'right', color: bodyText, verticalAlign: 'top', fontSize: '11px' }}>{fmtRp(price)}</td>
+                  <td style={{ padding: '5px 5px', textAlign: 'right', color: bodyText, verticalAlign: 'top', fontWeight: '600', fontSize: '11px' }}>{fmtRp(lineTotal)}</td>
                 </tr>
               );
             })}
@@ -123,56 +126,56 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
 
       {/* Breakdown */}
       <div style={{ textAlign: 'right', marginBottom: '8px' }}>
-        <div style={{ fontSize: '8px', color: '#555' }}>Subtotal (DPP): {fmtRp(dpp)}</div>
-        <div style={{ fontSize: '8px', color: '#555' }}>PPN 11%: {fmtRp(ppn)}</div>
-        <div style={{ fontSize: '10px', fontWeight: '800', color: '#000', marginTop: '2px' }}>GRAND TOTAL: {fmtRp(total)}</div>
+        <div style={{ fontSize: '11px', color: subText }}>Subtotal (DPP): {fmtRp(dpp)}</div>
+        <div style={{ fontSize: '11px', color: subText }}>PPN 11%: {fmtRp(ppn)}</div>
+        <div style={{ fontSize: '12px', fontWeight: '800', color: bodyText, marginTop: '2px' }}>GRAND TOTAL: {fmtRp(total)}</div>
       </div>
 
       {terbilang && (
-        <div style={{ fontSize: '7px', color: '#666', fontStyle: 'italic', marginBottom: '6px' }}>Terbilang: {terbilang}</div>
+        <div style={{ fontSize: '10px', color: mutedText, fontStyle: 'italic', marginBottom: '6px' }}>Terbilang: {terbilang}</div>
       )}
 
       {notes && (
-        <div style={{ fontSize: '7px', color: '#777', marginBottom: '6px' }}>Catatan: {notes}</div>
+        <div style={{ fontSize: '10px', color: mutedText, marginBottom: '6px' }}>Catatan: {notes}</div>
       )}
 
       {/* Ketentuan */}
       {ketentuanLines.length > 0 && (
         <div style={{ marginBottom: '8px' }}>
-          <div style={{ fontSize: '7px', fontWeight: '700', color: 'var(--color-danger)' }}>NOTE:</div>
+          <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--color-danger)' }}>NOTE:</div>
           {ketentuanLines.map((line, i) => (
-            <div key={i} style={{ fontSize: '7px', color: 'var(--color-danger)' }}>{i + 1}. {line}</div>
+            <div key={i} style={{ fontSize: '10px', color: 'var(--color-danger)' }}>{i + 1}. {line}</div>
           ))}
-          {ketentuanMore && <div style={{ fontSize: '7px', color: 'var(--color-danger)', opacity: 0.6 }}>…</div>}
+          {ketentuanMore && <div style={{ fontSize: '10px', color: 'var(--color-danger)', opacity: 0.6 }}>…</div>}
         </div>
       )}
 
       {/* Bank */}
       {bankInfo && (
-        <div style={{ textAlign: 'center', fontSize: '8px', fontWeight: '700', color: '#000', marginBottom: '4px' }}>REK {bankInfo}</div>
+        <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: '700', color: bodyText, marginBottom: '4px' }}>REK {bankInfo}</div>
       )}
       {qrisText && (
-        <div style={{ textAlign: 'center', fontSize: '8px', fontWeight: '700', color: '#000', marginBottom: '6px' }}>{qrisText}</div>
+        <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: '700', color: bodyText, marginBottom: '6px' }}>{qrisText}</div>
       )}
 
       {/* Signatures */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', marginTop: '12px' }}>
         <div style={{ textAlign: 'center', flex: 1 }}>
-          <div style={{ fontSize: '8px', color: '#555' }}>Penerima,</div>
-          <div style={{ borderBottom: '1px solid #555', width: '80px', margin: '14px auto 2px' }} />
-          <div style={{ fontSize: '8px', color: '#999' }}>(                    )</div>
+          <div style={{ fontSize: '10px', color: subText }}>Penerima,</div>
+          <div style={{ borderBottom: '1px solid #555', width: '80px', margin: '12px auto 2px' }} />
+          <div style={{ fontSize: '10px', color: '#999' }}>(                    )</div>
         </div>
         <div style={{ textAlign: 'center', flex: 1 }}>
-          <div style={{ fontSize: '8px', color: '#555' }}>Hormat kami,</div>
-          <div style={{ borderBottom: '1px solid #555', width: '80px', margin: '14px auto 2px' }} />
-          {signerName && <div style={{ fontSize: '8px', color: '#333' }}>{signerName}</div>}
+          <div style={{ fontSize: '10px', color: subText }}>Hormat kami,</div>
+          <div style={{ borderBottom: '1px solid #555', width: '80px', margin: '12px auto 2px' }} />
+          {signerName && <div style={{ fontSize: '10px', color: mutedText }}>{signerName}</div>}
         </div>
       </div>
 
       {/* Footer */}
       {footerText && (
         <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: '6px', textAlign: 'center', marginTop: '8px' }}>
-          <div style={{ fontSize: '7px', color: '#AEAEB2' }}>{footerText}</div>
+          <div style={{ fontSize: '10px', color: '#777' }}>{footerText}</div>
         </div>
       )}
     </div>

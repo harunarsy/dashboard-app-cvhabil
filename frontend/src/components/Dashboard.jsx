@@ -30,9 +30,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.14.1-stable",
+    version: "v1.14.2-stable",
     date: "1 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Micro-hotfix readability: HNA/HPP field lebih terbaca, nota PDF customer address lebih jelas, nota preview lebih lega, dan body scroll lock diterapkan ke modal portal utama agar background tetap statis.",
+        dev: "frontend/src/components/common/HnaHppInput.jsx, common/NotaPreview.jsx, frontend/src/hooks/useBodyScrollLock.js, InventoryDashboard.jsx, CustomerList.jsx, SalesOrderList.jsx, InvoiceList.jsx, PurchaseOrderList.jsx, TasksKanban.jsx, ProductDrawer.jsx, OpnameModal.jsx, BatchFormModal.jsx, PrintBarcodeModal.jsx, dan BulkEditModal.jsx disinkronkan ke v1.14.2. generateNotaPDF.js tetap aman tanpa ubah layout bisnis.",
+      },
+    ],
+  },
+  {
+    version: "v1.14.1-stable",
+    date: "1 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -1805,7 +1817,7 @@ export default function Dashboard({
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.14.1-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.14.2-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)

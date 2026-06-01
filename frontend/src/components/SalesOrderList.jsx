@@ -35,6 +35,7 @@ import NotaPreview from "./common/NotaPreview";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import Icons from "./common/Icon";
 import { UI_MOTION, uiTransition } from "../constants/ui";
+import useBodyScrollLock from "../hooks/useBodyScrollLock";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -193,6 +194,7 @@ export default function SalesOrderList({
     : "var(--color-border)";
   const text = isDarkMode ? "#FFF" : "#000";
   const sub = "var(--color-text-subtle)";
+  useBodyScrollLock(showModal || showPrintModal || !!deleteConfirmId);
   const labelStyle = {
     display: "block",
     fontSize: "12px",

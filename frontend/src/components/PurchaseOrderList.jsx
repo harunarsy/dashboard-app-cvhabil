@@ -25,6 +25,7 @@ import SPPreview from "./common/SPPreview";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import Icons from "./common/Icon";
 import { UI_MOTION, uiTransition } from "../constants/ui";
+import useBodyScrollLock from "../hooks/useBodyScrollLock";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -119,6 +120,7 @@ export default function PurchaseOrderList({
     : "var(--color-border)";
   const text = isDarkMode ? "#FFF" : "#000";
   const sub = "var(--color-text-subtle)";
+  useBodyScrollLock(showModal || !!deleteConfirmId);
   const TooltipButton = ({
     label,
     children,

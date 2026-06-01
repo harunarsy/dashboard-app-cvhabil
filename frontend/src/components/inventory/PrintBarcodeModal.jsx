@@ -11,6 +11,7 @@ import { printSettingsAPI } from "../../services/api";
 import { generateBarcodePDF } from "../../utils/generateBarcodePDF";
 import { UI_SIZE } from "../../constants/ui";
 import Icons from "../common/Icon";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 export default function PrintBarcodeModal({
   products,
   isDarkMode,
@@ -32,6 +33,7 @@ export default function PrintBarcodeModal({
   const surface = isDarkMode
     ? "var(--color-surface-raised)"
     : "var(--color-bg)";
+  useBodyScrollLock(true);
   useEffect(() => {
     setRows(
       (products || []).map((p) => ({

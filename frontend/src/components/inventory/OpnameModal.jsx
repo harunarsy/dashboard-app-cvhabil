@@ -25,6 +25,7 @@ import BatchFormModal from "./BatchFormModal";
 import { generateOpnamePDF } from "../../utils/generateOpnamePDF";
 import BarcodeScanner from "../common/BarcodeScanner";
 import { UI_MOTION, UI_SIZE, uiTransition } from "../../constants/ui";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 const fmtDate = (d) =>
   d
@@ -85,6 +86,7 @@ export default function OpnameModal({
   const [scannerOpen, setScannerOpen] = useState(false);
   const [highlightProductId, setHighlightProductId] = useState(null);
   const productRowRefs = useRef({});
+  useBodyScrollLock(true);
 
   const bg = isDarkMode ? "var(--color-surface-elevated)" : "#FFF";
   const border = isDarkMode

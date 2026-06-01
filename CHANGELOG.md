@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.14.2-stable] - 2026-06-01
+
+### Fixed
+
+- Micro-hotfix readability untuk modal dan nota: HNA/HPP field lebih terbaca, nota preview lebih legible, nota PDF customer address lebih gelap dan compact paper A5/A6 tetap fit satu halaman untuk nota pendek.
+- Body scroll lock diterapkan ke modal portal utama supaya background page tetap statis saat modal aktif.
+- `Dashboard.jsx`, `Login.jsx`, `Sidebar.jsx`, `index.js`, dan `SUPERAPP_BRAIN.md` disinkronkan ke `v1.14.2-stable`.
+- `generateNotaPDF.js` tetap disentuh secara hati-hati tanpa ubah business logic DPP/PPN/Grand Total.
+
 ## [v1.14.1-stable] - 2026-06-01
 
 ### Fixed

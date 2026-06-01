@@ -15,6 +15,7 @@ import BatchFormModal from "./BatchFormModal";
 import { hppFromHna } from "../../utils/rupiah";
 import { UI_MOTION, UI_SIZE, uiTransition } from "../../constants/ui";
 import Icons from "../common/Icon";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 const fmtRp = (n, decimals = 0) =>
   new Intl.NumberFormat("id-ID", {
@@ -84,6 +85,7 @@ export default function ProductDrawer({
   const [adjustFor, setAdjustFor] = useState(null); // batch object
   const [adjustForm, setAdjustForm] = useState({ new_qty: 0, reason: "" });
   const [error, setError] = useState("");
+  useBodyScrollLock(Boolean(productId));
 
   const bg = isDarkMode ? "var(--color-surface-elevated)" : "#FFF";
   const border = isDarkMode

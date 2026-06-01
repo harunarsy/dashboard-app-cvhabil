@@ -15,6 +15,7 @@ import Breadcrumb from "./common/Breadcrumb";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import Icons from "./common/Icon";
 import { UI_MOTION, uiTransition } from "../constants/ui";
+import useBodyScrollLock from "../hooks/useBodyScrollLock";
 
 const fmtRp = (n) =>
   new Intl.NumberFormat("id-ID", {
@@ -65,6 +66,7 @@ export default function CustomerList({
     : "var(--color-border)";
   const text = isDarkMode ? "#FFF" : "#000";
   const sub = "var(--color-text-subtle)";
+  useBodyScrollLock(showModal || !!deleteConfirmId);
 
   const fetchCustomers = async () => {
     setLoading(true);

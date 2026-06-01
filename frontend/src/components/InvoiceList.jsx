@@ -34,6 +34,7 @@ import { PPN_RATE } from "../utils/rupiah";
 import RupiahInput from "./common/RupiahInput";
 import Icons from "./common/Icon";
 import { UI_MOTION, uiTransition } from "../constants/ui";
+import useBodyScrollLock from "../hooks/useBodyScrollLock";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -471,6 +472,7 @@ export default function InvoiceList({
   const [form, setForm] = useState(blankForm());
   const [items, setItems] = useState([blankItem()]);
   const totals = calcTotals(items, form);
+  useBodyScrollLock(showModal || !!auditModal);
 
   useEffect(() => {
     fetchInvoices();

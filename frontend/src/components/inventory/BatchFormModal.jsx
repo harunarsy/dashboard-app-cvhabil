@@ -5,6 +5,7 @@ import { inventoryAPI } from "../../services/api";
 import { parseRupiah } from "../../utils/rupiah";
 import HnaHppInput from "../common/HnaHppInput";
 import Icons from "../common/Icon";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 // Modal untuk add (qty initial via stockIn) atau edit metadata batch.
 // Mode 'add' → POST stock-in (membuat batch baru + mutation). Mode 'edit' → PUT batch (metadata only).
@@ -27,6 +28,7 @@ export default function BatchFormModal({
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  useBodyScrollLock(true);
 
   useEffect(() => {
     if (isEdit && batch) {

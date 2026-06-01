@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle } from "lucide-react";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 export default function ConfirmModal({
   isOpen,
   onClose,
@@ -12,6 +13,7 @@ export default function ConfirmModal({
   const bg = isDarkMode ? "var(--color-surface-elevated)" : "#FFF";
   const text = isDarkMode ? "#FFF" : "#000";
   const sub = "var(--color-text-subtle)";
+  useBodyScrollLock(isOpen);
   useEffect(() => {
     if (!isOpen) return undefined;
     const onKey = (e) => {
