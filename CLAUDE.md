@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## System Identity
 
-**HABIL SUPERAPP** — v1.3.38-stable. Real-time business dashboard for invoice, orders, inventory, and financials. Design language: Apple HIG (minimalist, premium).
+**HABIL SUPERAPP** — v1.14.0-stable line. Real-time business dashboard for invoice, orders, inventory, and financials. Design language: Stripe Modern premium SaaS, token-driven via `frontend/src/constants/ui.js`.
 
 ---
 
@@ -77,13 +77,15 @@ cd frontend && npm test -- --testPathPattern=SalesOrderList
 ### Auto-Versioning (MANDATORY before any commit)
 Version must be consistent across **all** of these files:
 - `frontend/src/components/Login.jsx`
+- `frontend/src/components/Sidebar.jsx`
 - `frontend/src/components/Dashboard.jsx` (badge + release modal RELEASES array)
+- `frontend/src/index.js`
 - `CHANGELOG.md`
 - `SUPERAPP_BRAIN.md`
 
 Verify with:
 ```bash
-grep -r "v1\.3\.[0-9]*-" frontend/src --include="*.jsx" --include="*.js"
+grep -rn "v1\.14\." frontend/src --include="*.jsx" --include="*.js"
 ```
 If any file differs → fix before committing.
 

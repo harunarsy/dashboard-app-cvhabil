@@ -1,6 +1,14 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
-import {
+import Icons from "./common/Icon";
+import api from "../services/api";
+import TasksKanban from "./TasksKanban";
+import Skeleton from "./common/Skeleton";
+import { UI_MOTION } from "../constants/ui";
+import useCountUp from "../hooks/useCountUp";
+const StockMovementChart = lazy(() => import("./dashboard/StockMovementChart"));
+
+const {
   Info,
   X,
   Activity,
@@ -17,19 +25,25 @@ import {
   ArrowDownRight,
   Users,
   TrendingUp,
-} from "lucide-react";
-import api from "../services/api";
-import TasksKanban from "./TasksKanban";
-import Skeleton from "./common/Skeleton";
-import { UI_MOTION } from "../constants/ui";
-import useCountUp from "../hooks/useCountUp";
-const StockMovementChart = lazy(() => import("./dashboard/StockMovementChart"));
+} = Icons;
 
 const RELEASES = [
   {
-    version: "v1.13.3-stable",
+    version: "v1.14.0-stable",
     date: "1 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Purge Liquid Glass selesai: modal regressed dipusatkan lagi, dashboard dapat heatmap nota harian plus delta KPI, form input lebih solid, dan surface utama kembali full token-driven.",
+        dev: "frontend/src/index.css, App.js, common modal surfaces, Dashboard.jsx, StockMovementChart.jsx, RupiahInput.jsx, Login.jsx, CLAUDE.md, dan SUPERAPP_BRAIN.md disinkronkan ke release ini. generateNotaPDF.js tetap tidak disentuh.",
+      },
+    ],
+  },
+  {
+    version: "v1.13.3-stable",
+    date: "1 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -1778,7 +1792,7 @@ export default function Dashboard({
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.13.3-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.14.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)
@@ -1850,13 +1864,16 @@ export default function Dashboard({
 
   const [stats, setStats] = useState({
     totalPenjualan: 0,
+    prevTotalPenjualan: 0,
     totalLaba: 0,
+    prevTotalLaba: 0,
     suratPesananAktif: 0,
     stokLowExpired: 0,
     totalCustomer: 0,
     marginByChannel: [],
     topCategoryMargins: [],
     topCustomers: [],
+    dailyNota30d: [],
     stockMovement30d: [],
   });
 
@@ -1876,6 +1893,9 @@ export default function Dashboard({
             : [],
           topCustomers: Array.isArray(data?.topCustomers)
             ? data.topCustomers
+            : [],
+          dailyNota30d: Array.isArray(data?.dailyNota30d)
+            ? data.dailyNota30d
             : [],
           stockMovement30d: Array.isArray(data?.stockMovement30d)
             ? data.stockMovement30d
@@ -1934,7 +1954,30 @@ export default function Dashboard({
   const channelMargins = stats.marginByChannel || [];
   const topCategoryMargins = stats.topCategoryMargins || [];
   const topCustomers = stats.topCustomers || [];
+  const dailyNotaRows = stats.dailyNota30d || [];
   const stockMovementRows = stats.stockMovement30d || [];
+  const formatDeltaPct = (currentValue, previousValue) => {
+    const current = parseFloat(currentValue) || 0;
+    const previous = parseFloat(previousValue) || 0;
+    if (!current && !previous) return null;
+    if (!previous && current) {
+      return { label: "+100%", positive: true, icon: ArrowUpRight };
+    }
+    const pct = ((current - previous) / Math.abs(previous)) * 100;
+    if (!Number.isFinite(pct)) return null;
+    return {
+      label: `${pct >= 0 ? "+" : ""}${pct.toLocaleString("id-ID", {
+        maximumFractionDigits: 1,
+      })}%`,
+      positive: pct >= 0,
+      icon: pct >= 0 ? ArrowUpRight : ArrowDownRight,
+    };
+  };
+  const penjualanDelta = formatDeltaPct(
+    stats.totalPenjualan,
+    stats.prevTotalPenjualan,
+  );
+  const labaDelta = formatDeltaPct(stats.totalLaba, stats.prevTotalLaba);
   const maxChannelRevenue = Math.max(
     1,
     ...channelMargins.map((row) => Math.abs(parseFloat(row.revenue) || 0)),
@@ -1979,7 +2022,28 @@ export default function Dashboard({
       };
     });
   };
+  const buildDailyHeatmapSeries = (rows = []) => {
+    const map = new Map(rows.map((row) => [String(row.day).slice(0, 10), row]));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Array.from({ length: 30 }, (_, index) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (29 - index));
+      const key = toLocalYmd(date);
+      const row = map.get(key) || {};
+      const notaCount = parseFloat(row.notaCount ?? row.nota_count ?? 0) || 0;
+      return {
+        day: key,
+        dayLabel: date.getDate().toString().padStart(2, "0"),
+        weekday: date.toLocaleDateString("id-ID", { weekday: "short" }),
+        notaCount,
+        totalSales: parseFloat(row.totalSales ?? row.total_sales ?? 0) || 0,
+      };
+    });
+  };
   const stockMovementSeries = buildStockMovementSeries(stockMovementRows);
+  const dailyHeatmapSeries = buildDailyHeatmapSeries(dailyNotaRows);
+  const maxHeatmapCount = Math.max(1, ...dailyHeatmapSeries.map((row) => row.notaCount || 0));
 
   return (
     <div
@@ -2034,16 +2098,20 @@ export default function Dashboard({
           {
             label: "Total Penjualan bln ini",
             value: stats.totalPenjualan,
+            previousValue: stats.prevTotalPenjualan,
             type: "currency",
             tint: "green",
             icon: <Activity size={24} className="text-green-500" />,
+            emptyHint: "Belum ada nota paid/final bulan ini.",
           },
           {
             label: "Laba Kotor bln ini",
             value: stats.totalLaba,
+            previousValue: stats.prevTotalLaba,
             type: "currency",
             tint: "blue",
             icon: <Activity size={24} className="text-blue-500" />,
+            emptyHint: "Belum ada nota paid/final bulan ini.",
           },
           {
             label: "Surat Pesanan Aktif",
@@ -2059,36 +2127,163 @@ export default function Dashboard({
             tint: "purple",
             icon: <Package size={24} className="text-red-500" />,
           },
-        ].map((stat, i) => (
-          <div
-            key={i}
-            className={`ui-motion-card ui-hover-delight rounded-2xl p-6 border shadow-sm`}
-            style={{ borderColor: border }}
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-gray-50 rounded-xl dark:bg-gray-800">
-                {stat.icon}
+        ].map((stat, i) => {
+          const delta =
+            stat.label === "Laba Kotor bln ini" ? labaDelta : penjualanDelta;
+          const showDelta = typeof stat.previousValue !== "undefined" && delta;
+          return (
+            <div
+              key={i}
+              className={`ui-motion-card ui-hover-delight rounded-2xl p-6 border shadow-sm`}
+              style={{ borderColor: border }}
+            >
+              <div className="flex justify-between items-start gap-3 mb-4">
+                <div className="p-3 bg-gray-50 rounded-xl dark:bg-gray-800">
+                  {stat.icon}
+                </div>
+                {showDelta && (
+                  <div
+                    className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold"
+                    style={{
+                      borderColor: delta.positive
+                        ? "var(--color-success-soft)"
+                        : "var(--color-danger-soft)",
+                      color: delta.positive
+                        ? "var(--color-success)"
+                        : "var(--color-danger)",
+                      backgroundColor: delta.positive
+                        ? "var(--color-success-soft)"
+                        : "var(--color-danger-soft)",
+                    }}
+                  >
+                    <delta.icon size={12} />
+                    <span>{delta.label}</span>
+                  </div>
+                )}
               </div>
+              {loading ? (
+                <Skeleton width="80%" height="36px" className="mb-2" />
+              ) : (
+                <h3 className="text-3xl font-bold mb-1" style={{ color: text }}>
+                  <CountUpValue
+                    value={stat.value}
+                    loading={loading}
+                    formatter={
+                      stat.type === "currency" ? formatRupiah : formatQty
+                    }
+                  />
+                </h3>
+              )}
+              {!loading && stat.emptyHint && parseFloat(stat.value) === 0 && (
+                <p className="text-sm font-medium mb-1" style={{ color: sub }}>
+                  {stat.emptyHint}
+                </p>
+              )}
+              <p className="text-sm font-medium" style={{ color: sub }}>
+                {stat.label}
+              </p>
             </div>
-            {loading ? (
-              <Skeleton width="80%" height="36px" className="mb-2" />
-            ) : (
-              <h3 className="text-3xl font-bold mb-1" style={{ color: text }}>
-                <CountUpValue
-                  value={stat.value}
-                  loading={loading}
-                  formatter={
-                    stat.type === "currency" ? formatRupiah : formatQty
-                  }
-                />
-              </h3>
-            )}
-            <p className="text-sm font-medium" style={{ color: sub }}>
-              {stat.label}
+          );
+        })}
+      </div>
+
+      {/* Activity Heatmap */}
+      <section
+        className="ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm mb-10"
+        style={{ backgroundColor: cardBg, borderColor: border }}
+      >
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <h2 className="text-lg font-bold" style={{ color: text }}>
+              Aktivitas Nota Harian
+            </h2>
+            <p className="text-xs font-medium mt-1" style={{ color: sub }}>
+              30 hari terakhir · paid/final
             </p>
           </div>
-        ))}
-      </div>
+          <div
+            className="p-3 rounded-xl"
+            style={{
+              backgroundColor: "var(--color-primary-soft)",
+              color: "var(--color-primary)",
+            }}
+          >
+            <BarChart3 size={22} />
+          </div>
+        </div>
+
+        <div
+          className="grid gap-2"
+          style={{ gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}
+        >
+          {dailyHeatmapSeries.map((cell) => {
+            const intensity = Math.max(0, Math.min(1, cell.notaCount / maxHeatmapCount));
+            const fill = cell.notaCount
+              ? `color-mix(in srgb, var(--color-primary) ${Math.round(18 + intensity * 52)}%, transparent)`
+              : isDarkMode
+                ? "var(--color-surface-raised)"
+                : "var(--color-bg-subtle)";
+            return (
+              <div
+                key={cell.day}
+                title={`${cell.weekday}, ${cell.dayLabel} · ${cell.notaCount} nota`}
+                className="aspect-square rounded-2xl border p-2 flex flex-col justify-between"
+                style={{
+                  backgroundColor: fill,
+                  borderColor: cell.notaCount
+                    ? "color-mix(in srgb, var(--color-primary) 26%, transparent)"
+                    : border,
+                }}
+              >
+                <span
+                  className="text-[10px] font-semibold"
+                  style={{ color: cell.notaCount ? text : sub }}
+                >
+                  {cell.dayLabel}
+                </span>
+                <span
+                  className="text-[11px] font-bold text-right"
+                  style={{ color: cell.notaCount ? "var(--color-primary)" : sub }}
+                >
+                  {cell.notaCount}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div
+          className="flex items-center justify-between gap-4 mt-4 text-xs font-medium flex-wrap"
+          style={{ color: sub }}
+        >
+          <span>0 = kosong, makin pekat = makin ramai</span>
+          <span className="inline-flex items-center gap-2">
+            <span
+              className="w-3 h-3 rounded-md border"
+              style={{
+                backgroundColor: isDarkMode
+                  ? "var(--color-surface-raised)"
+                  : "var(--color-bg-subtle)",
+                borderColor: border,
+              }}
+            />
+            <span
+              className="w-3 h-3 rounded-md border"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--color-primary) 42%, transparent)",
+                borderColor: "color-mix(in srgb, var(--color-primary) 30%, transparent)",
+              }}
+            />
+            <span
+              className="w-3 h-3 rounded-md border"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--color-primary) 72%, transparent)",
+                borderColor: "color-mix(in srgb, var(--color-primary) 48%, transparent)",
+              }}
+            />
+          </span>
+        </div>
+      </section>
 
       {/* Profitability Snapshot */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">

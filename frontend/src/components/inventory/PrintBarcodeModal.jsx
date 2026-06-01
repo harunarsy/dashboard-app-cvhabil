@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   FileDown,
@@ -98,7 +99,7 @@ export default function PrintBarcodeModal({
       setGenerating(false);
     }
   };
-  return (
+  const modal = (
     <div
       onClick={(e) => e.target === e.currentTarget && !generating && onClose()}
       style={{
@@ -541,6 +542,9 @@ export default function PrintBarcodeModal({
       </div>{" "}
     </div>
   );
+  return typeof document === "undefined"
+    ? modal
+    : createPortal(modal, document.body);
 }
 const inputStyle = (border, bg, text) => ({
   width: "100%",

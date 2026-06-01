@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Edit2,
@@ -195,7 +196,7 @@ export default function ProductDrawer({
         ? "var(--color-warning)"
         : "var(--color-success)";
 
-  return (
+  const modal = (
     <>
       <div
         onClick={onClose}
@@ -932,6 +933,9 @@ export default function ProductDrawer({
       )}
     </>
   );
+  return typeof document === "undefined"
+    ? modal
+    : createPortal(modal, document.body);
 }
 
 function Field({ label, value, sub, text }) {

@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Search,
@@ -420,7 +421,7 @@ export default function OpnameModal({
     (v) => v.physical_qty !== "",
   ).length;
 
-  return (
+  const modal = (
     <div
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
@@ -1483,4 +1484,7 @@ export default function OpnameModal({
       )}
     </div>
   );
+  return typeof document === "undefined"
+    ? modal
+    : createPortal(modal, document.body);
 }

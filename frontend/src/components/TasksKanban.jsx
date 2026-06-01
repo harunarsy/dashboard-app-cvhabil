@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import Select from "react-select";
 import {
@@ -19,6 +20,9 @@ import { tasksAPI } from "../services/api";
 import Skeleton from "./common/Skeleton";
 import { UI_MOTION } from "../constants/ui";
 import Tooltip from "./common/Tooltip";
+
+const renderPortal = (node) =>
+  typeof document === "undefined" ? node : createPortal(node, document.body);
 
 const API_BASE =
   process.env.REACT_APP_API_URL ||
@@ -412,7 +416,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       </div>
 
       {/* Trash Modal */}
-      {showTrashModal && (
+      {showTrashModal && renderPortal(
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
@@ -763,7 +767,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       </div>
 
       {/* Add Modal */}
-      {showAddModal && (
+      {showAddModal && renderPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-6">
           <div
             className="ui-motion-modal ui-modal-shell w-full max-w-lg rounded-[2.5rem] shadow-2xl p-8 transform transition-all"
@@ -885,7 +889,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       )}
 
       {/* Edit Modal */}
-      {editingTask && (
+      {editingTask && renderPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-6">
           <div
             className="ui-motion-modal ui-modal-shell w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden transform transition-all"

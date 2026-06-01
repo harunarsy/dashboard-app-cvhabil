@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   Plus,
   Search,
@@ -31,6 +32,9 @@ const fmtDate = (d) =>
         year: "numeric",
       })
     : "-";
+
+const renderPortal = (node) =>
+  typeof document === "undefined" ? node : createPortal(node, document.body);
 
 export default function CustomerList({
   isDarkMode,
@@ -686,7 +690,7 @@ export default function CustomerList({
       </div>
 
       {/* Modal */}
-      {showModal && (
+      {showModal && renderPortal(
         <div
           onClick={() => setShowModal(false)}
           style={{

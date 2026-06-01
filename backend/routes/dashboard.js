@@ -18,6 +18,15 @@ router.get('/stats', auth, async (req, res) => {
         AND DATE_TRUNC('month', sale_date) = DATE_TRUNC('month', CURRENT_DATE)
     `);
 
+    const { rows: [{ prev_total_penjualan }] } = await pool.query(`
+      SELECT COALESCE(SUM(total), 0) AS prev_total_penjualan
+      FROM sales_orders
+      WHERE is_deleted = false
+        AND status = 'final'
+        AND sale_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
+        AND sale_date < DATE_TRUNC('month', CURRENT_DATE)
+    `);
+
     // 1b. Laba Kotor bln ini (Paid only) — v1.11.12 fix: pakai HPP inc PPN.
     // SEBELUMNYA: SUM(sales_orders.gross_profit) — formula sales.js pakai (unit_price - unit_hpp),
     // padahal unit_hpp = HNA exc PPN → margin overstate ~11% (PPN masukan = cost yg gak ke-account).
@@ -31,6 +40,17 @@ router.get('/stats', auth, async (req, res) => {
         AND so.payment_status = 'paid'
         AND so.status = 'final'
         AND DATE_TRUNC('month', so.sale_date) = DATE_TRUNC('month', CURRENT_DATE)
+    `, [hppMultiplier]);
+
+    const { rows: [{ prev_total_laba }] } = await pool.query(`
+      SELECT COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - COALESCE(si.unit_hpp, 0) * $1)), 0) AS prev_total_laba
+      FROM sales_orders so
+      JOIN sales_items si ON si.sales_order_id = so.id
+      WHERE so.is_deleted = false
+        AND so.payment_status = 'paid'
+        AND so.status = 'final'
+        AND so.sale_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
+        AND so.sale_date < DATE_TRUNC('month', CURRENT_DATE)
     `, [hppMultiplier]);
 
     // 1c. Margin by channel bln ini (Paid + Final only) — same formula as total_laba.
@@ -118,6 +138,20 @@ router.get('/stats', auth, async (req, res) => {
       LIMIT 5
     `);
 
+    const { rows: dailyNotaRows } = await pool.query(`
+      SELECT
+        DATE(sale_date) AS day,
+        COUNT(*) AS nota_count,
+        COALESCE(SUM(total), 0) AS total_sales
+      FROM sales_orders
+      WHERE is_deleted = false
+        AND payment_status = 'paid'
+        AND status = 'final'
+        AND sale_date >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY DATE(sale_date)
+      ORDER BY day ASC
+    `);
+
     // 2. Surat Pesanan Aktif
     const { rows: [{ active_po }] } = await pool.query(`
       SELECT COUNT(*) AS active_po 
@@ -167,7 +201,9 @@ router.get('/stats', auth, async (req, res) => {
 
     res.json({
       totalPenjualan: parseFloat(total_penjualan),
+      prevTotalPenjualan: parseFloat(prev_total_penjualan),
       totalLaba: parseFloat(total_laba),
+      prevTotalLaba: parseFloat(prev_total_laba),
       suratPesananAktif: parseInt(active_po),
       stokLowExpired: lowExpiredTotal,
       totalCustomer: parseInt(total_customer),
@@ -191,6 +227,11 @@ router.get('/stats', auth, async (req, res) => {
         customerName: row.customer_name || '(tanpa customer)',
         notaCount: parseInt(row.nota_count) || 0,
         spending: parseFloat(row.spending) || 0
+      })),
+      dailyNota30d: dailyNotaRows.map(row => ({
+        day: row.day,
+        notaCount: parseInt(row.nota_count) || 0,
+        totalSales: parseFloat(row.total_sales) || 0
       })),
       stockMovement30d: stockMovementRows.map(row => ({
         day: row.day,

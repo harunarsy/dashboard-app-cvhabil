@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   invoicesAPI,
   distributorsAPI,
@@ -31,6 +32,9 @@ import Breadcrumb from "./common/Breadcrumb";
 import { PPN_RATE } from "../utils/rupiah";
 import RupiahInput from "./common/RupiahInput";
 import { UI_MOTION, uiTransition } from "../constants/ui";
+
+const renderPortal = (node) =>
+  typeof document === "undefined" ? node : createPortal(node, document.body);
 
 const OVERDUE_PULSE_CSS = `@keyframes habil-pulse{0%,100%{opacity:1}50%{opacity:0.35}}`;
 if (
@@ -3251,7 +3255,7 @@ export default function InvoiceList({
       )}
 
       {/* Invoice Modal */}
-      {showModal && (
+      {showModal && renderPortal(
         <InvoiceModal
           isDarkMode={isDarkMode}
           form={form}

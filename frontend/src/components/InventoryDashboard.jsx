@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   Plus,
   Search,
@@ -35,6 +36,9 @@ import BarcodeScanner from "./common/BarcodeScanner";
 import PrintBarcodeModal from "./inventory/PrintBarcodeModal";
 import Tooltip from "./common/Tooltip";
 import { UI_MOTION, UI_SIZE, uiTransition } from "../constants/ui";
+
+const renderPortal = (node) =>
+  typeof document === "undefined" ? node : createPortal(node, document.body);
 
 const fmtRp = (n, decimals = 0) =>
   new Intl.NumberFormat("id-ID", {
@@ -1554,7 +1558,7 @@ export default function InventoryDashboard({
       )}
 
       {/* ─── Product Modal ──────────────────────────────────────────────── */}
-      {showModal === "product" && (
+      {showModal === "product" && renderPortal(
         <ModalShell
           onClose={() => setShowModal(null)}
           cardBg={cardBg}
@@ -2144,7 +2148,7 @@ export default function InventoryDashboard({
       )}
 
       {/* ─── Stock In Modal ──────────────────────────────────────────────── */}
-      {showModal === "stockIn" && (
+      {showModal === "stockIn" && renderPortal(
         <ModalShell
           onClose={() => setShowModal(null)}
           cardBg={cardBg}
@@ -2309,7 +2313,7 @@ export default function InventoryDashboard({
       )}
 
       {/* ─── Stock Out Modal ─────────────────────────────────────────────── */}
-      {showModal === "stockOut" && (
+      {showModal === "stockOut" && renderPortal(
         <ModalShell
           onClose={() => setShowModal(null)}
           cardBg={cardBg}
@@ -2498,7 +2502,7 @@ export default function InventoryDashboard({
       )}
 
       {/* ─── Opname Modal (extracted, per-batch) ────────────────────────── */}
-      {showModal === "opname" && (
+      {showModal === "opname" && renderPortal(
         <OpnameModal
           products={products}
           isDarkMode={isDarkMode}

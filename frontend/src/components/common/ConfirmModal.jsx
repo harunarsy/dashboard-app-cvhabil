@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle } from "lucide-react";
 export default function ConfirmModal({
   isOpen,
@@ -12,7 +13,7 @@ export default function ConfirmModal({
   const bg = isDarkMode ? "var(--color-surface-elevated)" : "#FFF";
   const text = isDarkMode ? "#FFF" : "#000";
   const sub = "var(--color-text-subtle)";
-  return (
+  const modal = (
     <div
       onClick={onClose}
       style={{
@@ -121,4 +122,7 @@ export default function ConfirmModal({
       </div>{" "}
     </div>
   );
+  return typeof document === "undefined"
+    ? modal
+    : createPortal(modal, document.body);
 }

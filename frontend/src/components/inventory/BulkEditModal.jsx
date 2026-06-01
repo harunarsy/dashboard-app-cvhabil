@@ -2,6 +2,7 @@
 // Backend updateProduct butuh full body, jadi kita spread dari product object existing.
 
 import React, { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, AlertCircle, CheckCircle2 } from "lucide-react";
 import { inventoryAPI } from "../../services/api";
 import { UI_MOTION } from "../../constants/ui";
@@ -146,7 +147,7 @@ export default function BulkEditModal({
     boxSizing: "border-box",
   };
 
-  return (
+  const modal = (
     <div
       onClick={(e) => !saving && e.target === e.currentTarget && onClose()}
       style={{
@@ -514,4 +515,7 @@ export default function BulkEditModal({
       </div>
     </div>
   );
+  return typeof document === "undefined"
+    ? modal
+    : createPortal(modal, document.body);
 }

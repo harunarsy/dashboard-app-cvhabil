@@ -131,7 +131,7 @@ export default function Login({
             HABIL SUPERAPP
           </h1>
           <p className="mt-8 text-xs font-medium" style={{ color: sub }}>
-            HABIL SUPERAPP v1.13.3-stable — 2026
+            HABIL SUPERAPP v1.14.0-stable — 2026
           </p>
         </div>
 
@@ -184,7 +184,7 @@ export default function Login({
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="ui-focus-ring w-full pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl"
+                  className="ui-form-field ui-focus-ring w-full pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl"
                   style={{
                     backgroundColor: inputBg,
                     border: `1px solid ${inputBorder}`,
@@ -220,7 +220,7 @@ export default function Login({
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="ui-focus-ring w-full pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl"
+                  className="ui-form-field ui-focus-ring w-full pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl"
                   style={{
                     backgroundColor: inputBg,
                     border: `1px solid ${inputBorder}`,

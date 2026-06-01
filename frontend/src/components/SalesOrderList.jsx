@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Plus,
   Search,
@@ -33,6 +34,9 @@ import ConfirmModal from "./common/ConfirmModal";
 import Breadcrumb from "./common/Breadcrumb";
 import NotaPreview from "./common/NotaPreview";
 import { UI_MOTION, uiTransition } from "../constants/ui";
+
+const renderPortal = (node) =>
+  typeof document === "undefined" ? node : createPortal(node, document.body);
 
 if (
   typeof document !== "undefined" &&
@@ -1736,7 +1740,7 @@ export default function SalesOrderList({
       </div>
 
       {/* Modal */}
-      {showModal && (
+      {showModal && renderPortal(
         <div
           onClick={() => setShowModal(false)}
           style={{
@@ -2626,7 +2630,7 @@ export default function SalesOrderList({
       )}
 
       {/* Print Options Modal */}
-      {showPrintModal && (
+      {showPrintModal && renderPortal(
         <div
           style={{
             position: "fixed",
@@ -2817,7 +2821,7 @@ export default function SalesOrderList({
       )}
 
       {/* Payment Date Modal */}
-      {paymentModal.open && (
+      {paymentModal.open && renderPortal(
         <div
           onClick={() =>
             setPaymentModal({ open: false, order: null, date: "", mode: "pay" })

@@ -1,6 +1,12 @@
 import React, { useState, useContext, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import {
+import Icons from "./common/Icon";
+import api from "../services/api";
+import { UI_MOTION, uiTransition } from "../constants/ui";
+import { AuthContext } from "../context/AuthContext";
+import Tooltip from "./common/Tooltip";
+
+const {
   Home,
   ShoppingCart,
   Package,
@@ -18,11 +24,7 @@ import {
   Briefcase,
   Printer,
   Menu,
-} from "lucide-react";
-import api from "../services/api";
-import { UI_MOTION, uiTransition } from "../constants/ui";
-import { AuthContext } from "../context/AuthContext";
-import Tooltip from "./common/Tooltip";
+} = Icons;
 
 export default function Sidebar({
   isDarkMode,
@@ -187,7 +189,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.13.3-stable";
+  const appVersion = "v1.14.0-stable";
   const TooltipButton = ({
     label,
     children,

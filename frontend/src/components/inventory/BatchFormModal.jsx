@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, AlertCircle } from "lucide-react";
 import { inventoryAPI } from "../../services/api";
 import { parseRupiah } from "../../utils/rupiah";
@@ -127,7 +128,7 @@ export default function BatchFormModal({
     }
   };
 
-  return (
+  const modal = (
     <div
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
@@ -314,4 +315,7 @@ export default function BatchFormModal({
       </div>
     </div>
   );
+  return typeof document === "undefined"
+    ? modal
+    : createPortal(modal, document.body);
 }

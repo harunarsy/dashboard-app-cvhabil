@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Plus,
   Search,
@@ -23,6 +24,9 @@ import ConfirmModal from "./common/ConfirmModal";
 import Breadcrumb from "./common/Breadcrumb";
 import SPPreview from "./common/SPPreview";
 import { UI_MOTION, uiTransition } from "../constants/ui";
+
+const renderPortal = (node) =>
+  typeof document === "undefined" ? node : createPortal(node, document.body);
 
 const fmtDate = (d) =>
   d
@@ -971,7 +975,7 @@ export default function PurchaseOrderList({
       </div>
 
       {/* Create/Edit Modal */}
-      {showModal === "create" && (
+      {showModal === "create" && renderPortal(
         <div
           onClick={() => setShowModal(null)}
           style={{
@@ -1494,7 +1498,7 @@ export default function PurchaseOrderList({
       )}
 
       {/* Receive Modal */}
-      {showModal === "receive" && (
+      {showModal === "receive" && renderPortal(
         <div
           onClick={() => setShowModal(null)}
           style={{
@@ -1734,7 +1738,7 @@ export default function PurchaseOrderList({
       )}
 
       {/* Edit Distributor Modal */}
-      {showModal === "distributor" && (
+      {showModal === "distributor" && renderPortal(
         <div
           onClick={() => setShowModal("create")}
           style={{

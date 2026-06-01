@@ -4,17 +4,25 @@
 // On blur → calls onChange with parsed number (e.g. 288288.25)
 // On focus → displays editable plain number with koma decimal (e.g. "288288,25")
 
-import { useState, useEffect } from 'react';
-import { formatRupiah, parseRupiah } from '../../utils/rupiah';
+import { useState, useEffect } from "react";
+import { formatRupiah, parseRupiah } from "../../utils/rupiah";
 
-export default function RupiahInput({ value, onChange, decimals = 2, style, placeholder = '0', ...rest }) {
+export default function RupiahInput({
+  value,
+  onChange,
+  decimals = 2,
+  style,
+  placeholder = "0",
+  className = "",
+  ...rest
+}) {
   const [focused, setFocused] = useState(false);
-  const [editValue, setEditValue] = useState('');
+  const [editValue, setEditValue] = useState("");
 
   useEffect(() => {
     if (!focused) {
       const n = parseFloat(value);
-      setEditValue(isNaN(n) || n === 0 ? '' : String(n).replace('.', ','));
+      setEditValue(isNaN(n) || n === 0 ? "" : String(n).replace(".", ","));
     }
   }, [value, focused]);
 
@@ -22,20 +30,33 @@ export default function RupiahInput({ value, onChange, decimals = 2, style, plac
   // formatRupiah→parseRupiah salah anggap titik = pemisah ribuan → "7.600.000,00".
   const display = focused
     ? editValue
-    : (parseFloat(value) > 0 ? formatRupiah(parseFloat(value), decimals) : '');
+    : parseFloat(value) > 0
+      ? formatRupiah(parseFloat(value), decimals)
+      : "";
+  const resolvedStyle = {
+    ...style,
+    ...(rest.disabled
+      ? {
+          backgroundColor: "var(--color-bg-subtle)",
+          cursor: "not-allowed",
+          color: "var(--color-text-subtle)",
+        }
+      : null),
+  };
 
   return (
     <input
       {...rest}
       type="text"
       inputMode="decimal"
-      placeholder={focused ? '288288,25' : placeholder}
+      className={`ui-form-field ui-focus-ring ${className}`.trim()}
+      placeholder={focused ? "288288,25" : placeholder}
       value={display}
-      style={style}
+      style={resolvedStyle}
       onFocus={(e) => {
         setFocused(true);
         const n = parseFloat(value);
-        setEditValue(isNaN(n) || n === 0 ? '' : String(n).replace('.', ','));
+        setEditValue(isNaN(n) || n === 0 ? "" : String(n).replace(".", ","));
         if (rest.onFocus) rest.onFocus(e);
       }}
       onBlur={(e) => {

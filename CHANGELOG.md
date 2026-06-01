@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.14.0-stable] - 2026-06-01
+
+### Changed
+
+- Purge Liquid Glass dan stabilisasi modal selesai: route fade tidak lagi membawa transform yang bikin fixed overlay meleset, shared modal utama diportal ke `document.body`, dan release modal tetap center.
+- Dashboard dapat KPI empty-state yang jelas, delta vs bulan lalu, heatmap nota harian, dan tooltip chart yang lebih rapi.
+- Shared input dan login form dapat focus/disabled polish token-driven; `RupiahInput` dipakai sebagai base field yang lebih konsisten.
+- `CLAUDE.md` dan `SUPERAPP_BRAIN.md` di-refresh untuk mencerminkan design language Stripe Modern premium SaaS dan versi canonical terbaru.
+
 ## [v1.13.3-stable] - 2026-06-01
 
 ### Fixed

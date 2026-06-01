@@ -21,6 +21,7 @@
   --ui-motion-base: 200ms;
   --ui-motion-modal: 250ms;
   --ui-motion-page: 300ms;
+  --ui-motion-skeleton: 1200ms;
 
   --color-primary: #6366f1;
   --color-primary-hover: #4f46e5;
@@ -346,6 +347,33 @@ samp {
   box-shadow: 0 0 0 3px var(--color-focus);
 }
 
+.ui-form-field {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  transition:
+    border-color var(--ui-motion-base) var(--ui-motion-enter),
+    box-shadow var(--ui-motion-base) var(--ui-motion-enter),
+    background-color var(--ui-motion-base) var(--ui-motion-enter);
+}
+
+.ui-form-field:focus {
+  border-color: var(--color-primary);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-primary) 42%, transparent);
+}
+
+.ui-form-field:disabled {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-subtle);
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
 .ui-row-action {
   opacity: 0;
   transform: translateY(2px);
@@ -436,20 +464,20 @@ samp {
 .ui-skeleton-shimmer {
   background: linear-gradient(
     135deg,
-    rgba(229, 231, 235, 0.64) 20%,
-    rgba(243, 244, 246, 0.96) 35%,
-    rgba(229, 231, 235, 0.64) 50%
+    rgba(229, 231, 235, 0.48) 0%,
+    rgba(243, 244, 246, 0.94) 45%,
+    rgba(229, 231, 235, 0.48) 100%
   );
   background-size: 200% 100%;
-  animation: ui-shimmer 1200ms linear infinite;
+  animation: ui-skeleton-wave var(--ui-motion-skeleton) linear infinite;
 }
 
 .dark .ui-skeleton-shimmer {
   background: linear-gradient(
     135deg,
-    rgba(55, 65, 81, 0.72) 20%,
-    rgba(75, 85, 99, 0.96) 35%,
-    rgba(55, 65, 81, 0.72) 50%
+    rgba(55, 65, 81, 0.6) 0%,
+    rgba(75, 85, 99, 0.92) 45%,
+    rgba(55, 65, 81, 0.6) 100%
   );
   background-size: 200% 100%;
 }
@@ -482,18 +510,14 @@ samp {
 
 .route-fade {
   opacity: 0;
-  transform: translateY(8px);
   transition:
     opacity var(--route-fade-duration, var(--ui-motion-page))
-      var(--ui-motion-enter),
-    transform var(--route-fade-duration, var(--ui-motion-page))
       var(--ui-motion-enter);
-  will-change: opacity, transform;
+  will-change: opacity;
 }
 
 .route-fade--entered {
   opacity: 1;
-  transform: translateY(0);
 }
 
 .ui-tooltip-anchor {
@@ -572,10 +596,10 @@ samp {
 
 @keyframes ui-skeleton-wave {
   0% {
-    background-position: -180% 0;
+    background-position: 0% 0;
   }
   100% {
-    background-position: 180% 0;
+    background-position: -200% 0;
   }
 }
 
