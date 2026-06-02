@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.15.2-stable] - 2026-06-02
+
+### Fixed
+
+- Terima Barang Surat Pesanan sekarang bisa split satu produk menjadi beberapa batch dalam satu submit.
+- Memperbaiki error PostgreSQL `inconsistent types deduced for parameter $1` saat update status/stock_received SP.
+
+### Notes
+
+- `generateNotaPDF.js`, backend route selain `purchaseOrders.js`, dan HNA/HPP SSOT tidak disentuh.
+
 ## [v1.15.1-stable] - 2026-06-02
 
 ### Changed

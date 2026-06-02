@@ -327,9 +327,9 @@ router.post('/:id/receive', auth, async (req, res) => {
     const newStatus = allReceived ? 'received' : (anyReceived ? 'partial' : 'sent');
     await client.query(
       `UPDATE purchase_orders SET status = $1,
-         stock_received = CASE WHEN $1 = 'received' THEN TRUE ELSE stock_received END,
+         stock_received = CASE WHEN $3 THEN TRUE ELSE stock_received END,
          updated_at = NOW() WHERE id = $2`,
-      [newStatus, req.params.id]
+      [newStatus, req.params.id, newStatus === 'received']
     );
 
     await client.query('COMMIT');

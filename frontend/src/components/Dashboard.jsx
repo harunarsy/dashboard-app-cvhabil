@@ -32,9 +32,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.15.1-stable",
+    version: "v1.15.2-stable",
     date: "2 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Hotfix Terima Barang SP: satu produk sekarang bisa diterima dalam beberapa batch sekaligus, dan error database parameter type mismatch saat update stok sudah diperbaiki.",
+        dev: "PurchaseOrderList.jsx menambah split batch rows + validasi total per PO item. purchaseOrders.js memisahkan boolean stock_received dari placeholder status agar PostgreSQL tidak menduga tipe $1 secara konflik. generateNotaPDF.js dan HNA/HPP SSOT tidak disentuh.",
+      },
+    ],
+  },
+  {
+    version: "v1.15.1-stable",
+    date: "2 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "polish",
@@ -1868,7 +1880,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.15.1-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.15.2-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)
@@ -2119,7 +2131,10 @@ export default function Dashboard({
   };
   const stockMovementSeries = buildStockMovementSeries(stockMovementRows);
   const dailyHeatmapSeries = buildDailyHeatmapSeries(dailyNotaRows);
-  const maxHeatmapCount = Math.max(1, ...dailyHeatmapSeries.map((row) => row.notaCount || 0));
+  const maxHeatmapCount = Math.max(
+    1,
+    ...dailyHeatmapSeries.map((row) => row.notaCount || 0),
+  );
 
   return (
     <div
@@ -2297,7 +2312,10 @@ export default function Dashboard({
           style={{ gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}
         >
           {dailyHeatmapSeries.map((cell) => {
-            const intensity = Math.max(0, Math.min(1, cell.notaCount / maxHeatmapCount));
+            const intensity = Math.max(
+              0,
+              Math.min(1, cell.notaCount / maxHeatmapCount),
+            );
             const fill = cell.notaCount
               ? `color-mix(in srgb, var(--color-primary) ${Math.round(18 + intensity * 52)}%, transparent)`
               : isDarkMode
@@ -2323,7 +2341,9 @@ export default function Dashboard({
                 </span>
                 <span
                   className="text-[11px] font-bold text-right"
-                  style={{ color: cell.notaCount ? "var(--color-primary)" : sub }}
+                  style={{
+                    color: cell.notaCount ? "var(--color-primary)" : sub,
+                  }}
                 >
                   {cell.notaCount}
                 </span>
@@ -2350,15 +2370,19 @@ export default function Dashboard({
             <span
               className="w-3 h-3 rounded-md border"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--color-primary) 42%, transparent)",
-                borderColor: "color-mix(in srgb, var(--color-primary) 30%, transparent)",
+                backgroundColor:
+                  "color-mix(in srgb, var(--color-primary) 42%, transparent)",
+                borderColor:
+                  "color-mix(in srgb, var(--color-primary) 30%, transparent)",
               }}
             />
             <span
               className="w-3 h-3 rounded-md border"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--color-primary) 72%, transparent)",
-                borderColor: "color-mix(in srgb, var(--color-primary) 48%, transparent)",
+                backgroundColor:
+                  "color-mix(in srgb, var(--color-primary) 72%, transparent)",
+                borderColor:
+                  "color-mix(in srgb, var(--color-primary) 48%, transparent)",
               }}
             />
           </span>

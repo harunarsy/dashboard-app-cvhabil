@@ -132,7 +132,7 @@ export default function Login({
             HABIL SUPERAPP
           </h1>
           <p className="mt-8 text-xs font-medium" style={{ color: sub }}>
-            HABIL SUPERAPP v1.15.1-stable — 2026
+            HABIL SUPERAPP v1.15.2-stable — 2026
           </p>
         </div>
 

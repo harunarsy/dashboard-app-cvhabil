@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import {
-  Plus,
-  Trash2,
-  X,
-  CheckCircle,
-  FileText,
-} from "lucide-react";
+import { Plus, Trash2, X, CheckCircle, FileText } from "lucide-react";
 import {
   purchaseOrdersAPI,
   distributorsAPI,
@@ -224,15 +218,13 @@ export default function PurchaseOrderList({
     fetchSettings();
   }, []);
 
-  const filtered = orders.filter(
-    (o) => {
-      const q = debouncedSearch.toLowerCase();
-      return (
-        o.po_number.toLowerCase().includes(q) ||
-        o.distributor_name.toLowerCase().includes(q)
-      );
-    },
-  );
+  const filtered = orders.filter((o) => {
+    const q = debouncedSearch.toLowerCase();
+    return (
+      o.po_number.toLowerCase().includes(q) ||
+      o.distributor_name.toLowerCase().includes(q)
+    );
+  });
 
   const handleSort = (field, isShift) => {
     setSortKeys((prev) => {
@@ -350,6 +342,7 @@ export default function PurchaseOrderList({
     setEditId(o.id);
     setReceiveItems(
       o.items?.map((i) => ({
+        receive_key: `${i.id}-0`,
         po_item_id: i.id,
         product_name: i.product_name,
         ordered_qty: i.qty,
@@ -360,6 +353,52 @@ export default function PurchaseOrderList({
       })) || [],
     );
     setShowModal("receive");
+  };
+
+  const updateReceiveItem = (idx, patch) => {
+    setReceiveItems((prev) =>
+      prev.map((item, itemIdx) =>
+        itemIdx === idx ? { ...item, ...patch } : item,
+      ),
+    );
+  };
+
+  const getReceiveTotal = (poItemId) =>
+    receiveItems
+      .filter((item) => item.po_item_id === poItemId)
+      .reduce((sum, item) => sum + (parseInt(item.received_qty) || 0), 0);
+
+  const getReceiveLineCount = (poItemId) =>
+    receiveItems.filter((item) => item.po_item_id === poItemId).length;
+
+  const addReceiveBatchLine = (idx) => {
+    setReceiveItems((prev) => {
+      const source = prev[idx];
+      if (!source) return prev;
+      const lineCount = prev.filter(
+        (item) => item.po_item_id === source.po_item_id,
+      ).length;
+      const next = [...prev];
+      next.splice(idx + 1, 0, {
+        ...source,
+        receive_key: `${source.po_item_id}-${Date.now()}-${lineCount}`,
+        received_qty: 0,
+        batch_no: "",
+        expired_date: source.expired_date || "",
+      });
+      return next;
+    });
+  };
+
+  const removeReceiveBatchLine = (idx) => {
+    setReceiveItems((prev) => {
+      const target = prev[idx];
+      const lineCount = prev.filter(
+        (item) => item.po_item_id === target?.po_item_id,
+      ).length;
+      if (!target || lineCount <= 1) return prev;
+      return prev.filter((_, itemIdx) => itemIdx !== idx);
+    });
   };
 
   const handleSave = async () => {
@@ -417,6 +456,16 @@ export default function PurchaseOrderList({
       (i) => (parseInt(i.received_qty) || 0) > 0,
     );
     if (!toReceive.length) return flash("Masukkan qty yang diterima");
+    const overReceivedItem = receiveItems.find((item) => {
+      const total = getReceiveTotal(item.po_item_id);
+      const remaining = item.ordered_qty - item.already_received;
+      return total > remaining;
+    });
+    if (overReceivedItem) {
+      return flash(
+        `${overReceivedItem.product_name}: total batch melebihi sisa pesanan`,
+      );
+    }
     try {
       await purchaseOrdersAPI.receive(editId, { items: toReceive });
       flash("Barang diterima & stok diperbarui");
@@ -851,7 +900,10 @@ export default function PurchaseOrderList({
                                 padding: "4px",
                               }}
                             >
-                              <Icons.Edit2 size={15} color="var(--color-primary)" />
+                              <Icons.Edit2
+                                size={15}
+                                color="var(--color-primary)"
+                              />
                             </TooltipButton>
                             <TooltipButton
                               label="Hapus pesanan"
@@ -863,7 +915,10 @@ export default function PurchaseOrderList({
                                 padding: "4px",
                               }}
                             >
-                              <Icons.Trash2 size={15} color="var(--color-danger)" />
+                              <Icons.Trash2
+                                size={15}
+                                color="var(--color-danger)"
+                              />
                             </TooltipButton>
                           </div>
                         </td>
@@ -998,478 +1053,826 @@ export default function PurchaseOrderList({
       </div>
 
       {/* Create/Edit Modal */}
-      {showModal === "create" && renderPortal(
-        <div
-          onClick={() => setShowModal(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            padding: "1rem",
-          }}
-        >
+      {showModal === "create" &&
+        renderPortal(
           <div
-            onClick={(e) => e.stopPropagation()}
+            onClick={() => setShowModal(null)}
             style={{
-              backgroundColor: cardBg,
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-              borderRadius: "16px",
-              width: "100%",
-              maxWidth: "min(1100px, calc(100vw - 32px))",
-              maxHeight: "90vh",
-              overflow: "auto",
-              boxShadow: "0 32px 64px rgba(0,0,0,0.35)",
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0,0,0,0.6)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              padding: "1rem",
             }}
           >
             <div
+              onClick={(e) => e.stopPropagation()}
               style={{
-                padding: "18px 22px",
-                borderBottom: `1px solid ${border}`,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                position: "sticky",
-                top: 0,
                 backgroundColor: cardBg,
-                zIndex: 1,
-              }}
-            >
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: "16px",
-                  fontWeight: "700",
-                  color: text,
-                }}
-              >
-                {editId ? "✏️ Edit SP" : "📋 Buat SP Baru"}
-              </h3>
-              <button
-                onClick={() => setShowModal(null)}
-                aria-label="Tutup modal SP"
-                className="ui-motion-button ui-focus-ring"
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                <X size={18} color={sub} />
-              </button>
-            </div>
-            <div
-              style={{
-                padding: "20px 22px",
-                display: "grid",
-                gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr",
-                gap: "20px",
-                alignItems: "start",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                borderRadius: "16px",
+                width: "100%",
+                maxWidth: "min(1100px, calc(100vw - 32px))",
+                maxHeight: "90vh",
+                overflow: "auto",
+                boxShadow: "0 32px 64px rgba(0,0,0,0.35)",
               }}
             >
               <div
                 style={{
+                  padding: "18px 22px",
+                  borderBottom: `1px solid ${border}`,
                   display: "flex",
-                  flexDirection: "column",
-                  gap: "14px",
-                  minWidth: 0,
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: cardBg,
+                  zIndex: 1,
                 }}
               >
-                {!editId && (
-                  <div>
-                    <label style={labelStyle}>Nomor SP *</label>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "8px",
-                        alignItems: "center",
-                      }}
-                    >
-                      <input
-                        value={spCounter.prefix}
-                        disabled
-                        style={{
-                          ...inputStyle,
-                          width: "130px",
-                          backgroundColor: isDarkMode
-                            ? "#333"
-                            : "var(--color-bg)",
-                          opacity: 0.7,
-                          fontWeight: "600",
-                          textAlign: "center",
-                        }}
-                      />
-                      <input
-                        ref={numberInputRef}
-                        value={
-                          isAutoSP
-                            ? String(spCounter.last_number + 1).padStart(4, "0")
-                            : manualNumber
-                        }
-                        onChange={(e) =>
-                          !isAutoSP &&
-                          setManualNumber(e.target.value.replace(/\D/g, ""))
-                        }
-                        disabled={isAutoSP}
-                        placeholder="0001"
-                        style={{
-                          ...inputStyle,
-                          flex: 1,
-                          backgroundColor: isAutoSP
-                            ? isDarkMode
-                              ? "#333"
-                              : "var(--color-bg)"
-                            : cardBg,
-                          opacity: isAutoSP ? 0.7 : 1,
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newMode = !isAutoSP;
-                          setIsAutoSP(newMode);
-                          if (!newMode) {
-                            setManualNumber(
-                              String(spCounter.last_number + 1).padStart(
-                                4,
-                                "0",
-                              ),
-                            );
-                            setTimeout(() => {
-                              if (numberInputRef.current) {
-                                numberInputRef.current.focus();
-                                numberInputRef.current.select();
-                              }
-                            }, UI_MOTION.duration.micro);
-                          } else {
-                            setManualNumber("");
-                          }
-                        }}
-                        style={{
-                          padding: "10px 14px",
-                          borderRadius: "8px",
-                          border: `1px solid ${border}`,
-                          backgroundColor: isAutoSP ? "#E8F5E9" : "#FFF3E0",
-                          color: isAutoSP ? "#2E7D32" : "#E65100",
-                          fontWeight: "600",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          cursor: "pointer",
-                          minWidth: "110px",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {isAutoSP ? "🔒 Auto" : "🔓 Manual"}
-                      </button>
-                    </div>
-                    {!isAutoSP && (
-                      <p
-                        style={{
-                          fontSize: "10px",
-                          color: "#E65100",
-                          marginTop: "4px",
-                        }}
-                      >
-                        Mode Manual: Counter sistem tidak akan bertambah.
-                      </p>
-                    )}
-                    {saveError && (
-                      <p
-                        style={{
-                          fontSize: "12px",
-                          color: "var(--color-danger)",
-                          marginTop: "6px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        {saveError}
-                      </p>
-                    )}
-                  </div>
-                )}
-                {editId && (
-                  <div>
-                    <label style={labelStyle}>Nomor SP</label>
-                    <input
-                      value={form.po_number}
-                      disabled
-                      style={{ ...inputStyle, opacity: 0.6 }}
-                    />
-                  </div>
-                )}
-                <div>
-                  <label style={labelStyle}>Distributor *</label>
-                  <MasterSelect
-                    value={form.distributor_name}
-                    onChange={(v) => {
-                      setForm((p) => ({ ...p, distributor_name: v }));
-                      const match = distributors.find((d) => d.name === v);
-                      if (match)
-                        setForm((p) => ({
-                          ...p,
-                          distributor_address: match.address || "",
-                        }));
-                    }}
-                    options={distributors}
-                    onAdd={handleAddDistributor}
-                    onRemove={handleRemoveDistributor}
-                    onRename={handleRenameDistributor}
-                    isDarkMode={isDarkMode}
-                    placeholder="Pilih atau tambah distributor..."
-                  />
-                  {selectedDistributorInfo && (
-                    <div
-                      style={{
-                        marginTop: "8px",
-                        padding: "10px 12px",
-                        backgroundColor: isDarkMode ? "#222" : "#F9F9F9",
-                        borderRadius: "8px",
-                        border: `1px solid ${border}`,
-                        fontSize: "12px",
-                        color: sub,
-                        display: "flex",
-                        gap: "16px",
-                      }}
-                    >
-                      <div>
-                        <strong style={{ color: text }}>Salesman:</strong>{" "}
-                        {selectedDistributorInfo.salesman_name || "-"}
-                      </div>
-                      <div>
-                        <strong style={{ color: text }}>Phone:</strong>{" "}
-                        {selectedDistributorInfo.salesman_phone || "-"}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label style={labelStyle}>Alamat</label>
-                  <input
-                    value={form.distributor_address}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        distributor_address: e.target.value,
-                      }))
-                    }
-                    style={inputStyle}
-                  />
-                </div>
-                <div
+                <h3
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr 1fr",
-                    gap: "12px",
+                    margin: 0,
+                    fontSize: "16px",
+                    fontWeight: "700",
+                    color: text,
                   }}
                 >
+                  {editId ? "✏️ Edit SP" : "📋 Buat SP Baru"}
+                </h3>
+                <button
+                  onClick={() => setShowModal(null)}
+                  aria-label="Tutup modal SP"
+                  className="ui-motion-button ui-focus-ring"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  <X size={18} color={sub} />
+                </button>
+              </div>
+              <div
+                style={{
+                  padding: "20px 22px",
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr",
+                  gap: "20px",
+                  alignItems: "start",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "14px",
+                    minWidth: 0,
+                  }}
+                >
+                  {!editId && (
+                    <div>
+                      <label style={labelStyle}>Nomor SP *</label>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "8px",
+                          alignItems: "center",
+                        }}
+                      >
+                        <input
+                          value={spCounter.prefix}
+                          disabled
+                          style={{
+                            ...inputStyle,
+                            width: "130px",
+                            backgroundColor: isDarkMode
+                              ? "#333"
+                              : "var(--color-bg)",
+                            opacity: 0.7,
+                            fontWeight: "600",
+                            textAlign: "center",
+                          }}
+                        />
+                        <input
+                          ref={numberInputRef}
+                          value={
+                            isAutoSP
+                              ? String(spCounter.last_number + 1).padStart(
+                                  4,
+                                  "0",
+                                )
+                              : manualNumber
+                          }
+                          onChange={(e) =>
+                            !isAutoSP &&
+                            setManualNumber(e.target.value.replace(/\D/g, ""))
+                          }
+                          disabled={isAutoSP}
+                          placeholder="0001"
+                          style={{
+                            ...inputStyle,
+                            flex: 1,
+                            backgroundColor: isAutoSP
+                              ? isDarkMode
+                                ? "#333"
+                                : "var(--color-bg)"
+                              : cardBg,
+                            opacity: isAutoSP ? 0.7 : 1,
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newMode = !isAutoSP;
+                            setIsAutoSP(newMode);
+                            if (!newMode) {
+                              setManualNumber(
+                                String(spCounter.last_number + 1).padStart(
+                                  4,
+                                  "0",
+                                ),
+                              );
+                              setTimeout(() => {
+                                if (numberInputRef.current) {
+                                  numberInputRef.current.focus();
+                                  numberInputRef.current.select();
+                                }
+                              }, UI_MOTION.duration.micro);
+                            } else {
+                              setManualNumber("");
+                            }
+                          }}
+                          style={{
+                            padding: "10px 14px",
+                            borderRadius: "8px",
+                            border: `1px solid ${border}`,
+                            backgroundColor: isAutoSP ? "#E8F5E9" : "#FFF3E0",
+                            color: isAutoSP ? "#2E7D32" : "#E65100",
+                            fontWeight: "600",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            cursor: "pointer",
+                            minWidth: "110px",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {isAutoSP ? "🔒 Auto" : "🔓 Manual"}
+                        </button>
+                      </div>
+                      {!isAutoSP && (
+                        <p
+                          style={{
+                            fontSize: "10px",
+                            color: "#E65100",
+                            marginTop: "4px",
+                          }}
+                        >
+                          Mode Manual: Counter sistem tidak akan bertambah.
+                        </p>
+                      )}
+                      {saveError && (
+                        <p
+                          style={{
+                            fontSize: "12px",
+                            color: "var(--color-danger)",
+                            marginTop: "6px",
+                            fontWeight: "500",
+                          }}
+                        >
+                          {saveError}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {editId && (
+                    <div>
+                      <label style={labelStyle}>Nomor SP</label>
+                      <input
+                        value={form.po_number}
+                        disabled
+                        style={{ ...inputStyle, opacity: 0.6 }}
+                      />
+                    </div>
+                  )}
                   <div>
-                    <label style={labelStyle}>PIC</label>
-                    <select
-                      value={form.pic_name}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, pic_name: e.target.value }))
-                      }
-                      style={inputStyle}
-                    >
-                      <option value="Harun Al Rasyid">Harun Al Rasyid</option>
-                      <option value="Fivin Soehaeni">Fivin Soehaeni</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Tanggal SP</label>
-                    <input
-                      type="date"
-                      value={form.order_date}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, order_date: e.target.value }))
-                      }
-                      style={inputStyle}
+                    <label style={labelStyle}>Distributor *</label>
+                    <MasterSelect
+                      value={form.distributor_name}
+                      onChange={(v) => {
+                        setForm((p) => ({ ...p, distributor_name: v }));
+                        const match = distributors.find((d) => d.name === v);
+                        if (match)
+                          setForm((p) => ({
+                            ...p,
+                            distributor_address: match.address || "",
+                          }));
+                      }}
+                      options={distributors}
+                      onAdd={handleAddDistributor}
+                      onRemove={handleRemoveDistributor}
+                      onRename={handleRenameDistributor}
+                      isDarkMode={isDarkMode}
+                      placeholder="Pilih atau tambah distributor..."
                     />
+                    {selectedDistributorInfo && (
+                      <div
+                        style={{
+                          marginTop: "8px",
+                          padding: "10px 12px",
+                          backgroundColor: isDarkMode ? "#222" : "#F9F9F9",
+                          borderRadius: "8px",
+                          border: `1px solid ${border}`,
+                          fontSize: "12px",
+                          color: sub,
+                          display: "flex",
+                          gap: "16px",
+                        }}
+                      >
+                        <div>
+                          <strong style={{ color: text }}>Salesman:</strong>{" "}
+                          {selectedDistributorInfo.salesman_name || "-"}
+                        </div>
+                        <div>
+                          <strong style={{ color: text }}>Phone:</strong>{" "}
+                          {selectedDistributorInfo.salesman_phone || "-"}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div>
-                    <label style={labelStyle}>Estimasi Tiba</label>
+                    <label style={labelStyle}>Alamat</label>
                     <input
-                      type="date"
-                      value={form.expected_date}
+                      value={form.distributor_address}
                       onChange={(e) =>
                         setForm((p) => ({
                           ...p,
-                          expected_date: e.target.value,
+                          distributor_address: e.target.value,
                         }))
                       }
                       style={inputStyle}
                     />
                   </div>
-                </div>
-                <div>
-                  <label style={labelStyle}>Produk</label>
-                  {items.map((it, idx) => {
-                    const product = products.find(
-                      (p) =>
-                        p.name?.toLowerCase() ===
-                        it.product_name?.toLowerCase(),
-                    );
-                    const unitOptions = getProductUnits(product);
-                    const showPreview =
-                      product &&
-                      product.pack_unit &&
-                      (parseInt(product.pack_size) || 1) > 1;
-                    return (
-                      <div key={idx} style={{ marginBottom: "8px" }}>
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "2fr 70px 110px 30px",
-                            gap: "6px",
-                            alignItems: "center",
-                          }}
-                        >
-                          <MasterSelect
-                            value={it.product_name}
-                            onChange={(v) => updateItem(idx, "product_name", v)}
-                            options={products.map((p) => ({ name: p.name }))}
-                            onAdd={handleAddProduct}
-                            onRemove={handleRemoveProduct}
-                            onRename={handleRenameProduct}
-                            isDarkMode={isDarkMode}
-                            placeholder="Nama produk"
-                          />
-                          <input
-                            type="number"
-                            value={it.qty}
-                            onChange={(e) =>
-                              updateItem(
-                                idx,
-                                "qty",
-                                parseInt(e.target.value) || 0,
-                              )
-                            }
-                            min="1"
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr 1fr",
+                      gap: "12px",
+                    }}
+                  >
+                    <div>
+                      <label style={labelStyle}>PIC</label>
+                      <select
+                        value={form.pic_name}
+                        onChange={(e) =>
+                          setForm((p) => ({ ...p, pic_name: e.target.value }))
+                        }
+                        style={inputStyle}
+                      >
+                        <option value="Harun Al Rasyid">Harun Al Rasyid</option>
+                        <option value="Fivin Soehaeni">Fivin Soehaeni</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Tanggal SP</label>
+                      <input
+                        type="date"
+                        value={form.order_date}
+                        onChange={(e) =>
+                          setForm((p) => ({ ...p, order_date: e.target.value }))
+                        }
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Estimasi Tiba</label>
+                      <input
+                        type="date"
+                        value={form.expected_date}
+                        onChange={(e) =>
+                          setForm((p) => ({
+                            ...p,
+                            expected_date: e.target.value,
+                          }))
+                        }
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Produk</label>
+                    {items.map((it, idx) => {
+                      const product = products.find(
+                        (p) =>
+                          p.name?.toLowerCase() ===
+                          it.product_name?.toLowerCase(),
+                      );
+                      const unitOptions = getProductUnits(product);
+                      const showPreview =
+                        product &&
+                        product.pack_unit &&
+                        (parseInt(product.pack_size) || 1) > 1;
+                      return (
+                        <div key={idx} style={{ marginBottom: "8px" }}>
+                          <div
                             style={{
-                              ...inputStyle,
-                              fontSize: "13px",
-                              padding: "8px 6px",
-                              textAlign: "center",
-                            }}
-                          />
-                          <select
-                            value={it.unit}
-                            onChange={(e) =>
-                              updateItem(idx, "unit", e.target.value)
-                            }
-                            style={{
-                              ...inputStyle,
-                              fontSize: "13px",
-                              padding: "8px 6px",
+                              display: "grid",
+                              gridTemplateColumns: "2fr 70px 110px 30px",
+                              gap: "6px",
+                              alignItems: "center",
                             }}
                           >
-                            {unitOptions.map((u, i) => (
-                              <option key={`${u.value}-${i}`} value={u.value}>
-                                {u.label}
-                              </option>
-                            ))}
-                          </select>
-                          {items.length > 1 && (
-                            <TooltipButton
-                              label="Hapus baris produk"
-                              onClick={() => removeItem(idx)}
+                            <MasterSelect
+                              value={it.product_name}
+                              onChange={(v) =>
+                                updateItem(idx, "product_name", v)
+                              }
+                              options={products.map((p) => ({ name: p.name }))}
+                              onAdd={handleAddProduct}
+                              onRemove={handleRemoveProduct}
+                              onRename={handleRenameProduct}
+                              isDarkMode={isDarkMode}
+                              placeholder="Nama produk"
+                            />
+                            <input
+                              type="number"
+                              value={it.qty}
+                              onChange={(e) =>
+                                updateItem(
+                                  idx,
+                                  "qty",
+                                  parseInt(e.target.value) || 0,
+                                )
+                              }
+                              min="1"
                               style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                padding: 0,
+                                ...inputStyle,
+                                fontSize: "13px",
+                                padding: "8px 6px",
+                                textAlign: "center",
+                              }}
+                            />
+                            <select
+                              value={it.unit}
+                              onChange={(e) =>
+                                updateItem(idx, "unit", e.target.value)
+                              }
+                              style={{
+                                ...inputStyle,
+                                fontSize: "13px",
+                                padding: "8px 6px",
                               }}
                             >
-                              <Trash2 size={14} color="var(--color-danger)" />
-                            </TooltipButton>
+                              {unitOptions.map((u, i) => (
+                                <option key={`${u.value}-${i}`} value={u.value}>
+                                  {u.label}
+                                </option>
+                              ))}
+                            </select>
+                            {items.length > 1 && (
+                              <TooltipButton
+                                label="Hapus baris produk"
+                                onClick={() => removeItem(idx)}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  padding: 0,
+                                }}
+                              >
+                                <Trash2 size={14} color="var(--color-danger)" />
+                              </TooltipButton>
+                            )}
+                          </div>
+                          {showPreview && it.qty > 0 && (
+                            <p
+                              style={{
+                                margin: "4px 0 0 8px",
+                                fontSize: "11px",
+                                color: sub,
+                              }}
+                            >
+                              📐{" "}
+                              {formatQtyWithConversion(
+                                it.qty,
+                                it.unit,
+                                product,
+                              )}
+                            </p>
                           )}
                         </div>
-                        {showPreview && it.qty > 0 && (
-                          <p
+                      );
+                    })}
+                    <button
+                      onClick={addItem}
+                      style={{
+                        fontSize: "13px",
+                        color: "var(--color-primary-hover)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontWeight: "600",
+                        marginTop: "4px",
+                      }}
+                    >
+                      + Tambah Produk
+                    </button>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Catatan</label>
+                    <textarea
+                      value={form.notes}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, notes: e.target.value }))
+                      }
+                      rows={2}
+                      style={{
+                        ...inputStyle,
+                        resize: "vertical",
+                        fontFamily: "inherit",
+                      }}
+                    />
+                  </div>
+                  {saveError && editId && (
+                    <p
+                      style={{
+                        fontSize: "12px",
+                        color: "var(--color-danger)",
+                        margin: "0",
+                        fontWeight: "500",
+                      }}
+                    >
+                      {saveError}
+                    </p>
+                  )}
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="btn-primary ui-motion-button ui-focus-ring"
+                      data-magnetic="true"
+                      style={{
+                        flex: 1,
+                        padding: "13px",
+                        backgroundColor: "var(--color-primary-hover)",
+                        color: "#FFF",
+                        border: "none",
+                        borderRadius: "10px",
+                        cursor: isSaving ? "not-allowed" : "pointer",
+                        fontWeight: "700",
+                        fontSize: "14px",
+                        opacity: isSaving ? 0.7 : 1,
+                      }}
+                    >
+                      {isSaving
+                        ? "Menyimpan..."
+                        : editId
+                          ? "Simpan"
+                          : "Buat SP"}
+                    </button>
+                    <button
+                      onClick={() => setShowModal(null)}
+                      disabled={isSaving}
+                      style={{
+                        flex: 1,
+                        padding: "13px",
+                        backgroundColor: isDarkMode
+                          ? "var(--color-surface-raised)"
+                          : "var(--color-bg)",
+                        color: text,
+                        border: "none",
+                        borderRadius: "10px",
+                        cursor: isSaving ? "not-allowed" : "pointer",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        opacity: isSaving ? 0.7 : 1,
+                      }}
+                    >
+                      Batal
+                    </button>
+                  </div>
+                </div>
+                {!isMobile && (
+                  <div
+                    style={{ position: "sticky", top: 0, alignSelf: "start" }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        textTransform: "uppercase",
+                        color: sub,
+                        marginBottom: "8px",
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      📄 Preview Live
+                    </div>
+                    <SPPreview
+                      form={{
+                        ...form,
+                        po_number: editId
+                          ? form.po_number
+                          : `${spCounter.prefix || ""}${isAutoSP ? String(spCounter.last_number + 1).padStart(4, "0") : manualNumber}`,
+                      }}
+                      items={items}
+                      settings={layoutSettings || {}}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>,
+        )}
+
+      {/* Receive Modal */}
+      {showModal === "receive" &&
+        renderPortal(
+          <div
+            onClick={() => setShowModal(null)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0,0,0,0.6)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              padding: "1rem",
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                backgroundColor: cardBg,
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                borderRadius: "16px",
+                width: "100%",
+                maxWidth: "640px",
+                maxHeight: "90vh",
+                overflow: "auto",
+                boxShadow: "0 32px 64px rgba(0,0,0,0.35)",
+              }}
+            >
+              <div
+                style={{
+                  padding: "18px 22px",
+                  borderBottom: `1px solid ${border}`,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: cardBg,
+                  zIndex: 1,
+                }}
+              >
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: "16px",
+                    fontWeight: "700",
+                    color: "var(--color-success)",
+                  }}
+                >
+                  ✅ Terima Barang
+                </h3>
+                <button
+                  onClick={() => setShowModal(null)}
+                  aria-label="Tutup modal terima barang"
+                  className="ui-motion-button ui-focus-ring"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  <X size={18} color={sub} />
+                </button>
+              </div>
+              <div style={{ padding: "20px 22px" }}>
+                <p style={{ fontSize: "13px", color: sub, margin: "0 0 12px" }}>
+                  Masukkan qty yang diterima, batch, dan tanggal expired. Stok
+                  akan otomatis bertambah.
+                </p>
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    fontSize: "12px",
+                  }}
+                >
+                  <thead>
+                    <tr>
+                      {[
+                        "Produk",
+                        "Pesan",
+                        "Sudah",
+                        "Terima",
+                        "Batch",
+                        "Expired",
+                        "Aksi",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          style={{
+                            padding: "6px 8px",
+                            textAlign: "left",
+                            fontWeight: "700",
+                            color: sub,
+                            fontSize: "10px",
+                            textTransform: "uppercase",
+                            borderBottom: `1px solid ${border}`,
+                          }}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {receiveItems.map((ri, idx) => {
+                      const receiveTotal = getReceiveTotal(ri.po_item_id);
+                      const remaining = ri.ordered_qty - ri.already_received;
+                      const lineCount = getReceiveLineCount(ri.po_item_id);
+                      const currentQty = parseInt(ri.received_qty) || 0;
+                      const maxForLine = Math.max(
+                        0,
+                        remaining - receiveTotal + currentQty,
+                      );
+                      return (
+                        <tr
+                          key={ri.receive_key || idx}
+                          style={{ borderBottom: `1px solid ${border}` }}
+                        >
+                          <td
                             style={{
-                              margin: "4px 0 0 8px",
-                              fontSize: "11px",
-                              color: sub,
+                              padding: "6px 8px",
+                              fontWeight: "600",
+                              color: text,
                             }}
                           >
-                            📐{" "}
-                            {formatQtyWithConversion(it.qty, it.unit, product)}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
+                            {ri.product_name}
+                          </td>
+                          <td style={{ padding: "6px 8px", color: sub }}>
+                            {ri.ordered_qty}
+                          </td>
+                          <td
+                            style={{
+                              padding: "6px 8px",
+                              color:
+                                ri.already_received >= ri.ordered_qty
+                                  ? "var(--color-success)"
+                                  : "var(--color-warning)",
+                            }}
+                          >
+                            {ri.already_received}
+                          </td>
+                          <td style={{ padding: "6px 8px" }}>
+                            <input
+                              type="number"
+                              value={ri.received_qty}
+                              min="0"
+                              max={maxForLine}
+                              onChange={(e) => {
+                                const nextQty = Math.min(
+                                  parseInt(e.target.value) || 0,
+                                  maxForLine,
+                                );
+                                updateReceiveItem(idx, {
+                                  received_qty: nextQty,
+                                });
+                              }}
+                              style={{
+                                ...inputStyle,
+                                width: "60px",
+                                padding: "4px 6px",
+                                fontSize: "12px",
+                                textAlign: "center",
+                              }}
+                            />
+                          </td>
+                          <td style={{ padding: "6px 8px" }}>
+                            <input
+                              value={ri.batch_no}
+                              onChange={(e) => {
+                                updateReceiveItem(idx, {
+                                  batch_no: e.target.value,
+                                });
+                              }}
+                              placeholder="Batch"
+                              style={{
+                                ...inputStyle,
+                                width: "80px",
+                                padding: "4px 6px",
+                                fontSize: "12px",
+                              }}
+                            />
+                          </td>
+                          <td style={{ padding: "6px 8px" }}>
+                            <input
+                              type="date"
+                              value={ri.expired_date}
+                              onChange={(e) => {
+                                updateReceiveItem(idx, {
+                                  expired_date: e.target.value,
+                                });
+                              }}
+                              style={{
+                                ...inputStyle,
+                                width: "120px",
+                                padding: "4px 6px",
+                                fontSize: "12px",
+                              }}
+                            />
+                          </td>
+                          <td style={{ padding: "6px 8px" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => addReceiveBatchLine(idx)}
+                                aria-label={`Tambah batch untuk ${ri.product_name}`}
+                                className="ui-motion-button ui-focus-ring"
+                                style={{
+                                  minWidth: "32px",
+                                  height: "32px",
+                                  borderRadius: "8px",
+                                  border: `1px solid ${border}`,
+                                  background: "var(--color-surface-elevated)",
+                                  color: "var(--color-primary)",
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                <Plus size={15} />
+                              </button>
+                              {lineCount > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeReceiveBatchLine(idx)}
+                                  aria-label={`Hapus baris batch ${ri.product_name}`}
+                                  className="ui-motion-button ui-focus-ring"
+                                  style={{
+                                    minWidth: "32px",
+                                    height: "32px",
+                                    borderRadius: "8px",
+                                    border: `1px solid ${border}`,
+                                    background: "var(--color-danger-soft)",
+                                    color: "var(--color-danger)",
+                                    cursor: "pointer",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <div
+                  style={{ display: "flex", gap: "10px", marginTop: "16px" }}
+                >
                   <button
-                    onClick={addItem}
-                    style={{
-                      fontSize: "13px",
-                      color: "var(--color-primary-hover)",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      fontWeight: "600",
-                      marginTop: "4px",
-                    }}
-                  >
-                    + Tambah Produk
-                  </button>
-                </div>
-                <div>
-                  <label style={labelStyle}>Catatan</label>
-                  <textarea
-                    value={form.notes}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, notes: e.target.value }))
-                    }
-                    rows={2}
-                    style={{
-                      ...inputStyle,
-                      resize: "vertical",
-                      fontFamily: "inherit",
-                    }}
-                  />
-                </div>
-                {saveError && editId && (
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      color: "var(--color-danger)",
-                      margin: "0",
-                      fontWeight: "500",
-                    }}
-                  >
-                    {saveError}
-                  </p>
-                )}
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
+                    onClick={handleReceive}
                     className="btn-primary ui-motion-button ui-focus-ring"
                     data-magnetic="true"
                     style={{
                       flex: 1,
                       padding: "13px",
-                      backgroundColor: "var(--color-primary-hover)",
+                      backgroundColor: "var(--color-success)",
                       color: "#FFF",
                       border: "none",
                       borderRadius: "10px",
-                      cursor: isSaving ? "not-allowed" : "pointer",
+                      cursor: "pointer",
                       fontWeight: "700",
                       fontSize: "14px",
-                      opacity: isSaving ? 0.7 : 1,
                     }}
                   >
-                    {isSaving ? "Menyimpan..." : editId ? "Simpan" : "Buat SP"}
+                    Terima & Update Stok
                   </button>
                   <button
                     onClick={() => setShowModal(null)}
-                    disabled={isSaving}
                     style={{
                       flex: 1,
                       padding: "13px",
@@ -1479,446 +1882,179 @@ export default function PurchaseOrderList({
                       color: text,
                       border: "none",
                       borderRadius: "10px",
-                      cursor: isSaving ? "not-allowed" : "pointer",
+                      cursor: "pointer",
                       fontSize: "14px",
                       fontWeight: "600",
-                      opacity: isSaving ? 0.7 : 1,
                     }}
                   >
                     Batal
                   </button>
                 </div>
               </div>
-              {!isMobile && (
-                <div style={{ position: "sticky", top: 0, alignSelf: "start" }}>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      textTransform: "uppercase",
-                      color: sub,
-                      marginBottom: "8px",
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    📄 Preview Live
-                  </div>
-                  <SPPreview
-                    form={{
-                      ...form,
-                      po_number: editId
-                        ? form.po_number
-                        : `${spCounter.prefix || ""}${isAutoSP ? String(spCounter.last_number + 1).padStart(4, "0") : manualNumber}`,
-                    }}
-                    items={items}
-                    settings={layoutSettings || {}}
-                  />
-                </div>
-              )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Receive Modal */}
-      {showModal === "receive" && renderPortal(
-        <div
-          onClick={() => setShowModal(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            padding: "1rem",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: cardBg,
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-              borderRadius: "16px",
-              width: "100%",
-              maxWidth: "640px",
-              maxHeight: "90vh",
-              overflow: "auto",
-              boxShadow: "0 32px 64px rgba(0,0,0,0.35)",
-            }}
-          >
-            <div
-              style={{
-                padding: "18px 22px",
-                borderBottom: `1px solid ${border}`,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                position: "sticky",
-                top: 0,
-                backgroundColor: cardBg,
-                zIndex: 1,
-              }}
-            >
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: "16px",
-                  fontWeight: "700",
-                  color: "var(--color-success)",
-                }}
-              >
-                ✅ Terima Barang
-              </h3>
-              <button
-                onClick={() => setShowModal(null)}
-                aria-label="Tutup modal terima barang"
-                className="ui-motion-button ui-focus-ring"
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                <X size={18} color={sub} />
-              </button>
-            </div>
-            <div style={{ padding: "20px 22px" }}>
-              <p style={{ fontSize: "13px", color: sub, margin: "0 0 12px" }}>
-                Masukkan qty yang diterima, batch, dan tanggal expired. Stok
-                akan otomatis bertambah.
-              </p>
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  fontSize: "12px",
-                }}
-              >
-                <thead>
-                  <tr>
-                    {[
-                      "Produk",
-                      "Pesan",
-                      "Sudah",
-                      "Terima",
-                      "Batch",
-                      "Expired",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          padding: "6px 8px",
-                          textAlign: "left",
-                          fontWeight: "700",
-                          color: sub,
-                          fontSize: "10px",
-                          textTransform: "uppercase",
-                          borderBottom: `1px solid ${border}`,
-                        }}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {receiveItems.map((ri, idx) => (
-                    <tr
-                      key={idx}
-                      style={{ borderBottom: `1px solid ${border}` }}
-                    >
-                      <td
-                        style={{
-                          padding: "6px 8px",
-                          fontWeight: "600",
-                          color: text,
-                        }}
-                      >
-                        {ri.product_name}
-                      </td>
-                      <td style={{ padding: "6px 8px", color: sub }}>
-                        {ri.ordered_qty}
-                      </td>
-                      <td
-                        style={{
-                          padding: "6px 8px",
-                          color:
-                            ri.already_received >= ri.ordered_qty
-                              ? "var(--color-success)"
-                              : "var(--color-warning)",
-                        }}
-                      >
-                        {ri.already_received}
-                      </td>
-                      <td style={{ padding: "6px 8px" }}>
-                        <input
-                          type="number"
-                          value={ri.received_qty}
-                          min="0"
-                          max={ri.ordered_qty - ri.already_received}
-                          onChange={(e) => {
-                            const n = [...receiveItems];
-                            n[idx] = {
-                              ...n[idx],
-                              received_qty: parseInt(e.target.value) || 0,
-                            };
-                            setReceiveItems(n);
-                          }}
-                          style={{
-                            ...inputStyle,
-                            width: "60px",
-                            padding: "4px 6px",
-                            fontSize: "12px",
-                            textAlign: "center",
-                          }}
-                        />
-                      </td>
-                      <td style={{ padding: "6px 8px" }}>
-                        <input
-                          value={ri.batch_no}
-                          onChange={(e) => {
-                            const n = [...receiveItems];
-                            n[idx] = { ...n[idx], batch_no: e.target.value };
-                            setReceiveItems(n);
-                          }}
-                          placeholder="Batch"
-                          style={{
-                            ...inputStyle,
-                            width: "80px",
-                            padding: "4px 6px",
-                            fontSize: "12px",
-                          }}
-                        />
-                      </td>
-                      <td style={{ padding: "6px 8px" }}>
-                        <input
-                          type="date"
-                          value={ri.expired_date}
-                          onChange={(e) => {
-                            const n = [...receiveItems];
-                            n[idx] = {
-                              ...n[idx],
-                              expired_date: e.target.value,
-                            };
-                            setReceiveItems(n);
-                          }}
-                          style={{
-                            ...inputStyle,
-                            width: "120px",
-                            padding: "4px 6px",
-                            fontSize: "12px",
-                          }}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
-                <button
-                  onClick={handleReceive}
-                  className="btn-primary ui-motion-button ui-focus-ring"
-                  data-magnetic="true"
-                  style={{
-                    flex: 1,
-                    padding: "13px",
-                    backgroundColor: "var(--color-success)",
-                    color: "#FFF",
-                    border: "none",
-                    borderRadius: "10px",
-                    cursor: "pointer",
-                    fontWeight: "700",
-                    fontSize: "14px",
-                  }}
-                >
-                  Terima & Update Stok
-                </button>
-                <button
-                  onClick={() => setShowModal(null)}
-                  style={{
-                    flex: 1,
-                    padding: "13px",
-                    backgroundColor: isDarkMode
-                      ? "var(--color-surface-raised)"
-                      : "var(--color-bg)",
-                    color: text,
-                    border: "none",
-                    borderRadius: "10px",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                    fontWeight: "600",
-                  }}
-                >
-                  Batal
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+        )}
 
       {/* Edit Distributor Modal */}
-      {showModal === "distributor" && renderPortal(
-        <div
-          onClick={() => setShowModal("create")}
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 99999,
-            padding: "1rem",
-          }}
-        >
+      {showModal === "distributor" &&
+        renderPortal(
           <div
-            onClick={(e) => e.stopPropagation()}
+            onClick={() => setShowModal("create")}
             style={{
-              backgroundColor: cardBg,
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-              borderRadius: "16px",
-              width: "100%",
-              maxWidth: "480px",
-              boxShadow: "0 32px 64px rgba(0,0,0,0.35)",
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0,0,0,0.6)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 99999,
+              padding: "1rem",
             }}
           >
             <div
+              onClick={(e) => e.stopPropagation()}
               style={{
-                padding: "18px 22px",
-                borderBottom: `1px solid ${border}`,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
+                backgroundColor: cardBg,
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                borderRadius: "16px",
+                width: "100%",
+                maxWidth: "480px",
+                boxShadow: "0 32px 64px rgba(0,0,0,0.35)",
               }}
             >
-              <h3
+              <div
                 style={{
-                  margin: 0,
-                  fontSize: "16px",
-                  fontWeight: "700",
-                  color: text,
+                  padding: "18px 22px",
+                  borderBottom: `1px solid ${border}`,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                 }}
               >
-                🏢 Master Data Distributor
-              </h3>
-              <button
-                onClick={() => setShowModal("create")}
-                aria-label="Tutup modal distributor"
-                className="ui-motion-button ui-focus-ring"
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                <X size={18} color={sub} />
-              </button>
-            </div>
-            <div
-              style={{
-                padding: "20px 22px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "14px",
-              }}
-            >
-              <div>
-                <label style={labelStyle}>Nama Distributor *</label>
-                <input
-                  value={distForm.name}
-                  onChange={(e) =>
-                    setDistForm((p) => ({ ...p, name: e.target.value }))
-                  }
-                  style={inputStyle}
-                  placeholder="Contoh: PT. Bintang Jadi"
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Kode Singkat (Short Code)</label>
-                <input
-                  value={distForm.short_code}
-                  onChange={(e) =>
-                    setDistForm((p) => ({ ...p, short_code: e.target.value }))
-                  }
-                  style={inputStyle}
-                  placeholder="Contoh: BTG"
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Nama Salesman</label>
-                <input
-                  value={distForm.salesman_name}
-                  onChange={(e) =>
-                    setDistForm((p) => ({
-                      ...p,
-                      salesman_name: e.target.value,
-                    }))
-                  }
-                  style={inputStyle}
-                  placeholder="Nama PIC dari distributor"
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>No. HP Salesman</label>
-                <input
-                  value={distForm.salesman_phone}
-                  onChange={(e) =>
-                    setDistForm((p) => ({
-                      ...p,
-                      salesman_phone: e.target.value,
-                    }))
-                  }
-                  style={inputStyle}
-                  placeholder="0812xxx"
-                />
-              </div>
-              <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
-                <button
-                  onClick={handleSaveDistributor}
-                  className="btn-primary ui-motion-button ui-focus-ring"
-                  data-magnetic="true"
+                <h3
                   style={{
-                    flex: 1,
-                    padding: "13px",
-                    backgroundColor: "var(--color-primary)",
-                    color: "#FFF",
-                    border: "none",
-                    borderRadius: "10px",
-                    cursor: "pointer",
+                    margin: 0,
+                    fontSize: "16px",
                     fontWeight: "700",
-                    fontSize: "14px",
+                    color: text,
                   }}
                 >
-                  Simpan Data Master
-                </button>
+                  🏢 Master Data Distributor
+                </h3>
                 <button
                   onClick={() => setShowModal("create")}
+                  aria-label="Tutup modal distributor"
+                  className="ui-motion-button ui-focus-ring"
                   style={{
-                    flex: 1,
-                    padding: "13px",
-                    backgroundColor: isDarkMode
-                      ? "var(--color-surface-raised)"
-                      : "var(--color-bg)",
-                    color: text,
+                    background: "none",
                     border: "none",
-                    borderRadius: "10px",
                     cursor: "pointer",
-                    fontSize: "14px",
-                    fontWeight: "600",
                   }}
                 >
-                  Batal
+                  <X size={18} color={sub} />
                 </button>
               </div>
+              <div
+                style={{
+                  padding: "20px 22px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "14px",
+                }}
+              >
+                <div>
+                  <label style={labelStyle}>Nama Distributor *</label>
+                  <input
+                    value={distForm.name}
+                    onChange={(e) =>
+                      setDistForm((p) => ({ ...p, name: e.target.value }))
+                    }
+                    style={inputStyle}
+                    placeholder="Contoh: PT. Bintang Jadi"
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Kode Singkat (Short Code)</label>
+                  <input
+                    value={distForm.short_code}
+                    onChange={(e) =>
+                      setDistForm((p) => ({ ...p, short_code: e.target.value }))
+                    }
+                    style={inputStyle}
+                    placeholder="Contoh: BTG"
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Nama Salesman</label>
+                  <input
+                    value={distForm.salesman_name}
+                    onChange={(e) =>
+                      setDistForm((p) => ({
+                        ...p,
+                        salesman_name: e.target.value,
+                      }))
+                    }
+                    style={inputStyle}
+                    placeholder="Nama PIC dari distributor"
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>No. HP Salesman</label>
+                  <input
+                    value={distForm.salesman_phone}
+                    onChange={(e) =>
+                      setDistForm((p) => ({
+                        ...p,
+                        salesman_phone: e.target.value,
+                      }))
+                    }
+                    style={inputStyle}
+                    placeholder="0812xxx"
+                  />
+                </div>
+                <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+                  <button
+                    onClick={handleSaveDistributor}
+                    className="btn-primary ui-motion-button ui-focus-ring"
+                    data-magnetic="true"
+                    style={{
+                      flex: 1,
+                      padding: "13px",
+                      backgroundColor: "var(--color-primary)",
+                      color: "#FFF",
+                      border: "none",
+                      borderRadius: "10px",
+                      cursor: "pointer",
+                      fontWeight: "700",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Simpan Data Master
+                  </button>
+                  <button
+                    onClick={() => setShowModal("create")}
+                    style={{
+                      flex: 1,
+                      padding: "13px",
+                      backgroundColor: isDarkMode
+                        ? "var(--color-surface-raised)"
+                        : "var(--color-bg)",
+                      color: text,
+                      border: "none",
+                      borderRadius: "10px",
+                      cursor: "pointer",
+                      fontSize: "14px",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Batal
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+        )}
 
       {/* Delete Confirm Modal */}
       <ConfirmModal
