@@ -32,9 +32,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.15.0-stable",
+    version: "v1.15.1-stable",
     date: "2 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "polish",
+        text: "Print Settings sekarang lebih rapi dan premium: form dua kolom responsif, label konsisten, input memakai field style bersama, section header lebih jelas, tombol simpan punya loading state, dan live preview tampil sebagai card elevated.",
+        dev: "PrintSettings.jsx diformat pada commit terpisah agar diff reviewable, lalu dipoles dengan SectionHeader shared tanpa mengubah API call, state shape, load logic, generateNotaPDF.js, backend route, atau HNA/HPP SSOT.",
+      },
+    ],
+  },
+  {
+    version: "v1.15.0-stable",
+    date: "2 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "polish",
@@ -1856,7 +1868,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.15.0-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.15.1-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)

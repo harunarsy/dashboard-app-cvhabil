@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.15.1-stable] - 2026-06-02
+
+### Changed
+
+- Print Settings dipoles menjadi layout dua kolom responsif dengan section header, label/input konsisten, tombol simpan loading state, dan live preview elevated card.
+- `PrintSettings.jsx` diformat di commit terpisah sebelum polish agar diff mudah direview.
+
+### Notes
+
+- API call, state shape, load logic, `generateNotaPDF.js`, backend route, dan HNA/HPP SSOT tidak disentuh.
+
 ## [v1.15.0-stable] - 2026-06-02
 
 ### Added

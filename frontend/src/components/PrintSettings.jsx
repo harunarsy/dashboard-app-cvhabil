@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Save, RefreshCw, Printer, Monitor, Activity } from "lucide-react";
+import { Save, Loader2, Printer, Monitor, Activity } from "lucide-react";
 import Skeleton from "./common/Skeleton";
 import { printSettingsAPI, settingsAPI } from "../services/api";
 import Breadcrumb from "./common/Breadcrumb";
 import { UI_MOTION, uiTransition } from "../constants/ui";
+import SectionHeader from "./common/SectionHeader";
+import ToastNotice from "./common/ToastNotice";
 export default function PrintSettings({
   isDarkMode,
   isSidebarOpen,
@@ -214,8 +216,9 @@ export default function PrintSettings({
     : [];
   const fieldStyle = {
     width: "100%",
-    padding: "10px",
-    borderRadius: "8px",
+    minHeight: "44px",
+    padding: "11px 12px",
+    borderRadius: "10px",
     border: `1px solid ${border}`,
     backgroundColor: inputBg,
     color: text,
@@ -224,12 +227,14 @@ export default function PrintSettings({
   };
   const labelStyle = {
     display: "block",
-    fontSize: "12px",
-    color: sub,
-    marginBottom: "8px",
+    fontSize: "11px",
+    color: "var(--color-text-muted)",
+    marginBottom: "6px",
     fontWeight: "600",
     textTransform: "uppercase",
+    letterSpacing: "0.05em",
   };
+  const fieldGroupStyle = { minWidth: 0 };
   return (
     <div
       style={{
@@ -276,7 +281,8 @@ export default function PrintSettings({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="ui-motion-button ui-focus-ring"
+            className="btn-primary ui-motion-button ui-focus-ring"
+            data-magnetic="true"
             style={{
               display: "flex",
               alignItems: "center",
@@ -287,15 +293,15 @@ export default function PrintSettings({
               border: "none",
               borderRadius: "10px",
               fontSize: "14px",
-              fontWeight: "600",
-              cursor: "pointer",
+              fontWeight: "700",
+              cursor: saving ? "wait" : "pointer",
               transition: uiTransition("opacity", UI_MOTION.duration.base),
               opacity: saving ? 0.7 : 1,
             }}
           >
             {" "}
             {saving ? (
-              <RefreshCw size={18} className="animate-spin" />
+              <Loader2 size={18} className="animate-spin" />
             ) : (
               <Save size={18} />
             )}{" "}
@@ -307,7 +313,7 @@ export default function PrintSettings({
           style={{
             display: "grid",
             gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-            gap: "24px",
+            gap: "16px",
             alignItems: "start",
           }}
         >
@@ -324,139 +330,158 @@ export default function PrintSettings({
             }}
           >
             {" "}
-            <h3
+            <SectionHeader
+              title="Nota Layout"
+              icon={<Printer size={16} />}
+              description="Identitas toko dan catatan yang muncul di dokumen cetak."
+            />{" "}
+            <div
+              className="ui-print-settings__grid"
               style={{
-                fontSize: "15px",
-                fontWeight: "700",
-                color: text,
-                marginBottom: "20px",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
+                display: "grid",
+                gridTemplateColumns: isMobile
+                  ? "1fr"
+                  : "repeat(2, minmax(0, 1fr))",
+                gap: "16px",
               }}
             >
-              {" "}
-              <Printer size={18} color="var(--color-primary)" /> Identitas
-              Toko{" "}
-            </h3>{" "}
-            <div style={{ marginBottom: "16px" }}>
-              {" "}
-              <label style={labelStyle}>NAMA TOKO</label>{" "}
-              <input
-                type="text"
-                value={settings.company_name}
-                onChange={(e) =>
-                  setSettings({ ...settings, company_name: e.target.value })
-                }
-                placeholder="Contoh: CV HABIL SEJAHTERA BERSAMA"
-                style={fieldStyle}
-              />{" "}
-            </div>{" "}
-            <div style={{ marginBottom: "16px" }}>
-              {" "}
-              <label style={labelStyle}>ALAMAT</label>{" "}
-              <textarea
-                rows={3}
-                value={settings.address}
-                onChange={(e) =>
-                  setSettings({ ...settings, address: e.target.value })
-                }
-                placeholder="Jl. Contoh No. 1, Surabaya"
-                style={{ ...fieldStyle, resize: "none" }}
-              />{" "}
-            </div>{" "}
-            <div style={{ marginBottom: "16px" }}>
-              {" "}
-              <label style={labelStyle}>NOMOR TELEPON</label>{" "}
-              <input
-                type="text"
-                value={settings.phone}
-                onChange={(e) =>
-                  setSettings({ ...settings, phone: e.target.value })
-                }
-                placeholder="0812-xxxx-xxxx"
-                style={fieldStyle}
-              />{" "}
-            </div>{" "}
-            <div style={{ marginBottom: "16px" }}>
-              {" "}
-              <label style={labelStyle}>NAMA PENANDA TANGAN</label>{" "}
-              <input
-                type="text"
-                value={settings.signer_name}
-                onChange={(e) =>
-                  setSettings({ ...settings, signer_name: e.target.value })
-                }
-                placeholder="Contoh: Harun Al Rasyid, S.Kom"
-                style={fieldStyle}
-              />{" "}
-              <p style={{ fontSize: "11px", color: sub, marginTop: "6px" }}>
-                Muncul di bawah garis tanda tangan kanan (Hormat kami).
-              </p>{" "}
-            </div>{" "}
-            <div style={{ marginBottom: "16px" }}>
-              {" "}
-              <label style={labelStyle}>
-                INFO REKENING BANK (opsional)
-              </label>{" "}
-              <input
-                type="text"
-                value={settings.bank_info}
-                onChange={(e) =>
-                  setSettings({ ...settings, bank_info: e.target.value })
-                }
-                placeholder="Contoh: BCA CV HABIL SEJAHTERA BERSAMA 5603004174"
-                style={fieldStyle}
-              />{" "}
-            </div>{" "}
-            <div style={{ marginBottom: "16px" }}>
-              {" "}
-              <label style={labelStyle}>TEKS QRIS (opsional)</label>{" "}
-              <input
-                type="text"
-                value={settings.qris_text}
-                onChange={(e) =>
-                  setSettings({ ...settings, qris_text: e.target.value })
-                }
-                placeholder="Contoh: ATAU BISA MELALUI QRIS HABIL >>"
-                style={fieldStyle}
-              />{" "}
-            </div>{" "}
-            <div style={{ marginBottom: "16px" }}>
-              {" "}
-              <label style={labelStyle}>
-                KETENTUAN / NOTES (opsional)
-              </label>{" "}
-              <textarea
-                rows={4}
-                value={settings.ketentuan}
-                onChange={(e) =>
-                  setSettings({ ...settings, ketentuan: e.target.value })
-                }
-                placeholder={
-                  "Satu baris = satu poin. Contoh:\nHarap mengecek kembali barang yang diterima\nWajib video unboxing apabila menggunakan ekspedisi"
-                }
-                style={{ ...fieldStyle, resize: "vertical" }}
-              />{" "}
-              <p style={{ fontSize: "11px", color: sub, marginTop: "6px" }}>
-                Tampil merah di PDF. Satu baris = satu nomor poin.
-              </p>{" "}
-            </div>{" "}
-            <div>
-              {" "}
-              <label style={labelStyle}>CATATAN KAKI (FOOTER)</label>{" "}
-              <input
-                type="text"
-                value={settings.footer_text}
-                onChange={(e) =>
-                  setSettings({ ...settings, footer_text: e.target.value })
-                }
-                placeholder="Terima kasih atas kepercayaan Anda"
-                style={fieldStyle}
-              />{" "}
-              <p style={{ fontSize: "11px", color: sub, marginTop: "6px" }}>
-                Teks kecil di bagian paling bawah dokumen cetak.
-              </p>{" "}
+              <div style={fieldGroupStyle}>
+                {" "}
+                <label style={labelStyle}>NAMA TOKO</label>{" "}
+                <input
+                  type="text"
+                  className="ui-form-field ui-focus-ring"
+                  value={settings.company_name}
+                  onChange={(e) =>
+                    setSettings({ ...settings, company_name: e.target.value })
+                  }
+                  placeholder="Contoh: CV HABIL SEJAHTERA BERSAMA"
+                  style={fieldStyle}
+                />{" "}
+              </div>{" "}
+              <div style={fieldGroupStyle}>
+                {" "}
+                <label style={labelStyle}>ALAMAT</label>{" "}
+                <textarea
+                  rows={3}
+                  className="ui-form-field ui-focus-ring"
+                  value={settings.address}
+                  onChange={(e) =>
+                    setSettings({ ...settings, address: e.target.value })
+                  }
+                  placeholder="Jl. Contoh No. 1, Surabaya"
+                  style={{ ...fieldStyle, resize: "none" }}
+                />{" "}
+              </div>{" "}
+              <div style={fieldGroupStyle}>
+                {" "}
+                <label style={labelStyle}>NOMOR TELEPON</label>{" "}
+                <input
+                  type="text"
+                  className="ui-form-field ui-focus-ring"
+                  value={settings.phone}
+                  onChange={(e) =>
+                    setSettings({ ...settings, phone: e.target.value })
+                  }
+                  placeholder="0812-xxxx-xxxx"
+                  style={fieldStyle}
+                />{" "}
+              </div>{" "}
+              <div style={fieldGroupStyle}>
+                {" "}
+                <label style={labelStyle}>NAMA PENANDA TANGAN</label>{" "}
+                <input
+                  type="text"
+                  className="ui-form-field ui-focus-ring"
+                  value={settings.signer_name}
+                  onChange={(e) =>
+                    setSettings({ ...settings, signer_name: e.target.value })
+                  }
+                  placeholder="Contoh: Harun Al Rasyid, S.Kom"
+                  style={fieldStyle}
+                />{" "}
+                <p style={{ fontSize: "11px", color: sub, marginTop: "6px" }}>
+                  Muncul di bawah garis tanda tangan kanan (Hormat kami).
+                </p>{" "}
+              </div>{" "}
+              <div style={fieldGroupStyle}>
+                {" "}
+                <label style={labelStyle}>
+                  INFO REKENING BANK (opsional)
+                </label>{" "}
+                <input
+                  type="text"
+                  className="ui-form-field ui-focus-ring"
+                  value={settings.bank_info}
+                  onChange={(e) =>
+                    setSettings({ ...settings, bank_info: e.target.value })
+                  }
+                  placeholder="Contoh: BCA CV HABIL SEJAHTERA BERSAMA 5603004174"
+                  style={fieldStyle}
+                />{" "}
+              </div>{" "}
+              <div style={fieldGroupStyle}>
+                {" "}
+                <label style={labelStyle}>TEKS QRIS (opsional)</label>{" "}
+                <input
+                  type="text"
+                  className="ui-form-field ui-focus-ring"
+                  value={settings.qris_text}
+                  onChange={(e) =>
+                    setSettings({ ...settings, qris_text: e.target.value })
+                  }
+                  placeholder="Contoh: ATAU BISA MELALUI QRIS HABIL >>"
+                  style={fieldStyle}
+                />{" "}
+              </div>{" "}
+              <div
+                style={{
+                  ...fieldGroupStyle,
+                  gridColumn: isMobile ? "auto" : "1 / -1",
+                }}
+              >
+                {" "}
+                <label style={labelStyle}>
+                  KETENTUAN / NOTES (opsional)
+                </label>{" "}
+                <textarea
+                  rows={4}
+                  className="ui-form-field ui-focus-ring"
+                  value={settings.ketentuan}
+                  onChange={(e) =>
+                    setSettings({ ...settings, ketentuan: e.target.value })
+                  }
+                  placeholder={
+                    "Satu baris = satu poin. Contoh:\nHarap mengecek kembali barang yang diterima\nWajib video unboxing apabila menggunakan ekspedisi"
+                  }
+                  style={{ ...fieldStyle, resize: "vertical" }}
+                />{" "}
+                <p style={{ fontSize: "11px", color: sub, marginTop: "6px" }}>
+                  Tampil merah di PDF. Satu baris = satu nomor poin.
+                </p>{" "}
+              </div>{" "}
+              <div
+                style={{
+                  ...fieldGroupStyle,
+                  gridColumn: isMobile ? "auto" : "1 / -1",
+                }}
+              >
+                {" "}
+                <label style={labelStyle}>CATATAN KAKI (FOOTER)</label>{" "}
+                <input
+                  type="text"
+                  className="ui-form-field ui-focus-ring"
+                  value={settings.footer_text}
+                  onChange={(e) =>
+                    setSettings({ ...settings, footer_text: e.target.value })
+                  }
+                  placeholder="Terima kasih atas kepercayaan Anda"
+                  style={fieldStyle}
+                />{" "}
+                <p style={{ fontSize: "11px", color: sub, marginTop: "6px" }}>
+                  Teks kecil di bagian paling bawah dokumen cetak.
+                </p>{" "}
+              </div>{" "}
             </div>{" "}
             <div
               style={{
@@ -470,33 +495,11 @@ export default function PrintSettings({
               }}
             >
               {" "}
-              <h3
-                style={{
-                  fontSize: "15px",
-                  fontWeight: "700",
-                  color: text,
-                  margin: "0 0 6px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
-                {" "}
-                <Activity size={18} color="var(--color-success)" /> Ambang
-                Profitabilitas{" "}
-              </h3>{" "}
-              <p
-                style={{
-                  fontSize: "11px",
-                  color: sub,
-                  margin: "0 0 16px",
-                  lineHeight: 1.5,
-                }}
-              >
-                {" "}
-                Dipakai oleh filter profit di Nota Penjualan. Ambang ini bisa
-                disesuaikan sesuai cara kerja tim.{" "}
-              </p>{" "}
+              <SectionHeader
+                title="Profit Thresholds"
+                icon={<Activity size={16} />}
+                description="Dipakai oleh filter profit di Nota Penjualan."
+              />{" "}
               <div
                 style={{
                   display: "grid",
@@ -541,7 +544,7 @@ export default function PrintSettings({
                               : parseFloat(e.target.value),
                         }))
                       }
-                      className="ui-focus-ring"
+                      className="ui-form-field ui-focus-ring"
                       style={fieldStyle}
                     />{" "}
                     <p
@@ -567,7 +570,8 @@ export default function PrintSettings({
                 <button
                   onClick={handleSaveThresholds}
                   disabled={savingThresholds}
-                  className="ui-motion-button ui-focus-ring"
+                  className="btn-primary ui-motion-button ui-focus-ring"
+                  data-magnetic="true"
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -578,8 +582,8 @@ export default function PrintSettings({
                     border: "none",
                     borderRadius: "10px",
                     fontSize: "14px",
-                    fontWeight: "600",
-                    cursor: "pointer",
+                    fontWeight: "700",
+                    cursor: savingThresholds ? "wait" : "pointer",
                     transition: uiTransition(
                       "opacity",
                       UI_MOTION.duration.base,
@@ -589,7 +593,7 @@ export default function PrintSettings({
                 >
                   {" "}
                   {savingThresholds ? (
-                    <RefreshCw size={18} className="animate-spin" />
+                    <Loader2 size={18} className="animate-spin" />
                   ) : (
                     <Save size={18} />
                   )}{" "}
@@ -604,47 +608,27 @@ export default function PrintSettings({
             <div
               className="ui-motion-card"
               style={{
-                backgroundColor: cardBg,
-                borderRadius: "16px",
+                backgroundColor: "var(--color-surface-elevated)",
+                borderRadius: "12px",
                 padding: "20px",
                 border: `1px solid ${border}`,
-                boxShadow: isDarkMode ? "none" : "0 1px 3px rgba(0,0,0,0.05)",
+                boxShadow: "var(--shadow-card)",
               }}
             >
               {" "}
-              <h3
-                style={{
-                  fontSize: "15px",
-                  fontWeight: "700",
-                  color: text,
-                  marginBottom: "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
-                {" "}
-                <Monitor size={18} color="var(--color-warning)" /> Preview
-                Dokumen{" "}
-              </h3>{" "}
-              <p
-                style={{
-                  fontSize: "11px",
-                  color: sub,
-                  marginBottom: "16px",
-                  marginTop: "-8px",
-                }}
-              >
-                Tampilan real-time saat diisi.
-              </p>{" "}
+              <SectionHeader
+                title="Live Preview"
+                icon={<Monitor size={16} />}
+                description="Tampilan real-time saat diisi."
+              />{" "}
               {/* Document Preview Card */}{" "}
               <div
                 style={{
                   backgroundColor: "#FFF",
-                  borderRadius: "10px",
+                  borderRadius: "12px",
                   padding: "16px",
                   border: "1px solid var(--color-border)",
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+                  boxShadow: "var(--shadow-card)",
                   fontFamily: "Helvetica, Arial, sans-serif",
                 }}
               >
@@ -990,27 +974,11 @@ export default function PrintSettings({
           </div>{" "}
         </div>{" "}
         {/* Toast */}{" "}
-        {toast && (
-          <div
-            className="ui-motion-toast"
-            style={{
-              position: "fixed",
-              bottom: "24px",
-              right: "24px",
-              padding: "12px 24px",
-              backgroundColor: "var(--color-surface-elevated)",
-              color: "#FFF",
-              borderRadius: "12px",
-              fontSize: "14px",
-              fontWeight: "600",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-              zIndex: 9999,
-            }}
-          >
-            {" "}
-            {toast}{" "}
-          </div>
-        )}{" "}
+        <ToastNotice
+          message={toast}
+          type={toast.startsWith("Gagal") ? "error" : "success"}
+          isMobile={isMobile}
+        />{" "}
       </div>{" "}
     </div>
   );
