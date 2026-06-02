@@ -7,6 +7,8 @@ import Skeleton from "./common/Skeleton";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import { UI_MOTION } from "../constants/ui";
 import useCountUp from "../hooks/useCountUp";
+import useOnboarding from "../hooks/useOnboarding";
+import OnboardingTour from "./common/OnboardingTour";
 const StockMovementChart = lazy(() => import("./dashboard/StockMovementChart"));
 
 const {
@@ -30,9 +32,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.15.0-stable",
+    date: "2 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "polish",
+        text: "Polish marginal Dribbble-ready: error form inline lebih halus, search/filter lebih enak dengan debounce dan clear button, toast lebih premium, skeleton wave lebih lembut, dan onboarding tour pertama kali hadir di Dashboard.",
+        dev: "Tambah FieldError, SearchBox, ToastNotice, OnboardingTour, useDebouncedValue, dan useOnboarding. Sweep utama di Login, Inventory, Nota, Faktur, SP, Customer, Tasks, BatchFormModal, ProductDrawer, serta CSS motion/token. generateNotaPDF.js, backend route, dan HNA SSOT tidak disentuh.",
+      },
+    ],
+  },
+  {
     version: "v1.14.4-stable",
     date: "1 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -1839,9 +1853,10 @@ export default function Dashboard({
   const [showDevNotes, setShowDevNotes] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedChanges, setExpandedChanges] = useState(new Set());
+  const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.14.4-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.15.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)
@@ -2135,6 +2150,7 @@ export default function Dashboard({
 
       {/* Kanban Tasks Section - MOVED TO TOP. v1.8.8: hapus inline bg supaya CSS token tint apply */}
       <div
+        data-onboarding="tasks"
         className="ui-motion-card mb-10 rounded-3xl p-8 border shadow-sm"
         style={{ borderColor: border }}
       >
@@ -2142,7 +2158,10 @@ export default function Dashboard({
       </div>
 
       {/* Quick Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+      <div
+        data-onboarding="kpi"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10"
+      >
         {[
           {
             label: "Total Penjualan bln ini",
@@ -2337,6 +2356,7 @@ export default function Dashboard({
       {/* Profitability Snapshot */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
         <section
+          data-onboarding="chart"
           className="ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm"
           style={{ backgroundColor: cardBg, borderColor: border }}
         >
@@ -2704,7 +2724,10 @@ export default function Dashboard({
       </div>
 
       {/* Quick Access Section - Compacted Row */}
-      <div className="flex flex-col md:flex-row gap-6 mb-10">
+      <div
+        data-onboarding="quick-actions"
+        className="flex flex-col md:flex-row gap-6 mb-10"
+      >
         <div
           className="ui-motion-card ui-hover-delight flex-1 rounded-3xl p-6 border shadow-sm flex items-center justify-between"
           style={{ backgroundColor: cardBg, borderColor: border }}
@@ -2902,6 +2925,15 @@ export default function Dashboard({
           </div>,
           document.body,
         )}
+
+      <OnboardingTour
+        active={onboarding.active && !showReleaseModal}
+        currentStep={onboarding.currentStep}
+        stepIndex={onboarding.stepIndex}
+        steps={onboarding.steps}
+        onNext={onboarding.next}
+        onSkip={onboarding.skip}
+      />
 
       {/* Changelog & Upcoming Modal */}
       {showModal && (

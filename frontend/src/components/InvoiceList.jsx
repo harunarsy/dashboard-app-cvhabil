@@ -35,6 +35,7 @@ import RupiahInput from "./common/RupiahInput";
 import Icons from "./common/Icon";
 import { UI_MOTION, uiTransition } from "../constants/ui";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
+import useDebouncedValue from "../hooks/useDebouncedValue";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -458,6 +459,7 @@ export default function InvoiceList({
 
   // Filters
   const [universalSearch, setUniversalSearch] = useState("");
+  const debouncedUniversalSearch = useDebouncedValue(universalSearch, 300);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [searchDist, setSearchDist] = useState("");
@@ -586,8 +588,8 @@ export default function InvoiceList({
 
   const applyFilters = () => {
     let f = invoices;
-    if (universalSearch.trim()) {
-      const q = universalSearch.toLowerCase();
+    if (debouncedUniversalSearch.trim()) {
+      const q = debouncedUniversalSearch.toLowerCase();
       f = f.filter(
         (i) =>
           i.invoice_number?.toLowerCase().includes(q) ||
@@ -646,7 +648,7 @@ export default function InvoiceList({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const applyFiltersMemo = useCallback(applyFilters, [
     invoices,
-    universalSearch,
+    debouncedUniversalSearch,
     selectedMonth,
     searchDist,
     searchInv,
@@ -685,7 +687,7 @@ export default function InvoiceList({
   useEffect(() => {
     setSelectedIds(new Set());
   }, [
-    universalSearch,
+    debouncedUniversalSearch,
     selectedMonth,
     searchDist,
     searchInv,
@@ -2449,12 +2451,12 @@ export default function InvoiceList({
                 title={
                   invoices.length === 0
                     ? "Belum ada faktur"
-                    : "Tidak ada yang cocok"
+                    : `Tidak ada hasil untuk '${universalSearch || "filter aktif"}'`
                 }
                 description={
                   invoices.length === 0
                     ? "Buat faktur baru untuk mulai mencatat transaksi dan rekap PPN."
-                    : "Coba ubah kata kunci atau filter untuk menemukan faktur yang relevan."
+                    : "Coba kata kunci lain atau reset filter."
                 }
               />
             </td>

@@ -2,6 +2,23 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.15.0-stable] - 2026-06-02
+
+### Added
+
+- Shared `FieldError`, `SearchBox`, `ToastNotice`, dan onboarding tour Dashboard untuk polish UI user-facing.
+- Search/filter utama sekarang punya debounce 300ms, clear button, dan empty state yang lebih spesifik saat hasil filter kosong.
+
+### Changed
+
+- Toast notification dipoles menjadi token-based dengan posisi desktop/mobile yang lebih rapi.
+- Skeleton wave memakai gradient token 135deg yang lebih lembut.
+- Form error di Login, Nota, Batch, dan ProductDrawer memakai animasi inline yang konsisten.
+
+### Notes
+
+- `generateNotaPDF.js`, HNA/HPP SSOT, dan backend route tidak disentuh.
+
 ## [v1.14.4-stable] - 2026-06-01
 
 ### Fixed

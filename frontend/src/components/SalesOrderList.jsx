@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   Plus,
-  Search,
   Trash2,
   X,
   FileText,
@@ -36,6 +35,10 @@ import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import Icons from "./common/Icon";
 import { UI_MOTION, uiTransition } from "../constants/ui";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
+import FieldError from "./common/FieldError";
+import SearchBox from "./common/SearchBox";
+import ToastNotice from "./common/ToastNotice";
+import useDebouncedValue from "../hooks/useDebouncedValue";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -135,6 +138,7 @@ export default function SalesOrderList({
     DEFAULT_PROFIT_THRESHOLDS,
   );
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [showModal, setShowModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -454,9 +458,10 @@ export default function SalesOrderList({
   const filtered = orders
     .filter((o) => {
       const orderDate = new Date(o.sale_date);
+      const q = debouncedSearch.toLowerCase();
       const matchesSearch =
-        o.order_number.toLowerCase().includes(search.toLowerCase()) ||
-        o.customer_name.toLowerCase().includes(search.toLowerCase());
+        o.order_number.toLowerCase().includes(q) ||
+        o.customer_name.toLowerCase().includes(q);
       const isAllMonth = String(filterMonth) === "all";
       const isAllYear = String(filterYear) === "all";
       const matchesMonth =
@@ -934,24 +939,18 @@ export default function SalesOrderList({
           alignItems: "center",
         }}
       >
-        <div style={{ position: "relative", flex: 1, minWidth: "300px" }}>
-          <Search
-            size={16}
-            style={{
-              position: "absolute",
-              left: "12px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              color: sub,
-            }}
-          />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari nomor nota atau customer..."
-            style={{ ...inputStyle, paddingLeft: "36px" }}
-          />
-        </div>
+        <SearchBox
+          value={search}
+          onChange={setSearch}
+          placeholder="Cari nomor nota atau customer..."
+          ariaLabel="Cari nota"
+          style={{ flex: 1, minWidth: "300px" }}
+          inputStyle={{
+            backgroundColor: inputStyle.backgroundColor,
+            borderColor: border,
+            color: text,
+          }}
+        />
 
         {/* v1.7.1 filter selects: fixed width override inputStyle's width:100% (sebelumnya stack vertical) + ellipsis */}
         <select
@@ -1749,10 +1748,19 @@ export default function SalesOrderList({
                       filterStatus !== "all" ||
                       filterChannel !== "all" ||
                       filterProfit !== "all"
-                        ? "Tidak ada nota yang cocok dengan filter."
+                        ? `Tidak ada hasil untuk '${search || "filter aktif"}'`
                         : "Belum ada nota penjualan."
                     }
-                    description="Nota final dan paid akan muncul di sini, lengkap dengan ringkasan margin."
+                    description={
+                      search ||
+                      filterMonth !== "all" ||
+                      filterYear !== "all" ||
+                      filterStatus !== "all" ||
+                      filterChannel !== "all" ||
+                      filterProfit !== "all"
+                        ? "Coba kata kunci lain atau reset filter."
+                        : "Nota final dan paid akan muncul di sini, lengkap dengan ringkasan margin."
+                    }
                   />
                 </td>
               </tr>
@@ -1954,18 +1962,7 @@ export default function SalesOrderList({
                         Mode Manual: Counter sistem tidak akan bertambah.
                       </p>
                     )}
-                    {saveError && (
-                      <p
-                        style={{
-                          fontSize: "12px",
-                          color: "var(--color-danger)",
-                          marginTop: "6px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        {saveError}
-                      </p>
-                    )}
+                    <FieldError message={saveError} visible={!!saveError} />
                   </div>
                 )}
                 {editId && (
@@ -2029,18 +2026,10 @@ export default function SalesOrderList({
                       isDarkMode={isDarkMode}
                     />
                   </div>
-                  {formErrors.customer_name && (
-                    <p
-                      style={{
-                        color: "var(--color-danger)",
-                        fontSize: "12px",
-                        margin: "4px 0 0",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {formErrors.customer_name}
-                    </p>
-                  )}
+                  <FieldError
+                    message={formErrors.customer_name}
+                    visible={!!formErrors.customer_name}
+                  />
                 </div>
 
                 {/* Address */}
@@ -2562,19 +2551,10 @@ export default function SalesOrderList({
 
                 {/* Buttons */}
                 <div style={{ display: "flex", gap: "10px" }}>
-                  {formErrors.items && (
-                    <p
-                      style={{
-                        color: "var(--color-danger)",
-                        fontSize: "12px",
-                        margin: "0 0 8px",
-                        fontWeight: 500,
-                        textAlign: "center",
-                      }}
-                    >
-                      {formErrors.items}
-                    </p>
-                  )}
+                  <FieldError
+                    message={formErrors.items}
+                    visible={!!formErrors.items}
+                  />
                   <button
                     onClick={handleSave}
                     disabled={saving}
@@ -3003,26 +2983,7 @@ export default function SalesOrderList({
         isDarkMode={isDarkMode}
       />
 
-      {/* Toast */}
-      {toast && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            backgroundColor: "var(--color-success)",
-            color: "#FFF",
-            padding: "12px 20px",
-            borderRadius: "10px",
-            fontWeight: "600",
-            fontSize: "14px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-            zIndex: 99999,
-          }}
-        >
-          ✅ {toast}
-        </div>
-      )}
+      <ToastNotice message={toast} type="success" isMobile={isMobile} />
     </div>
   );
 }

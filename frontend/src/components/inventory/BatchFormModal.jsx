@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { AlertCircle } from "lucide-react";
 import { inventoryAPI } from "../../services/api";
 import { parseRupiah } from "../../utils/rupiah";
 import HnaHppInput from "../common/HnaHppInput";
 import Icons from "../common/Icon";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
+import FieldError from "../common/FieldError";
 
 // Modal untuk add (qty initial via stockIn) atau edit metadata batch.
 // Mode 'add' → POST stock-in (membuat batch baru + mutation). Mode 'edit' → PUT batch (metadata only).
@@ -188,30 +188,7 @@ export default function BatchFormModal({
           </p>
         )}
 
-        {error && (
-          <div
-            role="alert"
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "8px",
-              padding: "10px 12px",
-              background: "var(--color-danger-soft)",
-              border:
-                "1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)",
-              borderRadius: "10px",
-              color: "var(--color-danger)",
-              fontSize: "13px",
-              marginBottom: "14px",
-            }}
-          >
-            <AlertCircle
-              size={16}
-              style={{ flexShrink: 0, marginTop: "1px" }}
-            />
-            <span>{error}</span>
-          </div>
-        )}
+        <FieldError message={error} visible={!!error} />
 
         <div style={{ display: "grid", gap: "14px" }}>
           <div>

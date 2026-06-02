@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   Plus,
-  Search,
   AlertTriangle,
   Clock,
   Trash2,
@@ -33,6 +32,9 @@ import HnaHppInput from "./common/HnaHppInput";
 import BulkEditModal from "./inventory/BulkEditModal";
 import BarcodeScanner from "./common/BarcodeScanner";
 import PrintBarcodeModal from "./inventory/PrintBarcodeModal";
+import SearchBox from "./common/SearchBox";
+import ToastNotice from "./common/ToastNotice";
+import useDebouncedValue from "../hooks/useDebouncedValue";
 import Tooltip from "./common/Tooltip";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import Icons from "./common/Icon";
@@ -111,6 +113,7 @@ export default function InventoryDashboard({
   const [products, setProducts] = useState([]);
   const [alerts, setAlerts] = useState({ expiring: [], lowStock: [] });
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState("all"); // all | low | expiring | expired
   const [showModal, setShowModal] = useState(null); // null | 'product' | 'stockIn' | 'stockOut' | 'opname'
   const [editId, setEditId] = useState(null);
@@ -249,7 +252,7 @@ export default function InventoryDashboard({
   );
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = debouncedSearch.toLowerCase();
     return products.filter((p) => {
       const matchSearch =
         p.name.toLowerCase().includes(q) ||
@@ -265,7 +268,7 @@ export default function InventoryDashboard({
       if (statusFilter === "expired") return days !== null && days <= 0;
       return true;
     });
-  }, [products, search, statusFilter]);
+  }, [products, debouncedSearch, statusFilter]);
 
   // v1.10.2: total nilai persediaan = Σ HPP(inc PPN) × stok (ikut filter aktif)
   const totalNilai = useMemo(
@@ -829,31 +832,18 @@ export default function InventoryDashboard({
             flexWrap: "wrap",
           }}
         >
-          <div
-            style={{
-              position: "relative",
-              flex: "1 1 280px",
-              maxWidth: "420px",
+          <SearchBox
+            value={search}
+            onChange={setSearch}
+            placeholder="Cari produk, kode, kategori..."
+            ariaLabel="Cari produk"
+            style={{ maxWidth: "420px" }}
+            inputStyle={{
+              backgroundColor: inputStyle.backgroundColor,
+              borderColor: border,
+              color: text,
             }}
-          >
-            <Search
-              size={16}
-              style={{
-                position: "absolute",
-                left: "12px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: sub,
-              }}
-            />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari produk, kode, kategori..."
-              className="ui-focus-ring"
-              style={{ ...inputStyle, paddingLeft: "36px" }}
-            />
-          </div>
+          />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -1367,12 +1357,12 @@ export default function InventoryDashboard({
                         icon={EmptyStateIcons.box}
                         title={
                           search || statusFilter !== "all"
-                            ? "Tidak ada produk yang cocok dengan filter."
+                            ? `Tidak ada hasil untuk '${search || "filter aktif"}'`
                             : 'Belum ada produk. Klik "Produk" untuk menambahkan.'
                         }
                         description={
                           search || statusFilter !== "all"
-                            ? "Coba ubah kata kunci atau reset filter untuk melihat hasil lain."
+                            ? "Coba kata kunci lain atau reset filter."
                             : "Produk baru akan langsung muncul di inventaris setelah disimpan."
                         }
                         action={
@@ -2818,33 +2808,7 @@ export default function InventoryDashboard({
         </ModalShell>
       )}
 
-      {/* Toast */}
-      {toast.msg && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="ui-motion-toast"
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            backgroundColor:
-              toast.type === "error"
-                ? "var(--color-danger)"
-                : "var(--color-success)",
-            color: "#FFF",
-            padding: "12px 20px",
-            borderRadius: "12px",
-            fontWeight: "600",
-            fontSize: "14px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-            zIndex: 99999,
-            animation: "slideUp 0.2s ease-out",
-          }}
-        >
-          {toast.type === "error" ? "❌" : "✅"} {toast.msg}
-        </div>
-      )}
+      <ToastNotice message={toast.msg} type={toast.type} isMobile={isMobile} />
     </div>
   );
 }

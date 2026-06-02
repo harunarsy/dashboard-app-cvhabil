@@ -189,7 +189,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.14.4-stable";
+  const appVersion = "v1.15.0-stable";
   const TooltipButton = ({
     label,
     children,
@@ -335,6 +335,7 @@ export default function Sidebar({
       <div
         id="mobile-navigation-drawer"
         ref={drawerRef}
+        data-onboarding="sidebar"
         role={isMobile ? "dialog" : undefined}
         aria-modal={isMobile ? true : undefined}
         aria-label={isMobile ? "Navigasi" : undefined}
@@ -582,6 +583,7 @@ export default function Sidebar({
         >
           {/* Bug Report button */}
           <TooltipButton
+            data-onboarding="feedback"
             onClick={() => {
               if (isMobile) closeMobileDrawer();
               setShowBugModal(true);

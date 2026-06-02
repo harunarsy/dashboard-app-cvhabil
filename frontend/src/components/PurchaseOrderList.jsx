@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   Plus,
-  Search,
   Trash2,
   X,
   CheckCircle,
@@ -26,6 +25,9 @@ import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import Icons from "./common/Icon";
 import { UI_MOTION, uiTransition } from "../constants/ui";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
+import SearchBox from "./common/SearchBox";
+import ToastNotice from "./common/ToastNotice";
+import useDebouncedValue from "../hooks/useDebouncedValue";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -79,6 +81,7 @@ export default function PurchaseOrderList({
   const [distributors, setDistributors] = useState([]);
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [showModal, setShowModal] = useState(null); // null | 'create' | 'receive' | 'distributor'
   const [editId, setEditId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
@@ -222,9 +225,13 @@ export default function PurchaseOrderList({
   }, []);
 
   const filtered = orders.filter(
-    (o) =>
-      o.po_number.toLowerCase().includes(search.toLowerCase()) ||
-      o.distributor_name.toLowerCase().includes(search.toLowerCase()),
+    (o) => {
+      const q = debouncedSearch.toLowerCase();
+      return (
+        o.po_number.toLowerCase().includes(q) ||
+        o.distributor_name.toLowerCase().includes(q)
+      );
+    },
   );
 
   const handleSort = (field, isShift) => {
@@ -622,24 +629,18 @@ export default function PurchaseOrderList({
           marginBottom: "1.5rem",
         }}
       >
-        <div style={{ position: "relative", maxWidth: "400px", flex: 1 }}>
-          <Search
-            size={16}
-            style={{
-              position: "absolute",
-              left: "12px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              color: sub,
-            }}
-          />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari nomor SP atau distributor..."
-            style={{ ...inputStyle, paddingLeft: "36px" }}
-          />
-        </div>
+        <SearchBox
+          value={search}
+          onChange={setSearch}
+          placeholder="Cari nomor SP atau distributor..."
+          ariaLabel="Cari surat pesanan"
+          style={{ maxWidth: "400px", flex: 1 }}
+          inputStyle={{
+            backgroundColor: inputStyle.backgroundColor,
+            borderColor: border,
+            color: text,
+          }}
+        />
         {sortKeys.length > 0 && (
           <button
             onClick={() => setSortKeys([])}
@@ -978,8 +979,16 @@ export default function PurchaseOrderList({
                   <EmptyState
                     compact
                     icon={EmptyStateIcons.receipt}
-                    title="Belum ada Surat Pesanan."
-                    description="Buat SP baru untuk mulai menyusun pesanan ke distributor."
+                    title={
+                      search
+                        ? `Tidak ada hasil untuk '${search}'`
+                        : "Belum ada Surat Pesanan."
+                    }
+                    description={
+                      search
+                        ? "Coba kata kunci lain atau reset filter."
+                        : "Buat SP baru untuk mulai menyusun pesanan ke distributor."
+                    }
                   />
                 </td>
               </tr>
@@ -1921,26 +1930,7 @@ export default function PurchaseOrderList({
         isDarkMode={isDarkMode}
       />
 
-      {/* Toast */}
-      {toast && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            backgroundColor: "var(--color-success)",
-            color: "#FFF",
-            padding: "12px 20px",
-            borderRadius: "10px",
-            fontWeight: "600",
-            fontSize: "14px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-            zIndex: 99999,
-          }}
-        >
-          ✅ {toast}
-        </div>
-      )}
+      <ToastNotice message={toast} type="success" isMobile={isMobile} />
     </div>
   );
 }

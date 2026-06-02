@@ -1,8 +1,9 @@
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { Lock, User, AlertCircle, Building2, Sun, Moon } from "lucide-react";
+import { Lock, User, Building2, Sun, Moon } from "lucide-react";
 import Tooltip from "./common/Tooltip";
+import FieldError from "./common/FieldError";
 
 export default function Login({
   isDarkMode = false,
@@ -131,7 +132,7 @@ export default function Login({
             HABIL SUPERAPP
           </h1>
           <p className="mt-8 text-xs font-medium" style={{ color: sub }}>
-            HABIL SUPERAPP v1.14.4-stable — 2026
+            HABIL SUPERAPP v1.15.0-stable — 2026
           </p>
         </div>
 
@@ -153,21 +154,7 @@ export default function Login({
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div
-                role="alert"
-                className="flex items-start gap-3 p-4 rounded-xl text-sm"
-                style={{
-                  backgroundColor: "var(--color-danger-soft)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--color-danger) 28%, transparent)",
-                  color: "var(--color-danger)",
-                }}
-              >
-                <AlertCircle size={18} className="mt-0.5 shrink-0" />
-                <p>{error}</p>
-              </div>
-            )}
+            <FieldError message={error} visible={!!error} />
 
             <div>
               <label
@@ -184,7 +171,7 @@ export default function Login({
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="ui-form-field ui-focus-ring w-full pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl"
+                  className={`ui-form-field ui-focus-ring w-full pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl ${error && !username ? "ui-form-invalid" : ""}`}
                   style={{
                     backgroundColor: inputBg,
                     border: `1px solid ${inputBorder}`,
@@ -195,7 +182,8 @@ export default function Login({
                     e.currentTarget.style.boxShadow = `0 0 0 4px ${focusRing}1A`;
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = inputBorder;
+                    e.currentTarget.style.borderColor =
+                      error && !username ? "var(--color-danger)" : inputBorder;
                     e.currentTarget.style.boxShadow = "none";
                   }}
                   placeholder="Masukkan username"
@@ -220,7 +208,7 @@ export default function Login({
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="ui-form-field ui-focus-ring w-full pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl"
+                  className={`ui-form-field ui-focus-ring w-full pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl ${error && !password ? "ui-form-invalid" : ""}`}
                   style={{
                     backgroundColor: inputBg,
                     border: `1px solid ${inputBorder}`,
@@ -231,7 +219,8 @@ export default function Login({
                     e.currentTarget.style.boxShadow = `0 0 0 4px ${focusRing}1A`;
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = inputBorder;
+                    e.currentTarget.style.borderColor =
+                      error && !password ? "var(--color-danger)" : inputBorder;
                     e.currentTarget.style.boxShadow = "none";
                   }}
                   placeholder="Masukkan password"

@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Circle,
   X,
-  Search,
   Trash2,
   History,
   ChevronDown,
@@ -21,6 +20,9 @@ import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import { UI_MOTION } from "../constants/ui";
 import Tooltip from "./common/Tooltip";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
+import SearchBox from "./common/SearchBox";
+import ToastNotice from "./common/ToastNotice";
+import useDebouncedValue from "../hooks/useDebouncedValue";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -78,6 +80,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
   const [tasks, setTasks] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebouncedValue(searchTerm, 300);
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -287,9 +290,13 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
   };
 
   const filteredTasks = tasks.filter(
-    (task) =>
-      task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.description?.toLowerCase().includes(searchTerm.toLowerCase()),
+    (task) => {
+      const q = debouncedSearchTerm.toLowerCase();
+      return (
+        task.title.toLowerCase().includes(q) ||
+        task.description?.toLowerCase().includes(q)
+      );
+    },
   );
 
   const getTasksByStatus = (status) =>
@@ -388,30 +395,20 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
 
       {/* Toolbar */}
       <div className="flex gap-4 mb-4 items-center">
-        <div className="relative flex-1 max-w-xs">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2"
-            size={14}
-            style={{ color: sub }}
-          />
-          <input
-            type="text"
-            placeholder="Cari..."
-            className="w-full rounded-xl py-2 pl-9 pr-4 text-xs font-medium transition-all"
-            style={{
-              backgroundColor: surface,
-              color: text,
-              border: `1px solid ${subtleBorder}`,
-              outline: "none",
-            }}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onFocus={(e) =>
-              (e.currentTarget.style.boxShadow = `0 0 0 2px ${accent}30`)
-            }
-            onBlur={(e) => (e.currentTarget.style.boxShadow = "none")}
-          />
-        </div>
+        <SearchBox
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Cari task..."
+          ariaLabel="Cari task"
+          style={{ flex: 1, maxWidth: "20rem" }}
+          inputStyle={{
+            backgroundColor: surface,
+            borderColor: subtleBorder,
+            color: text,
+            fontSize: "12px",
+            fontWeight: 600,
+          }}
+        />
 
         <button
           onClick={() => {
@@ -1155,26 +1152,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
         }}
       />
 
-      {toast && (
-        <div
-          className="ui-motion-toast"
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            backgroundColor: "var(--color-success)",
-            color: "#FFF",
-            padding: "12px 20px",
-            borderRadius: "10px",
-            fontWeight: "600",
-            fontSize: "14px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-            zIndex: 99999,
-          }}
-        >
-          ✅ {toast}
-        </div>
-      )}
+      <ToastNotice message={toast} type="success" isMobile={isMobile} />
     </div>
   );
 };

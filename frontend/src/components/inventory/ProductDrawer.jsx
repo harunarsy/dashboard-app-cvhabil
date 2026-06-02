@@ -16,6 +16,7 @@ import { hppFromHna } from "../../utils/rupiah";
 import { UI_MOTION, UI_SIZE, uiTransition } from "../../constants/ui";
 import Icons from "../common/Icon";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
+import FieldError from "../common/FieldError";
 
 const fmtRp = (n, decimals = 0) =>
   new Intl.NumberFormat("id-ID", {
@@ -799,20 +800,7 @@ export default function ProductDrawer({
               Batch <strong>{adjustFor.batch_no || "(no batch)"}</strong> ·
               Sistem: {adjustFor.qty_current}
             </p>
-            {error && (
-              <div
-                style={{
-                  padding: "10px 12px",
-                  background: "var(--color-danger-soft)",
-                  color: "var(--color-danger)",
-                  borderRadius: "10px",
-                  fontSize: "13px",
-                  marginBottom: "12px",
-                }}
-              >
-                {error}
-              </div>
-            )}
+            <FieldError message={error} visible={!!error} />
             <label
               style={{
                 display: "block",

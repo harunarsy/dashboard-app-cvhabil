@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   Plus,
-  Search,
   Phone,
   MapPin,
   FileText,
@@ -16,6 +15,9 @@ import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import Icons from "./common/Icon";
 import { UI_MOTION, uiTransition } from "../constants/ui";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
+import SearchBox from "./common/SearchBox";
+import ToastNotice from "./common/ToastNotice";
+import useDebouncedValue from "../hooks/useDebouncedValue";
 
 const fmtRp = (n) =>
   new Intl.NumberFormat("id-ID", {
@@ -43,6 +45,7 @@ export default function CustomerList({
 }) {
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [sortBy, setSortBy] = useState("name_asc"); // name_asc | name_desc | most_active | top_spender | oldest
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -85,11 +88,11 @@ export default function CustomerList({
   }, []);
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = debouncedSearch.toLowerCase();
     const list = customers.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
-        (c.phone || "").includes(search) ||
+        (c.phone || "").includes(debouncedSearch) ||
         (c.address || "").toLowerCase().includes(q),
     );
     const sorted = [...list].sort((a, b) => {
@@ -113,7 +116,7 @@ export default function CustomerList({
       }
     });
     return sorted;
-  }, [customers, search, sortBy]);
+  }, [customers, debouncedSearch, sortBy]);
 
   const openAdd = () => {
     setEditId(null);
@@ -291,27 +294,18 @@ export default function CustomerList({
           alignItems: "center",
         }}
       >
-        <div
-          style={{ position: "relative", flex: "1 1 280px", maxWidth: "480px" }}
-        >
-          <Search
-            size={16}
-            style={{
-              position: "absolute",
-              left: "12px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              color: sub,
-            }}
-          />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari nama, telepon, atau alamat..."
-            className="ui-form-field ui-focus-ring"
-            style={{ ...inputStyle, paddingLeft: "36px" }}
-          />
-        </div>
+        <SearchBox
+          value={search}
+          onChange={setSearch}
+          placeholder="Cari nama, telepon, atau alamat..."
+          ariaLabel="Cari customer"
+          style={{ flex: "1 1 280px", maxWidth: "480px" }}
+          inputStyle={{
+            backgroundColor: inputStyle.backgroundColor,
+            borderColor: border,
+            color: text,
+          }}
+        />
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value)}
@@ -620,10 +614,14 @@ export default function CustomerList({
                 icon={EmptyStateIcons.users}
                 title={
                   search
-                    ? "Tidak ada customer cocok dengan pencarian"
+                    ? `Tidak ada hasil untuk '${search}'`
                     : "Belum ada customer terdaftar"
                 }
-                description="Data customer yang aktif akan tampil di sini untuk memudahkan transaksi berikutnya."
+                description={
+                  search
+                    ? "Coba kata kunci lain atau reset filter."
+                    : "Data customer yang aktif akan tampil di sini untuk memudahkan transaksi berikutnya."
+                }
                 action={
                   !search ? (
                     <button
@@ -837,29 +835,7 @@ export default function CustomerList({
         isDarkMode={isDarkMode}
       />
 
-      {/* Toast */}
-      {toast && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="ui-motion-toast"
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            backgroundColor: "var(--color-success)",
-            color: "#FFF",
-            padding: "12px 20px",
-            borderRadius: "10px",
-            fontWeight: "600",
-            fontSize: "14px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-            zIndex: 99999,
-          }}
-        >
-          ✅ {toast}
-        </div>
-      )}
+      <ToastNotice message={toast} type="success" isMobile={isMobile} />
     </div>
   );
 }
