@@ -35,6 +35,7 @@ const fmtDate = (d) =>
     : "-";
 const blankItem = () => ({
   product_name: "",
+  product_id: null,
   qty: 1,
   unit: "pcs",
   unit_price: 0,
@@ -327,6 +328,7 @@ export default function PurchaseOrderList({
       o.items?.length
         ? o.items.map((i) => ({
             product_name: i.product_name,
+            product_id: i.product_id || null,
             qty: i.qty,
             unit: i.unit || "pcs",
             unit_price: parseFloat(i.unit_price) || 0,
@@ -563,7 +565,12 @@ export default function PurchaseOrderList({
       const match = products.find(
         (p) => p.name?.toLowerCase() === v?.toLowerCase(),
       );
-      if (match) updated.unit = match.base_unit || match.unit || "pcs";
+      if (match) {
+        updated.unit = match.base_unit || match.unit || "pcs";
+        updated.product_id = match.id || null;
+      } else {
+        updated.product_id = null;
+      }
     }
     n[idx] = updated;
     setItems(n);

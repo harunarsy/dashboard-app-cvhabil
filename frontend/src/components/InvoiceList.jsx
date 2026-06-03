@@ -143,6 +143,7 @@ const addDays = (dateStr, n) => {
 const blankItem = () => ({
   _id: Math.random().toString(36).slice(2),
   product_name: "",
+  product_id: null,
   batch_number: "",
   expired_date: "",
   quantity: "",
@@ -566,6 +567,7 @@ export default function InvoiceList({
             calcItem({
               ...blankItem(),
               product_name: it.product_name,
+              product_id: it.product_id || null,
               quantity: it.received_qty || it.qty || 1,
               unit: it.unit || "pcs",
             }),
@@ -855,7 +857,14 @@ export default function InvoiceList({
       } else if (field === "price_basis") {
         n[idx] = calcItem({ ...current, price_basis: val });
       } else {
-        n[idx] = calcItem({ ...current, [field]: val });
+        const updated = { ...current, [field]: val };
+        if (field === "product_name") {
+          const match = products.find(
+            (p) => p.name?.toLowerCase() === val?.toLowerCase(),
+          );
+          updated.product_id = match?.id || null;
+        }
+        n[idx] = calcItem(updated);
       }
       return n;
     });
@@ -883,11 +892,11 @@ export default function InvoiceList({
   };
   const handleAddProduct = async (name) => {
     const res = await productsAPI.add(name);
-    const saved = res.data.name;
+    const saved = res.data;
     setProducts((prev) =>
-      prev.some((p) => p.name === saved)
+      prev.some((p) => p.name === saved.name)
         ? prev
-        : [...prev, { name: saved }].sort((a, b) =>
+        : [...prev, { name: saved.name, id: saved.id }].sort((a, b) =>
             a.name.localeCompare(b.name),
           ),
     );
@@ -970,6 +979,7 @@ export default function InvoiceList({
           const withCod = itemsWithCod.find((x) => x._id === i._id) || i;
           return {
             product_name: i.product_name,
+            product_id: i.product_id || null,
             expired_date: i.expired_date || null,
             quantity: parseNum(i.quantity),
             hna: parseNum(i.hna),
@@ -1093,6 +1103,7 @@ export default function InvoiceList({
               calcItem({
                 _id: Math.random().toString(36).slice(2),
                 product_name: i.product_name || "",
+                product_id: i.product_id || null,
                 batch_number: i.batch_number || "",
                 expired_date: i.expired_date?.split("T")[0] || "",
                 quantity: i.quantity || "",
@@ -1137,6 +1148,7 @@ export default function InvoiceList({
               calcItem({
                 _id: Math.random().toString(36).slice(2),
                 product_name: i.product_name || "",
+                product_id: i.product_id || null,
                 batch_number: i.batch_number || "",
                 expired_date: i.expired_date?.split("T")[0] || "",
                 quantity: i.quantity || "",
@@ -4039,6 +4051,18 @@ function InvoiceModal({
                   ✓ Terhubung ke SP — stok tidak akan dobel.
                 </p>
               ) : null}
+              {form.purchase_order_id ? (
+                <p
+                  style={{
+                    margin: "2px 0 0",
+                    fontSize: "10px",
+                    color: "var(--color-text-subtle)",
+                    lineHeight: 1.35,
+                  }}
+                >
+                  Jika faktur terhubung ke SP, stok hanya menambah sisa qty SP yang belum diterima.
+                </p>
+              ) : null}
             </div>
             <div style={r2}>
               <div>
@@ -4160,6 +4184,22 @@ function InvoiceModal({
                 <Plus size={13} /> Tambah Produk
               </button>
             </div>
+            {editingId ? (
+              <p
+                style={{
+                  margin: "0 0 14px",
+                  fontSize: "11px",
+                  color: "var(--color-text-subtle)",
+                  lineHeight: 1.4,
+                  padding: "8px 12px",
+                  background: isDarkMode ? "rgba(255,204,0,0.08)" : "rgba(255,149,0,0.06)",
+                  borderRadius: "8px",
+                  border: `1px solid ${isDarkMode ? "rgba(255,204,0,0.15)" : "rgba(255,149,0,0.15)"}`,
+                }}
+              >
+                Qty/item faktur yang sudah masuk stok tidak bisa diedit. Koreksi stok lewat Opname/Adjust agar riwayat stok tetap rapi.
+              </p>
+            ) : null}
             {items.map((item, idx) => (
               <div
                 key={item._id}

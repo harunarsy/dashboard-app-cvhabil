@@ -32,9 +32,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.15.6-stable",
+    version: "v1.15.7-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Explicit product mapping untuk Faktur linked SP. Matching sekarang prioritas product_id, fallback product_name normalized. Data lama tetap backward-compatible.",
+        dev: "purchase_order_items + invoice_items sekarang punya product_id column. Backend resolveProductByIdOrName dan loadProductLookupForItems untuk batch lookup. Frontend SP/Faktur form state + payload kirim product_id. Version v1.15.7-stable.",
+      },
+    ],
+  },
+  {
+    version: "v1.15.6-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "perf",
@@ -1928,7 +1940,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.15.6-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.15.7-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)

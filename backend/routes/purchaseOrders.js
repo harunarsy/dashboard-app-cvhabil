@@ -30,6 +30,7 @@ const ensureSchema = async () => {
       id SERIAL PRIMARY KEY,
       po_id INT NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
       product_name VARCHAR(255) NOT NULL,
+      product_id INTEGER,
       qty INT NOT NULL DEFAULT 1,
       unit VARCHAR(30) DEFAULT 'pcs',
       unit_price DECIMAL(15,2) DEFAULT 0,
@@ -48,10 +49,34 @@ const ensureSchema = async () => {
   // v1.6.0 multi-unit packaging: snapshot qty di pack unit + pack_size saat PO + partial receive in pack
   await pool.query(`
     ALTER TABLE purchase_order_items
+      ADD COLUMN IF NOT EXISTS product_id INTEGER,
       ADD COLUMN IF NOT EXISTS qty_in_unit DECIMAL(15,4),
       ADD COLUMN IF NOT EXISTS pack_size_at_po INT,
       ADD COLUMN IF NOT EXISTS received_qty_in_unit DECIMAL(15,4)
   `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_purchase_order_items_product_id
+      ON purchase_order_items(product_id)
+  `);
+
+  const { rows: [productMasterExists] } = await pool.query(`
+    SELECT to_regclass('public.product_master') AS exists
+  `);
+  if (productMasterExists?.exists) {
+    await pool.query(`
+      WITH unique_products AS (
+        SELECT LOWER(TRIM(name)) AS normalized_name, MIN(id) AS product_id
+        FROM product_master
+        GROUP BY 1
+        HAVING COUNT(*) = 1
+      )
+      UPDATE purchase_order_items poi
+      SET product_id = up.product_id
+      FROM unique_products up
+      WHERE poi.product_id IS NULL
+        AND LOWER(TRIM(poi.product_name)) = up.normalized_name
+    `);
+  }
 };
 ensureSchema().catch(e => console.error('purchase_orders ensureSchema:', e));
 
@@ -83,6 +108,43 @@ const toNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const normalizeProductName = (name = '') => String(name || '').trim().toLowerCase();
+
+const resolveProductByIdOrName = async (client, { product_id, product_name }) => {
+  const numericProductId = Number.parseInt(product_id, 10);
+  if (Number.isFinite(numericProductId) && numericProductId > 0) {
+    const { rows: [product] } = await client.query(
+      `SELECT id, name, unit, base_unit, pack_unit, pack_size, hna, is_active
+       FROM product_master
+       WHERE id = $1
+       LIMIT 1`,
+      [numericProductId]
+    );
+    if (product) {
+      return { product, source: 'id' };
+    }
+  }
+
+  const normalizedName = normalizeProductName(product_name);
+  if (!normalizedName) return { product: null, source: null, ambiguous: false };
+
+  const { rows } = await client.query(
+    `SELECT id, name, unit, base_unit, pack_unit, pack_size, hna, is_active
+     FROM product_master
+     WHERE LOWER(TRIM(name)) = $1
+     ORDER BY id ASC`,
+    [normalizedName]
+  );
+
+  if (rows.length === 1) {
+    return { product: rows[0], source: 'name' };
+  }
+  if (rows.length > 1) {
+    return { product: null, source: 'name', ambiguous: true };
+  }
+  return { product: null, source: null, ambiguous: false };
+};
+
 const prorateSourceQty = (sourceQty, fullBaseQty, stockedBaseQty) => {
   const source = toNumber(sourceQty) || toNumber(fullBaseQty);
   const full = toNumber(fullBaseQty);
@@ -101,7 +163,7 @@ router.get('/', auth, async (req, res) => {
     const { rows } = await pool.query(`
       SELECT po.*, 
         json_agg(json_build_object(
-          'id', pi.id, 'product_name', pi.product_name, 'qty', pi.qty,
+          'id', pi.id, 'product_name', pi.product_name, 'product_id', pi.product_id, 'qty', pi.qty,
           'unit', pi.unit, 'unit_price', pi.unit_price, 'subtotal', pi.subtotal,
           'received_qty', pi.received_qty
         )) FILTER (WHERE pi.id IS NOT NULL) AS items
@@ -155,27 +217,16 @@ router.post('/', auth, async (req, res) => {
       [poNumber, distributor_name.trim(), distributor_address || '', req.body.pic_name || null, order_date || new Date(), expected_date || null, notes || '', total, req.user?.id || null]
     );
 
-    // v1.6.0 multi-unit: resolve product (pack info) untuk konversi qty input → base unit
-    const productMap = new Map();
     for (const item of items) {
-      if (productMap.has(item.product_name)) continue;
-      const { rows: [p] } = await client.query(
-        'SELECT id, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE LIMIT 1',
-        [item.product_name]
-      );
-      if (p) productMap.set(item.product_name, p);
-    }
-
-    for (const item of items) {
-      const product = productMap.get(item.product_name);
+      const { product } = await resolveProductByIdOrName(client, item);
       const qtyInUnit = parseFloat(item.qty) || 1;
       const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
       const packSize = product?.pack_size || 1;
       const sub = qtyInUnit * (item.unit_price || 0);
       await client.query(
-        `INSERT INTO purchase_order_items (po_id, product_name, qty, unit, unit_price, subtotal, qty_in_unit, pack_size_at_po)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [po.id, item.product_name, qtyBase, item.unit || 'pcs', item.unit_price || 0, sub, qtyInUnit, packSize]
+        `INSERT INTO purchase_order_items (po_id, product_name, product_id, qty, unit, unit_price, subtotal, qty_in_unit, pack_size_at_po)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [po.id, item.product_name, product?.id || null, qtyBase, item.unit || 'pcs', item.unit_price || 0, sub, qtyInUnit, packSize]
       );
     }
     await client.query('COMMIT');
@@ -205,18 +256,8 @@ router.put('/:id', auth, async (req, res) => {
     );
     if (items) {
       await client.query('DELETE FROM purchase_order_items WHERE po_id = $1', [req.params.id]);
-      // v1.6.0 multi-unit: resolve products + convert qty to base
-      const productMap = new Map();
       for (const item of items) {
-      if (productMap.has(item.product_name)) continue;
-      const { rows: [p] } = await client.query(
-        'SELECT id, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE LIMIT 1',
-        [item.product_name]
-      );
-        if (p) productMap.set(item.product_name, p);
-      }
-      for (const item of items) {
-        const product = productMap.get(item.product_name);
+        const { product } = await resolveProductByIdOrName(client, item);
         const qtyInUnit = parseFloat(item.qty) || 1;
         const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
         const recvInUnit = parseFloat(item.received_qty_in_unit) || 0;
@@ -224,9 +265,9 @@ router.put('/:id', auth, async (req, res) => {
         const packSize = product?.pack_size || 1;
         const sub = qtyInUnit * (item.unit_price || 0);
         await client.query(
-          `INSERT INTO purchase_order_items (po_id, product_name, qty, unit, unit_price, subtotal, received_qty, qty_in_unit, pack_size_at_po, received_qty_in_unit)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-          [req.params.id, item.product_name, qtyBase, item.unit || 'pcs', item.unit_price || 0, sub, recvBase, qtyInUnit, packSize, recvInUnit]
+          `INSERT INTO purchase_order_items (po_id, product_name, product_id, qty, unit, unit_price, subtotal, received_qty, qty_in_unit, pack_size_at_po, received_qty_in_unit)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+          [req.params.id, item.product_name, product?.id || null, qtyBase, item.unit || 'pcs', item.unit_price || 0, sub, recvBase, qtyInUnit, packSize, recvInUnit]
         );
       }
     }
@@ -268,21 +309,24 @@ router.post('/:id/receive', auth, async (req, res) => {
 
       // Get PO item (incl unit + pack_size_at_po snapshot) + product (for fallback conversion)
       const { rows: [current] } = await client.query(
-        'SELECT product_name, qty, received_qty, unit, pack_size_at_po FROM purchase_order_items WHERE id = $1 FOR UPDATE',
+        'SELECT product_name, product_id, qty, received_qty, unit, pack_size_at_po FROM purchase_order_items WHERE id = $1 FOR UPDATE',
         [item.po_item_id]
       );
       if (!current) continue;
-      let { rows: [product] } = await client.query(
-        'SELECT id, hna, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE', [current.product_name]
-      );
+      const resolved = await resolveProductByIdOrName(client, current);
+      let product = resolved.product;
       // Jaring pengaman: produk belum terdaftar (SP lama / produk dinonaktifkan) → daftarkan dulu supaya stok tidak hilang diam-diam
-      if (!product) {
+      if (!product && !resolved.ambiguous) {
         const { rows: [created] } = await client.query(
           `INSERT INTO product_master (name, unit, base_unit, hna) VALUES ($1,$2,$2,0)
            RETURNING id, hna, base_unit, pack_unit, pack_size`,
           [current.product_name, current.unit || 'pcs']
         );
         product = created;
+      }
+      if (!product) {
+        console.warn(`[PO ${req.params.id}] Produk "${current.product_name}" tidak bisa dipetakan ke product_master${resolved.ambiguous ? ' (nama duplikat)' : ''} — item dilewati agar stok tidak salah`);
+        continue;
       }
 
       // Determine recv qty di BASE unit

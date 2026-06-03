@@ -2,6 +2,18 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.15.7-stable] - 2026-06-03
+
+### Added
+- product_id column di purchase_order_items dan invoice_items (nullable, backward-compatible)
+
+### Changed
+- Backend matching Faktur linked SP prioritas product_id, fallback normalized product_name
+- Frontend SP/Faktur form state dan payload sekarang mengirim product_id
+
+### Fixed
+- Duplicate product name tidak lagi menyebabkan salah stok saat linked faktur
+
 ## [v1.15.6-stable] - 2026-06-03
 
 ### Changed

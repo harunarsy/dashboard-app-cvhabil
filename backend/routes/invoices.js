@@ -31,7 +31,8 @@ const ensureSchema = async () => {
       ADD COLUMN IF NOT EXISTS disc_percent DECIMAL(5,2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS disc_nominal DECIMAL(15,2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS hna_baru DECIMAL(15,2),
-      ADD COLUMN IF NOT EXISTS hna_per_item DECIMAL(15,2)
+      ADD COLUMN IF NOT EXISTS hna_per_item DECIMAL(15,2),
+      ADD COLUMN IF NOT EXISTS product_id INTEGER
   `);
   // Audit log table
   await pool.query(`
@@ -60,6 +61,10 @@ const ensureSchema = async () => {
       ADD COLUMN IF NOT EXISTS qty_in_unit DECIMAL(15,4),
       ADD COLUMN IF NOT EXISTS pack_size_at_invoice INT
   `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_invoice_items_product_id
+      ON invoice_items(product_id)
+  `);
 
   // Data Migration: Populate missing hpp_inc_ppn and hna_per_item for old records
   // PPN_RATE constant via tax.js (sengaja inline literal di SQL karena query-side)
@@ -70,6 +75,25 @@ const ensureSchema = async () => {
       hpp_inc_ppn = CASE WHEN quantity > 0 AND hna_baru > 0 THEN (hna_baru / quantity) * ${1 + tax.PPN_RATE} ELSE hpp_inc_ppn END
     WHERE (hpp_inc_ppn = 0 OR hna_per_item = 0) AND quantity > 0 AND hna_baru > 0
   `);
+
+  const { rows: [productMasterExists] } = await pool.query(`
+    SELECT to_regclass('public.product_master') AS exists
+  `);
+  if (productMasterExists?.exists) {
+    await pool.query(`
+      WITH unique_products AS (
+        SELECT LOWER(TRIM(name)) AS normalized_name, MIN(id) AS product_id
+        FROM product_master
+        GROUP BY 1
+        HAVING COUNT(*) = 1
+      )
+      UPDATE invoice_items ii
+      SET product_id = up.product_id
+      FROM unique_products up
+      WHERE ii.product_id IS NULL
+        AND LOWER(TRIM(ii.product_name)) = up.normalized_name
+    `);
+  }
 };
 ensureSchema().catch(console.error);
 
@@ -113,32 +137,143 @@ const prorateSourceQty = (sourceQty, fullBaseQty, stockedBaseQty) => {
   return Number(((source * stocked) / full).toFixed(4));
 };
 
+const resolveProductByIdOrName = async (client, item = {}) => {
+  const numericProductId = Number.parseInt(item.product_id, 10);
+  if (Number.isFinite(numericProductId) && numericProductId > 0) {
+    const { rows: [product] } = await client.query(
+      `SELECT id, name, hna, base_unit, pack_unit, pack_size, is_active
+       FROM product_master
+       WHERE id = $1
+       LIMIT 1`,
+      [numericProductId]
+    );
+    if (product) return { product, source: 'id' };
+  }
+
+  const normalizedName = normalizeProductName(item.product_name);
+  if (!normalizedName) return { product: null, source: null, ambiguous: false };
+
+  const { rows } = await client.query(
+    `SELECT id, name, hna, base_unit, pack_unit, pack_size, is_active
+     FROM product_master
+     WHERE LOWER(TRIM(name)) = $1
+     ORDER BY id ASC`,
+    [normalizedName]
+  );
+
+  if (rows.length === 1) {
+    return { product: rows[0], source: 'name' };
+  }
+  if (rows.length > 1) {
+    return { product: null, source: 'name', ambiguous: true };
+  }
+  return { product: null, source: null, ambiguous: false };
+};
+
+const loadProductLookupForItems = async (client, items = []) => {
+  const lookup = {
+    byId: new Map(),
+    byName: new Map(),
+    ambiguousNames: new Set(),
+  };
+  const productIds = [
+    ...new Set(
+      items
+        .map((item) => Number.parseInt(item.product_id, 10))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    ),
+  ];
+  const normalizedNames = [
+    ...new Set(
+      items
+        .map((item) => normalizeProductName(item.product_name))
+        .filter(Boolean),
+    ),
+  ];
+
+  if (productIds.length > 0) {
+    const { rows } = await client.query(
+      `SELECT id, name, hna, base_unit, pack_unit, pack_size, is_active
+       FROM product_master
+       WHERE id = ANY($1::int[])`,
+      [productIds]
+    );
+    rows.forEach((row) => lookup.byId.set(String(row.id), row));
+  }
+
+  if (normalizedNames.length > 0) {
+    const { rows: ambiguousRows } = await client.query(
+      `SELECT LOWER(TRIM(name)) AS normalized_name
+       FROM product_master
+       WHERE LOWER(TRIM(name)) = ANY($1::text[])
+       GROUP BY 1
+       HAVING COUNT(*) > 1`,
+      [normalizedNames]
+    );
+    ambiguousRows.forEach((row) => lookup.ambiguousNames.add(row.normalized_name));
+
+    const { rows: uniqueRows } = await client.query(
+      `WITH unique_products AS (
+         SELECT LOWER(TRIM(name)) AS normalized_name, MIN(id) AS product_id
+         FROM product_master
+         WHERE LOWER(TRIM(name)) = ANY($1::text[])
+         GROUP BY 1
+         HAVING COUNT(*) = 1
+       )
+       SELECT pm.*, up.normalized_name
+       FROM unique_products up
+       JOIN product_master pm ON pm.id = up.product_id`,
+      [normalizedNames]
+    );
+    uniqueRows.forEach((row) => lookup.byName.set(row.normalized_name, row));
+  }
+
+  return lookup;
+};
+
 const loadPurchaseOrderItemsForUpdate = async (client, purchaseOrderId) => {
   if (!purchaseOrderId) return null;
   const { rows } = await client.query(
-    `SELECT id, product_name, qty, received_qty
+    `SELECT id, product_id, product_name, qty, received_qty
      FROM purchase_order_items
      WHERE po_id = $1
      ORDER BY id
      FOR UPDATE`,
     [purchaseOrderId]
   );
-  const map = new Map();
+  const index = {
+    byId: new Map(),
+    byName: new Map(),
+  };
   rows.forEach((row) => {
-    const key = normalizeProductName(row.product_name);
-    const list = map.get(key) || [];
-    list.push({
+    const normalizedName = normalizeProductName(row.product_name);
+    const item = {
       ...row,
       qty: toNumber(row.qty),
       received_qty: toNumber(row.received_qty),
-    });
-    map.set(key, list);
+    };
+    if (item.product_id) {
+      const idKey = String(item.product_id);
+      const list = index.byId.get(idKey) || [];
+      list.push(item);
+      index.byId.set(idKey, list);
+    }
+    if (normalizedName) {
+      const list = index.byName.get(normalizedName) || [];
+      list.push(item);
+      index.byName.set(normalizedName, list);
+    }
   });
-  return map;
+  return index;
 };
 
-const pickPurchaseOrderItem = (poItemsByName, productName) => {
-  const rows = poItemsByName?.get(normalizeProductName(productName)) || [];
+const pickPurchaseOrderItem = (poItemsIndex, item) => {
+  if (!poItemsIndex) return null;
+  const byIdRows = item?.product_id
+    ? poItemsIndex.byId.get(String(item.product_id)) || []
+    : [];
+  const byNameRows = poItemsIndex.byName.get(normalizeProductName(item?.product_name)) || [];
+  const rows = byIdRows.length > 0 ? byIdRows : byNameRows;
   return rows.find((row) => row.qty - row.received_qty > 0) || rows[0] || null;
 };
 
@@ -179,14 +314,12 @@ const syncProductHna = async (client, productId, hna, purchaseOrderId = null) =>
 
 const roundQty = (value) => Number(toNumber(value).toFixed(4));
 const canonicalInvoiceItem = async (client, item) => {
-  const { rows: [product] } = await client.query(
-    'SELECT id, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE LIMIT 1',
-    [item.product_name]
-  );
+  const { product } = await resolveProductByIdOrName(client, item);
   const qtyInUnit = toNumber(item.quantity);
   const unit = item.unit || product?.base_unit || 'pcs';
   const qtyBase = product ? uom.toBase(qtyInUnit, unit, product) : qtyInUnit;
   return {
+    product_id: item.product_id ? Number.parseInt(item.product_id, 10) || null : null,
     product_name: normalizeProductName(item.product_name),
     quantity: roundQty(qtyBase),
     unit,
@@ -199,6 +332,7 @@ const canonicalInvoiceItem = async (client, item) => {
 };
 
 const canonicalStoredInvoiceItem = (item) => ({
+  product_id: item.product_id ? Number.parseInt(item.product_id, 10) || null : null,
   product_name: normalizeProductName(item.product_name),
   quantity: roundQty(item.quantity),
   unit: item.unit || 'pcs',
@@ -211,7 +345,7 @@ const canonicalStoredInvoiceItem = (item) => ({
 
 const invoiceItemsChanged = async (client, invoiceId, nextItems = []) => {
   const { rows: currentItems } = await client.query(
-    `SELECT product_name, quantity, unit, unit_price, expired_date, hna, hna_baru, batch_number
+    `SELECT product_id, product_name, quantity, unit, unit_price, expired_date, hna, hna_baru, batch_number
      FROM invoice_items
      WHERE invoice_id = $1
      ORDER BY id`,
@@ -459,31 +593,25 @@ router.post('/', auth, async (req, res) => {
     }
 
     await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
-    // v1.6.0 multi-unit: resolve product (pack info) untuk konversi qty input → base unit
-    const productMap = new Map();
+    const productLookup = items && items.length > 0
+      ? await loadProductLookupForItems(client, items)
+      : { byId: new Map(), byName: new Map(), ambiguousNames: new Set() };
     if (items && items.length > 0) {
       for (const item of items) {
-        if (productMap.has(item.product_name)) continue;
-        const { rows: [p] } = await client.query(
-          'SELECT id, hna, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE LIMIT 1',
-          [item.product_name]
-        );
-        if (p) productMap.set(item.product_name, p);
-      }
-    }
-    if (items && items.length > 0) {
-      for (const item of items) {
-        const product = productMap.get(item.product_name);
+        const product = (item.product_id && productLookup.byId.get(String(item.product_id)))
+          || productLookup.byName.get(normalizeProductName(item.product_name))
+          || null;
         const qtyInUnit = parseFloat(item.quantity) || 0;
         const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
         const packSize = product?.pack_size || 1;
+        const storedProductId = product ? product.id : null;
         await client.query(
           `INSERT INTO invoice_items
-            (invoice_id, product_name, quantity, unit_price, total_price,
+            (invoice_id, product_name, product_id, quantity, unit_price, total_price,
              expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
              disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
-          [invoiceId, item.product_name, qtyBase,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+          [invoiceId, item.product_name, storedProductId, qtyBase,
            item.unit_price||item.hna||0, item.total_price||item.hna_times_qty||0,
            item.expired_date||null, item.hna||0, item.hna_times_qty||0,
            item.disc_percent||0, item.disc_nominal||0, item.hna_baru||0,
@@ -504,7 +632,9 @@ router.post('/', auth, async (req, res) => {
       : null;
     if (items && items.length > 0) {
       for (const item of items) {
-        const product = productMap.get(item.product_name);
+        const product = (item.product_id && productLookup.byId.get(String(item.product_id)))
+          || productLookup.byName.get(normalizeProductName(item.product_name))
+          || null;
         const qtyInUnit = parseFloat(item.quantity) || 0;
         const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
         const packSize = product?.pack_size || 1;
@@ -517,7 +647,7 @@ router.post('/', auth, async (req, res) => {
         let stockQtyBase = qtyBase;
         let sourceQtyValue = qtyInUnit || qtyBase;
         const poItem = purchase_order_id
-          ? pickPurchaseOrderItem(poItemsByName, item.product_name)
+          ? pickPurchaseOrderItem(poItemsByName, item)
           : null;
         if (poItem) {
           const room = Math.max(0, poItem.qty - poItem.received_qty);
@@ -543,14 +673,18 @@ router.post('/', auth, async (req, res) => {
             [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize]
           );
           await client.query(
-            `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
+          `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
              VALUES ($1, $2, 'in', $3, 'faktur', $4, $5, $6, $7)`,
             [product.id, batch.id, stockQtyBase, invoiceId,
              `Stok masuk dari faktur ${invoice_number}${displayUnit !== product.base_unit ? ` (${sourceQtyValue} ${displayUnit})` : ''}`,
              displayUnit, sourceQtyValue]
           );
         } else if (!product) {
-          console.warn(`[Invoice ${invoice_number}] Produk "${item.product_name}" tidak ditemukan di product_master — stok tidak dibuat otomatis`);
+          const normalizedName = normalizeProductName(item.product_name);
+          const warningSuffix = productLookup.ambiguousNames.has(normalizedName)
+            ? ' (nama duplikat)'
+            : '';
+          console.warn(`[Invoice ${invoice_number}] Produk "${item.product_name}" tidak bisa dipetakan ke product_master${warningSuffix} — stok tidak dibuat otomatis`);
         }
       }
     }
@@ -641,21 +775,24 @@ router.put('/:id', auth, async (req, res) => {
 
     if (items !== undefined && !hasStockMutations) {
       await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [id]);
+      const productLookup = items && items.length > 0
+        ? await loadProductLookupForItems(client, items)
+        : { byId: new Map(), byName: new Map(), ambiguousNames: new Set() };
       for (const item of (items || [])) {
-        const { rows: [product] } = await client.query(
-          'SELECT id, hna, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE LIMIT 1',
-          [item.product_name]
-        );
+        const product = (item.product_id && productLookup.byId.get(String(item.product_id)))
+          || productLookup.byName.get(normalizeProductName(item.product_name))
+          || null;
         const qtyInUnit = parseFloat(item.quantity) || 0;
         const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
         const packSize = product?.pack_size || 1;
+        const storedProductId = product ? product.id : null;
         await client.query(
           `INSERT INTO invoice_items
-            (invoice_id, product_name, quantity, unit_price, total_price,
+            (invoice_id, product_name, product_id, quantity, unit_price, total_price,
              expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
              disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
-          [id, item.product_name, qtyBase,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+          [id, item.product_name, storedProductId, qtyBase,
            item.unit_price||item.hna||0, item.total_price||item.hna_times_qty||0,
            item.expired_date||null, item.hna||0, item.hna_times_qty||0,
            item.disc_percent||0, item.disc_nominal||0, item.hna_baru||0,
@@ -664,11 +801,11 @@ router.put('/:id', auth, async (req, res) => {
            item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize]
         );
         // v1.8.2: sync product_master.hna ke RAW HNA per pcs dari faktur edit (mirror POST behavior)
-        if (parseFloat(item.hna) > 0) {
+        if (product && parseFloat(item.hna) > 0) {
           await client.query(
             `UPDATE product_master SET hna = $1, updated_at = NOW()
-             WHERE LOWER(TRIM(name)) = LOWER(TRIM($2)) AND is_active = TRUE`,
-            [parseFloat(item.hna), item.product_name]
+             WHERE id = $2`,
+            [parseFloat(item.hna), product.id]
           );
         }
       }
