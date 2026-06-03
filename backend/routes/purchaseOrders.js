@@ -132,7 +132,7 @@ const resolveProductByIdOrName = async (client, { product_id, product_name }) =>
   const { rows } = await client.query(
     `SELECT id, name, unit, base_unit, pack_unit, pack_size, hna, is_active
      FROM product_master
-     WHERE LOWER(TRIM(name)) = $1
+     WHERE LOWER(TRIM(name)) = $1 AND is_active = TRUE
      ORDER BY id ASC`,
     [normalizedName]
   );

@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.15.9-stable] - 2026-06-03
+
+### Fixed
+- resolveProductByIdOrName fallback name lookup now also filters is_active = TRUE (was only filtering by ID)
+
 ## [v1.15.8-stable] - 2026-06-03
 
 ### Fixed

@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.15.8-stable",
+    version: "v1.15.9-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "resolveProductByIdOrName fallback name lookup now also filters is_active = TRUE (was only filtering by ID)",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.15.8-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -1963,7 +1975,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.15.8-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.15.9-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
