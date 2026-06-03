@@ -48,6 +48,8 @@ const ensureSchema = async () => {
     )
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_invoice_id ON invoice_audit_log(invoice_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_invoices_purchase_date ON invoices(purchase_date DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_inventory_mutations_ref ON inventory_mutations(reference_type, reference_id)`);
   // Ensure newer columns exist in invoice_items
   await pool.query(`
     ALTER TABLE invoice_items
@@ -366,6 +368,7 @@ const invoiceItemsChanged = async (client, invoiceId, nextItems = []) => {
 // GET all invoices
 router.get('/', auth, async (req, res) => {
   try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 100, 1), 500);
     const result = await pool.query(`
       SELECT i.*,
         COUNT(ii.id) AS item_count,
@@ -376,7 +379,8 @@ router.get('/', auth, async (req, res) => {
       WHERE i.deleted_at IS NULL AND (i.is_draft IS NULL OR i.is_draft = FALSE)
       GROUP BY i.id
       ORDER BY i.purchase_date DESC
-    `);
+      LIMIT $1
+    `, [limit]);
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -827,16 +831,31 @@ router.put('/:id', auth, async (req, res) => {
 
 // SOFT DELETE
 router.delete('/:id', auth, async (req, res) => {
+  const client = await pool.connect();
   try {
-    const snap = await pool.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
-    if (snap.rows.length) await logAudit(req.params.id, snap.rows[0].invoice_number, 'DELETE', snap.rows[0]);
-    const result = await pool.query(
+    await client.query('BEGIN');
+    const snap = await client.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
+    if (snap.rows.length) {
+      await client.query(
+        `INSERT INTO invoice_audit_log (invoice_id, invoice_number, action, snapshot, note)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [req.params.id, snap.rows[0].invoice_number, 'DELETE', JSON.stringify(snap.rows[0]), '']
+      );
+    }
+    const result = await client.query(
       'UPDATE invoices SET deleted_at = NOW() WHERE id = $1 RETURNING *', [req.params.id]
     );
-    if (!result.rows.length) return res.status(404).json({ error: 'Not found' });
+    if (!result.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Not found' });
+    }
+    await client.query('COMMIT');
     if (global.io) global.io.emit('invoiceDeleted', { id: req.params.id });
     res.json({ message: 'Moved to trash', invoice: result.rows[0] });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally { client.release(); }
 });
 
 // RESTORE
@@ -853,22 +872,34 @@ router.put('/:id/restore', auth, async (req, res) => {
 
 // PERMANENT DELETE
 router.delete('/:id/permanent', auth, async (req, res) => {
+  const client = await pool.connect();
   try {
-    const snap = await pool.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
-    if (snap.rows.length) await logAudit(req.params.id, snap.rows[0].invoice_number, 'PERMANENT_DELETE', snap.rows[0]);
+    await client.query('BEGIN');
+    const snap = await client.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
+    if (snap.rows.length) {
+      await client.query(
+        `INSERT INTO invoice_audit_log (invoice_id, invoice_number, action, snapshot, note)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [req.params.id, snap.rows[0].invoice_number, 'PERMANENT_DELETE', JSON.stringify(snap.rows[0]), '']
+      );
+    }
     // Clean up inventory_batches and mutations created from this invoice
-    await pool.query(
+    await client.query(
       `DELETE FROM inventory_mutations WHERE reference_type = 'faktur' AND reference_id = $1`,
       [req.params.id]
     );
-    await pool.query(
+    await client.query(
       `DELETE FROM inventory_batches WHERE source_ref = $1`,
       [`invoice-${req.params.id}`]
     );
-    await pool.query('DELETE FROM invoice_items WHERE invoice_id = $1', [req.params.id]);
-    await pool.query('DELETE FROM invoices WHERE id = $1', [req.params.id]);
+    await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [req.params.id]);
+    await client.query('DELETE FROM invoices WHERE id = $1', [req.params.id]);
+    await client.query('COMMIT');
     res.json({ message: 'Permanently deleted' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally { client.release(); }
 });
 
 module.exports = router;

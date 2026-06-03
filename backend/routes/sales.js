@@ -130,6 +130,7 @@ const generateOrderNumber = async (client) => {
 // GET all (excluding soft-deleted)
 router.get('/', auth, async (req, res) => {
   try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 100, 1), 500);
     const { rows } = await pool.query(
       `SELECT s.*, COALESCE(s.customer_phone, MAX(c.phone)) AS customer_phone,
         COALESCE(json_agg(i ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
@@ -138,7 +139,9 @@ router.get('/', auth, async (req, res) => {
        LEFT JOIN sales_items i ON i.sales_order_id = s.id
        WHERE s.is_deleted = FALSE
        GROUP BY s.id
-       ORDER BY s.sale_date DESC, s.id DESC`
+       ORDER BY s.sale_date DESC, s.id DESC
+       LIMIT $1`,
+      [limit]
     );
     res.json(rows);
   } catch (err) {

@@ -1,17 +1,21 @@
 const { Pool } = require('pg');
 
 
-const pool = new Pool(
-  process.env.DATABASE_URL 
-    ? { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
-    : {
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        host: process.env.DB_HOST,
-        port: process.env.DB_PORT,
-        database: process.env.DB_NAME,
-      }
-);
+const poolConfig = process.env.DATABASE_URL 
+  ? { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
+  : {
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      database: process.env.DB_NAME,
+    };
+
+poolConfig.max = 20;
+poolConfig.idleTimeoutMillis = 30000;
+poolConfig.connectionTimeoutMillis = 5000;
+
+const pool = new Pool(poolConfig);
 
 // Connection logic logging
 const isRemote = !!process.env.DATABASE_URL;

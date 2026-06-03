@@ -55,12 +55,15 @@ router.use(auth, roleGuard('direktur'));
 router.get('/', async (req, res) => {
   const { month, category, account } = req.query;
   try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 200, 1), 1000);
     let query = 'SELECT * FROM ledger_entries WHERE 1=1';
     const params = [];
     if (month) { params.push(month); query += ` AND DATE_TRUNC('month', entry_date) = $${params.length}::date`; }
     if (category) { params.push(category); query += ` AND category = $${params.length}`; }
     if (account) { params.push(`%${account}%`); query += ` AND account_name ILIKE $${params.length}`; }
     query += ' ORDER BY entry_date DESC, id DESC';
+    params.push(limit);
+    query += ` LIMIT $${params.length}`;
     const { rows } = await pool.query(query, params);
     res.json(rows);
   } catch (err) { return handleServerError(res, err, 'list entries'); }

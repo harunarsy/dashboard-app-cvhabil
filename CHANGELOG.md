@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.16.0-stable] - 2026-06-03
+
+### Changed
+- Backend: DB pool config explicit (max:20, idleTimeout:30s, connectionTimeout:5s)
+- Backend: General API rate limiter (300 req/15min), JSON body size limit (1mb)
+
+### Fixed
+- Invoices, Sales, Ledger list endpoints now have safe LIMIT (default 100/200, max 500/1000)
+- Invoices DELETE operations wrapped in transactions
+- Added missing indexes: idx_invoices_purchase_date, idx_inventory_mutations_ref
+
 ## [v1.15.9-stable] - 2026-06-03
 
 ### Fixed

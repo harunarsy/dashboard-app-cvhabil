@@ -67,8 +67,8 @@ const io = socketIo(server, { cors: corsOptions });
 app.use(helmet({
   contentSecurityPolicy: false,
 }));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '1mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cors(corsOptions));
 
 const loginLimiter = rateLimit({
@@ -78,6 +78,15 @@ const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// General API rate limiter (applied to all /api routes)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api', apiLimiter);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Backend running', timestamp: new Date().toISOString(), uptime: process.uptime() });

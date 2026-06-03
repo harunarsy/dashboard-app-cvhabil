@@ -33,9 +33,41 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.15.9-stable",
+    version: "v1.16.0-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "changed",
+        text: "Backend: DB pool config explicit (max:20, idleTimeout:30s, connectionTimeout:5s)",
+        dev: "",
+      },
+      {
+        type: "changed",
+        text: "Backend: General API rate limiter (300 req/15min), JSON body size limit (1mb)",
+        dev: "",
+      },
+      {
+        type: "fixed",
+        text: "Invoices, Sales, Ledger list endpoints now have safe LIMIT (default 100/200, max 500/1000)",
+        dev: "",
+      },
+      {
+        type: "fixed",
+        text: "Invoices DELETE operations wrapped in transactions",
+        dev: "",
+      },
+      {
+        type: "fixed",
+        text: "Added missing indexes: idx_invoices_purchase_date, idx_inventory_mutations_ref",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.15.9-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -1975,7 +2007,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.15.9-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.16.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
