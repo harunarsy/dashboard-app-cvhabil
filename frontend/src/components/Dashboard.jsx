@@ -33,9 +33,31 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.16.4-stable",
+    version: "v1.16.5-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Data-integrity repair script: PO item 54 duplicate SP receive, batch_id_snapshot backfill, PO status sync",
+        dev: "",
+      },
+      {
+        type: "fix",
+        text: "Sales create/update returns 400 for ambiguous batch snapshots (was 500)",
+        dev: "",
+      },
+      {
+        type: "fix",
+        text: "FOR UPDATE locking on batch_no snapshot lookups in sales route",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.16.4-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2110,7 +2132,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.16.4-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.16.5-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

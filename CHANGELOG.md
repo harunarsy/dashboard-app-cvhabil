@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.16.5-stable] - 2026-06-03
+
+### Fixed
+- Data-integrity repair script for PO item 54 duplicate SP receive, missing batch_id_snapshot backfill, and PO status sync
+- Sales create/update now returns 400 for ambiguous batch snapshots (was 500)
+- Added FOR UPDATE locking to batch_no snapshot lookups in sales route
+
 ## [v1.16.4-stable] - 2026-06-03
 
 ### Fixed

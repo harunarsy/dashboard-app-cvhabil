@@ -167,19 +167,19 @@ const resolveSelectedBatchForSale = async (client, productId, item) => {
       const { rows } = await client.query(
         `SELECT * FROM inventory_batches
          WHERE product_id = $1 AND batch_no = $2
-         AND (expired_date = $3 OR (expired_date IS NULL AND $3 IS NULL))`,
+         AND (expired_date = $3 OR (expired_date IS NULL AND $3 IS NULL)) FOR UPDATE`,
         [productId, batchNo, expiredDate]
       );
       if (rows.length === 1) return { batch: rows[0], source: 'name_date' };
-      if (rows.length > 1) throw new Error('Batch snapshot ambigu, pilih batch ulang.');
+      if (rows.length > 1) throw Object.assign(new Error('USER: Batch snapshot ambigu, pilih batch ulang.'), { statusCode: 400 });
     }
     // Fallback: batch_no only if unique
     const { rows } = await client.query(
-      'SELECT * FROM inventory_batches WHERE product_id = $1 AND batch_no = $2',
+      'SELECT * FROM inventory_batches WHERE product_id = $1 AND batch_no = $2 FOR UPDATE',
       [productId, batchNo]
     );
     if (rows.length === 1) return { batch: rows[0], source: 'name_only' };
-    if (rows.length > 1) throw new Error('Batch snapshot ambigu (multiple batch_no), pilih batch ulang.');
+    if (rows.length > 1) throw Object.assign(new Error('USER: Batch snapshot ambigu (multiple batch_no), pilih batch ulang.'), { statusCode: 400 });
   }
 
   return { batch: null, source: null };
@@ -394,6 +394,7 @@ router.post('/', auth, async (req, res) => {
     if (err.code === '23505' && (err.constraint === 'sales_orders_order_number_key' || err.message.includes('order_number'))) {
       return res.status(400).json({ error: 'Nomor Nota sudah digunakan. Gunakan nomor lain.' });
     }
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message.replace('USER: ','') });
     return res.status(500).json({ error: err.message });
   } finally {
     try {
@@ -576,6 +577,7 @@ router.put('/:id', auth, async (req, res) => {
     res.json(result.rows[0]);
   } catch (err) {
     await client.query('ROLLBACK');
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message.replace('USER: ','') });
     res.status(500).json({ error: err.message });
   } finally {
     client.release();
@@ -623,6 +625,7 @@ router.delete('/:id', auth, async (req, res) => {
     });
   } catch (err) {
     await client.query('ROLLBACK');
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message.replace('USER: ','') });
     res.status(500).json({ error: err.message });
   } finally { client.release(); }
 });
