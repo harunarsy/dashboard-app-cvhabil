@@ -2,6 +2,19 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.16.2-stable] - 2026-06-03
+
+### Changed
+- Faktur stock-in: batch HNA now uses effective cost after discount/COD (effectiveHna helper)
+- Faktur linked SP: existing received batches are now respected, no duplicate batch creation
+
+### Added
+- GET /purchase-orders/:id now returns received_batches per item
+- effectiveHna() helper for consistent discount-aware cost calculation
+
+### Fixed
+- Invoice items HNA prorata bug: now uses per-unit values consistently
+
 ## [v1.16.1-stable] - 2026-06-03
 
 ### Fixed

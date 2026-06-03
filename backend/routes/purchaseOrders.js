@@ -184,6 +184,28 @@ router.get('/:id', auth, async (req, res) => {
     const { rows: [po] } = await pool.query('SELECT * FROM purchase_orders WHERE id = $1 AND is_deleted = FALSE', [req.params.id]);
     if (!po) return res.status(404).json({ error: 'SP not found' });
     const { rows: items } = await pool.query('SELECT * FROM purchase_order_items WHERE po_id = $1 ORDER BY id', [req.params.id]);
+    // Attach received_batches per item from inventory_batches
+    const { rows: batches } = await pool.query(
+      `SELECT product_id, batch_no, expired_date, qty_current, source_qty_value, source_qty_unit, hna
+       FROM inventory_batches
+       WHERE source_type = 'purchase' AND source_ref = $1`,
+      [`PO-${req.params.id}`]
+    );
+    const batchesByProductId = {};
+    batches.forEach(b => {
+      if (!batchesByProductId[b.product_id]) batchesByProductId[b.product_id] = [];
+      batchesByProductId[b.product_id].push({
+        batch_no: b.batch_no,
+        expired_date: b.expired_date,
+        qty_current: b.qty_current,
+        source_qty_value: b.source_qty_value,
+        source_qty_unit: b.source_qty_unit,
+        hna: b.hna,
+      });
+    });
+    items.forEach(item => {
+      item.received_batches = (item.product_id && batchesByProductId[item.product_id]) || [];
+    });
     res.json({ ...po, items });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

@@ -141,6 +141,14 @@ const prorateSourceQty = (sourceQty, fullBaseQty, stockedBaseQty) => {
   return Number(((source * stocked) / full).toFixed(4));
 };
 
+const effectiveHna = (item, qtyBase) => {
+  const qty = toNumber(qtyBase) || toNumber(item.quantity) || 1;
+  if (toNumber(item.hna_after_cod) > 0) return toNumber(item.hna_after_cod) / qty;
+  if (toNumber(item.hna_per_item) > 0) return toNumber(item.hna_per_item);
+  if (toNumber(item.hna_baru) > 0) return toNumber(item.hna_baru) / qty;
+  return toNumber(item.hna) || 0;
+};
+
 const resolveProductByIdOrName = async (client, item = {}) => {
   const numericProductId = Number.parseInt(item.product_id, 10);
   if (Number.isFinite(numericProductId) && numericProductId > 0) {
@@ -649,7 +657,7 @@ router.post('/', auth, async (req, res) => {
         const displayUnit = item.unit || product?.base_unit || 'pcs';
 
         if (product) {
-          await syncProductHna(client, product.id, item.hna, purchase_order_id);
+          await syncProductHna(client, product.id, effectiveHna(item, qtyBase), purchase_order_id);
         }
 
         let stockQtyBase = qtyBase;
@@ -674,19 +682,91 @@ router.post('/', auth, async (req, res) => {
         }
 
         if (product && stockQtyBase > 0) {
-          const batchHna = parseFloat(item.hna) || parseFloat(product.hna) || 0;
-          const { rows: [batch] } = await client.query(
-            `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size)
-             VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9) RETURNING id`,
-            [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize]
-          );
-          await client.query(
-          `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
-             VALUES ($1, $2, 'in', $3, 'faktur', $4, $5, $6, $7)`,
-            [product.id, batch.id, stockQtyBase, invoiceId,
-             `Stok masuk dari faktur ${invoice_number}${displayUnit !== product.base_unit ? ` (${sourceQtyValue} ${displayUnit})` : ''}`,
-             displayUnit, sourceQtyValue]
-          );
+          // ─── Existing PO batch handling ──────────────────────────────
+          if (purchase_order_id && poItem) {
+            const { rows: existingBatches } = await client.query(
+              `SELECT id, qty_current, hna FROM inventory_batches
+               WHERE source_type = 'purchase' AND source_ref = $1
+               AND product_id = $2 AND is_active = TRUE
+               ORDER BY expired_date ASC NULLS LAST`,
+              [`PO-${purchase_order_id}`, product.id]
+            );
+            if (existingBatches.length > 0) {
+              // Distribute stockQtyBase across existing batches (FEFO)
+              const effectiveHnaVal = effectiveHna(item, stockQtyBase || qtyBase);
+              let remaining = stockQtyBase;
+              for (const eb of existingBatches) {
+                if (remaining <= 0) break;
+                const deductible = Math.min(toNumber(eb.qty_current), remaining);
+                if (deductible <= 0) continue;
+                // Update batch HNA
+                await client.query(
+                  `UPDATE inventory_batches SET hna = $1 WHERE id = $2`,
+                  [effectiveHnaVal, eb.id]
+                );
+                // Create mutation for stock-in from existing PO batch
+                const { rows: [mutationBatch] } = await client.query(
+                  `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size)
+                   VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9) RETURNING id`,
+                  [product.id, item.batch_number || invoice_number, item.expired_date || null, deductible, effectiveHnaVal, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize]
+                );
+                await client.query(
+                  `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
+                   VALUES ($1, $2, 'in', $3, 'faktur', $4, $5, $6, $7)`,
+                  [product.id, mutationBatch.id, deductible, invoiceId,
+                   `Stok masuk dari faktur ${invoice_number} (dari batch PO #${eb.id})${displayUnit !== product.base_unit ? ` (${sourceQtyValue} ${displayUnit})` : ''}`,
+                   displayUnit, sourceQtyValue]
+                );
+                remaining -= deductible;
+              }
+              if (remaining > 0) {
+                // Remaining stock after distributing across existing batches: create new batch
+                const batchHnaRemaining = effectiveHna(item, stockQtyBase || qtyBase);
+                const { rows: [batch] } = await client.query(
+                  `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size)
+                   VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9) RETURNING id`,
+                  [product.id, item.batch_number || invoice_number, item.expired_date || null, remaining, batchHnaRemaining, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize]
+                );
+                await client.query(
+                  `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
+                   VALUES ($1, $2, 'in', $3, 'faktur', $4, $5, $6, $7)`,
+                  [product.id, batch.id, remaining, invoiceId,
+                   `Stok masuk dari faktur ${invoice_number}${displayUnit !== product.base_unit ? ` (${sourceQtyValue} ${displayUnit})` : ''}`,
+                   displayUnit, sourceQtyValue]
+                );
+              }
+            } else {
+              // No existing PO batches: create new batch
+              const batchHna = effectiveHna(item, stockQtyBase || qtyBase);
+              const { rows: [batch] } = await client.query(
+                `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size)
+                 VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9) RETURNING id`,
+                [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize]
+              );
+              await client.query(
+                `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
+                 VALUES ($1, $2, 'in', $3, 'faktur', $4, $5, $6, $7)`,
+                [product.id, batch.id, stockQtyBase, invoiceId,
+                 `Stok masuk dari faktur ${invoice_number}${displayUnit !== product.base_unit ? ` (${sourceQtyValue} ${displayUnit})` : ''}`,
+                 displayUnit, sourceQtyValue]
+              );
+            }
+          } else {
+            // No PO linked: create new batch
+            const batchHna = effectiveHna(item, stockQtyBase || qtyBase);
+            const { rows: [batch] } = await client.query(
+              `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size)
+               VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9) RETURNING id`,
+              [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize]
+            );
+            await client.query(
+              `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
+               VALUES ($1, $2, 'in', $3, 'faktur', $4, $5, $6, $7)`,
+              [product.id, batch.id, stockQtyBase, invoiceId,
+               `Stok masuk dari faktur ${invoice_number}${displayUnit !== product.base_unit ? ` (${sourceQtyValue} ${displayUnit})` : ''}`,
+               displayUnit, sourceQtyValue]
+            );
+          }
         } else if (!product) {
           const normalizedName = normalizeProductName(item.product_name);
           const warningSuffix = productLookup.ambiguousNames.has(normalizedName)

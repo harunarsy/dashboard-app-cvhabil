@@ -33,9 +33,41 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.16.1-stable",
+    version: "v1.16.2-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "changed",
+        text: "Faktur stock-in: batch HNA now uses effective cost after discount/COD (effectiveHna helper)",
+        dev: "",
+      },
+      {
+        type: "changed",
+        text: "Faktur linked SP: existing received batches are now respected, no duplicate batch creation",
+        dev: "",
+      },
+      {
+        type: "added",
+        text: "GET /purchase-orders/:id now returns received_batches per item",
+        dev: "",
+      },
+      {
+        type: "added",
+        text: "effectiveHna() helper for consistent discount-aware cost calculation",
+        dev: "",
+      },
+      {
+        type: "fixed",
+        text: "Invoice items HNA prorata bug: now uses per-unit values consistently",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.16.1-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2034,7 +2066,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.16.1-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.16.2-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
