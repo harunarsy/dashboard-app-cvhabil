@@ -562,16 +562,34 @@ export default function InvoiceList({
         distributor_name: po.distributor_name || f.distributor_name,
       }));
       if (po.items && po.items.length) {
+        // v1.16.2: jika PO item punya received_batches, buat satu baris faktur per batch penerimaan
         setItems(
-          po.items.map((it) =>
-            calcItem({
-              ...blankItem(),
-              product_name: it.product_name,
-              product_id: it.product_id || null,
-              quantity: it.qty || 1, // invoice qty follows supplier faktur; stock-in still limited by backend room logic
-              unit: it.unit || "pcs",
-            }),
-          ),
+          po.items.flatMap((it) => {
+            if (it.received_batches && it.received_batches.length > 0) {
+              return it.received_batches.map((batch) =>
+                calcItem({
+                  ...blankItem(),
+                  product_name: it.product_name,
+                  product_id: it.product_id || null,
+                  batch_number: batch.batch_no || '',
+                  expired_date: batch.expired_date || '',
+                  quantity: batch.source_qty_value || batch.received_qty_base || it.qty || 1,
+                  unit: batch.source_qty_unit || it.unit || 'pcs',
+                  hna: batch.hna || '',
+                }),
+              );
+            }
+            // Current behavior: one row per PO item
+            return [
+              calcItem({
+                ...blankItem(),
+                product_name: it.product_name,
+                product_id: it.product_id || null,
+                quantity: it.qty || 1,
+                unit: it.unit || "pcs",
+              }),
+            ];
+          }),
         );
       }
     } catch (e) {

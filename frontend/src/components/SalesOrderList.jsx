@@ -548,6 +548,7 @@ export default function SalesOrderList({
       payment_terms: order.payment_terms || null,
     });
     // v1.8.1: include batch snapshot fields supaya batch picker bisa pre-fill
+    // v1.16.2: tambah _selected_batch_id untuk lookup berbasis id
     const editItems = order.items?.length
       ? order.items.map((i) => ({
           product_name: i.product_name,
@@ -555,6 +556,7 @@ export default function SalesOrderList({
           unit: i.unit || "pcs",
           unit_price: parseFloat(i.unit_price) || 0,
           unit_hpp: parseFloat(i.unit_hpp) || 0,
+          _selected_batch_id: i.batch_id_snapshot || null,
           _selected_batch: i.batch_no_snapshot || "",
           batch_no_snapshot: i.batch_no_snapshot,
           expired_date_snapshot: i.expired_date_snapshot,
@@ -565,6 +567,7 @@ export default function SalesOrderList({
     setShowModal(true);
 
     // v1.8.1: re-fetch batches per item supaya dropdown bisa render + match snapshot
+    // v1.16.2: gunakan getProductBatches agar batch historis (stok 0 / expired) ikut termuat
     if (order.items?.length) {
       for (let idx = 0; idx < order.items.length; idx++) {
         const item = order.items[idx];
@@ -573,12 +576,32 @@ export default function SalesOrderList({
         );
         if (!prod) continue;
         try {
-          const { data: batches } = await inventoryAPI.getAvailableBatches(
+          // Gunakan getProductBatches yang mengembalikan SEMUA batch (termasuk stok 0 & expired)
+          const { data: allBatches } = await inventoryAPI.getProductBatches(
             prod.id,
           );
+          let batches = allBatches || [];
+          // Tambahkan synthetic entry jika batch snapshot tidak ada di daftar
+          if (item.batch_no_snapshot) {
+            const exists = batches.find(
+              (b) => String(b.id) === String(item.batch_id_snapshot) || b.batch_no === item.batch_no_snapshot,
+            );
+            if (!exists) {
+              batches = [
+                ...batches,
+                {
+                  id: item.batch_id_snapshot || null,
+                  batch_no: item.batch_no_snapshot,
+                  expired_date: item.expired_date_snapshot,
+                  qty_current: 0,
+                  hna: item.unit_hpp || 0,
+                },
+              ];
+            }
+          }
           setItemBatches((prev) => {
             const n = [...prev];
-            n[idx] = batches || [];
+            n[idx] = batches;
             return n;
           });
           // Cache product reference di item (untuk consistency dgn updateItem product flow)
@@ -609,6 +632,15 @@ export default function SalesOrderList({
     setSaving(true);
     try {
       const payload = { ...form, items: validItems };
+      // v1.16.2: map batch fields ke payload (selected_batch_id, batch_id_snapshot, dll)
+      payload.items = payload.items.map((i) => ({
+        ...i,
+        selected_batch_id: i._selected_batch_id || null,
+        batch_id_snapshot: i._selected_batch_id || null,
+        batch_no_snapshot: i.batch_no_snapshot || i._selected_batch || null,
+        expired_date_snapshot: i.expired_date_snapshot || null,
+        unit_hpp: parseFloat(i.unit_hpp) || 0,
+      }));
       if (!isAutoNota && !editId) {
         payload.order_number = notaCounter.prefix + manualNumber;
       }
@@ -764,6 +796,7 @@ export default function SalesOrderList({
           if (batches.length > 0) {
             updated.unit_hpp = parseFloat(batches[0].hna) || 0;
             updated._selected_batch = batches[0].batch_no;
+            updated._selected_batch_id = batches[0].id || null;
           } else {
             updated.unit_hpp = parseFloat(match.hna) || 0;
           }
@@ -809,11 +842,15 @@ export default function SalesOrderList({
       }
     }
 
-    // When batch is manually selected
+    // v1.16.2: batch dipilih dari dropdown — cari berdasarkan id, update snapshot fields
     if (field === "_selected_batch") {
       const batches = itemBatches[idx] || [];
-      const batch = batches.find((b) => b.batch_no === value);
+      const batch = batches.find((b) => String(b.id) === String(value) || b.batch_no === value);
       if (batch) {
+        updated._selected_batch_id = batch.id;
+        updated._selected_batch = batch.batch_no;
+        updated.batch_no_snapshot = batch.batch_no;
+        updated.expired_date_snapshot = batch.expired_date;
         const match =
           newItems[idx]._product ||
           products.find(
@@ -2459,7 +2496,8 @@ export default function SalesOrderList({
                               style={{ marginTop: "4px", paddingLeft: "2px" }}
                             >
                               <select
-                                value={it._selected_batch || ""}
+                                // v1.16.2: gunakan id sebagai value, bukan batch_no
+                                value={it._selected_batch_id || it._selected_batch || ""}
                                 onChange={(e) =>
                                   updateItem(
                                     idx,
@@ -2468,6 +2506,7 @@ export default function SalesOrderList({
                                   )
                                 }
                                 style={{
+
                                   ...inputStyle,
                                   fontSize: "11px",
                                   padding: "5px 8px",
@@ -2478,26 +2517,31 @@ export default function SalesOrderList({
                                   color: "var(--color-primary)",
                                 }}
                               >
-                                {batches.map((b) => (
-                                  <option key={b.batch_no} value={b.batch_no}>
-                                    Batch: {b.batch_no} | ED:{" "}
-                                    {b.expired_date
-                                      ? new Date(
-                                          b.expired_date,
-                                        ).toLocaleDateString("id-ID", {
-                                          day: "2-digit",
-                                          month: "short",
-                                          year: "numeric",
-                                        })
-                                      : "-"}{" "}
-                                    | Stok: {b.qty_current} | HPP (inc PPN):{" "}
-                                    {new Intl.NumberFormat("id-ID", {
-                                      style: "currency",
-                                      currency: "IDR",
-                                      minimumFractionDigits: 0,
-                                    }).format(hppFromHna(b.hna))}
-                                  </option>
-                                ))}
+                                <option value="">Pilih Batch</option>
+                                {batches.map((b) => {
+                                  const isHistorical = (b.qty_current || 0) <= 0;
+                                  return (
+                                    <option key={b.id || b.batch_no} value={b.id || b.batch_no}>
+                                      {b.batch_no} | ED:{" "}
+                                      {b.expired_date
+                                        ? new Date(
+                                            b.expired_date,
+                                          ).toLocaleDateString("id-ID", {
+                                            day: "2-digit",
+                                            month: "short",
+                                            year: "numeric",
+                                          })
+                                        : "-"}{" "}
+                                      | Stok: {b.qty_current} | HPP (inc PPN):{" "}
+                                      {new Intl.NumberFormat("id-ID", {
+                                        style: "currency",
+                                        currency: "IDR",
+                                        minimumFractionDigits: 0,
+                                      }).format(hppFromHna(b.hna))}
+                                      {isHistorical ? " (historis)" : ""}
+                                    </option>
+                                  );
+                                })}
                               </select>
                             </div>
                           )}

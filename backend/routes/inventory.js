@@ -661,18 +661,58 @@ router.get('/fefo-hna/:productId', auth, async (req, res) => {
 });
 
 // GET all available batches for a product (for batch dropdown in sales/nota)
+// Supports include_batch_ids (comma-separated batch IDs) and include_batch_no (comma-separated batch numbers)
+// to also include historical (zero/negative stock) batches matching those identifiers
 router.get('/batches-by-product/:productId', auth, async (req, res) => {
   try {
-    // batch.hna sudah per-pcs (RAW, exc PPN) — HPP per pcs = hna * (1 + PPN_RATE)
-    const { rows } = await pool.query(`
-      SELECT batch_no, expired_date, qty_current, hna,
-             CASE WHEN hna > 0 THEN hna * ${1 + tax.PPN_RATE} ELSE 0 END AS hpp_inc_ppn
-      FROM inventory_batches
-      WHERE product_id = $1 AND qty_current > 0
+    const { include_batch_ids, include_batch_no } = req.query;
+
+    // Parse optional include params
+    const extraIds = include_batch_ids
+      ? include_batch_ids.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0)
+      : [];
+    const extraNos = include_batch_no
+      ? include_batch_no.split(',').map(s => s.trim()).filter(s => s.length > 0)
+      : [];
+
+    // Default: active batches with stock + not expired
+    const activeCondition = `(
+      qty_current > 0
       AND COALESCE(is_active, TRUE) = TRUE
       AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
+    )`;
+
+    let whereClause = `WHERE product_id = $1 AND ${activeCondition}`;
+    const params = [req.params.productId];
+
+    if (extraIds.length > 0 || extraNos.length > 0) {
+      const extraClauses = [];
+      if (extraIds.length > 0) {
+        const placeholders = extraIds.map((_, i) => `$${params.length + 1 + i}`);
+        extraClauses.push(`id IN (${placeholders.join(',')})`);
+        params.push(...extraIds);
+      }
+      if (extraNos.length > 0) {
+        const placeholders = extraNos.map((_, i) => `$${params.length + 1 + i}`);
+        extraClauses.push(`batch_no IN (${placeholders.join(',')})`);
+        params.push(...extraNos);
+      }
+      // Active batches OR historical matches (even if qty_current <= 0)
+      whereClause = `WHERE product_id = $1 AND (
+        ${activeCondition}
+        OR (${extraClauses.join(' OR ')})
+      )`;
+    }
+
+    // batch.hna sudah per-pcs (RAW, exc PPN) — HPP per pcs = hna * (1 + PPN_RATE)
+    const { rows } = await pool.query(`
+      SELECT id, batch_no, expired_date, qty_current, hna,
+             CASE WHEN hna > 0 THEN hna * ${1 + tax.PPN_RATE} ELSE 0 END AS hpp_inc_ppn,
+             CASE WHEN qty_current <= 0 THEN true ELSE false END AS is_historical
+      FROM inventory_batches
+      ${whereClause}
       ORDER BY expired_date ASC NULLS LAST
-    `, [req.params.productId]);
+    `, params);
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

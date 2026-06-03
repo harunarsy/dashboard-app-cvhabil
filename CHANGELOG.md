@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.16.3-stable] - 2026-06-03
+
+### Fixed
+- Partial SP faktur no longer duplicates stock: remaining room logic, no existing batch iteration
+- Batch cost sync narrowed to matching batch_number, not blanket PO batch update
+- Sales edit respects selected batch; edit modal shows snapshot batches even if stock 0
+
 ## [v1.16.2-stable] - 2026-06-03
 
 ### Changed

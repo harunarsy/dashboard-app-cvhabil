@@ -33,9 +33,31 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.16.2-stable",
+    version: "v1.16.3-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Partial SP faktur no longer duplicates stock: remaining room logic, no existing batch iteration",
+        dev: "",
+      },
+      {
+        type: "fix",
+        text: "Batch cost sync narrowed to matching batch_number, not blanket PO batch update",
+        dev: "",
+      },
+      {
+        type: "fix",
+        text: "Sales edit respects selected batch; edit modal shows snapshot batches even if stock 0",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.16.2-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "changed",
@@ -48,17 +70,17 @@ const RELEASES = [
         dev: "",
       },
       {
-        type: "added",
+        type: "new",
         text: "GET /purchase-orders/:id now returns received_batches per item",
         dev: "",
       },
       {
-        type: "added",
+        type: "new",
         text: "effectiveHna() helper for consistent discount-aware cost calculation",
         dev: "",
       },
       {
-        type: "fixed",
+        type: "fix",
         text: "Invoice items HNA prorata bug: now uses per-unit values consistently",
         dev: "",
       },
@@ -2066,7 +2088,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.16.2-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.16.3-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

@@ -186,21 +186,28 @@ router.get('/:id', auth, async (req, res) => {
     const { rows: items } = await pool.query('SELECT * FROM purchase_order_items WHERE po_id = $1 ORDER BY id', [req.params.id]);
     // Attach received_batches per item from inventory_batches
     const { rows: batches } = await pool.query(
-      `SELECT product_id, batch_no, expired_date, qty_current, source_qty_value, source_qty_unit, hna
-       FROM inventory_batches
-       WHERE source_type = 'purchase' AND source_ref = $1`,
-      [`PO-${req.params.id}`]
+      `SELECT b.id, b.product_id, b.batch_no, b.expired_date, b.qty_current, b.source_qty_value, b.source_qty_unit, b.hna, b.is_active,
+              COALESCE(SUM(m.qty), 0) AS received_qty_base
+       FROM inventory_batches b
+       LEFT JOIN inventory_mutations m ON m.batch_id = b.id AND m.reference_type = 'purchase' AND m.reference_id = $2 AND m.type = 'in'
+       WHERE b.source_type = 'purchase' AND b.source_ref = $1
+         AND COALESCE(b.is_active, TRUE) = TRUE
+       GROUP BY b.id`,
+      [`PO-${req.params.id}`, req.params.id]
     );
     const batchesByProductId = {};
     batches.forEach(b => {
       if (!batchesByProductId[b.product_id]) batchesByProductId[b.product_id] = [];
       batchesByProductId[b.product_id].push({
+        id: b.id,
         batch_no: b.batch_no,
         expired_date: b.expired_date,
         qty_current: b.qty_current,
         source_qty_value: b.source_qty_value,
         source_qty_unit: b.source_qty_unit,
         hna: b.hna,
+        is_active: b.is_active,
+        received_qty_base: b.received_qty_base,
       });
     });
     items.forEach(item => {
