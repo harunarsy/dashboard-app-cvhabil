@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "node scripts/check-db.js && nodemon server.js",
     "start": "node server.js",
-    "test": "node scripts/test-regression.js && node scripts/test-route-regression.js",
+    "test": "node scripts/test-regression.js && node scripts/test-route-regression.js && node scripts/test-route-http.js",
     "test-db": "node scripts/test-regression.js",
-    "test-route": "node scripts/test-route-regression.js"
+    "test-route": "node scripts/test-route-regression.js",
+    "test-http": "node scripts/test-route-http.js",
+    "health": "node scripts/test-regression.js"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +30,7 @@
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "supertest": "^7.1.0"
   }
 }

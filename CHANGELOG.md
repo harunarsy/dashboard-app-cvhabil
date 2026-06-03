@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.17.2-stable] - 2026-06-03
+
+### Added
+- HTTP integration smoke tests (11 tests): health, auth guard, route mounting, response shape
+- app.js extracted from server.js for testability
+- supertest devDependency for route testing
+
+### Changed
+- npm test now runs DB health (18) + route helper (18) + HTTP smoke (11) = 47 total
+
 ## [v1.17.1-stable] - 2026-06-03
 
 ### Fixed

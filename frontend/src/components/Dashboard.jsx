@@ -33,9 +33,36 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.17.1-stable",
+    version: "v1.17.2-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "added",
+        text: "HTTP integration smoke tests (11 tests): health, auth guard, route mounting, response shape",
+        dev: "",
+      },
+      {
+        type: "added",
+        text: "app.js extracted from server.js for testability",
+        dev: "",
+      },
+      {
+        type: "added",
+        text: "supertest devDependency for route testing",
+        dev: "",
+      },
+      {
+        type: "changed",
+        text: "npm test now runs DB health (18) + route helper (18) + HTTP smoke (11) = 47 total",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.17.1-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fixed",
@@ -2289,7 +2316,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.17.1-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.17.2-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
