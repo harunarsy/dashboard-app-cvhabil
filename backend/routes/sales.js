@@ -66,6 +66,23 @@ const ensureSchema = async () => {
     // v1.16.2+: batch_id_snapshot for tracking selected batch in sales_items
     await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS batch_id_snapshot INT`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_sales_items_batch_snapshot ON sales_items(batch_id_snapshot)`);
+    // Safe backfill: only where unique match exists (batch_no + expired_date + product_name)
+    await pool.query(`
+      UPDATE sales_items si
+      SET batch_id_snapshot = b.id
+      FROM inventory_batches b
+      JOIN product_master p ON p.id = b.product_id
+      WHERE si.batch_id_snapshot IS NULL
+        AND si.batch_no_snapshot IS NOT NULL
+        AND LOWER(TRIM(p.name)) = LOWER(TRIM(si.product_name))
+        AND b.batch_no = si.batch_no_snapshot
+        AND (b.expired_date = si.expired_date_snapshot OR (b.expired_date IS NULL AND si.expired_date_snapshot IS NULL))
+        AND (SELECT COUNT(*) FROM inventory_batches b2
+             WHERE b2.product_id = p.id
+             AND b2.batch_no = si.batch_no_snapshot
+             AND (b2.expired_date = si.expired_date_snapshot OR (b2.expired_date IS NULL AND si.expired_date_snapshot IS NULL))
+        ) = 1
+    `);
 };
 ensureSchema().catch(e => console.error('sales ensureSchema:', e));
 
@@ -128,6 +145,44 @@ const generateOrderNumber = async (client) => {
 
   const padded = String(nextNumber).padStart(3, '0');
   return `${monthPrefix}${padded}`;
+};
+
+// ─── resolveSelectedBatchForSale ──────────────────────────────────────────
+// Priority: selected_batch_id > batch_id_snapshot > batch_no_snapshot + expired_date > batch_no_snapshot only
+const resolveSelectedBatchForSale = async (client, productId, item) => {
+  const numericBatchId = Number.parseInt(item.selected_batch_id || item.batch_id_snapshot, 10);
+  if (Number.isFinite(numericBatchId) && numericBatchId > 0) {
+    const { rows: [batch] } = await client.query(
+      'SELECT * FROM inventory_batches WHERE id = $1 AND product_id = $2 FOR UPDATE',
+      [numericBatchId, productId]
+    );
+    if (batch) return { batch, source: 'id' };
+  }
+
+  const batchNo = item.batch_no_snapshot || item._selected_batch;
+  const expiredDate = item.expired_date_snapshot;
+
+  if (batchNo) {
+    if (expiredDate) {
+      const { rows } = await client.query(
+        `SELECT * FROM inventory_batches
+         WHERE product_id = $1 AND batch_no = $2
+         AND (expired_date = $3 OR (expired_date IS NULL AND $3 IS NULL))`,
+        [productId, batchNo, expiredDate]
+      );
+      if (rows.length === 1) return { batch: rows[0], source: 'name_date' };
+      if (rows.length > 1) throw new Error('Batch snapshot ambigu, pilih batch ulang.');
+    }
+    // Fallback: batch_no only if unique
+    const { rows } = await client.query(
+      'SELECT * FROM inventory_batches WHERE product_id = $1 AND batch_no = $2',
+      [productId, batchNo]
+    );
+    if (rows.length === 1) return { batch: rows[0], source: 'name_only' };
+    if (rows.length > 1) throw new Error('Batch snapshot ambigu (multiple batch_no), pilih batch ulang.');
+  }
+
+  return { batch: null, source: null };
 };
 
 // GET all (excluding soft-deleted)
@@ -221,7 +276,7 @@ router.post('/', auth, async (req, res) => {
       productMap.set(it.product_name, { ...p });
     }
 
-    // Insert items with batch snapshot (respecting selected_batch_id or FEFO peek)
+    // Insert items with batch snapshot (using resolveSelectedBatchForSale + FEFO fallback)
     const itemBatchInfo = []; // track for stock-out phase
     for (const it of items) {
       const product = productMap.get(it.product_name);
@@ -233,39 +288,33 @@ router.post('/', auth, async (req, res) => {
       let snapshotBatchId = null;
       let snapshotBatchNo = null;
       let snapshotExpiredDate = null;
-      const selectedBatchId = parseInt(it.selected_batch_id);
 
-      if (product && selectedBatchId && selectedBatchId > 0) {
-        // Selected batch: lock & validate stock >= qty
-        const { rows: [batch] } = await client.query(
-          'SELECT * FROM inventory_batches WHERE id = $1 AND product_id = $2 FOR UPDATE',
-          [selectedBatchId, product.id]
-        );
-        if (!batch) {
-          await client.query('ROLLBACK');
-          return res.status(400).json({ error: `Batch ${selectedBatchId} tidak ditemukan untuk ${product.name}` });
+      if (product) {
+        const resolved = await resolveSelectedBatchForSale(client, product.id, it);
+        if (resolved.batch) {
+          // Deduct from this exact batch (resolved by id, name+date, or name only)
+          if (resolved.batch.qty_current < qtyBase) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: `Stok batch tidak cukup untuk ${product.name} (tersedia: ${resolved.batch.qty_current})` });
+          }
+          snapshotBatchId = resolved.batch.id;
+          snapshotBatchNo = resolved.batch.batch_no;
+          snapshotExpiredDate = resolved.batch.expired_date;
+          itemBatchInfo.push({ product, selectedBatchId: resolved.batch.id, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: true });
+        } else {
+          // FEFO fallback (existing behavior)
+          const { rows: [firstBatch] } = await client.query(
+            `SELECT id, batch_no, expired_date FROM inventory_batches
+             WHERE product_id = $1 AND qty_current > 0 AND COALESCE(is_active, TRUE) = TRUE
+             AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
+             ORDER BY expired_date ASC NULLS LAST LIMIT 1`,
+            [product.id]
+          );
+          snapshotBatchId = firstBatch?.id || null;
+          snapshotBatchNo = firstBatch?.batch_no || null;
+          snapshotExpiredDate = firstBatch?.expired_date || null;
+          itemBatchInfo.push({ product, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: false });
         }
-        if (batch.qty_current < qtyBase) {
-          await client.query('ROLLBACK');
-          return res.status(400).json({ error: `Stok batch tidak cukup untuk ${product.name} (tersedia: ${batch.qty_current})` });
-        }
-        snapshotBatchId = batch.id;
-        snapshotBatchNo = batch.batch_no;
-        snapshotExpiredDate = batch.expired_date;
-        itemBatchInfo.push({ product, selectedBatchId: batch.id, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: true });
-      } else if (product) {
-        // Default FEFO peek for snapshot (reflects actual deducted batch)
-        const { rows: [firstBatch] } = await client.query(
-          `SELECT id, batch_no, expired_date FROM inventory_batches
-           WHERE product_id = $1 AND qty_current > 0 AND COALESCE(is_active, TRUE) = TRUE
-           AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
-           ORDER BY expired_date ASC NULLS LAST LIMIT 1`,
-          [product.id]
-        );
-        snapshotBatchId = firstBatch?.id || null;
-        snapshotBatchNo = firstBatch?.batch_no || null;
-        snapshotExpiredDate = firstBatch?.expired_date || null;
-        itemBatchInfo.push({ product, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: false });
       } else {
         itemBatchInfo.push({ product: null, qtyBase: 0, qtyInUnit, unit: 'pcs', isSelected: false });
       }
@@ -418,7 +467,7 @@ router.put('/:id', auth, async (req, res) => {
     const { rows: [orderInfo] } = await client.query('SELECT order_number FROM sales_orders WHERE id = $1', [req.params.id]);
     const orderNumber = orderInfo?.order_number || `#${req.params.id}`;
 
-    // Insert items with batch snapshot (respecting selected_batch_id or FEFO peek)
+    // Insert items with batch snapshot (using resolveSelectedBatchForSale + FEFO fallback)
     const itemBatchInfo = []; // track for stock-out phase
     for (const it of items) {
       const product = productMap.get(it.product_name);
@@ -430,39 +479,33 @@ router.put('/:id', auth, async (req, res) => {
       let snapshotBatchId = null;
       let snapshotBatchNo = null;
       let snapshotExpiredDate = null;
-      const selectedBatchId = parseInt(it.selected_batch_id);
 
-      if (product && selectedBatchId && selectedBatchId > 0) {
-        // Selected batch: lock & validate stock >= qty (after reversal)
-        const { rows: [batch] } = await client.query(
-          'SELECT * FROM inventory_batches WHERE id = $1 AND product_id = $2 FOR UPDATE',
-          [selectedBatchId, product.id]
-        );
-        if (!batch) {
-          await client.query('ROLLBACK');
-          return res.status(400).json({ error: `Batch ${selectedBatchId} tidak ditemukan untuk ${product.name}` });
+      if (product) {
+        const resolved = await resolveSelectedBatchForSale(client, product.id, it);
+        if (resolved.batch) {
+          // Deduct from this exact batch (resolved by id, name+date, or name only)
+          if (resolved.batch.qty_current < qtyBase) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: `Stok batch tidak cukup untuk ${product.name} (tersedia: ${resolved.batch.qty_current})` });
+          }
+          snapshotBatchId = resolved.batch.id;
+          snapshotBatchNo = resolved.batch.batch_no;
+          snapshotExpiredDate = resolved.batch.expired_date;
+          itemBatchInfo.push({ product, selectedBatchId: resolved.batch.id, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: true });
+        } else {
+          // FEFO fallback (existing behavior)
+          const { rows: [firstBatch] } = await client.query(
+            `SELECT id, batch_no, expired_date FROM inventory_batches
+             WHERE product_id = $1 AND qty_current > 0 AND COALESCE(is_active, TRUE) = TRUE
+             AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
+             ORDER BY expired_date ASC NULLS LAST LIMIT 1`,
+            [product.id]
+          );
+          snapshotBatchId = firstBatch?.id || null;
+          snapshotBatchNo = firstBatch?.batch_no || null;
+          snapshotExpiredDate = firstBatch?.expired_date || null;
+          itemBatchInfo.push({ product, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: false });
         }
-        if (batch.qty_current < qtyBase) {
-          await client.query('ROLLBACK');
-          return res.status(400).json({ error: `Stok batch tidak cukup untuk ${product.name} (tersedia: ${batch.qty_current})` });
-        }
-        snapshotBatchId = batch.id;
-        snapshotBatchNo = batch.batch_no;
-        snapshotExpiredDate = batch.expired_date;
-        itemBatchInfo.push({ product, selectedBatchId: batch.id, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: true });
-      } else if (product) {
-        // Default FEFO peek for snapshot (reflects actual deducted batch)
-        const { rows: [firstBatch] } = await client.query(
-          `SELECT id, batch_no, expired_date FROM inventory_batches
-           WHERE product_id = $1 AND qty_current > 0 AND COALESCE(is_active, TRUE) = TRUE
-           AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
-           ORDER BY expired_date ASC NULLS LAST LIMIT 1`,
-          [product.id]
-        );
-        snapshotBatchId = firstBatch?.id || null;
-        snapshotBatchNo = firstBatch?.batch_no || null;
-        snapshotExpiredDate = firstBatch?.expired_date || null;
-        itemBatchInfo.push({ product, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: false });
       } else {
         itemBatchInfo.push({ product: null, qtyBase: 0, qtyInUnit, unit: 'pcs', isSelected: false });
       }

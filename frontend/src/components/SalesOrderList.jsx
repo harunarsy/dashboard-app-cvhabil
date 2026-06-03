@@ -581,23 +581,67 @@ export default function SalesOrderList({
             prod.id,
           );
           let batches = allBatches || [];
-          // Tambahkan synthetic entry jika batch snapshot tidak ada di daftar
-          if (item.batch_no_snapshot) {
-            const exists = batches.find(
-              (b) => String(b.id) === String(item.batch_id_snapshot) || b.batch_no === item.batch_no_snapshot,
+          // v1.16.3: resolusi snapshot batch — coba match dulu, baru synthetic fallback
+          let matchedBatch = null;
+          if (item.batch_id_snapshot) {
+            // a) Match by batch_id_snapshot (id integer)
+            matchedBatch = batches.find(
+              (b) => String(b.id) === String(item.batch_id_snapshot),
             );
-            if (!exists) {
-              batches = [
-                ...batches,
-                {
-                  id: item.batch_id_snapshot || null,
-                  batch_no: item.batch_no_snapshot,
-                  expired_date: item.expired_date_snapshot,
-                  qty_current: 0,
-                  hna: item.unit_hpp || 0,
-                },
-              ];
-            }
+          }
+          if (!matchedBatch && item.batch_no_snapshot && item.expired_date_snapshot) {
+            // b) Match by batch_no_snapshot + expired_date_snapshot
+            matchedBatch = batches.find(
+              (b) =>
+                b.batch_no === item.batch_no_snapshot &&
+                b.expired_date === item.expired_date_snapshot,
+            );
+          }
+          if (!matchedBatch && item.batch_no_snapshot) {
+            // c) Match by batch_no_snapshot only
+            matchedBatch = batches.find(
+              (b) => b.batch_no === item.batch_no_snapshot,
+            );
+          }
+          if (matchedBatch) {
+            // Update item fields from matched batch
+            setItems((prev) => {
+              const n = [...prev];
+              if (n[idx]) {
+                n[idx] = {
+                  ...n[idx],
+                  _selected_batch_id: matchedBatch.id,
+                  _selected_batch: matchedBatch.batch_no,
+                  batch_no_snapshot: matchedBatch.batch_no,
+                  expired_date_snapshot: matchedBatch.expired_date,
+                  unit_hpp: parseFloat(matchedBatch.hna) || 0,
+                };
+              }
+              return n;
+            });
+          } else if (item.batch_no_snapshot) {
+            // Tidak ada match — buat synthetic entry
+            batches = [
+              ...batches,
+              {
+                id: `legacy-${item.batch_no_snapshot}`,
+                batch_no: item.batch_no_snapshot,
+                expired_date: item.expired_date_snapshot,
+                qty_current: 0,
+                hna: item.unit_hpp || 0,
+              },
+            ];
+            setItems((prev) => {
+              const n = [...prev];
+              if (n[idx]) {
+                n[idx] = {
+                  ...n[idx],
+                  _selected_batch_id: `legacy-${item.batch_no_snapshot}`,
+                  _selected_batch: item.batch_no_snapshot,
+                };
+              }
+              return n;
+            });
           }
           setItemBatches((prev) => {
             const n = [...prev];
@@ -2496,8 +2540,8 @@ export default function SalesOrderList({
                               style={{ marginTop: "4px", paddingLeft: "2px" }}
                             >
                               <select
-                                // v1.16.2: gunakan id sebagai value, bukan batch_no
-                                value={it._selected_batch_id || it._selected_batch || ""}
+                                // v1.16.3: value wajib pakai String() agar cocok dgn option value String(b.id)
+                                value={String(it._selected_batch_id || '')}
                                 onChange={(e) =>
                                   updateItem(
                                     idx,
@@ -2521,7 +2565,7 @@ export default function SalesOrderList({
                                 {batches.map((b) => {
                                   const isHistorical = (b.qty_current || 0) <= 0;
                                   return (
-                                    <option key={b.id || b.batch_no} value={b.id || b.batch_no}>
+                                    <option key={b.id || b.batch_no} value={String(b.id)}>
                                       {b.batch_no} | ED:{" "}
                                       {b.expired_date
                                         ? new Date(

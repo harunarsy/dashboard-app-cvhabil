@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.16.4-stable] - 2026-06-03
+
+### Fixed
+- Sales edit batch dropdown now resolves legacy batch_no_snapshot when batch_id_snapshot is null
+- Backend resolveSelectedBatchForSale helper with priority: id > name+date > name-only
+- Safe backfill of batch_id_snapshot for unique snapshot matches
+
 ## [v1.16.3-stable] - 2026-06-03
 
 ### Fixed

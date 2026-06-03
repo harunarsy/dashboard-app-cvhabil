@@ -33,9 +33,31 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.16.3-stable",
+    version: "v1.16.4-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Sales edit batch dropdown now resolves legacy batch_no_snapshot when batch_id_snapshot is null",
+        dev: "",
+      },
+      {
+        type: "fix",
+        text: "Backend resolveSelectedBatchForSale helper with priority: id > name+date > name-only",
+        dev: "",
+      },
+      {
+        type: "fix",
+        text: "Safe backfill of batch_id_snapshot for unique snapshot matches",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.16.3-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2088,7 +2110,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.16.3-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.16.4-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
