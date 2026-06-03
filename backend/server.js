@@ -83,6 +83,10 @@ const loginLimiter = rateLimit({
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
+  skip: (req) => {
+    const path = req.originalUrl.split('?')[0];
+    return req.method === 'POST' && path === '/api/auth/login';
+  },
   standardHeaders: true,
   legacyHeaders: false,
 });

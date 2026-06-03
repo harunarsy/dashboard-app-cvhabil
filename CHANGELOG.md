@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.16.1-stable] - 2026-06-03
+
+### Fixed
+- Invoice list ordering now deterministic: ORDER BY purchase_date DESC, id DESC
+- Login rate limiter no longer double-counted by general API limiter
+- Release change type metadata consistency (fixed → fix)
+- Added composite index idx_invoices_purchase_date_id
+
 ## [v1.16.0-stable] - 2026-06-03
 
 ### Changed

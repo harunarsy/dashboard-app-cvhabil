@@ -33,9 +33,36 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.16.0-stable",
+    version: "v1.16.1-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Invoice list ordering now deterministic: ORDER BY purchase_date DESC, id DESC",
+        dev: "",
+      },
+      {
+        type: "fix",
+        text: "Login rate limiter no longer double-counted by general API limiter",
+        dev: "",
+      },
+      {
+        type: "fix",
+        text: "Release change type metadata consistency (fixed → fix)",
+        dev: "",
+      },
+      {
+        type: "fix",
+        text: "Added composite index idx_invoices_purchase_date_id",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.16.0-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "changed",
@@ -48,17 +75,17 @@ const RELEASES = [
         dev: "",
       },
       {
-        type: "fixed",
+        type: "fix",
         text: "Invoices, Sales, Ledger list endpoints now have safe LIMIT (default 100/200, max 500/1000)",
         dev: "",
       },
       {
-        type: "fixed",
+        type: "fix",
         text: "Invoices DELETE operations wrapped in transactions",
         dev: "",
       },
       {
-        type: "fixed",
+        type: "fix",
         text: "Added missing indexes: idx_invoices_purchase_date, idx_inventory_mutations_ref",
         dev: "",
       },
@@ -2007,7 +2034,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.16.0-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.16.1-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

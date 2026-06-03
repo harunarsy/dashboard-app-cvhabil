@@ -49,6 +49,7 @@ const ensureSchema = async () => {
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_invoice_id ON invoice_audit_log(invoice_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_invoices_purchase_date ON invoices(purchase_date DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_invoices_purchase_date_id ON invoices(purchase_date DESC, id DESC)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_inventory_mutations_ref ON inventory_mutations(reference_type, reference_id)`);
   // Ensure newer columns exist in invoice_items
   await pool.query(`
@@ -378,7 +379,7 @@ router.get('/', auth, async (req, res) => {
       LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
       WHERE i.deleted_at IS NULL AND (i.is_draft IS NULL OR i.is_draft = FALSE)
       GROUP BY i.id
-      ORDER BY i.purchase_date DESC
+      ORDER BY i.purchase_date DESC, i.id DESC
       LIMIT $1
     `, [limit]);
     res.json(result.rows);
