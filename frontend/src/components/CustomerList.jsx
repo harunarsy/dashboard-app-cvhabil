@@ -716,7 +716,12 @@ export default function CustomerList({
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  padding: "4px",
+                  padding: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: "40px",
+                  minHeight: "40px",
                 }}
               >
                 <Icons.X size={18} color={sub} />

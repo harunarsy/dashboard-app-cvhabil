@@ -189,7 +189,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.17.2-stable";
+  const appVersion = "v1.18.0-stable";
   const TooltipButton = ({
     label,
     children,
@@ -747,6 +747,12 @@ export default function Sidebar({
                   background: "none",
                   border: "none",
                   cursor: "pointer",
+                  padding: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: "40px",
+                  minHeight: "40px",
                 }}
               >
                 <X size={18} color="var(--color-text-subtle)" />

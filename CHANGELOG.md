@@ -2,6 +2,38 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.18.0-stable] - 2026-06-03
+
+### Changed
+- MasterSelect: added non-breaking onSelect(optionObject) prop (existing onChange unchanged)
+### Added
+- docs/AUDIT_TECH_DEBT_v1.18.0.md with refactor roadmap
+
+## [v1.17.6-stable] - 2026-06-03
+
+### Added
+- backend/scripts/health-check-prod.js: 8 proactive health checks (read-only)
+- npm run health command
+- Backend health reports: PO over-receive, negative stock, batch integrity, PO status sync, HPP mismatch
+
+## [v1.17.5-stable] - 2026-06-03
+
+### Fixed
+- TasksKanban save button now disabled while saving (missing guard)
+- Audited all 6 major component groups: all save buttons properly guarded
+
+## [v1.17.4-stable] - 2026-06-03
+
+### Changed
+- API cache keys now include query params so pagination/search doesn't hit stale cache
+- distributors/products/customers getAll accept optional params argument
+
+## [v1.17.3-stable] - 2026-06-03
+
+### Changed
+- Cross-platform UX stability sweep: touch targets 40px across all close buttons (10 files)
+- Created docs/SMOKE_CHECKLIST_CROSS_PLATFORM.md for manual QA
+
 ## [v1.17.2-stable] - 2026-06-03
 
 ### Added

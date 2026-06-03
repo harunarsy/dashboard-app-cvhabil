@@ -110,11 +110,13 @@ export const invoicesAPI = {
 };
 
 export const distributorsAPI = {
-  getAll: () => {
-    const cached = cacheGet('/distributors');
+  getAll: (params) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const url = '/distributors' + qs;
+    const cached = cacheGet(url);
     if (cached) return Promise.resolve({ data: cached });
-    return api.get('/distributors').then((res) => {
-      cacheSet('/distributors', res.data);
+    return api.get('/distributors', { params }).then((res) => {
+      cacheSet(url, res.data);
       return res;
     });
   },
@@ -136,11 +138,13 @@ export const distributorsAPI = {
 };
 
 export const productsAPI = {
-  getAll: () => {
-    const cached = cacheGet('/products');
+  getAll: (params) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const url = '/products' + qs;
+    const cached = cacheGet(url);
     if (cached) return Promise.resolve({ data: cached });
-    return api.get('/products').then((res) => {
-      cacheSet('/products', res.data);
+    return api.get('/products', { params }).then((res) => {
+      cacheSet(url, res.data);
       return res;
     });
   },
@@ -168,11 +172,13 @@ export const auditAPI = {
 };
 
 export const customersAPI = {
-  getAll: () => {
-    const cached = cacheGet('/customers');
+  getAll: (params) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const url = '/customers' + qs;
+    const cached = cacheGet(url);
     if (cached) return Promise.resolve({ data: cached });
-    return api.get('/customers').then((res) => {
-      cacheSet('/customers', res.data);
+    return api.get('/customers', { params }).then((res) => {
+      cacheSet(url, res.data);
       return res;
     });
   },

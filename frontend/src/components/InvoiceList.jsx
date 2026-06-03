@@ -4035,7 +4035,12 @@ function InvoiceModal({
               background: "none",
               border: "none",
               cursor: "pointer",
-              padding: "8px",
+              padding: "10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minWidth: "40px",
+              minHeight: "40px",
             }}
           >
             <X size={20} color="var(--color-text-subtle)" />

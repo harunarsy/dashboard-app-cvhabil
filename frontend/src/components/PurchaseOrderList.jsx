@@ -1131,6 +1131,12 @@ export default function PurchaseOrderList({
                     background: "none",
                     border: "none",
                     cursor: "pointer",
+                    padding: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minWidth: "40px",
+                    minHeight: "40px",
                   }}
                 >
                   <X size={18} color={sub} />
@@ -1671,6 +1677,12 @@ export default function PurchaseOrderList({
                     background: "none",
                     border: "none",
                     cursor: "pointer",
+                    padding: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minWidth: "40px",
+                    minHeight: "40px",
                   }}
                 >
                   <X size={18} color={sub} />
@@ -1971,6 +1983,12 @@ export default function PurchaseOrderList({
                     background: "none",
                     border: "none",
                     cursor: "pointer",
+                    padding: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minWidth: "40px",
+                    minHeight: "40px",
                   }}
                 >
                   <X size={18} color={sub} />

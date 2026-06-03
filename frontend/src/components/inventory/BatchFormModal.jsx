@@ -176,7 +176,12 @@ export default function BatchFormModal({
               border: "none",
               cursor: "pointer",
               color: sub,
-              padding: "4px",
+              padding: "10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minWidth: "40px",
+              minHeight: "40px",
             }}
           >
             <Icons.X size={20} />

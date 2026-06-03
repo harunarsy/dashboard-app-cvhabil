@@ -11,7 +11,8 @@ import { UI_MOTION, uiTransition } from '../constants/ui';
  */
 export default function MasterSelect({
   value,           // string — nilai terpilih
-  onChange,        // (string) => void
+  onChange,        // (string) => void — existing, still works unchanged
+  onSelect,        // (optionObject) => void — NEW non-breaking: receives full option { name, ...rest }
   options,         // [{ name: string }]
   onAdd,           // async (name: string) => void — simpan ke DB
   onRemove,        // async (name: string) => void — hapus dari DB
@@ -60,6 +61,10 @@ export default function MasterSelect({
 
   const handleSelect = (name) => {
     onChange(name);
+    if (onSelect) {
+      const matched = options.find(o => o.name === name);
+      if (matched) onSelect(matched);
+    }
     setOpen(false);
     setQuery('');
     setConfirmDelete(null);

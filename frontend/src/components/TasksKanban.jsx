@@ -101,6 +101,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
     setTimeout(() => setToast(""), UI_MOTION.duration.toastSuccess);
   };
   const [trashLoading, setTrashLoading] = useState(false);
+  const [taskSaving, setTaskSaving] = useState(false);
   const TooltipButton = ({
     label,
     children,
@@ -186,6 +187,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
 
   const handleAddTask = async (e) => {
     e.preventDefault();
+    setTaskSaving(true);
     try {
       const taskData = {
         ...newTask,
@@ -205,6 +207,8 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
     } catch (err) {
       flash("Gagal menyimpan tugas. Silakan cek koneksi atau database.");
       console.error("Error adding task:", err);
+    } finally {
+      setTaskSaving(false);
     }
   };
 
@@ -265,6 +269,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
 
   const handleUpdateTask = async (e) => {
     e.preventDefault();
+    setTaskSaving(true);
     try {
       const taskData = {
         ...editingTask,
@@ -276,6 +281,8 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
     } catch (err) {
       flash("Gagal memperbarui tugas.");
       console.error("Error updating task:", err);
+    } finally {
+      setTaskSaving(false);
     }
   };
 
@@ -889,11 +896,12 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
               <div className="pt-4">
                 <button
                   type="submit"
+                  disabled={taskSaving}
                   className="btn-primary ui-motion-button ui-focus-ring w-full py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
                   data-magnetic="true"
                   style={{ backgroundColor: accent, color: "#FFF" }}
                 >
-                  Simpan Tugas
+                  {taskSaving ? "Menyimpan..." : "Simpan Tugas"}
                 </button>
               </div>
             </form>
@@ -1127,11 +1135,12 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                     </button>
                     <button
                       type="submit"
+                      disabled={taskSaving}
                       className="btn-primary ui-motion-button ui-focus-ring flex-[2] py-4 rounded-2xl font-bold text-sm shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
                       data-magnetic="true"
                       style={{ backgroundColor: accent, color: "#FFF" }}
                     >
-                      Simpan Perubahan
+                      {taskSaving ? "Menyimpan..." : "Simpan Perubahan"}
                     </button>
                   </div>
                 </form>

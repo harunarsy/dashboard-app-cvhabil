@@ -204,7 +204,12 @@ export default function BulkEditModal({
               background: "transparent",
               border: "none",
               cursor: saving ? "wait" : "pointer",
-              padding: "4px",
+              padding: "10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minWidth: "40px",
+              minHeight: "40px",
               opacity: saving ? 0.5 : 1,
             }}
           >

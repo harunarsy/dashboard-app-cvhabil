@@ -23,7 +23,7 @@ import {
 import { inventoryAPI, printSettingsAPI } from "../../services/api";
 import BatchFormModal from "./BatchFormModal";
 import BarcodeScanner from "../common/BarcodeScanner";
-import { UI_MOTION, UI_SIZE, uiTransition } from "../../constants/ui";
+import { UI_MOTION, uiTransition } from "../../constants/ui";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 const fmtDate = (d) =>
@@ -493,12 +493,17 @@ export default function OpnameModal({
               background: surface,
               border: "none",
               borderRadius: "8px",
-              padding: "8px",
+              padding: "10px",
               cursor: "pointer",
               color: text,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minWidth: "40px",
+              minHeight: "40px",
             }}
           >
-            <X size={UI_SIZE.icon.md} />
+            <X size={20} />
           </TooltipButton>
         </div>
 

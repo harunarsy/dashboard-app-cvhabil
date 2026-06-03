@@ -1928,20 +1928,26 @@ export default function SalesOrderList({
                   aria-label="Tutup modal nota"
                   className="ui-motion-button ui-focus-ring"
                   style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  <X size={18} color={sub} />
-                </button>
-              </div>
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "10px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minWidth: "40px",
+                      minHeight: "40px",
+                    }}
+                  >
+                    <X size={18} color={sub} />
+                  </button>
+                  </div>
 
-              <div
-                style={{
-                  padding: "20px 22px",
-                  display: "grid",
-                  gridTemplateColumns: "1.1fr 1fr",
+                  <div
+                    style={{
+                      padding: "20px 22px",
+                      display: "grid",
+                      gridTemplateColumns: "1.1fr 1fr",
                   gap: "24px",
                   alignItems: "start",
                 }}
@@ -2808,6 +2814,12 @@ export default function SalesOrderList({
                     border: "none",
                     cursor: "pointer",
                     color: sub,
+                    padding: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minWidth: "40px",
+                    minHeight: "40px",
                   }}
                 >
                   <X size={20} />
@@ -3025,6 +3037,12 @@ export default function SalesOrderList({
                     background: "none",
                     border: "none",
                     cursor: "pointer",
+                    padding: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minWidth: "40px",
+                    minHeight: "40px",
                   }}
                 >
                   <X size={18} color={sub} />

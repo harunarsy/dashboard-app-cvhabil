@@ -33,9 +33,99 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.17.2-stable",
+    version: "v1.18.0-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "changed",
+        text: "MasterSelect: added non-breaking onSelect(optionObject) prop (existing onChange unchanged)",
+        dev: "",
+      },
+      {
+        type: "added",
+        text: "docs/AUDIT_TECH_DEBT_v1.18.0.md with refactor roadmap",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.17.6-stable",
+    date: "3 Juni 2026",
+    status: "stable",
+    changes: [
+      {
+        type: "added",
+        text: "backend/scripts/health-check-prod.js: 8 proactive health checks (read-only)",
+        dev: "",
+      },
+      {
+        type: "added",
+        text: "npm run health command",
+        dev: "",
+      },
+      {
+        type: "added",
+        text: "Backend health reports: PO over-receive, negative stock, batch integrity, PO status sync, HPP mismatch",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.17.5-stable",
+    date: "3 Juni 2026",
+    status: "stable",
+    changes: [
+      {
+        type: "fixed",
+        text: "TasksKanban save button now disabled while saving (missing guard)",
+        dev: "",
+      },
+      {
+        type: "fixed",
+        text: "Audited all 6 major component groups: all save buttons properly guarded",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.17.4-stable",
+    date: "3 Juni 2026",
+    status: "stable",
+    changes: [
+      {
+        type: "changed",
+        text: "API cache keys now include query params so pagination/search doesn't hit stale cache",
+        dev: "",
+      },
+      {
+        type: "changed",
+        text: "distributors/products/customers getAll accept optional params argument",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.17.3-stable",
+    date: "3 Juni 2026",
+    status: "stable",
+    changes: [
+      {
+        type: "changed",
+        text: "Cross-platform UX stability sweep: touch targets 40px across all close buttons (10 files)",
+        dev: "",
+      },
+      {
+        type: "changed",
+        text: "Created docs/SMOKE_CHECKLIST_CROSS_PLATFORM.md for manual QA",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.17.2-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "added",
@@ -2316,7 +2406,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.17.2-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.18.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
