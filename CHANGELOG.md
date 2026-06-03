@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.17.0-stable] - 2026-06-03
+
+### Added
+- Master data cache: products/distributors/customers cached in sessionStorage (TTL 5 min), invalidated on mutation
+- Removed duplicate frontend/.env.local
+
+### Changed
+- Confirmed recharts lazy-loaded (65.chunk.js 353KB only loaded for dashboard charts)
+- Confirmed PDF utilities dynamically imported (795.chunk.js 396KB only loaded on print)
+- Total bundle neutral (+1KB for cache layer in main.js)
+
 ## [v1.16.9-stable] - 2026-06-03
 
 ### Fixed

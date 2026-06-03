@@ -6,6 +6,53 @@ const API_BASE_URL = isLocal
   : (process.env.REACT_APP_API_URL || '/api');
 // Cache bust v2
 
+/* ─── sessionStorage master data cache (5 min TTL) ─── */
+const CACHE_PREFIX = 'mc_';
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function cacheKey(url) {
+  return CACHE_PREFIX + url;
+}
+
+function cacheGet(url) {
+  try {
+    const raw = sessionStorage.getItem(cacheKey(url));
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) {
+      sessionStorage.removeItem(cacheKey(url));
+      return null;
+    }
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function cacheSet(url, data) {
+  try {
+    sessionStorage.setItem(cacheKey(url), JSON.stringify({ data, ts: Date.now() }));
+  } catch {
+    // sessionStorage full or unavailable — silent
+  }
+}
+
+function cacheInvalidate(prefix) {
+  try {
+    const toRemove = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key && key.startsWith(CACHE_PREFIX + prefix)) {
+        toRemove.push(key);
+      }
+    }
+    toRemove.forEach((k) => sessionStorage.removeItem(k));
+  } catch {
+    // silent
+  }
+}
+/* ─── end cache ─── */
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
@@ -63,17 +110,31 @@ export const invoicesAPI = {
 };
 
 export const distributorsAPI = {
-  getAll: () => api.get('/distributors'),
-  add: (name) => api.post('/distributors', { name }),
-  remove: (name) => api.delete('/distributors', { data: { name } }),
-  rename: (oldName, newName) => api.patch('/distributors', { oldName, newName }),
+  getAll: () => {
+    const cached = cacheGet('/distributors');
+    if (cached) return Promise.resolve({ data: cached });
+    return api.get('/distributors').then((res) => {
+      cacheSet('/distributors', res.data);
+      return res;
+    });
+  },
+  add: (name) => { cacheInvalidate('/distributors'); return api.post('/distributors', { name }); },
+  remove: (name) => { cacheInvalidate('/distributors'); return api.delete('/distributors', { data: { name } }); },
+  rename: (oldName, newName) => { cacheInvalidate('/distributors'); return api.patch('/distributors', { oldName, newName }); },
 };
 
 export const productsAPI = {
-  getAll: () => api.get('/products'),
-  add: (name) => api.post('/products', { name }),
-  remove: (name) => api.delete('/products', { data: { name } }),
-  rename: (oldName, newName) => api.patch('/products', { oldName, newName }),
+  getAll: () => {
+    const cached = cacheGet('/products');
+    if (cached) return Promise.resolve({ data: cached });
+    return api.get('/products').then((res) => {
+      cacheSet('/products', res.data);
+      return res;
+    });
+  },
+  add: (name) => { cacheInvalidate('/products'); return api.post('/products', { name }); },
+  remove: (name) => { cacheInvalidate('/products'); return api.delete('/products', { data: { name } }); },
+  rename: (oldName, newName) => { cacheInvalidate('/products'); return api.patch('/products', { oldName, newName }); },
 };
 
 export default api;
@@ -83,11 +144,18 @@ export const auditAPI = {
 };
 
 export const customersAPI = {
-  getAll: () => api.get('/customers'),
+  getAll: () => {
+    const cached = cacheGet('/customers');
+    if (cached) return Promise.resolve({ data: cached });
+    return api.get('/customers').then((res) => {
+      cacheSet('/customers', res.data);
+      return res;
+    });
+  },
   getById: (id) => api.get(`/customers/${id}`),
-  create: (data) => api.post('/customers', data),
-  update: (id, data) => api.put(`/customers/${id}`, data),
-  remove: (id) => api.delete(`/customers/${id}`),
+  create: (data) => { cacheInvalidate('/customers'); return api.post('/customers', data); },
+  update: (id, data) => { cacheInvalidate('/customers'); return api.put(`/customers/${id}`, data); },
+  remove: (id) => { cacheInvalidate('/customers'); return api.delete(`/customers/${id}`); },
 };
 
 export const salesAPI = {

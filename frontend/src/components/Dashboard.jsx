@@ -33,9 +33,41 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.16.9-stable",
+    version: "v1.17.0-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "added",
+        text: "Master data cache: products/distributors/customers cached in sessionStorage (TTL 5 min), invalidated on mutation",
+        dev: "",
+      },
+      {
+        type: "added",
+        text: "Removed duplicate frontend/.env.local",
+        dev: "",
+      },
+      {
+        type: "changed",
+        text: "Confirmed recharts lazy-loaded (65.chunk.js 353KB only loaded for dashboard charts)",
+        dev: "",
+      },
+      {
+        type: "changed",
+        text: "Confirmed PDF utilities dynamically imported (795.chunk.js 396KB only loaded on print)",
+        dev: "",
+      },
+      {
+        type: "changed",
+        text: "Total bundle neutral (+1KB for cache layer in main.js)",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.16.9-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fixed",
@@ -2230,7 +2262,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.16.9-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.17.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
