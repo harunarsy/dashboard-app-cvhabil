@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.16.6-stable] - 2026-06-03
+
+### Added
+- Backend regression test suite (18 tests) for stock/batch critical flows
+- npm test now runs regression tests instead of placeholder
+
+### Fixed
+- Duplicate batch detection now includes expired_date in GROUP BY (legitimate different deliveries)
+
 ## [v1.16.5-stable] - 2026-06-03
 
 ### Fixed

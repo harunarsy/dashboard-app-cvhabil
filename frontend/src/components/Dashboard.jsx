@@ -33,9 +33,31 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.16.5-stable",
+    version: "v1.16.6-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "added",
+        text: "Backend regression test suite (18 tests) for stock/batch critical flows",
+        dev: "",
+      },
+      {
+        type: "added",
+        text: "npm test now runs regression tests instead of placeholder",
+        dev: "",
+      },
+      {
+        type: "fix",
+        text: "Duplicate batch detection now includes expired_date in GROUP BY (legitimate different deliveries)",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.16.5-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2132,7 +2154,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.16.5-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.16.6-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
