@@ -24,8 +24,6 @@ import {
   resolveTierPrice,
 } from "../constants/units";
 import { hppFromHna, hnaFromHpp } from "../utils/rupiah";
-import { generateNotaPDF } from "../utils/generateNotaPDF";
-import { generateLaporanPDF } from "../utils/generateLaporanPDF";
 import MasterSelect from "./MasterSelect";
 import Skeleton from "./common/Skeleton";
 import ConfirmModal from "./common/ConfirmModal";
@@ -651,6 +649,7 @@ export default function SalesOrderList({
     if (!printOrder || pdfLoading) return;
     setPdfLoading(true);
     try {
+      const { generateNotaPDF } = await import("../utils/generateNotaPDF");
       const doc = generateNotaPDF(printOrder, {
         ...printOptions,
         settings: layoutSettings,
@@ -709,6 +708,8 @@ export default function SalesOrderList({
     if (selectedNotaIds.size === 0) return;
     setExportingPdf(true);
     try {
+      const { generateLaporanPDF } =
+        await import("../utils/generateLaporanPDF");
       const selected = orders.filter((o) => selectedNotaIds.has(o.id));
       generateLaporanPDF(selected, {
         companyName: "HABIL SUPERAPP",
@@ -901,13 +902,13 @@ export default function SalesOrderList({
           >
             🧾 Nota Penjualan
           </h1>
-          <p style={{ margin: "4px 0 0", fontSize: "14px", color: sub }}>
+          <div style={{ margin: "4px 0 0", fontSize: "14px", color: sub }}>
             {loading ? (
               <Skeleton width="140px" height="14px" />
             ) : (
               `${orders.length} nota tercatat`
             )}
-          </p>
+          </div>
         </div>
         <button
           onClick={openAdd}
@@ -1523,7 +1524,10 @@ export default function SalesOrderList({
                               padding: "4px",
                             }}
                           >
-                            <Icons.Edit2 size={15} color="var(--color-primary)" />
+                            <Icons.Edit2
+                              size={15}
+                              color="var(--color-primary)"
+                            />
                           </button>
                           <button
                             onClick={(e) => {
@@ -1539,7 +1543,10 @@ export default function SalesOrderList({
                               padding: "4px",
                             }}
                           >
-                            <Icons.Trash2 size={15} color="var(--color-danger)" />
+                            <Icons.Trash2
+                              size={15}
+                              color="var(--color-danger)"
+                            />
                           </button>
                         </div>
                       </td>
@@ -1770,1208 +1777,1244 @@ export default function SalesOrderList({
       </div>
 
       {/* Modal */}
-      {showModal && renderPortal(
-        <div
-          onClick={() => setShowModal(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            padding: "1rem",
-          }}
-        >
+      {showModal &&
+        renderPortal(
           <div
-            onClick={(e) => e.stopPropagation()}
-            className="ui-motion-modal ui-modal-shell"
+            onClick={() => setShowModal(false)}
             style={{
-              backgroundColor: cardBg,
-              borderRadius: "16px",
-              width: "100%",
-              maxWidth: "min(1200px, calc(100vw - 32px))",
-              maxHeight: "92vh",
-              overflow: "auto",
-              boxShadow: "0 32px 64px rgba(0,0,0,0.35)",
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0,0,0,0.6)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              padding: "1rem",
             }}
           >
-            {/* Header */}
             <div
+              onClick={(e) => e.stopPropagation()}
+              className="ui-motion-modal ui-modal-shell"
               style={{
-                padding: "18px 22px",
-                borderBottom: `1px solid ${border}`,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                position: "sticky",
-                top: 0,
                 backgroundColor: cardBg,
-                zIndex: 1,
+                borderRadius: "16px",
+                width: "100%",
+                maxWidth: "min(1200px, calc(100vw - 32px))",
+                maxHeight: "92vh",
+                overflow: "auto",
+                boxShadow: "0 32px 64px rgba(0,0,0,0.35)",
               }}
             >
-              <h3
+              {/* Header */}
+              <div
                 style={{
-                  margin: 0,
-                  fontSize: "16px",
-                  fontWeight: "700",
-                  color: text,
+                  padding: "18px 22px",
+                  borderBottom: `1px solid ${border}`,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  position: "sticky",
+                  top: 0,
+                  backgroundColor: cardBg,
+                  zIndex: 1,
                 }}
               >
-                {editId ? "✏️ Edit Nota" : "🧾 Buat Nota Baru"}
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                aria-label="Tutup modal nota"
-                className="ui-motion-button ui-focus-ring"
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                <X size={18} color={sub} />
-              </button>
-            </div>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: "16px",
+                    fontWeight: "700",
+                    color: text,
+                  }}
+                >
+                  {editId ? "✏️ Edit Nota" : "🧾 Buat Nota Baru"}
+                </h3>
+                <button
+                  onClick={() => setShowModal(false)}
+                  aria-label="Tutup modal nota"
+                  className="ui-motion-button ui-focus-ring"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  <X size={18} color={sub} />
+                </button>
+              </div>
 
+              <div
+                style={{
+                  padding: "20px 22px",
+                  display: "grid",
+                  gridTemplateColumns: "1.1fr 1fr",
+                  gap: "24px",
+                  alignItems: "start",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "14px",
+                    minWidth: 0,
+                  }}
+                >
+                  {!editId && (
+                    <div>
+                      <label style={labelStyle}>Nomor Nota *</label>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "8px",
+                          alignItems: "center",
+                        }}
+                      >
+                        <input
+                          value={notaCounter.prefix}
+                          disabled
+                          style={{
+                            ...inputStyle,
+                            width: "130px",
+                            backgroundColor: isDarkMode
+                              ? "#333"
+                              : "var(--color-bg)",
+                            opacity: 0.7,
+                            fontWeight: "600",
+                            textAlign: "center",
+                          }}
+                        />
+                        <input
+                          ref={numberInputRef}
+                          value={
+                            isAutoNota
+                              ? notaCounter.next_preview
+                                ? notaCounter.next_preview.replace(
+                                    notaCounter.prefix,
+                                    "",
+                                  )
+                                : String(
+                                    (notaCounter.month_max || 0) + 1,
+                                  ).padStart(3, "0")
+                              : manualNumber
+                          }
+                          onChange={(e) =>
+                            !isAutoNota &&
+                            setManualNumber(e.target.value.replace(/\D/g, ""))
+                          }
+                          disabled={isAutoNota}
+                          placeholder="2605001"
+                          style={{
+                            ...inputStyle,
+                            flex: 1,
+                            backgroundColor: isAutoNota
+                              ? isDarkMode
+                                ? "#333"
+                                : "var(--color-bg)"
+                              : cardBg,
+                            opacity: isAutoNota ? 0.7 : 1,
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newMode = !isAutoNota;
+                            setIsAutoNota(newMode);
+                            if (!newMode) {
+                              // v1.8.2: kalau switch ke manual, prefill dgn next_preview YYMM logic
+                              const previewNum = notaCounter.next_preview
+                                ? notaCounter.next_preview.replace(
+                                    notaCounter.prefix,
+                                    "",
+                                  )
+                                : String(
+                                    (notaCounter.month_max || 0) + 1,
+                                  ).padStart(3, "0");
+                              setManualNumber(previewNum);
+                              setTimeout(() => {
+                                if (numberInputRef.current) {
+                                  numberInputRef.current.focus();
+                                  numberInputRef.current.select();
+                                }
+                              }, UI_MOTION.duration.micro);
+                            } else {
+                              setManualNumber("");
+                            }
+                          }}
+                          style={{
+                            padding: "10px 14px",
+                            borderRadius: "8px",
+                            border: `1px solid ${border}`,
+                            backgroundColor: isAutoNota ? "#E8F5E9" : "#FFF3E0",
+                            color: isAutoNota ? "#2E7D32" : "#E65100",
+                            fontWeight: "600",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            cursor: "pointer",
+                            minWidth: "110px",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {isAutoNota ? "🔒 Auto" : "🔓 Manual"}
+                        </button>
+                      </div>
+                      {!isAutoNota && (
+                        <p
+                          style={{
+                            fontSize: "10px",
+                            color: "#E65100",
+                            marginTop: "4px",
+                          }}
+                        >
+                          Mode Manual: Counter sistem tidak akan bertambah.
+                        </p>
+                      )}
+                      <FieldError message={saveError} visible={!!saveError} />
+                    </div>
+                  )}
+                  {editId && (
+                    <div>
+                      <label style={labelStyle}>Nomor Nota</label>
+                      <input
+                        value={form.order_number}
+                        disabled
+                        style={{ ...inputStyle, opacity: 0.6 }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Customer */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        color: formErrors.customer_name
+                          ? "var(--color-danger)"
+                          : sub,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      Customer *
+                    </label>
+                    <div
+                      style={
+                        formErrors.customer_name
+                          ? {
+                              border: "2px solid var(--color-danger)",
+                              borderRadius: "10px",
+                            }
+                          : {}
+                      }
+                    >
+                      <MasterSelect
+                        value={form.customer_name}
+                        onChange={(v) => {
+                          setForm((p) => ({ ...p, customer_name: v }));
+                          setFormErrors((e) => ({
+                            ...e,
+                            customer_name: undefined,
+                          }));
+                          const match = customers.find((c) => c.name === v);
+                          if (match)
+                            setForm((p) => ({
+                              ...p,
+                              customer_address: match.address || "",
+                            }));
+                        }}
+                        options={customers}
+                        onAdd={handleAddCustomer}
+                        onRemove={handleRemoveCustomer}
+                        onRename={handleRenameCustomer}
+                        placeholder="Pilih atau tambah customer..."
+                        isDarkMode={isDarkMode}
+                      />
+                    </div>
+                    <FieldError
+                      message={formErrors.customer_name}
+                      visible={!!formErrors.customer_name}
+                    />
+                  </div>
+
+                  {/* Address */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        color: sub,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      Alamat
+                    </label>
+                    <input
+                      value={form.customer_address}
+                      onChange={(e) =>
+                        setForm((p) => ({
+                          ...p,
+                          customer_address: e.target.value,
+                        }))
+                      }
+                      placeholder="Alamat"
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "12px",
+                    }}
+                  >
+                    <div>
+                      <label style={labelStyle}>Tanggal</label>
+                      <input
+                        type="date"
+                        value={form.sale_date}
+                        onChange={(e) =>
+                          setForm((p) => ({ ...p, sale_date: e.target.value }))
+                        }
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Metode Pembayaran</label>
+                      <select
+                        value={form.payment_method}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setForm((p) => ({
+                            ...p,
+                            payment_method: v,
+                            // v1.8.1: Tunai → auto-clear due_date (gak ada tempo untuk cash)
+                            ...(v === "Tunai"
+                              ? { due_date: "", payment_terms: null }
+                              : {}),
+                          }));
+                        }}
+                        style={inputStyle}
+                      >
+                        <option value="Tunai">Tunai</option>
+                        <option value="Transfer">Transfer</option>
+                        <option value="QRIS">QRIS</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Tempo Pembayaran — v1.8.1: hide kalau Tunai (cash gak ada tempo) */}
+                  {form.payment_method !== "Tunai" ? (
+                    <div>
+                      <label style={labelStyle}>
+                        Tempo Pembayaran (Jatuh Tempo)
+                      </label>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "8px",
+                          marginBottom: "8px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        {[7, 14, 30].map((n) => {
+                          const target = addDays(form.sale_date, n);
+                          const active =
+                            form.due_date === target &&
+                            form.payment_terms === n;
+                          return (
+                            <button
+                              key={n}
+                              type="button"
+                              onClick={() =>
+                                setForm((p) => ({
+                                  ...p,
+                                  due_date: target,
+                                  payment_terms: n,
+                                }))
+                              }
+                              style={{
+                                padding: "6px 14px",
+                                fontSize: "12px",
+                                fontWeight: "700",
+                                borderRadius: "8px",
+                                border: `1px solid ${active ? "var(--color-primary)" : isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
+                                backgroundColor: active
+                                  ? "var(--color-primary)"
+                                  : "transparent",
+                                color: active
+                                  ? "#FFF"
+                                  : isDarkMode
+                                    ? "var(--color-text-subtle)"
+                                    : "#555",
+                                cursor: "pointer",
+                              }}
+                            >
+                              {n} hari
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <input
+                        type="date"
+                        value={form.due_date}
+                        onChange={(e) =>
+                          setForm((p) => ({
+                            ...p,
+                            due_date: e.target.value,
+                            payment_terms: null,
+                          }))
+                        }
+                        style={{ ...inputStyle, fontSize: "12px" }}
+                        placeholder="Atau pilih tanggal manual"
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        padding: "10px 12px",
+                        background: isDarkMode
+                          ? "var(--color-surface-elevated)"
+                          : "var(--color-bg)",
+                        borderRadius: "10px",
+                        border: `1px dashed ${isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
+                      }}
+                    >
+                      <p style={{ margin: 0, fontSize: "11px", color: sub }}>
+                        Pembayaran <strong>Tunai</strong> — tidak ada tempo.
+                        Ganti metode (Transfer / QRIS) kalau perlu jatuh tempo.
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label style={labelStyle}>Saluran Penjualan</label>
+                    <select
+                      value={form.channel}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, channel: e.target.value }))
+                      }
+                      style={inputStyle}
+                    >
+                      <option value="offline">🏪 Offline</option>
+                      <option value="online">🛒 Online / Marketplace</option>
+                    </select>
+                  </div>
+
+                  {/* Items */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        color: sub,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      Produk
+                    </label>
+
+                    {/* Column Headers */}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "2fr 60px 45px 80px 100px 30px",
+                        gap: "6px",
+                        marginBottom: "8px",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          color: sub,
+                        }}
+                      >
+                        Nama
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          color: sub,
+                          textAlign: "center",
+                        }}
+                      >
+                        Qty
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          color: sub,
+                          textAlign: "center",
+                        }}
+                      >
+                        Unit
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          color: sub,
+                          textAlign: "center",
+                        }}
+                      >
+                        HPP
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          color: sub,
+                          textAlign: "center",
+                        }}
+                      >
+                        Harga
+                      </div>
+                      <div></div>
+                    </div>
+
+                    {items.map((it, idx) => {
+                      const batches = itemBatches[idx] || [];
+                      const product =
+                        it._product ||
+                        products.find(
+                          (p) =>
+                            p.name?.toLowerCase() ===
+                            it.product_name?.toLowerCase(),
+                        );
+                      const unitOptions = getProductUnits(product);
+                      const showConversion =
+                        product && isPackUnit(it.unit, product) && it.qty > 0;
+                      return (
+                        <div key={idx} style={{ marginBottom: "10px" }}>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns:
+                                "2fr 60px 70px 80px 100px 30px",
+                              gap: "6px",
+                              alignItems: "center",
+                            }}
+                          >
+                            <MasterSelect
+                              value={it.product_name}
+                              onChange={(v) =>
+                                updateItem(idx, "product_name", v)
+                              }
+                              options={products.map((p) => ({ name: p.name }))}
+                              onAdd={handleAddProduct}
+                              onRemove={handleRemoveProduct}
+                              onRename={handleRenameProduct}
+                              isDarkMode={isDarkMode}
+                              placeholder="Nama produk"
+                            />
+                            <input
+                              type="number"
+                              value={it.qty}
+                              onChange={(e) =>
+                                updateItem(
+                                  idx,
+                                  "qty",
+                                  parseInt(e.target.value) || 0,
+                                )
+                              }
+                              min="1"
+                              style={{
+                                ...inputStyle,
+                                fontSize: "13px",
+                                padding: "8px 6px",
+                                textAlign: "center",
+                              }}
+                            />
+                            <select
+                              value={it.unit}
+                              onChange={(e) =>
+                                updateItem(idx, "unit", e.target.value)
+                              }
+                              style={{
+                                ...inputStyle,
+                                fontSize: "12px",
+                                padding: "8px 4px",
+                              }}
+                            >
+                              {unitOptions.map((u, i) => (
+                                <option key={`${u.value}-${i}`} value={u.value}>
+                                  {u.value}
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              type="number"
+                              value={Math.round(hppFromHna(it.unit_hpp || 0))}
+                              onChange={(e) =>
+                                updateItem(
+                                  idx,
+                                  "unit_hpp",
+                                  hnaFromHpp(parseFloat(e.target.value) || 0),
+                                )
+                              }
+                              min="0"
+                              placeholder="0"
+                              title="HPP inc PPN 11% (disimpan sebagai HNA exc PPN)"
+                              style={{
+                                ...inputStyle,
+                                fontSize: "12px",
+                                padding: "8px 6px",
+                                backgroundColor: isDarkMode
+                                  ? "var(--color-surface-elevated)"
+                                  : "#EBEBEB",
+                                border: `1px dashed ${border}`,
+                                textAlign: "center",
+                              }}
+                            />
+                            <input
+                              type="number"
+                              value={it.unit_price}
+                              onChange={(e) =>
+                                updateItem(
+                                  idx,
+                                  "unit_price",
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
+                              min="0"
+                              placeholder="0"
+                              style={{
+                                ...inputStyle,
+                                fontSize: "13px",
+                                padding: "8px 6px",
+                                textAlign: "center",
+                              }}
+                            />
+                            {items.length > 1 && (
+                              <button
+                                onClick={() => removeItem(idx)}
+                                aria-label="Hapus baris produk"
+                                title="Hapus baris produk"
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  padding: 0,
+                                }}
+                              >
+                                <Trash2 size={14} color="var(--color-danger)" />
+                              </button>
+                            )}
+                          </div>
+                          {showConversion && (
+                            <p
+                              style={{
+                                margin: "4px 0 0 4px",
+                                fontSize: "11px",
+                                color: sub,
+                              }}
+                            >
+                              📐{" "}
+                              {formatQtyWithConversion(
+                                it.qty,
+                                it.unit,
+                                product,
+                              )}
+                            </p>
+                          )}
+                          {it._tier_applied && (
+                            <p
+                              style={{
+                                margin: "4px 0 0 4px",
+                                fontSize: "11px",
+                                color: "var(--color-success)",
+                                fontWeight: "600",
+                              }}
+                            >
+                              🏷️ Harga grosir tier diaplikasikan
+                            </p>
+                          )}
+                          {batches.length > 0 && (
+                            <div
+                              style={{ marginTop: "4px", paddingLeft: "2px" }}
+                            >
+                              <select
+                                value={it._selected_batch || ""}
+                                onChange={(e) =>
+                                  updateItem(
+                                    idx,
+                                    "_selected_batch",
+                                    e.target.value,
+                                  )
+                                }
+                                style={{
+                                  ...inputStyle,
+                                  fontSize: "11px",
+                                  padding: "5px 8px",
+                                  backgroundColor: isDarkMode
+                                    ? "var(--color-surface-elevated)"
+                                    : "#F0F8FF",
+                                  border: `1px solid var(--color-primary-border-strong)`,
+                                  color: "var(--color-primary)",
+                                }}
+                              >
+                                {batches.map((b) => (
+                                  <option key={b.batch_no} value={b.batch_no}>
+                                    Batch: {b.batch_no} | ED:{" "}
+                                    {b.expired_date
+                                      ? new Date(
+                                          b.expired_date,
+                                        ).toLocaleDateString("id-ID", {
+                                          day: "2-digit",
+                                          month: "short",
+                                          year: "numeric",
+                                        })
+                                      : "-"}{" "}
+                                    | Stok: {b.qty_current} | HPP (inc PPN):{" "}
+                                    {new Intl.NumberFormat("id-ID", {
+                                      style: "currency",
+                                      currency: "IDR",
+                                      minimumFractionDigits: 0,
+                                    }).format(hppFromHna(b.hna))}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    <button
+                      onClick={addItem}
+                      style={{
+                        fontSize: "13px",
+                        color: "var(--color-primary)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontWeight: "600",
+                        marginTop: "4px",
+                      }}
+                    >
+                      + Tambah Produk
+                    </button>
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        color: sub,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      Catatan
+                    </label>
+                    <textarea
+                      value={form.notes}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, notes: e.target.value }))
+                      }
+                      rows={2}
+                      placeholder="Opsional..."
+                      style={{
+                        ...inputStyle,
+                        resize: "vertical",
+                        fontFamily: "inherit",
+                      }}
+                    />
+                  </div>
+
+                  {/* Total */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "12px 0",
+                      borderTop: `1px solid ${border}`,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        color: sub,
+                      }}
+                    >
+                      Grand Total
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "18px",
+                        fontWeight: "800",
+                        color: "var(--color-success)",
+                      }}
+                    >
+                      {fmtRp(grandTotal)}
+                    </span>
+                  </div>
+
+                  {/* Buttons */}
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <FieldError
+                      message={formErrors.items}
+                      visible={!!formErrors.items}
+                    />
+                    <button
+                      onClick={handleSave}
+                      disabled={saving}
+                      style={{
+                        flex: 1,
+                        padding: "13px",
+                        backgroundColor: saving
+                          ? "var(--color-text-subtle)"
+                          : "var(--color-success)",
+                        color: "#FFF",
+                        border: "none",
+                        borderRadius: "10px",
+                        cursor: saving ? "not-allowed" : "pointer",
+                        fontWeight: "700",
+                        fontSize: "14px",
+                        opacity: saving ? 0.7 : 1,
+                      }}
+                    >
+                      {saving
+                        ? "Menyimpan..."
+                        : editId
+                          ? "Simpan Perubahan"
+                          : "Buat Nota"}
+                    </button>
+                    <button
+                      onClick={() => setShowModal(false)}
+                      style={{
+                        flex: 1,
+                        padding: "13px",
+                        backgroundColor: isDarkMode
+                          ? "var(--color-surface-raised)"
+                          : "var(--color-bg)",
+                        color: text,
+                        border: "none",
+                        borderRadius: "10px",
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                      }}
+                    >
+                      Batal
+                    </button>
+                  </div>
+                </div>
+                <div
+                  style={{ position: "sticky", top: "0", alignSelf: "start" }}
+                >
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      textTransform: "uppercase",
+                      color: sub,
+                      marginBottom: "8px",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    📄 Preview Live
+                  </div>
+                  <NotaPreview
+                    form={{
+                      ...form,
+                      order_number: editId
+                        ? form.order_number
+                        : isAutoNota
+                          ? notaCounter.next_preview ||
+                            `${notaCounter.prefix || "HSB-NOTA-"}${String((notaCounter.month_max || 0) + 1).padStart(3, "0")}`
+                          : `${notaCounter.prefix || "HSB-NOTA-"}${manualNumber}`,
+                    }}
+                    items={items}
+                    settings={layoutSettings || {}}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>,
+        )}
+
+      {/* Print Options Modal */}
+      {showPrintModal &&
+        renderPortal(
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              backdropFilter: "blur(4px)",
+            }}
+          >
             <div
+              className="ui-motion-modal ui-modal-shell"
               style={{
-                padding: "20px 22px",
-                display: "grid",
-                gridTemplateColumns: "1.1fr 1fr",
-                gap: "24px",
-                alignItems: "start",
+                backgroundColor: cardBg,
+                width: "100%",
+                maxWidth: "360px",
+                borderRadius: "20px",
+                padding: "24px",
+                boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
               }}
             >
               <div
                 style={{
                   display: "flex",
-                  flexDirection: "column",
-                  gap: "14px",
-                  minWidth: 0,
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "20px",
                 }}
               >
-                {!editId && (
-                  <div>
-                    <label style={labelStyle}>Nomor Nota *</label>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "8px",
-                        alignItems: "center",
-                      }}
-                    >
-                      <input
-                        value={notaCounter.prefix}
-                        disabled
-                        style={{
-                          ...inputStyle,
-                          width: "130px",
-                          backgroundColor: isDarkMode
-                            ? "#333"
-                            : "var(--color-bg)",
-                          opacity: 0.7,
-                          fontWeight: "600",
-                          textAlign: "center",
-                        }}
-                      />
-                      <input
-                        ref={numberInputRef}
-                        value={
-                          isAutoNota
-                            ? notaCounter.next_preview
-                              ? notaCounter.next_preview.replace(
-                                  notaCounter.prefix,
-                                  "",
-                                )
-                              : String(
-                                  (notaCounter.month_max || 0) + 1,
-                                ).padStart(3, "0")
-                            : manualNumber
-                        }
-                        onChange={(e) =>
-                          !isAutoNota &&
-                          setManualNumber(e.target.value.replace(/\D/g, ""))
-                        }
-                        disabled={isAutoNota}
-                        placeholder="2605001"
-                        style={{
-                          ...inputStyle,
-                          flex: 1,
-                          backgroundColor: isAutoNota
-                            ? isDarkMode
-                              ? "#333"
-                              : "var(--color-bg)"
-                            : cardBg,
-                          opacity: isAutoNota ? 0.7 : 1,
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newMode = !isAutoNota;
-                          setIsAutoNota(newMode);
-                          if (!newMode) {
-                            // v1.8.2: kalau switch ke manual, prefill dgn next_preview YYMM logic
-                            const previewNum = notaCounter.next_preview
-                              ? notaCounter.next_preview.replace(
-                                  notaCounter.prefix,
-                                  "",
-                                )
-                              : String(
-                                  (notaCounter.month_max || 0) + 1,
-                                ).padStart(3, "0");
-                            setManualNumber(previewNum);
-                            setTimeout(() => {
-                              if (numberInputRef.current) {
-                                numberInputRef.current.focus();
-                                numberInputRef.current.select();
-                              }
-                            }, UI_MOTION.duration.micro);
-                          } else {
-                            setManualNumber("");
-                          }
-                        }}
-                        style={{
-                          padding: "10px 14px",
-                          borderRadius: "8px",
-                          border: `1px solid ${border}`,
-                          backgroundColor: isAutoNota ? "#E8F5E9" : "#FFF3E0",
-                          color: isAutoNota ? "#2E7D32" : "#E65100",
-                          fontWeight: "600",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          cursor: "pointer",
-                          minWidth: "110px",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {isAutoNota ? "🔒 Auto" : "🔓 Manual"}
-                      </button>
-                    </div>
-                    {!isAutoNota && (
-                      <p
-                        style={{
-                          fontSize: "10px",
-                          color: "#E65100",
-                          marginTop: "4px",
-                        }}
-                      >
-                        Mode Manual: Counter sistem tidak akan bertambah.
-                      </p>
-                    )}
-                    <FieldError message={saveError} visible={!!saveError} />
-                  </div>
-                )}
-                {editId && (
-                  <div>
-                    <label style={labelStyle}>Nomor Nota</label>
-                    <input
-                      value={form.order_number}
-                      disabled
-                      style={{ ...inputStyle, opacity: 0.6 }}
-                    />
-                  </div>
-                )}
-
-                {/* Customer */}
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      color: formErrors.customer_name
-                        ? "var(--color-danger)"
-                        : sub,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Customer *
-                  </label>
-                  <div
-                    style={
-                      formErrors.customer_name
-                        ? {
-                            border: "2px solid var(--color-danger)",
-                            borderRadius: "10px",
-                          }
-                        : {}
-                    }
-                  >
-                    <MasterSelect
-                      value={form.customer_name}
-                      onChange={(v) => {
-                        setForm((p) => ({ ...p, customer_name: v }));
-                        setFormErrors((e) => ({
-                          ...e,
-                          customer_name: undefined,
-                        }));
-                        const match = customers.find((c) => c.name === v);
-                        if (match)
-                          setForm((p) => ({
-                            ...p,
-                            customer_address: match.address || "",
-                          }));
-                      }}
-                      options={customers}
-                      onAdd={handleAddCustomer}
-                      onRemove={handleRemoveCustomer}
-                      onRename={handleRenameCustomer}
-                      placeholder="Pilih atau tambah customer..."
-                      isDarkMode={isDarkMode}
-                    />
-                  </div>
-                  <FieldError
-                    message={formErrors.customer_name}
-                    visible={!!formErrors.customer_name}
-                  />
-                </div>
-
-                {/* Address */}
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      color: sub,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Alamat
-                  </label>
-                  <input
-                    value={form.customer_address}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        customer_address: e.target.value,
-                      }))
-                    }
-                    placeholder="Alamat"
-                    style={inputStyle}
-                  />
-                </div>
-
-                <div
+                <h2
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "12px",
+                    fontSize: "18px",
+                    fontWeight: "700",
+                    margin: 0,
+                    color: text,
                   }}
                 >
-                  <div>
-                    <label style={labelStyle}>Tanggal</label>
-                    <input
-                      type="date"
-                      value={form.sale_date}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, sale_date: e.target.value }))
-                      }
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Metode Pembayaran</label>
-                    <select
-                      value={form.payment_method}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setForm((p) => ({
-                          ...p,
-                          payment_method: v,
-                          // v1.8.1: Tunai → auto-clear due_date (gak ada tempo untuk cash)
-                          ...(v === "Tunai"
-                            ? { due_date: "", payment_terms: null }
-                            : {}),
-                        }));
-                      }}
-                      style={inputStyle}
-                    >
-                      <option value="Tunai">Tunai</option>
-                      <option value="Transfer">Transfer</option>
-                      <option value="QRIS">QRIS</option>
-                    </select>
-                  </div>
-                </div>
+                  Opsi Cetak
+                </h2>
+                <button
+                  onClick={() => setShowPrintModal(false)}
+                  aria-label="Tutup modal cetak PDF"
+                  className="ui-motion-button ui-focus-ring"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: sub,
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
-                {/* Tempo Pembayaran — v1.8.1: hide kalau Tunai (cash gak ada tempo) */}
-                {form.payment_method !== "Tunai" ? (
-                  <div>
-                    <label style={labelStyle}>
-                      Tempo Pembayaran (Jatuh Tempo)
-                    </label>
-                    <div
+              <div style={{ marginBottom: "20px" }}>
+                <label style={{ ...labelStyle, marginBottom: "12px" }}>
+                  Ukuran Kertas
+                </label>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  {["A5", "A6"].map((f) => (
+                    <button
+                      key={f}
+                      onClick={() =>
+                        setPrintOptions({ ...printOptions, format: f })
+                      }
                       style={{
+                        flex: 1,
+                        padding: "12px",
+                        borderRadius: "12px",
+                        border: `2px solid ${printOptions.format === f ? "var(--color-primary)" : border}`,
+                        backgroundColor:
+                          printOptions.format === f
+                            ? "var(--color-primary-soft-weak)"
+                            : "transparent",
+                        color:
+                          printOptions.format === f
+                            ? "var(--color-primary)"
+                            : text,
+                        fontWeight: "700",
+                        cursor: "pointer",
+                        transition: uiTransition(
+                          "all",
+                          UI_MOTION.duration.base,
+                        ),
                         display: "flex",
-                        gap: "8px",
-                        marginBottom: "8px",
-                        flexWrap: "wrap",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "2px",
                       }}
                     >
-                      {[7, 14, 30].map((n) => {
-                        const target = addDays(form.sale_date, n);
-                        const active =
-                          form.due_date === target && form.payment_terms === n;
-                        return (
-                          <button
-                            key={n}
-                            type="button"
-                            onClick={() =>
-                              setForm((p) => ({
-                                ...p,
-                                due_date: target,
-                                payment_terms: n,
-                              }))
-                            }
-                            style={{
-                              padding: "6px 14px",
-                              fontSize: "12px",
-                              fontWeight: "700",
-                              borderRadius: "8px",
-                              border: `1px solid ${active ? "var(--color-primary)" : isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
-                              backgroundColor: active
-                                ? "var(--color-primary)"
-                                : "transparent",
-                              color: active
-                                ? "#FFF"
-                                : isDarkMode
-                                  ? "var(--color-text-subtle)"
-                                  : "#555",
-                              cursor: "pointer",
-                            }}
-                          >
-                            {n} hari
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <input
-                      type="date"
-                      value={form.due_date}
-                      onChange={(e) =>
-                        setForm((p) => ({
-                          ...p,
-                          due_date: e.target.value,
-                          payment_terms: null,
-                        }))
-                      }
-                      style={{ ...inputStyle, fontSize: "12px" }}
-                      placeholder="Atau pilih tanggal manual"
-                    />
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      padding: "10px 12px",
-                      background: isDarkMode
-                        ? "var(--color-surface-elevated)"
-                        : "var(--color-bg)",
-                      borderRadius: "10px",
-                      border: `1px dashed ${isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
-                    }}
-                  >
-                    <p style={{ margin: 0, fontSize: "11px", color: sub }}>
-                      Pembayaran <strong>Tunai</strong> — tidak ada tempo. Ganti
-                      metode (Transfer / QRIS) kalau perlu jatuh tempo.
-                    </p>
-                  </div>
-                )}
-
-                <div>
-                  <label style={labelStyle}>Saluran Penjualan</label>
-                  <select
-                    value={form.channel}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, channel: e.target.value }))
-                    }
-                    style={inputStyle}
-                  >
-                    <option value="offline">🏪 Offline</option>
-                    <option value="online">🛒 Online / Marketplace</option>
-                  </select>
-                </div>
-
-                {/* Items */}
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      color: sub,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Produk
-                  </label>
-
-                  {/* Column Headers */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "2fr 60px 45px 80px 100px 30px",
-                      gap: "6px",
-                      marginBottom: "8px",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        color: sub,
-                      }}
-                    >
-                      Nama
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        color: sub,
-                        textAlign: "center",
-                      }}
-                    >
-                      Qty
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        color: sub,
-                        textAlign: "center",
-                      }}
-                    >
-                      Unit
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        color: sub,
-                        textAlign: "center",
-                      }}
-                    >
-                      HPP
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        color: sub,
-                        textAlign: "center",
-                      }}
-                    >
-                      Harga
-                    </div>
-                    <div></div>
-                  </div>
-
-                  {items.map((it, idx) => {
-                    const batches = itemBatches[idx] || [];
-                    const product =
-                      it._product ||
-                      products.find(
-                        (p) =>
-                          p.name?.toLowerCase() ===
-                          it.product_name?.toLowerCase(),
-                      );
-                    const unitOptions = getProductUnits(product);
-                    const showConversion =
-                      product && isPackUnit(it.unit, product) && it.qty > 0;
-                    return (
-                      <div key={idx} style={{ marginBottom: "10px" }}>
-                        <div
+                      <span style={{ fontSize: "15px" }}>{f}</span>
+                      {f === "A5" && (
+                        <span
                           style={{
-                            display: "grid",
-                            gridTemplateColumns:
-                              "2fr 60px 70px 80px 100px 30px",
-                            gap: "6px",
-                            alignItems: "center",
+                            fontSize: "9px",
+                            fontWeight: "500",
+                            opacity: 0.8,
                           }}
                         >
-                          <MasterSelect
-                            value={it.product_name}
-                            onChange={(v) => updateItem(idx, "product_name", v)}
-                            options={products.map((p) => ({ name: p.name }))}
-                            onAdd={handleAddProduct}
-                            onRemove={handleRemoveProduct}
-                            onRename={handleRenameProduct}
-                            isDarkMode={isDarkMode}
-                            placeholder="Nama produk"
-                          />
-                          <input
-                            type="number"
-                            value={it.qty}
-                            onChange={(e) =>
-                              updateItem(
-                                idx,
-                                "qty",
-                                parseInt(e.target.value) || 0,
-                              )
-                            }
-                            min="1"
-                            style={{
-                              ...inputStyle,
-                              fontSize: "13px",
-                              padding: "8px 6px",
-                              textAlign: "center",
-                            }}
-                          />
-                          <select
-                            value={it.unit}
-                            onChange={(e) =>
-                              updateItem(idx, "unit", e.target.value)
-                            }
-                            style={{
-                              ...inputStyle,
-                              fontSize: "12px",
-                              padding: "8px 4px",
-                            }}
-                          >
-                            {unitOptions.map((u, i) => (
-                              <option key={`${u.value}-${i}`} value={u.value}>
-                                {u.value}
-                              </option>
-                            ))}
-                          </select>
-                          <input
-                            type="number"
-                            value={Math.round(hppFromHna(it.unit_hpp || 0))}
-                            onChange={(e) =>
-                              updateItem(
-                                idx,
-                                "unit_hpp",
-                                hnaFromHpp(parseFloat(e.target.value) || 0),
-                              )
-                            }
-                            min="0"
-                            placeholder="0"
-                            title="HPP inc PPN 11% (disimpan sebagai HNA exc PPN)"
-                            style={{
-                              ...inputStyle,
-                              fontSize: "12px",
-                              padding: "8px 6px",
-                              backgroundColor: isDarkMode
-                                ? "var(--color-surface-elevated)"
-                                : "#EBEBEB",
-                              border: `1px dashed ${border}`,
-                              textAlign: "center",
-                            }}
-                          />
-                          <input
-                            type="number"
-                            value={it.unit_price}
-                            onChange={(e) =>
-                              updateItem(
-                                idx,
-                                "unit_price",
-                                parseFloat(e.target.value) || 0,
-                              )
-                            }
-                            min="0"
-                            placeholder="0"
-                            style={{
-                              ...inputStyle,
-                              fontSize: "13px",
-                              padding: "8px 6px",
-                              textAlign: "center",
-                            }}
-                          />
-                          {items.length > 1 && (
-                            <button
-                              onClick={() => removeItem(idx)}
-                              aria-label="Hapus baris produk"
-                              title="Hapus baris produk"
-                              style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                padding: 0,
-                              }}
-                            >
-                              <Trash2 size={14} color="var(--color-danger)" />
-                            </button>
-                          )}
-                        </div>
-                        {showConversion && (
-                          <p
-                            style={{
-                              margin: "4px 0 0 4px",
-                              fontSize: "11px",
-                              color: sub,
-                            }}
-                          >
-                            📐{" "}
-                            {formatQtyWithConversion(it.qty, it.unit, product)}
-                          </p>
-                        )}
-                        {it._tier_applied && (
-                          <p
-                            style={{
-                              margin: "4px 0 0 4px",
-                              fontSize: "11px",
-                              color: "var(--color-success)",
-                              fontWeight: "600",
-                            }}
-                          >
-                            🏷️ Harga grosir tier diaplikasikan
-                          </p>
-                        )}
-                        {batches.length > 0 && (
-                          <div style={{ marginTop: "4px", paddingLeft: "2px" }}>
-                            <select
-                              value={it._selected_batch || ""}
-                              onChange={(e) =>
-                                updateItem(
-                                  idx,
-                                  "_selected_batch",
-                                  e.target.value,
-                                )
-                              }
-                              style={{
-                                ...inputStyle,
-                                fontSize: "11px",
-                                padding: "5px 8px",
-                                backgroundColor: isDarkMode
-                                  ? "var(--color-surface-elevated)"
-                                  : "#F0F8FF",
-                                border: `1px solid var(--color-primary-border-strong)`,
-                                color: "var(--color-primary)",
-                              }}
-                            >
-                              {batches.map((b) => (
-                                <option key={b.batch_no} value={b.batch_no}>
-                                  Batch: {b.batch_no} | ED:{" "}
-                                  {b.expired_date
-                                    ? new Date(
-                                        b.expired_date,
-                                      ).toLocaleDateString("id-ID", {
-                                        day: "2-digit",
-                                        month: "short",
-                                        year: "numeric",
-                                      })
-                                    : "-"}{" "}
-                                  | Stok: {b.qty_current} | HPP (inc PPN):{" "}
-                                  {new Intl.NumberFormat("id-ID", {
-                                    style: "currency",
-                                    currency: "IDR",
-                                    minimumFractionDigits: 0,
-                                  }).format(hppFromHna(b.hna))}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  <button
-                    onClick={addItem}
-                    style={{
-                      fontSize: "13px",
-                      color: "var(--color-primary)",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      fontWeight: "600",
-                      marginTop: "4px",
-                    }}
-                  >
-                    + Tambah Produk
-                  </button>
+                          (Landscape)
+                        </span>
+                      )}
+                    </button>
+                  ))}
                 </div>
+              </div>
 
-                {/* Notes */}
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      color: sub,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Catatan
-                  </label>
-                  <textarea
-                    value={form.notes}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, notes: e.target.value }))
-                    }
-                    rows={2}
-                    placeholder="Opsional..."
-                    style={{
-                      ...inputStyle,
-                      resize: "vertical",
-                      fontFamily: "inherit",
-                    }}
-                  />
-                </div>
-
-                {/* Total */}
+              <div style={{ marginBottom: "24px" }}>
+                <label style={{ ...labelStyle, marginBottom: "12px" }}>
+                  Tipe Dokumen
+                </label>
                 <div
                   style={{
                     display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "12px 0",
-                    borderTop: `1px solid ${border}`,
+                    flexDirection: "column",
+                    gap: "8px",
                   }}
                 >
-                  <span
-                    style={{ fontSize: "14px", fontWeight: "600", color: sub }}
-                  >
-                    Grand Total
-                  </span>
-                  <span
+                  <label
                     style={{
-                      fontSize: "18px",
-                      fontWeight: "800",
-                      color: "var(--color-success)",
-                    }}
-                  >
-                    {fmtRp(grandTotal)}
-                  </span>
-                </div>
-
-                {/* Buttons */}
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <FieldError
-                    message={formErrors.items}
-                    visible={!!formErrors.items}
-                  />
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    style={{
-                      flex: 1,
-                      padding: "13px",
-                      backgroundColor: saving
-                        ? "var(--color-text-subtle)"
-                        : "var(--color-success)",
-                      color: "#FFF",
-                      border: "none",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      cursor: "pointer",
+                      padding: "10px",
                       borderRadius: "10px",
-                      cursor: saving ? "not-allowed" : "pointer",
-                      fontWeight: "700",
-                      fontSize: "14px",
-                      opacity: saving ? 0.7 : 1,
-                    }}
-                  >
-                    {saving
-                      ? "Menyimpan..."
-                      : editId
-                        ? "Simpan Perubahan"
-                        : "Buat Nota"}
-                  </button>
-                  <button
-                    onClick={() => setShowModal(false)}
-                    style={{
-                      flex: 1,
-                      padding: "13px",
                       backgroundColor: isDarkMode
                         ? "var(--color-surface-raised)"
                         : "var(--color-bg)",
-                      color: text,
-                      border: "none",
-                      borderRadius: "10px",
-                      cursor: "pointer",
-                      fontSize: "14px",
-                      fontWeight: "600",
                     }}
                   >
-                    Batal
-                  </button>
-                </div>
-              </div>
-              <div style={{ position: "sticky", top: "0", alignSelf: "start" }}>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: "700",
-                    textTransform: "uppercase",
-                    color: sub,
-                    marginBottom: "8px",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  📄 Preview Live
-                </div>
-                <NotaPreview
-                  form={{
-                    ...form,
-                    order_number: editId
-                      ? form.order_number
-                      : isAutoNota
-                        ? notaCounter.next_preview ||
-                          `${notaCounter.prefix || "HSB-NOTA-"}${String((notaCounter.month_max || 0) + 1).padStart(3, "0")}`
-                        : `${notaCounter.prefix || "HSB-NOTA-"}${manualNumber}`,
-                  }}
-                  items={items}
-                  settings={layoutSettings || {}}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Print Options Modal */}
-      {showPrintModal && renderPortal(
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-            backdropFilter: "blur(4px)",
-          }}
-        >
-          <div
-            className="ui-motion-modal ui-modal-shell"
-            style={{
-              backgroundColor: cardBg,
-              width: "100%",
-              maxWidth: "360px",
-              borderRadius: "20px",
-              padding: "24px",
-              boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "20px",
-              }}
-            >
-              <h2
-                style={{
-                  fontSize: "18px",
-                  fontWeight: "700",
-                  margin: 0,
-                  color: text,
-                }}
-              >
-                Opsi Cetak
-              </h2>
-              <button
-                onClick={() => setShowPrintModal(false)}
-                aria-label="Tutup modal cetak PDF"
-                className="ui-motion-button ui-focus-ring"
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: sub,
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ marginBottom: "20px" }}>
-              <label style={{ ...labelStyle, marginBottom: "12px" }}>
-                Ukuran Kertas
-              </label>
-              <div style={{ display: "flex", gap: "10px" }}>
-                {["A5", "A6"].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() =>
-                      setPrintOptions({ ...printOptions, format: f })
-                    }
+                    <input
+                      type="radio"
+                      checked={printOptions.type === "nota"}
+                      onChange={() =>
+                        setPrintOptions({ ...printOptions, type: "nota" })
+                      }
+                    />
+                    <span style={{ fontSize: "14px", color: text }}>
+                      Nota Penjualan
+                    </span>
+                  </label>
+                  <label
                     style={{
-                      flex: 1,
-                      padding: "12px",
-                      borderRadius: "12px",
-                      border: `2px solid ${printOptions.format === f ? "var(--color-primary)" : border}`,
-                      backgroundColor:
-                        printOptions.format === f
-                          ? "var(--color-primary-soft-weak)"
-                          : "transparent",
-                      color:
-                        printOptions.format === f
-                          ? "var(--color-primary)"
-                          : text,
-                      fontWeight: "700",
-                      cursor: "pointer",
-                      transition: uiTransition("all", UI_MOTION.duration.base),
                       display: "flex",
-                      flexDirection: "column",
                       alignItems: "center",
-                      gap: "2px",
+                      gap: "10px",
+                      cursor:
+                        printOptions.format === "A6"
+                          ? "pointer"
+                          : "not-allowed",
+                      opacity: printOptions.format === "A6" ? 1 : 0.5,
+                      padding: "10px",
+                      borderRadius: "10px",
+                      backgroundColor: isDarkMode
+                        ? "var(--color-surface-raised)"
+                        : "var(--color-bg)",
                     }}
                   >
-                    <span style={{ fontSize: "15px" }}>{f}</span>
-                    {f === "A5" && (
-                      <span
-                        style={{
-                          fontSize: "9px",
-                          fontWeight: "500",
-                          opacity: 0.8,
-                        }}
-                      >
-                        (Landscape)
-                      </span>
-                    )}
-                  </button>
-                ))}
+                    <input
+                      type="radio"
+                      checked={printOptions.type === "terima"}
+                      disabled={printOptions.format !== "A6"}
+                      onChange={() =>
+                        setPrintOptions({ ...printOptions, type: "terima" })
+                      }
+                    />
+                    <span style={{ fontSize: "14px", color: text }}>
+                      Tanda Terima (Khusus A6)
+                    </span>
+                  </label>
+                </div>
               </div>
-            </div>
 
-            <div style={{ marginBottom: "24px" }}>
-              <label style={{ ...labelStyle, marginBottom: "12px" }}>
-                Tipe Dokumen
-              </label>
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
-              >
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    cursor: "pointer",
-                    padding: "10px",
-                    borderRadius: "10px",
-                    backgroundColor: isDarkMode
-                      ? "var(--color-surface-raised)"
-                      : "var(--color-bg)",
-                  }}
-                >
-                  <input
-                    type="radio"
-                    checked={printOptions.type === "nota"}
-                    onChange={() =>
-                      setPrintOptions({ ...printOptions, type: "nota" })
-                    }
-                  />
-                  <span style={{ fontSize: "14px", color: text }}>
-                    Nota Penjualan
-                  </span>
-                </label>
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    cursor:
-                      printOptions.format === "A6" ? "pointer" : "not-allowed",
-                    opacity: printOptions.format === "A6" ? 1 : 0.5,
-                    padding: "10px",
-                    borderRadius: "10px",
-                    backgroundColor: isDarkMode
-                      ? "var(--color-surface-raised)"
-                      : "var(--color-bg)",
-                  }}
-                >
-                  <input
-                    type="radio"
-                    checked={printOptions.type === "terima"}
-                    disabled={printOptions.format !== "A6"}
-                    onChange={() =>
-                      setPrintOptions({ ...printOptions, type: "terima" })
-                    }
-                  />
-                  <span style={{ fontSize: "14px", color: text }}>
-                    Tanda Terima (Khusus A6)
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            <button
-              onClick={handlePrintPDF}
-              disabled={pdfLoading}
-              style={{
-                width: "100%",
-                padding: "14px",
-                backgroundColor: "var(--color-primary)",
-                color: "#FFF",
-                border: "none",
-                borderRadius: "14px",
-                cursor: pdfLoading ? "not-allowed" : "pointer",
-                fontWeight: "700",
-                fontSize: "15px",
-                opacity: pdfLoading ? 0.7 : 1,
-              }}
-            >
-              {pdfLoading ? "Membuat PDF..." : "Cetak Sekarang"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Payment Date Modal */}
-      {paymentModal.open && renderPortal(
-        <div
-          onClick={() =>
-            setPaymentModal({ open: false, order: null, date: "", mode: "pay" })
-          }
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 10000,
-            backdropFilter: "blur(4px)",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: cardBg,
-              width: "100%",
-              maxWidth: "360px",
-              borderRadius: "20px",
-              padding: "24px",
-              boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "20px",
-              }}
-            >
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: "16px",
-                  fontWeight: "700",
-                  color: text,
-                }}
-              >
-                {paymentModal.mode === "edit"
-                  ? "✏️ Edit Tanggal Pelunasan"
-                  : "💰 Konfirmasi Pelunasan"}
-              </h3>
               <button
-                onClick={() =>
-                  setPaymentModal({
-                    open: false,
-                    order: null,
-                    date: "",
-                    mode: "pay",
-                  })
-                }
-                aria-label="Tutup modal pembayaran"
-                className="ui-motion-button ui-focus-ring"
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                <X size={18} color={sub} />
-              </button>
-            </div>
-            <div style={{ marginBottom: "20px" }}>
-              <label style={labelStyle}>Tanggal Pelunasan</label>
-              <input
-                type="date"
-                value={paymentModal.date}
-                onChange={(e) =>
-                  setPaymentModal((p) => ({ ...p, date: e.target.value }))
-                }
-                style={inputStyle}
-              />
-            </div>
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-            >
-              <button
-                onClick={handlePaymentSave}
-                disabled={paymentSaving || !paymentModal.date}
+                onClick={handlePrintPDF}
+                disabled={pdfLoading}
                 style={{
                   width: "100%",
-                  padding: "13px",
-                  backgroundColor: paymentSaving
-                    ? "var(--color-text-subtle)"
-                    : "var(--color-success)",
+                  padding: "14px",
+                  backgroundColor: "var(--color-primary)",
                   color: "#FFF",
                   border: "none",
-                  borderRadius: "10px",
-                  cursor: paymentSaving ? "not-allowed" : "pointer",
+                  borderRadius: "14px",
+                  cursor: pdfLoading ? "not-allowed" : "pointer",
                   fontWeight: "700",
-                  fontSize: "14px",
+                  fontSize: "15px",
+                  opacity: pdfLoading ? 0.7 : 1,
                 }}
               >
-                {paymentSaving ? "Menyimpan..." : "Simpan"}
+                {pdfLoading ? "Membuat PDF..." : "Cetak Sekarang"}
               </button>
-              {paymentModal.mode === "edit" && (
+            </div>
+          </div>,
+        )}
+
+      {/* Payment Date Modal */}
+      {paymentModal.open &&
+        renderPortal(
+          <div
+            onClick={() =>
+              setPaymentModal({
+                open: false,
+                order: null,
+                date: "",
+                mode: "pay",
+              })
+            }
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10000,
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                backgroundColor: cardBg,
+                width: "100%",
+                maxWidth: "360px",
+                borderRadius: "20px",
+                padding: "24px",
+                boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "20px",
+                }}
+              >
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: "16px",
+                    fontWeight: "700",
+                    color: text,
+                  }}
+                >
+                  {paymentModal.mode === "edit"
+                    ? "✏️ Edit Tanggal Pelunasan"
+                    : "💰 Konfirmasi Pelunasan"}
+                </h3>
                 <button
-                  onClick={handlePaymentUnpay}
+                  onClick={() =>
+                    setPaymentModal({
+                      open: false,
+                      order: null,
+                      date: "",
+                      mode: "pay",
+                    })
+                  }
+                  aria-label="Tutup modal pembayaran"
+                  className="ui-motion-button ui-focus-ring"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  <X size={18} color={sub} />
+                </button>
+              </div>
+              <div style={{ marginBottom: "20px" }}>
+                <label style={labelStyle}>Tanggal Pelunasan</label>
+                <input
+                  type="date"
+                  value={paymentModal.date}
+                  onChange={(e) =>
+                    setPaymentModal((p) => ({ ...p, date: e.target.value }))
+                  }
+                  style={inputStyle}
+                />
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                }}
+              >
+                <button
+                  onClick={handlePaymentSave}
+                  disabled={paymentSaving || !paymentModal.date}
+                  style={{
+                    width: "100%",
+                    padding: "13px",
+                    backgroundColor: paymentSaving
+                      ? "var(--color-text-subtle)"
+                      : "var(--color-success)",
+                    color: "#FFF",
+                    border: "none",
+                    borderRadius: "10px",
+                    cursor: paymentSaving ? "not-allowed" : "pointer",
+                    fontWeight: "700",
+                    fontSize: "14px",
+                  }}
+                >
+                  {paymentSaving ? "Menyimpan..." : "Simpan"}
+                </button>
+                {paymentModal.mode === "edit" && (
+                  <button
+                    onClick={handlePaymentUnpay}
+                    disabled={paymentSaving}
+                    style={{
+                      width: "100%",
+                      padding: "13px",
+                      backgroundColor: "transparent",
+                      color: "var(--color-danger)",
+                      border: "1px solid var(--color-danger)",
+                      borderRadius: "10px",
+                      cursor: paymentSaving ? "not-allowed" : "pointer",
+                      fontWeight: "600",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Batalkan Pelunasan
+                  </button>
+                )}
+                <button
+                  onClick={() =>
+                    setPaymentModal({
+                      open: false,
+                      order: null,
+                      date: "",
+                      mode: "pay",
+                    })
+                  }
                   disabled={paymentSaving}
                   style={{
                     width: "100%",
                     padding: "13px",
-                    backgroundColor: "transparent",
-                    color: "var(--color-danger)",
-                    border: "1px solid var(--color-danger)",
+                    backgroundColor: isDarkMode
+                      ? "var(--color-surface-raised)"
+                      : "var(--color-bg)",
+                    color: text,
+                    border: "none",
                     borderRadius: "10px",
-                    cursor: paymentSaving ? "not-allowed" : "pointer",
+                    cursor: "pointer",
                     fontWeight: "600",
                     fontSize: "14px",
                   }}
                 >
-                  Batalkan Pelunasan
+                  Batal
                 </button>
-              )}
-              <button
-                onClick={() =>
-                  setPaymentModal({
-                    open: false,
-                    order: null,
-                    date: "",
-                    mode: "pay",
-                  })
-                }
-                disabled={paymentSaving}
-                style={{
-                  width: "100%",
-                  padding: "13px",
-                  backgroundColor: isDarkMode
-                    ? "var(--color-surface-raised)"
-                    : "var(--color-bg)",
-                  color: text,
-                  border: "none",
-                  borderRadius: "10px",
-                  cursor: "pointer",
-                  fontWeight: "600",
-                  fontSize: "14px",
-                }}
-              >
-                Batal
-              </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+        )}
 
       {/* Delete Confirm Modal */}
       <ConfirmModal

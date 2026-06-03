@@ -32,9 +32,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.15.3-stable",
+    date: "3 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "perf",
+        text: "Bundle utama dipotong drastis: halaman besar, Vanta/Three, dan generator PDF sekarang dimuat lazy sesuai kebutuhan. Test frontend juga kembali hijau.",
+        dev: "Route-level React.lazy + Suspense di App.js, dynamic import untuk Vanta/Three dan util PDF call-sites, hapus dead deps socket.io-client/xlsx, fix test rot Skeleton/Dashboard, serta valid DOM nesting Nota. Main chunk turun sekitar 476 kB gzip.",
+      },
+    ],
+  },
+  {
     version: "v1.15.2-stable",
     date: "2 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -1880,7 +1892,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.15.2-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.15.3-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)

@@ -8,7 +8,6 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { printSettingsAPI } from "../../services/api";
-import { generateBarcodePDF } from "../../utils/generateBarcodePDF";
 import { UI_SIZE } from "../../constants/ui";
 import Icons from "../common/Icon";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
@@ -90,6 +89,8 @@ export default function PrintBarcodeModal({
           err,
         );
       }
+      const { generateBarcodePDF } =
+        await import("../../utils/generateBarcodePDF");
       const { doc, skippedCount } = await generateBarcodePDF(rows, {
         layout,
         customLayout: { rows: customRows, cols: customCols },

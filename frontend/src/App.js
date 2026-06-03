@@ -1,22 +1,11 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { lazy, Suspense, useContext, useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
-import Login from "./components/Login";
-import Dashboard from "./components/Dashboard";
 import Sidebar from "./components/Sidebar";
-import InvoiceList from "./components/InvoiceList";
-import BugReports from "./components/BugReports";
-import SalesOrderList from "./components/SalesOrderList";
-import CustomerList from "./components/CustomerList";
-import InventoryDashboard from "./components/InventoryDashboard";
-import PurchaseOrderList from "./components/PurchaseOrderList";
-import OnlineStoreDashboard from "./components/OnlineStoreDashboard";
-import LedgerPage from "./components/LedgerPage";
-import PrintSettings from "./components/PrintSettings";
 import RouteFade from "./components/common/RouteFade";
 import { AuthContext, AuthProvider } from "./context/AuthContext";
 import { useDocumentTitle } from "./hooks/useDocumentTitle";
@@ -24,6 +13,22 @@ import useReducedMotion from "./hooks/useReducedMotion";
 import useVantaBackground from "./hooks/useVantaBackground";
 import { UI_MOTION, uiTransition } from "./constants/ui";
 import "./App.css";
+
+const Login = lazy(() => import("./components/Login"));
+const Dashboard = lazy(() => import("./components/Dashboard"));
+const InvoiceList = lazy(() => import("./components/InvoiceList"));
+const BugReports = lazy(() => import("./components/BugReports"));
+const SalesOrderList = lazy(() => import("./components/SalesOrderList"));
+const CustomerList = lazy(() => import("./components/CustomerList"));
+const InventoryDashboard = lazy(
+  () => import("./components/InventoryDashboard"),
+);
+const PurchaseOrderList = lazy(() => import("./components/PurchaseOrderList"));
+const OnlineStoreDashboard = lazy(
+  () => import("./components/OnlineStoreDashboard"),
+);
+const LedgerPage = lazy(() => import("./components/LedgerPage"));
+const PrintSettings = lazy(() => import("./components/PrintSettings"));
 
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint);
@@ -73,6 +78,25 @@ function PageTitleWrapper({ title, children }) {
   return children;
 }
 
+function RouteFallback() {
+  return (
+    <div
+      className="ui-motion-page"
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        color: "var(--color-text-muted)",
+        background: "var(--color-bg)",
+        fontSize: "13px",
+        fontWeight: 600,
+      }}
+    >
+      Memuat...
+    </div>
+  );
+}
+
 function AppRoutes({
   isDarkMode,
   setIsDarkMode,
@@ -102,45 +126,50 @@ function AppRoutes({
     </ProtectedRoute>
   );
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={
-          <RouteFade>
-            <PageTitleWrapper title="Login">
-              <Login
-                isDarkMode={isDarkMode}
-                setIsDarkMode={setIsDarkMode}
-                isVantaMode={isVantaMode}
-              />
-            </PageTitleWrapper>
-          </RouteFade>
-        }
-      />
-      <Route path="/dashboard" element={wrap(Dashboard, "Dashboard")} />
-      <Route path="/invoices" element={wrap(InvoiceList, "Nota Penjualan")} />
-      <Route path="/sales" element={wrap(SalesOrderList, "Nota Penjualan")} />
-      <Route path="/customers" element={wrap(CustomerList, "Customers")} />
-      <Route
-        path="/inventory"
-        element={wrap(InventoryDashboard, "Inventory")}
-      />
-      <Route
-        path="/orders"
-        element={wrap(PurchaseOrderList, "Surat Pesanan")}
-      />
-      <Route
-        path="/online-store"
-        element={wrap(OnlineStoreDashboard, "Toko Online")}
-      />
-      <Route path="/ledger" element={wrap(LedgerPage, "Buku Besar")} />
-      <Route path="/print-settings" element={wrap(PrintSettings, "Settings")} />
-      <Route path="/bugs" element={wrap(BugReports, "Bug Reports")} />
-      <Route
-        path="/"
-        element={<Navigate to={token ? "/dashboard" : "/login"} />}
-      />
-    </Routes>
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            <RouteFade>
+              <PageTitleWrapper title="Login">
+                <Login
+                  isDarkMode={isDarkMode}
+                  setIsDarkMode={setIsDarkMode}
+                  isVantaMode={isVantaMode}
+                />
+              </PageTitleWrapper>
+            </RouteFade>
+          }
+        />
+        <Route path="/dashboard" element={wrap(Dashboard, "Dashboard")} />
+        <Route path="/invoices" element={wrap(InvoiceList, "Nota Penjualan")} />
+        <Route path="/sales" element={wrap(SalesOrderList, "Nota Penjualan")} />
+        <Route path="/customers" element={wrap(CustomerList, "Customers")} />
+        <Route
+          path="/inventory"
+          element={wrap(InventoryDashboard, "Inventory")}
+        />
+        <Route
+          path="/orders"
+          element={wrap(PurchaseOrderList, "Surat Pesanan")}
+        />
+        <Route
+          path="/online-store"
+          element={wrap(OnlineStoreDashboard, "Toko Online")}
+        />
+        <Route path="/ledger" element={wrap(LedgerPage, "Buku Besar")} />
+        <Route
+          path="/print-settings"
+          element={wrap(PrintSettings, "Settings")}
+        />
+        <Route path="/bugs" element={wrap(BugReports, "Bug Reports")} />
+        <Route
+          path="/"
+          element={<Navigate to={token ? "/dashboard" : "/login"} />}
+        />
+      </Routes>
+    </Suspense>
   );
 }
 

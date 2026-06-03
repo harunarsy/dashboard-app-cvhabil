@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import { inventoryAPI, printSettingsAPI } from "../../services/api";
 import BatchFormModal from "./BatchFormModal";
-import { generateOpnamePDF } from "../../utils/generateOpnamePDF";
 import BarcodeScanner from "../common/BarcodeScanner";
 import { UI_MOTION, UI_SIZE, uiTransition } from "../../constants/ui";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
@@ -404,6 +403,8 @@ export default function OpnameModal({
           physical_qty: v.physical_qty,
           notes: v.notes,
         }));
+      const { generateOpnamePDF } =
+        await import("../../utils/generateOpnamePDF");
       const doc = generateOpnamePDF(rows, { settings });
       doc.save(
         `Berita_Acara_Opname_${new Date().toISOString().slice(0, 10)}.pdf`,

@@ -9,7 +9,6 @@ import {
   printSettingsAPI,
 } from "../services/api";
 import { getProductUnits, formatQtyWithConversion } from "../constants/units";
-import { generateSPPDF } from "../utils/generateSPPDF";
 import MasterSelect from "./MasterSelect";
 import Skeleton from "./common/Skeleton";
 import ConfirmModal from "./common/ConfirmModal";
@@ -578,6 +577,7 @@ export default function PurchaseOrderList({
     if (pdfLoading) return;
     setPdfLoading(o.id);
     try {
+      const { generateSPPDF } = await import("../utils/generateSPPDF");
       const bInfo = await printSettingsAPI.get();
       const settings = bInfo.data.nota_layout || undefined;
       const sInfo =

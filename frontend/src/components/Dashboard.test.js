@@ -1,43 +1,70 @@
-import React from 'react';
+import React from "react";
 // Mock before other imports using a factory to bypass original file logic
-jest.mock('../services/api', () => ({
+jest.mock("../services/api", () => ({
   __esModule: true,
   default: {
     get: jest.fn(),
     post: jest.fn(),
     put: jest.fn(),
-    delete: jest.fn()
-  }
+    delete: jest.fn(),
+  },
+  tasksAPI: {
+    getAll: jest.fn(() => Promise.resolve({ data: [] })),
+    getTrash: jest.fn(() => Promise.resolve({ data: [] })),
+    create: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+    restore: jest.fn(),
+    getHistory: jest.fn(() => Promise.resolve({ data: [] })),
+  },
 }));
 
-import { render, screen, waitFor, act } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import Dashboard from './Dashboard';
-import api from '../services/api';
+import { render, screen, waitFor, act } from "@testing-library/react";
+import "@testing-library/jest-dom";
+import Dashboard from "./Dashboard";
+import api from "../services/api";
+import { tasksAPI } from "../services/api";
 
-// Mock lucide-react to avoid issues with icon rendering in tests
-jest.mock('lucide-react', () => ({
-  Activity: () => <div data-testid="icon-activity" />,
-  ShoppingCart: () => <div data-testid="icon-shopping-cart" />,
-  Users: () => <div data-testid="icon-users" />,
-  Package: () => <div data-testid="icon-package" />,
-  Info: () => <div data-testid="icon-info" />,
-  X: () => <div data-testid="icon-x" />
-}));
+// Mock lucide-react broadly because Dashboard renders child widgets that import
+// many icons directly.
+jest.mock("lucide-react", () => {
+  const React = require("react");
+  const MockIcon = (props) => <svg data-testid="icon" {...props} />;
 
-describe('Dashboard Component - Loading State', () => {
+  return new Proxy(
+    { __esModule: true },
+    {
+      get: (target, prop) => target[prop] || MockIcon,
+    },
+  );
+});
+
+describe("Dashboard Component - Loading State", () => {
   const mockStats = {
     totalPenjualan: 1000000,
     suratPesananAktif: 5,
     stokLowExpired: 2,
-    totalCustomer: 50
+    totalCustomer: 50,
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    tasksAPI.getAll.mockResolvedValue({ data: [] });
+    global.ResizeObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+    window.matchMedia = jest.fn().mockReturnValue({
+      matches: true,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+    });
   });
 
-  test('renders skeletons while loading', async () => {
+  test("renders skeletons while loading", async () => {
     // Setup API mock to stay pending initially
     let resolveApi;
     const apiPromise = new Promise((resolve) => {
@@ -49,12 +76,12 @@ describe('Dashboard Component - Loading State', () => {
 
     // Check if skeletons are present
     // Based on Dashboard.jsx, there should be 4 stats card skeletons
-    const skeletons = document.querySelectorAll('.skeleton');
+    const skeletons = document.querySelectorAll(".skeleton");
     expect(skeletons.length).toBeGreaterThan(0);
-    
+
     // Specifically check for the height and width patterns used for stats cards
     // Dashboard.jsx uses Skeleton with various widths/heights
-    
+
     // Resolve the API
     await act(async () => {
       resolveApi({ data: mockStats });
@@ -66,14 +93,22 @@ describe('Dashboard Component - Loading State', () => {
     });
 
     // Wait for skeletons to disappear (reflecting loading: false)
-    await waitFor(() => {
-      const skeletons = document.querySelectorAll('.skeleton');
-      expect(skeletons.length).toBe(0);
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        const skeletons = document.querySelectorAll(".skeleton");
+        expect(skeletons.length).toBe(0);
+      },
+      { timeout: 3000 },
+    );
 
-    // Verify data is rendered (flexible check for the number)
-    expect(screen.getByText(/1\.0M/)).toBeInTheDocument();
+    // Verify data is rendered with the current full currency formatting.
+    expect(
+      screen.getByText((content) =>
+        content.replace(/\s/g, "").includes("Rp1.000.000"),
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText(/^5$/)).toBeInTheDocument();
-    expect(screen.getByText(/^50$/)).toBeInTheDocument();
+    expect(screen.getByText(/^2$/)).toBeInTheDocument();
+    expect(screen.getByText(/Stok Low\/Expired/i)).toBeInTheDocument();
   });
 });

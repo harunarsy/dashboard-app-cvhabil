@@ -2,6 +2,23 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.15.3-stable] - 2026-06-03
+
+### Changed
+
+- Route-level code splitting: halaman besar sekarang lazy-loaded dari `App.js`.
+- Vanta/Three dan generator PDF tidak lagi masuk main chunk; modul dimuat saat benar-benar dipakai.
+- Dead dependency frontend `socket.io-client` dan `xlsx` dihapus karena tidak dipakai di `frontend/src`.
+
+### Fixed
+
+- Test frontend kembali hijau: mock Dashboard diperbarui untuk icon/tasks/chart env terbaru, Skeleton test mengikuti class shimmer baru, dan nesting invalid `<p><div>` di Nota diperbaiki.
+
+### Notes
+
+- Main chunk turun dari sekitar `579.36 kB` ke `102.99 kB` gzip pada build lokal.
+- `generateNotaPDF.js`, backend route, dan HNA/HPP SSOT tidak disentuh.
+
 ## [v1.15.2-stable] - 2026-06-02
 
 ### Fixed

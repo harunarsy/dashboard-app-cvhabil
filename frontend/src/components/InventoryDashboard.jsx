@@ -18,7 +18,6 @@ import {
   Barcode,
 } from "lucide-react";
 import { inventoryAPI, printSettingsAPI } from "../services/api";
-import { generateInventoryPDF } from "../utils/generateInventoryPDF";
 import { BASE_UNITS, PACK_UNITS } from "../constants/units";
 import MasterSelect from "./MasterSelect";
 import Skeleton from "./common/Skeleton";
@@ -181,7 +180,11 @@ export default function InventoryDashboard({
   const text = isDarkMode ? "#FFF" : "#000";
   const sub = "var(--color-text-subtle)";
   useBodyScrollLock(
-    showModal || bulkEditOpen || barcodePrintOpen || !!drawerProductId || !!deleteConfirmId,
+    showModal ||
+      bulkEditOpen ||
+      barcodePrintOpen ||
+      !!drawerProductId ||
+      !!deleteConfirmId,
   );
   const surface = isDarkMode
     ? "var(--color-surface-raised)"
@@ -666,6 +669,8 @@ export default function InventoryDashboard({
         /* fallback default */
       }
       const { data: rows } = await inventoryAPI.getOpnameTemplate();
+      const { generateInventoryPDF } =
+        await import("../utils/generateInventoryPDF");
       const doc = generateInventoryPDF(rows, { settings });
       const stamp = new Date().toISOString().slice(0, 10);
       doc.save(`Template_Opname_${stamp}.pdf`);
@@ -1578,582 +1583,758 @@ export default function InventoryDashboard({
       )}
 
       {/* ─── Product Modal ──────────────────────────────────────────────── */}
-      {showModal === "product" && renderPortal(
-        <ModalShell
-          onClose={() => setShowModal(null)}
-          cardBg={cardBg}
-          title={editId ? "Edit Produk" : "Produk Baru"}
-          text={text}
-          border={border}
-          sub={sub}
-          isMobile={isMobile}
-          maxWidth={editId ? "760px" : "520px"}
-          hidden={!!batchModal || !!adjustBatch}
-        >
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+      {showModal === "product" &&
+        renderPortal(
+          <ModalShell
+            onClose={() => setShowModal(null)}
+            cardBg={cardBg}
+            title={editId ? "Edit Produk" : "Produk Baru"}
+            text={text}
+            border={border}
+            sub={sub}
+            isMobile={isMobile}
+            maxWidth={editId ? "760px" : "520px"}
+            hidden={!!batchModal || !!adjustBatch}
           >
-            {editId && (
-              <div
-                role="tablist"
-                aria-label="Edit produk"
-                style={{
-                  display: "flex",
-                  gap: "4px",
-                  background: surface,
-                  borderRadius: "10px",
-                  padding: "3px",
-                  marginBottom: "4px",
-                }}
-              >
-                {[
-                  ["profile", "Profil"],
-                  ["batches", `Batch (${(batchesCache[editId] || []).length})`],
-                ].map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    role="tab"
-                    aria-selected={productModalTab === key}
-                    onClick={() => {
-                      setProductModalTab(key);
-                      if (key === "batches") fetchBatches(editId, true);
-                    }}
-                    style={{
-                      flex: 1,
-                      minHeight: "38px",
-                      border: "none",
-                      borderRadius: "8px",
-                      background:
-                        productModalTab === key ? cardBg : "transparent",
-                      color: productModalTab === key ? text : sub,
-                      cursor: "pointer",
-                      fontSize: "13px",
-                      fontWeight: "700",
-                      boxShadow:
-                        productModalTab === key
-                          ? "0 1px 4px rgba(0,0,0,0.12)"
-                          : "none",
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
-            {(!editId || productModalTab === "profile") && (
-              <>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            >
+              {editId && (
                 <div
+                  role="tablist"
+                  aria-label="Edit produk"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "12px",
+                    display: "flex",
+                    gap: "4px",
+                    background: surface,
+                    borderRadius: "10px",
+                    padding: "3px",
+                    marginBottom: "4px",
                   }}
                 >
-                  <div>
-                    <label style={labelStyle}>Kode</label>
-                    <input
-                      value={pForm.code}
-                      onChange={(e) =>
-                        setPForm((p) => ({ ...p, code: e.target.value }))
-                      }
-                      placeholder="OBT-001"
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Kategori</label>
-                    <input
-                      value={pForm.category}
-                      onChange={(e) =>
-                        setPForm((p) => ({ ...p, category: e.target.value }))
-                      }
-                      placeholder="Obat, Nutrisi..."
-                      style={inputStyle}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label style={labelStyle}>Nama Produk *</label>
-                  <input
-                    value={pForm.name}
-                    onChange={(e) => {
-                      setPForm((p) => ({ ...p, name: e.target.value }));
-                      setModalError("");
-                    }}
-                    placeholder="Paracetamol 500mg"
-                    style={inputStyle}
-                  />
-                </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "12px",
-                  }}
-                >
-                  <div>
-                    <label style={labelStyle}>Satuan Eceran *</label>
-                    <select
-                      value={pForm.base_unit || pForm.unit || "pcs"}
-                      onChange={(e) =>
-                        setPForm((p) => ({
-                          ...p,
-                          base_unit: e.target.value,
-                          unit: e.target.value,
-                        }))
-                      }
-                      style={inputStyle}
-                    >
-                      {BASE_UNITS.map((u, i) => (
-                        <option key={`${u.value}-${i}`} value={u.value}>
-                          {u.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Jual / eceran</label>
-                    <input
-                      type="number"
-                      value={pForm.sell_price}
-                      onChange={(e) =>
-                        setPForm((p) => ({
-                          ...p,
-                          sell_price: parseFloat(e.target.value) || 0,
-                        }))
-                      }
-                      style={inputStyle}
-                    />
-                  </div>
-                </div>
-                <HnaHppInput
-                  value={pForm.hna}
-                  onChange={(v) => setPForm((p) => ({ ...p, hna: v }))}
-                  decimals={2}
-                  isDarkMode={isDarkMode}
-                />
-                {parseFloat(pForm.hna) > 0 && (
-                  <p
-                    style={{
-                      margin: "0 0 4px",
-                      fontSize: "11px",
-                      color: sub,
-                      padding: "6px 10px",
-                      background: surface,
-                      borderRadius: "8px",
-                    }}
-                  >
-                    Margin per {pForm.base_unit || pForm.unit || "pcs"} (jual −
-                    HPP inc PPN):{" "}
-                    <strong
+                  {[
+                    ["profile", "Profil"],
+                    [
+                      "batches",
+                      `Batch (${(batchesCache[editId] || []).length})`,
+                    ],
+                  ].map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      role="tab"
+                      aria-selected={productModalTab === key}
+                      onClick={() => {
+                        setProductModalTab(key);
+                        if (key === "batches") fetchBatches(editId, true);
+                      }}
                       style={{
-                        color:
-                          pForm.sell_price - hppFromHna(pForm.hna) > 0
-                            ? "var(--color-success)"
-                            : "var(--color-danger)",
+                        flex: 1,
+                        minHeight: "38px",
+                        border: "none",
+                        borderRadius: "8px",
+                        background:
+                          productModalTab === key ? cardBg : "transparent",
+                        color: productModalTab === key ? text : sub,
+                        cursor: "pointer",
+                        fontSize: "13px",
+                        fontWeight: "700",
+                        boxShadow:
+                          productModalTab === key
+                            ? "0 1px 4px rgba(0,0,0,0.12)"
+                            : "none",
                       }}
                     >
-                      {formatRupiah(
-                        pForm.sell_price - hppFromHna(pForm.hna),
-                        0,
-                      )}
-                    </strong>
-                  </p>
-                )}
-
-                {/* v1.6.0 Multi-Unit Packaging — optional */}
-                <div
-                  style={{
-                    background: surface,
-                    border: `1px dashed ${border}`,
-                    borderRadius: "10px",
-                    padding: "12px",
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: "0 0 10px",
-                      fontSize: "12px",
-                      fontWeight: "700",
-                      color: text,
-                    }}
-                  >
-                    📦 Kemasan (opsional) — kalau barang juga dijual per
-                    karton/dus
-                  </p>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {(!editId || productModalTab === "profile") && (
+                <>
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "1fr 1fr 1.2fr",
+                      gridTemplateColumns: "1fr 1fr",
                       gap: "12px",
                     }}
                   >
                     <div>
-                      <label style={labelStyle}>Satuan Kemasan</label>
+                      <label style={labelStyle}>Kode</label>
+                      <input
+                        value={pForm.code}
+                        onChange={(e) =>
+                          setPForm((p) => ({ ...p, code: e.target.value }))
+                        }
+                        placeholder="OBT-001"
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Kategori</label>
+                      <input
+                        value={pForm.category}
+                        onChange={(e) =>
+                          setPForm((p) => ({ ...p, category: e.target.value }))
+                        }
+                        placeholder="Obat, Nutrisi..."
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Nama Produk *</label>
+                    <input
+                      value={pForm.name}
+                      onChange={(e) => {
+                        setPForm((p) => ({ ...p, name: e.target.value }));
+                        setModalError("");
+                      }}
+                      placeholder="Paracetamol 500mg"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "12px",
+                    }}
+                  >
+                    <div>
+                      <label style={labelStyle}>Satuan Eceran *</label>
                       <select
-                        value={pForm.pack_unit || ""}
+                        value={pForm.base_unit || pForm.unit || "pcs"}
                         onChange={(e) =>
                           setPForm((p) => ({
                             ...p,
-                            pack_unit: e.target.value,
-                            pack_size: e.target.value
-                              ? p.pack_size > 1
-                                ? p.pack_size
-                                : 12
-                              : 1,
+                            base_unit: e.target.value,
+                            unit: e.target.value,
                           }))
                         }
                         style={inputStyle}
                       >
-                        <option value="">— Tidak ada —</option>
-                        {PACK_UNITS.map((u) => (
-                          <option key={u.value} value={u.value}>
+                        {BASE_UNITS.map((u, i) => (
+                          <option key={`${u.value}-${i}`} value={u.value}>
                             {u.label}
                           </option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label style={labelStyle}>
-                        Isi per {pForm.pack_unit || "kemasan"}
-                      </label>
+                      <label style={labelStyle}>Jual / eceran</label>
                       <input
                         type="number"
-                        min="1"
-                        disabled={!pForm.pack_unit}
-                        value={pForm.pack_size || 1}
+                        value={pForm.sell_price}
                         onChange={(e) =>
                           setPForm((p) => ({
                             ...p,
-                            pack_size: parseInt(e.target.value) || 1,
+                            sell_price: parseFloat(e.target.value) || 0,
                           }))
                         }
-                        style={{
-                          ...inputStyle,
-                          opacity: pForm.pack_unit ? 1 : 0.5,
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>
-                        Jual / {pForm.pack_unit || "kemasan"}
-                      </label>
-                      <input
-                        type="number"
-                        disabled={!pForm.pack_unit}
-                        value={pForm.sell_price_pack || 0}
-                        onChange={(e) =>
-                          setPForm((p) => ({
-                            ...p,
-                            sell_price_pack: parseFloat(e.target.value) || 0,
-                          }))
-                        }
-                        style={{
-                          ...inputStyle,
-                          opacity: pForm.pack_unit ? 1 : 0.5,
-                        }}
+                        style={inputStyle}
                       />
                     </div>
                   </div>
-                  {pForm.pack_unit && pForm.pack_size > 1 && (
+                  <HnaHppInput
+                    value={pForm.hna}
+                    onChange={(v) => setPForm((p) => ({ ...p, hna: v }))}
+                    decimals={2}
+                    isDarkMode={isDarkMode}
+                  />
+                  {parseFloat(pForm.hna) > 0 && (
                     <p
                       style={{
-                        margin: "8px 0 0",
+                        margin: "0 0 4px",
                         fontSize: "11px",
                         color: sub,
+                        padding: "6px 10px",
+                        background: surface,
+                        borderRadius: "8px",
                       }}
                     >
-                      📐 1 {pForm.pack_unit} = {pForm.pack_size}{" "}
-                      {pForm.base_unit || pForm.unit || "pcs"}
-                      {pForm.sell_price_pack > 0 && pForm.pack_size > 0 && (
-                        <>
-                          {" "}
-                          · Per {pForm.base_unit || pForm.unit || "pcs"}:{" "}
-                          {fmtRp(pForm.sell_price_pack / pForm.pack_size)}
-                        </>
-                      )}
+                      Margin per {pForm.base_unit || pForm.unit || "pcs"} (jual
+                      − HPP inc PPN):{" "}
+                      <strong
+                        style={{
+                          color:
+                            pForm.sell_price - hppFromHna(pForm.hna) > 0
+                              ? "var(--color-success)"
+                              : "var(--color-danger)",
+                        }}
+                      >
+                        {formatRupiah(
+                          pForm.sell_price - hppFromHna(pForm.hna),
+                          0,
+                        )}
+                      </strong>
                     </p>
                   )}
-                </div>
 
-                {/* v1.7.0 Tiered Pricing (Grosir) — optional */}
-                <div
-                  style={{
-                    background: surface,
-                    border: `1px dashed ${border}`,
-                    borderRadius: "10px",
-                    padding: "12px",
-                  }}
-                >
+                  {/* v1.6.0 Multi-Unit Packaging — optional */}
                   <div
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "10px",
+                      background: surface,
+                      border: `1px dashed ${border}`,
+                      borderRadius: "10px",
+                      padding: "12px",
                     }}
                   >
                     <p
                       style={{
-                        margin: 0,
+                        margin: "0 0 10px",
                         fontSize: "12px",
                         fontWeight: "700",
                         color: text,
                       }}
                     >
-                      💰 Harga Grosir (Tier) — opsional
+                      📦 Kemasan (opsional) — kalau barang juga dijual per
+                      karton/dus
                     </p>
-                    <button
-                      onClick={addTier}
-                      type="button"
-                      style={{
-                        background: "var(--color-primary)",
-                        color: "#FFF",
-                        border: "none",
-                        padding: "4px 10px",
-                        borderRadius: "6px",
-                        fontSize: "11px",
-                        cursor: "pointer",
-                        fontWeight: "600",
-                      }}
-                    >
-                      + Tier
-                    </button>
-                  </div>
-                  {(pForm.price_tiers || []).length === 0 && (
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: "11px",
-                        color: sub,
-                        fontStyle: "italic",
-                      }}
-                    >
-                      Belum ada tier. Klik "+ Tier" untuk tambah harga grosir
-                      per qty.
-                    </p>
-                  )}
-                  {(pForm.price_tiers || []).map((tier, idx) => (
                     <div
-                      key={idx}
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "1.1fr 70px 70px 1fr 28px",
-                        gap: "6px",
-                        marginBottom: "6px",
-                        alignItems: "center",
+                        gridTemplateColumns: "1fr 1fr 1.2fr",
+                        gap: "12px",
                       }}
                     >
-                      <select
-                        value={tier.unit}
-                        onChange={(e) =>
-                          updateTier(idx, "unit", e.target.value)
-                        }
+                      <div>
+                        <label style={labelStyle}>Satuan Kemasan</label>
+                        <select
+                          value={pForm.pack_unit || ""}
+                          onChange={(e) =>
+                            setPForm((p) => ({
+                              ...p,
+                              pack_unit: e.target.value,
+                              pack_size: e.target.value
+                                ? p.pack_size > 1
+                                  ? p.pack_size
+                                  : 12
+                                : 1,
+                            }))
+                          }
+                          style={inputStyle}
+                        >
+                          <option value="">— Tidak ada —</option>
+                          {PACK_UNITS.map((u) => (
+                            <option key={u.value} value={u.value}>
+                              {u.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>
+                          Isi per {pForm.pack_unit || "kemasan"}
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          disabled={!pForm.pack_unit}
+                          value={pForm.pack_size || 1}
+                          onChange={(e) =>
+                            setPForm((p) => ({
+                              ...p,
+                              pack_size: parseInt(e.target.value) || 1,
+                            }))
+                          }
+                          style={{
+                            ...inputStyle,
+                            opacity: pForm.pack_unit ? 1 : 0.5,
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>
+                          Jual / {pForm.pack_unit || "kemasan"}
+                        </label>
+                        <input
+                          type="number"
+                          disabled={!pForm.pack_unit}
+                          value={pForm.sell_price_pack || 0}
+                          onChange={(e) =>
+                            setPForm((p) => ({
+                              ...p,
+                              sell_price_pack: parseFloat(e.target.value) || 0,
+                            }))
+                          }
+                          style={{
+                            ...inputStyle,
+                            opacity: pForm.pack_unit ? 1 : 0.5,
+                          }}
+                        />
+                      </div>
+                    </div>
+                    {pForm.pack_unit && pForm.pack_size > 1 && (
+                      <p
                         style={{
-                          ...inputStyle,
-                          fontSize: "12px",
-                          padding: "8px",
+                          margin: "8px 0 0",
+                          fontSize: "11px",
+                          color: sub,
                         }}
                       >
-                        <option value={pForm.base_unit || "pcs"}>
-                          {pForm.base_unit || "pcs"}
-                        </option>
-                        {pForm.pack_unit && (
-                          <option value={pForm.pack_unit}>
-                            {pForm.pack_unit}
-                          </option>
+                        📐 1 {pForm.pack_unit} = {pForm.pack_size}{" "}
+                        {pForm.base_unit || pForm.unit || "pcs"}
+                        {pForm.sell_price_pack > 0 && pForm.pack_size > 0 && (
+                          <>
+                            {" "}
+                            · Per {pForm.base_unit || pForm.unit || "pcs"}:{" "}
+                            {fmtRp(pForm.sell_price_pack / pForm.pack_size)}
+                          </>
                         )}
-                      </select>
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="Min"
-                        value={tier.min_qty}
-                        onChange={(e) =>
-                          updateTier(
-                            idx,
-                            "min_qty",
-                            parseInt(e.target.value) || 1,
-                          )
-                        }
-                        style={{
-                          ...inputStyle,
-                          fontSize: "12px",
-                          padding: "8px",
-                        }}
-                      />
-                      <input
-                        type="number"
-                        placeholder="Max"
-                        value={tier.max_qty || ""}
-                        onChange={(e) =>
-                          updateTier(idx, "max_qty", e.target.value)
-                        }
-                        title="Kosongkan = tanpa batas atas"
-                        style={{
-                          ...inputStyle,
-                          fontSize: "12px",
-                          padding: "8px",
-                        }}
-                      />
-                      <input
-                        type="number"
-                        placeholder="Harga (Rp)"
-                        value={tier.price}
-                        onChange={(e) =>
-                          updateTier(
-                            idx,
-                            "price",
-                            parseFloat(e.target.value) || 0,
-                          )
-                        }
-                        style={{
-                          ...inputStyle,
-                          fontSize: "12px",
-                          padding: "8px",
-                        }}
-                      />
-                      <Tooltip text="Hapus tier harga" position="top">
-                        <button
-                          onClick={() => removeTier(idx)}
-                          type="button"
-                          aria-label="Hapus tier harga"
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 0,
-                          }}
-                        >
-                          <Trash2 size={14} color="var(--color-danger)" />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  ))}
-                  {(pForm.price_tiers || []).length > 0 && (
-                    <p
+                      </p>
+                    )}
+                  </div>
+
+                  {/* v1.7.0 Tiered Pricing (Grosir) — optional */}
+                  <div
+                    style={{
+                      background: surface,
+                      border: `1px dashed ${border}`,
+                      borderRadius: "10px",
+                      padding: "12px",
+                    }}
+                  >
+                    <div
                       style={{
-                        margin: "6px 0 0",
-                        fontSize: "11px",
-                        color: sub,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "10px",
                       }}
                     >
-                      💡 Auto-apply ke Nota saat qty matches range. Tier dengan{" "}
-                      <code>min_qty</code> tertinggi yang match = menang.
-                    </p>
-                  )}
-                </div>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "12px",
+                          fontWeight: "700",
+                          color: text,
+                        }}
+                      >
+                        💰 Harga Grosir (Tier) — opsional
+                      </p>
+                      <button
+                        onClick={addTier}
+                        type="button"
+                        style={{
+                          background: "var(--color-primary)",
+                          color: "#FFF",
+                          border: "none",
+                          padding: "4px 10px",
+                          borderRadius: "6px",
+                          fontSize: "11px",
+                          cursor: "pointer",
+                          fontWeight: "600",
+                        }}
+                      >
+                        + Tier
+                      </button>
+                    </div>
+                    {(pForm.price_tiers || []).length === 0 && (
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "11px",
+                          color: sub,
+                          fontStyle: "italic",
+                        }}
+                      >
+                        Belum ada tier. Klik "+ Tier" untuk tambah harga grosir
+                        per qty.
+                      </p>
+                    )}
+                    {(pForm.price_tiers || []).map((tier, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1.1fr 70px 70px 1fr 28px",
+                          gap: "6px",
+                          marginBottom: "6px",
+                          alignItems: "center",
+                        }}
+                      >
+                        <select
+                          value={tier.unit}
+                          onChange={(e) =>
+                            updateTier(idx, "unit", e.target.value)
+                          }
+                          style={{
+                            ...inputStyle,
+                            fontSize: "12px",
+                            padding: "8px",
+                          }}
+                        >
+                          <option value={pForm.base_unit || "pcs"}>
+                            {pForm.base_unit || "pcs"}
+                          </option>
+                          {pForm.pack_unit && (
+                            <option value={pForm.pack_unit}>
+                              {pForm.pack_unit}
+                            </option>
+                          )}
+                        </select>
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="Min"
+                          value={tier.min_qty}
+                          onChange={(e) =>
+                            updateTier(
+                              idx,
+                              "min_qty",
+                              parseInt(e.target.value) || 1,
+                            )
+                          }
+                          style={{
+                            ...inputStyle,
+                            fontSize: "12px",
+                            padding: "8px",
+                          }}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Max"
+                          value={tier.max_qty || ""}
+                          onChange={(e) =>
+                            updateTier(idx, "max_qty", e.target.value)
+                          }
+                          title="Kosongkan = tanpa batas atas"
+                          style={{
+                            ...inputStyle,
+                            fontSize: "12px",
+                            padding: "8px",
+                          }}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Harga (Rp)"
+                          value={tier.price}
+                          onChange={(e) =>
+                            updateTier(
+                              idx,
+                              "price",
+                              parseFloat(e.target.value) || 0,
+                            )
+                          }
+                          style={{
+                            ...inputStyle,
+                            fontSize: "12px",
+                            padding: "8px",
+                          }}
+                        />
+                        <Tooltip text="Hapus tier harga" position="top">
+                          <button
+                            onClick={() => removeTier(idx)}
+                            type="button"
+                            aria-label="Hapus tier harga"
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: 0,
+                            }}
+                          >
+                            <Trash2 size={14} color="var(--color-danger)" />
+                          </button>
+                        </Tooltip>
+                      </div>
+                    ))}
+                    {(pForm.price_tiers || []).length > 0 && (
+                      <p
+                        style={{
+                          margin: "6px 0 0",
+                          fontSize: "11px",
+                          color: sub,
+                        }}
+                      >
+                        💡 Auto-apply ke Nota saat qty matches range. Tier
+                        dengan <code>min_qty</code> tertinggi yang match =
+                        menang.
+                      </p>
+                    )}
+                  </div>
 
-                <div>
-                  <label style={labelStyle}>
-                    Stok Minimum (di {pForm.base_unit || pForm.unit || "pcs"})
+                  <div>
+                    <label style={labelStyle}>
+                      Stok Minimum (di {pForm.base_unit || pForm.unit || "pcs"})
+                    </label>
+                    <input
+                      type="number"
+                      value={pForm.min_stock}
+                      onChange={(e) =>
+                        setPForm((p) => ({
+                          ...p,
+                          min_stock: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      style={inputStyle}
+                    />
+                  </div>
+                </>
+              )}
+              {editId && productModalTab === "batches" && (
+                <ProductBatchPanel
+                  product={{
+                    id: editId,
+                    name: pForm.name,
+                    unit: pForm.unit,
+                    base_unit: pForm.base_unit,
+                    pack_unit: pForm.pack_unit,
+                    pack_size: pForm.pack_size,
+                  }}
+                  batches={batchesCache[editId]}
+                  loading={batchesLoading[editId]}
+                  sub={sub}
+                  text={text}
+                  border={border}
+                  cardBg={cardBg}
+                  surface={surface}
+                  isDarkMode={isDarkMode}
+                  onAddBatch={() =>
+                    openBatchAdd({ id: editId, name: pForm.name })
+                  }
+                  onEditBatch={(batch) =>
+                    openBatchEdit(batch, { id: editId, name: pForm.name })
+                  }
+                  onAdjustBatch={(batch) =>
+                    openAdjustBatch(batch, { id: editId, name: pForm.name })
+                  }
+                  onDeleteBatch={(batch) =>
+                    deleteBatch(batch, { id: editId, name: pForm.name })
+                  }
+                />
+              )}
+              {batchActionError && (
+                <div
+                  role="alert"
+                  style={{
+                    backgroundColor: "var(--color-danger-soft)",
+                    border:
+                      "1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)",
+                    borderRadius: "10px",
+                    padding: "10px 14px",
+                    color: "var(--color-danger)",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    display: "flex",
+                    gap: "8px",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <AlertCircle
+                    size={16}
+                    style={{ flexShrink: 0, marginTop: "1px" }}
+                  />{" "}
+                  <span>{batchActionError}</span>
+                </div>
+              )}
+              {modalError && (
+                <div
+                  style={{
+                    backgroundColor: "var(--color-danger-soft)",
+                    border:
+                      "1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)",
+                    borderRadius: "10px",
+                    padding: "10px 14px",
+                    color: "var(--color-danger)",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    display: "flex",
+                    gap: "8px",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <AlertCircle
+                    size={16}
+                    style={{ flexShrink: 0, marginTop: "1px" }}
+                  />{" "}
+                  <span>{modalError}</span>
+                </div>
+              )}
+              {(!editId || productModalTab === "profile") && (
+                <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
+                  <button
+                    onClick={saveProduct}
+                    disabled={modalSaving}
+                    className="btn-primary ui-motion-button ui-focus-ring"
+                    data-magnetic="true"
+                    style={primaryBtn("var(--color-primary)", modalSaving)}
+                  >
+                    {modalSaving
+                      ? "Menyimpan..."
+                      : editId
+                        ? "Simpan"
+                        : "Tambah"}
+                  </button>
+                  {/* v1.11.12: tombol Simpan warna konsistensi — semua biru */}
+                  <button
+                    onClick={() => setShowModal(null)}
+                    disabled={modalSaving}
+                    style={secondaryBtn(surface, text, border)}
+                  >
+                    Batal
+                  </button>
+                </div>
+              )}
+            </div>
+          </ModalShell>,
+        )}
+
+      {/* ─── Stock In Modal ──────────────────────────────────────────────── */}
+      {showModal === "stockIn" &&
+        renderPortal(
+          <ModalShell
+            onClose={() => setShowModal(null)}
+            cardBg={cardBg}
+            title="📥 Stok Masuk"
+            titleColor="var(--color-success)"
+            text={text}
+            border={border}
+            sub={sub}
+            isMobile={isMobile}
+            maxWidth="480px"
+          >
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            >
+              <div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "8px",
+                    marginBottom: "6px",
+                  }}
+                >
+                  <label style={{ ...labelStyle, marginBottom: 0 }}>
+                    Produk *
                   </label>
+                  <button
+                    type="button"
+                    onClick={() => openScanner("stockIn")}
+                    style={{
+                      minHeight: "34px",
+                      padding: "7px 11px",
+                      border: `1px solid ${border}`,
+                      borderRadius: "9px",
+                      background: surface,
+                      color: text,
+                      fontSize: "12px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                    aria-label="Scan barcode produk untuk stok masuk"
+                  >
+                    <Camera size={14} /> Scan
+                  </button>
+                </div>
+                <MasterSelect
+                  value={siForm.product_name}
+                  onChange={(v) => {
+                    setSiForm((pv) => ({ ...pv, product_name: v }));
+                    const prod = products.find((p) => p.name === v);
+                    if (prod)
+                      setSiForm((pv) => ({
+                        ...pv,
+                        hna: parseFloat(prod.hna) || 0,
+                      }));
+                  }}
+                  options={products.map((p) => ({ name: p.name }))}
+                  onAdd={handleAddProduct}
+                  onRemove={handleRemoveProduct}
+                  isDarkMode={isDarkMode}
+                  placeholder="Pilih atau tambah produk..."
+                />
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "12px",
+                }}
+              >
+                <div>
+                  <label style={labelStyle}>No. Batch</label>
+                  <input
+                    value={siForm.batch_no}
+                    onChange={(e) =>
+                      setSiForm((p) => ({ ...p, batch_no: e.target.value }))
+                    }
+                    placeholder="B2603-01"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Qty *</label>
                   <input
                     type="number"
-                    value={pForm.min_stock}
+                    value={siForm.qty}
+                    min="1"
                     onChange={(e) =>
-                      setPForm((p) => ({
+                      setSiForm((p) => ({
                         ...p,
-                        min_stock: parseInt(e.target.value) || 0,
+                        qty: parseInt(e.target.value) || 0,
                       }))
                     }
                     style={inputStyle}
                   />
                 </div>
-              </>
-            )}
-            {editId && productModalTab === "batches" && (
-              <ProductBatchPanel
-                product={{
-                  id: editId,
-                  name: pForm.name,
-                  unit: pForm.unit,
-                  base_unit: pForm.base_unit,
-                  pack_unit: pForm.pack_unit,
-                  pack_size: pForm.pack_size,
-                }}
-                batches={batchesCache[editId]}
-                loading={batchesLoading[editId]}
-                sub={sub}
-                text={text}
-                border={border}
-                cardBg={cardBg}
-                surface={surface}
+              </div>
+              <HnaHppInput
+                value={siForm.hna}
+                onChange={(v) => setSiForm((p) => ({ ...p, hna: v }))}
+                decimals={2}
                 isDarkMode={isDarkMode}
-                onAddBatch={() =>
-                  openBatchAdd({ id: editId, name: pForm.name })
-                }
-                onEditBatch={(batch) =>
-                  openBatchEdit(batch, { id: editId, name: pForm.name })
-                }
-                onAdjustBatch={(batch) =>
-                  openAdjustBatch(batch, { id: editId, name: pForm.name })
-                }
-                onDeleteBatch={(batch) =>
-                  deleteBatch(batch, { id: editId, name: pForm.name })
-                }
               />
-            )}
-            {batchActionError && (
-              <div
-                role="alert"
-                style={{
-                  backgroundColor: "var(--color-danger-soft)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)",
-                  borderRadius: "10px",
-                  padding: "10px 14px",
-                  color: "var(--color-danger)",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  display: "flex",
-                  gap: "8px",
-                  alignItems: "flex-start",
-                }}
-              >
-                <AlertCircle
-                  size={16}
-                  style={{ flexShrink: 0, marginTop: "1px" }}
-                />{" "}
-                <span>{batchActionError}</span>
+              <div>
+                <label style={labelStyle}>Tanggal Expired</label>
+                <input
+                  type="date"
+                  value={siForm.expired_date}
+                  onChange={(e) =>
+                    setSiForm((p) => ({ ...p, expired_date: e.target.value }))
+                  }
+                  style={inputStyle}
+                />
               </div>
-            )}
-            {modalError && (
-              <div
-                style={{
-                  backgroundColor: "var(--color-danger-soft)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)",
-                  borderRadius: "10px",
-                  padding: "10px 14px",
-                  color: "var(--color-danger)",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  display: "flex",
-                  gap: "8px",
-                  alignItems: "flex-start",
-                }}
-              >
-                <AlertCircle
-                  size={16}
-                  style={{ flexShrink: 0, marginTop: "1px" }}
-                />{" "}
-                <span>{modalError}</span>
-              </div>
-            )}
-            {(!editId || productModalTab === "profile") && (
+              {modalError && (
+                <div
+                  style={{
+                    backgroundColor: "var(--color-danger-soft)",
+                    border:
+                      "1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)",
+                    borderRadius: "10px",
+                    padding: "10px 14px",
+                    color: "var(--color-danger)",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    display: "flex",
+                    gap: "8px",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <AlertCircle
+                    size={16}
+                    style={{ flexShrink: 0, marginTop: "1px" }}
+                  />{" "}
+                  <span>{modalError}</span>
+                </div>
+              )}
               <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
                 <button
-                  onClick={saveProduct}
+                  onClick={saveStockIn}
                   disabled={modalSaving}
                   className="btn-primary ui-motion-button ui-focus-ring"
                   data-magnetic="true"
                   style={primaryBtn("var(--color-primary)", modalSaving)}
                 >
-                  {modalSaving ? "Menyimpan..." : editId ? "Simpan" : "Tambah"}
+                  {modalSaving ? "Menyimpan..." : "Simpan"}
                 </button>
-                {/* v1.11.12: tombol Simpan warna konsistensi — semua biru */}
                 <button
                   onClick={() => setShowModal(null)}
                   disabled={modalSaving}
@@ -2162,106 +2343,119 @@ export default function InventoryDashboard({
                   Batal
                 </button>
               </div>
-            )}
-          </div>
-        </ModalShell>
-      )}
-
-      {/* ─── Stock In Modal ──────────────────────────────────────────────── */}
-      {showModal === "stockIn" && renderPortal(
-        <ModalShell
-          onClose={() => setShowModal(null)}
-          cardBg={cardBg}
-          title="📥 Stok Masuk"
-          titleColor="var(--color-success)"
-          text={text}
-          border={border}
-          sub={sub}
-          isMobile={isMobile}
-          maxWidth="480px"
-        >
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-          >
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "8px",
-                  marginBottom: "6px",
-                }}
-              >
-                <label style={{ ...labelStyle, marginBottom: 0 }}>
-                  Produk *
-                </label>
-                <button
-                  type="button"
-                  onClick={() => openScanner("stockIn")}
-                  style={{
-                    minHeight: "34px",
-                    padding: "7px 11px",
-                    border: `1px solid ${border}`,
-                    borderRadius: "9px",
-                    background: surface,
-                    color: text,
-                    fontSize: "12px",
-                    fontWeight: "800",
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                  aria-label="Scan barcode produk untuk stok masuk"
-                >
-                  <Camera size={14} /> Scan
-                </button>
-              </div>
-              <MasterSelect
-                value={siForm.product_name}
-                onChange={(v) => {
-                  setSiForm((pv) => ({ ...pv, product_name: v }));
-                  const prod = products.find((p) => p.name === v);
-                  if (prod)
-                    setSiForm((pv) => ({
-                      ...pv,
-                      hna: parseFloat(prod.hna) || 0,
-                    }));
-                }}
-                options={products.map((p) => ({ name: p.name }))}
-                onAdd={handleAddProduct}
-                onRemove={handleRemoveProduct}
-                isDarkMode={isDarkMode}
-                placeholder="Pilih atau tambah produk..."
-              />
             </div>
+          </ModalShell>,
+        )}
+
+      {/* ─── Stock Out Modal ─────────────────────────────────────────────── */}
+      {showModal === "stockOut" &&
+        renderPortal(
+          <ModalShell
+            onClose={() => setShowModal(null)}
+            cardBg={cardBg}
+            title="📤 Stok Keluar"
+            titleColor="var(--color-warning)"
+            text={text}
+            border={border}
+            sub={sub}
+            isMobile={isMobile}
+            maxWidth="480px"
+          >
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "12px",
-              }}
+              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
             >
               <div>
-                <label style={labelStyle}>No. Batch</label>
-                <input
-                  value={siForm.batch_no}
-                  onChange={(e) =>
-                    setSiForm((p) => ({ ...p, batch_no: e.target.value }))
-                  }
-                  placeholder="B2603-01"
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "8px",
+                    marginBottom: "6px",
+                  }}
+                >
+                  <label style={{ ...labelStyle, marginBottom: 0 }}>
+                    Produk *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => openScanner("stockOut")}
+                    style={{
+                      minHeight: "34px",
+                      padding: "7px 11px",
+                      border: `1px solid ${border}`,
+                      borderRadius: "9px",
+                      background: surface,
+                      color: text,
+                      fontSize: "12px",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                    aria-label="Scan barcode produk untuk stok keluar"
+                  >
+                    <Camera size={14} /> Scan
+                  </button>
+                </div>
+                <select
+                  value={soForm.product_id}
+                  onChange={(e) => {
+                    const newId = parseInt(e.target.value) || "";
+                    setSoForm((p) => ({
+                      ...p,
+                      product_id: newId,
+                      selected_batch_id: "",
+                    }));
+                    if (newId) loadStockOutBatches(newId);
+                    else setSoBatches([]);
+                  }}
                   style={inputStyle}
-                />
+                >
+                  <option value="">Pilih produk...</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} (stok: {p.total_stock})
+                    </option>
+                  ))}
+                </select>
               </div>
+              {/* v1.7.0: Batch dropdown — FEFO default + manual override */}
+              {soForm.product_id && soBatches.length > 0 && (
+                <div>
+                  <label style={labelStyle}>Pilih Batch (override FEFO)</label>
+                  <select
+                    value={soForm.selected_batch_id}
+                    onChange={(e) =>
+                      setSoForm((p) => ({
+                        ...p,
+                        selected_batch_id: e.target.value,
+                      }))
+                    }
+                    style={inputStyle}
+                  >
+                    <option value="">
+                      🤖 Auto FEFO — pilih batch dengan ED terdekat
+                    </option>
+                    {soBatches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.batch_no || "(tanpa no)"} · ED:{" "}
+                        {b.expired_date ? fmtDate(b.expired_date) : "-"} · Stok:{" "}
+                        {b.qty_current}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label style={labelStyle}>Qty *</label>
                 <input
                   type="number"
-                  value={siForm.qty}
+                  value={soForm.qty}
                   min="1"
                   onChange={(e) =>
-                    setSiForm((p) => ({
+                    setSoForm((p) => ({
                       ...p,
                       qty: parseInt(e.target.value) || 0,
                     }))
@@ -2269,276 +2463,100 @@ export default function InventoryDashboard({
                   style={inputStyle}
                 />
               </div>
-            </div>
-            <HnaHppInput
-              value={siForm.hna}
-              onChange={(v) => setSiForm((p) => ({ ...p, hna: v }))}
-              decimals={2}
-              isDarkMode={isDarkMode}
-            />
-            <div>
-              <label style={labelStyle}>Tanggal Expired</label>
-              <input
-                type="date"
-                value={siForm.expired_date}
-                onChange={(e) =>
-                  setSiForm((p) => ({ ...p, expired_date: e.target.value }))
-                }
-                style={inputStyle}
-              />
-            </div>
-            {modalError && (
-              <div
-                style={{
-                  backgroundColor: "var(--color-danger-soft)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)",
-                  borderRadius: "10px",
-                  padding: "10px 14px",
-                  color: "var(--color-danger)",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  display: "flex",
-                  gap: "8px",
-                  alignItems: "flex-start",
-                }}
-              >
-                <AlertCircle
-                  size={16}
-                  style={{ flexShrink: 0, marginTop: "1px" }}
-                />{" "}
-                <span>{modalError}</span>
+              <div>
+                <label style={labelStyle}>Catatan</label>
+                <input
+                  value={soForm.notes}
+                  onChange={(e) =>
+                    setSoForm((p) => ({ ...p, notes: e.target.value }))
+                  }
+                  placeholder="Alasan stok keluar"
+                  style={inputStyle}
+                />
               </div>
-            )}
-            <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
-              <button
-                onClick={saveStockIn}
-                disabled={modalSaving}
-                className="btn-primary ui-motion-button ui-focus-ring"
-                data-magnetic="true"
-                style={primaryBtn("var(--color-primary)", modalSaving)}
-              >
-                {modalSaving ? "Menyimpan..." : "Simpan"}
-              </button>
-              <button
-                onClick={() => setShowModal(null)}
-                disabled={modalSaving}
-                style={secondaryBtn(surface, text, border)}
-              >
-                Batal
-              </button>
-            </div>
-          </div>
-        </ModalShell>
-      )}
-
-      {/* ─── Stock Out Modal ─────────────────────────────────────────────── */}
-      {showModal === "stockOut" && renderPortal(
-        <ModalShell
-          onClose={() => setShowModal(null)}
-          cardBg={cardBg}
-          title="📤 Stok Keluar"
-          titleColor="var(--color-warning)"
-          text={text}
-          border={border}
-          sub={sub}
-          isMobile={isMobile}
-          maxWidth="480px"
-        >
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-          >
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "8px",
-                  marginBottom: "6px",
-                }}
-              >
-                <label style={{ ...labelStyle, marginBottom: 0 }}>
-                  Produk *
-                </label>
-                <button
-                  type="button"
-                  onClick={() => openScanner("stockOut")}
+              {!soForm.selected_batch_id && (
+                <p style={{ margin: 0, fontSize: "11px", color: sub }}>
+                  ℹ️ Stok akan diambil otomatis dari batch dengan ED terdekat
+                  (FEFO).
+                </p>
+              )}
+              {soForm.selected_batch_id && (
+                <p
                   style={{
-                    minHeight: "34px",
-                    padding: "7px 11px",
-                    border: `1px solid ${border}`,
-                    borderRadius: "9px",
-                    background: surface,
-                    color: text,
-                    fontSize: "12px",
-                    fontWeight: "800",
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
+                    margin: 0,
+                    fontSize: "11px",
+                    color: "var(--color-warning)",
+                    fontWeight: "600",
                   }}
-                  aria-label="Scan barcode produk untuk stok keluar"
                 >
-                  <Camera size={14} /> Scan
+                  ⚠️ Mode manual — qty akan dipotong dari batch yang dipilih
+                  saja.
+                </p>
+              )}
+              {modalError && (
+                <div
+                  style={{
+                    backgroundColor: "var(--color-danger-soft)",
+                    border:
+                      "1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)",
+                    borderRadius: "10px",
+                    padding: "10px 14px",
+                    color: "var(--color-danger)",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    display: "flex",
+                    gap: "8px",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <AlertCircle
+                    size={16}
+                    style={{ flexShrink: 0, marginTop: "1px" }}
+                  />{" "}
+                  <span>{modalError}</span>
+                </div>
+              )}
+              <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
+                <button
+                  onClick={saveStockOut}
+                  disabled={modalSaving}
+                  className="btn-primary ui-motion-button ui-focus-ring"
+                  data-magnetic="true"
+                  style={primaryBtn("var(--color-warning)", modalSaving)}
+                >
+                  {modalSaving ? "Menyimpan..." : "Keluarkan"}
+                </button>
+                <button
+                  onClick={() => setShowModal(null)}
+                  disabled={modalSaving}
+                  style={secondaryBtn(surface, text, border)}
+                >
+                  Batal
                 </button>
               </div>
-              <select
-                value={soForm.product_id}
-                onChange={(e) => {
-                  const newId = parseInt(e.target.value) || "";
-                  setSoForm((p) => ({
-                    ...p,
-                    product_id: newId,
-                    selected_batch_id: "",
-                  }));
-                  if (newId) loadStockOutBatches(newId);
-                  else setSoBatches([]);
-                }}
-                style={inputStyle}
-              >
-                <option value="">Pilih produk...</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} (stok: {p.total_stock})
-                  </option>
-                ))}
-              </select>
             </div>
-            {/* v1.7.0: Batch dropdown — FEFO default + manual override */}
-            {soForm.product_id && soBatches.length > 0 && (
-              <div>
-                <label style={labelStyle}>Pilih Batch (override FEFO)</label>
-                <select
-                  value={soForm.selected_batch_id}
-                  onChange={(e) =>
-                    setSoForm((p) => ({
-                      ...p,
-                      selected_batch_id: e.target.value,
-                    }))
-                  }
-                  style={inputStyle}
-                >
-                  <option value="">
-                    🤖 Auto FEFO — pilih batch dengan ED terdekat
-                  </option>
-                  {soBatches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.batch_no || "(tanpa no)"} · ED:{" "}
-                      {b.expired_date ? fmtDate(b.expired_date) : "-"} · Stok:{" "}
-                      {b.qty_current}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            <div>
-              <label style={labelStyle}>Qty *</label>
-              <input
-                type="number"
-                value={soForm.qty}
-                min="1"
-                onChange={(e) =>
-                  setSoForm((p) => ({
-                    ...p,
-                    qty: parseInt(e.target.value) || 0,
-                  }))
-                }
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Catatan</label>
-              <input
-                value={soForm.notes}
-                onChange={(e) =>
-                  setSoForm((p) => ({ ...p, notes: e.target.value }))
-                }
-                placeholder="Alasan stok keluar"
-                style={inputStyle}
-              />
-            </div>
-            {!soForm.selected_batch_id && (
-              <p style={{ margin: 0, fontSize: "11px", color: sub }}>
-                ℹ️ Stok akan diambil otomatis dari batch dengan ED terdekat
-                (FEFO).
-              </p>
-            )}
-            {soForm.selected_batch_id && (
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "11px",
-                  color: "var(--color-warning)",
-                  fontWeight: "600",
-                }}
-              >
-                ⚠️ Mode manual — qty akan dipotong dari batch yang dipilih saja.
-              </p>
-            )}
-            {modalError && (
-              <div
-                style={{
-                  backgroundColor: "var(--color-danger-soft)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)",
-                  borderRadius: "10px",
-                  padding: "10px 14px",
-                  color: "var(--color-danger)",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  display: "flex",
-                  gap: "8px",
-                  alignItems: "flex-start",
-                }}
-              >
-                <AlertCircle
-                  size={16}
-                  style={{ flexShrink: 0, marginTop: "1px" }}
-                />{" "}
-                <span>{modalError}</span>
-              </div>
-            )}
-            <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
-              <button
-                onClick={saveStockOut}
-                disabled={modalSaving}
-                className="btn-primary ui-motion-button ui-focus-ring"
-                data-magnetic="true"
-                style={primaryBtn("var(--color-warning)", modalSaving)}
-              >
-                {modalSaving ? "Menyimpan..." : "Keluarkan"}
-              </button>
-              <button
-                onClick={() => setShowModal(null)}
-                disabled={modalSaving}
-                style={secondaryBtn(surface, text, border)}
-              >
-                Batal
-              </button>
-            </div>
-          </div>
-        </ModalShell>
-      )}
+          </ModalShell>,
+        )}
 
       {/* ─── Opname Modal (extracted, per-batch) ────────────────────────── */}
-      {showModal === "opname" && renderPortal(
-        <OpnameModal
-          products={products}
-          isDarkMode={isDarkMode}
-          isMobile={isMobile}
-          onClose={() => setShowModal(null)}
-          onSaved={(msg) => {
-            flashSuccess(msg);
-            fetchProducts();
-            fetchAlerts();
-            setBatchesCache({});
-          }}
-          onProductsChanged={() => {
-            fetchProducts();
-          }}
-        />
-      )}
+      {showModal === "opname" &&
+        renderPortal(
+          <OpnameModal
+            products={products}
+            isDarkMode={isDarkMode}
+            isMobile={isMobile}
+            onClose={() => setShowModal(null)}
+            onSaved={(msg) => {
+              flashSuccess(msg);
+              fetchProducts();
+              fetchAlerts();
+              setBatchesCache({});
+            }}
+            onProductsChanged={() => {
+              fetchProducts();
+            }}
+          />,
+        )}
 
       {scannerMode && (
         <BarcodeScanner

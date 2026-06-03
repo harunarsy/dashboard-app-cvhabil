@@ -1,9 +1,7 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import * as THREE from 'three';
-import FOG from 'vanta/dist/vanta.fog.min';
+import { useEffect, useRef, useState, useCallback } from "react";
 
-const STORAGE_KEY = 'habil_vanta_mode';
-const URL_PARAM = 'vanta';
+const STORAGE_KEY = "habil_vanta_mode";
+const URL_PARAM = "vanta";
 
 /**
  * Vanta.js animated background hook (v1.8.6).
@@ -32,47 +30,62 @@ export default function useVantaBackground(isDarkMode = false) {
     try {
       const params = new URLSearchParams(window.location.search);
       const urlVal = params.get(URL_PARAM);
-      if (urlVal === 'off') return false;
-      if (urlVal === 'on') {
-        try { localStorage.setItem(STORAGE_KEY, '1'); } catch (e) {
-          console.warn('[Vanta] localStorage persist failed:', e.message);
+      if (urlVal === "off") return false;
+      if (urlVal === "on") {
+        try {
+          localStorage.setItem(STORAGE_KEY, "1");
+        } catch (e) {
+          console.warn("[Vanta] localStorage persist failed:", e.message);
         }
         return true;
       }
-      if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false;
-      if (typeof navigator !== 'undefined' && navigator.deviceMemory && navigator.deviceMemory < 4) return false;
+      if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)
+        return false;
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.deviceMemory &&
+        navigator.deviceMemory < 4
+      )
+        return false;
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored === null) return true; // default ON
-      return stored === '1';
+      return stored === "1";
     } catch (e) {
-      console.warn('[Vanta] init state failed:', e);
+      console.warn("[Vanta] init state failed:", e);
       return false;
     }
   });
 
   const setEnabled = useCallback((val) => {
     setEnabledState((prev) => {
-      const next = typeof val === 'function' ? val(prev) : !!val;
-      try { localStorage.setItem(STORAGE_KEY, next ? '1' : '0'); }
-      catch (e) { console.warn('[Vanta] localStorage persist failed:', e.message); }
+      const next = typeof val === "function" ? val(prev) : !!val;
+      try {
+        localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
+      } catch (e) {
+        console.warn("[Vanta] localStorage persist failed:", e.message);
+      }
       return next;
     });
   }, []);
 
   useEffect(() => {
     try {
-      if (enabled) document.body.classList.add('vanta-active');
-      else document.body.classList.remove('vanta-active');
+      if (enabled) document.body.classList.add("vanta-active");
+      else document.body.classList.remove("vanta-active");
     } catch (e) {
-      console.warn('[Vanta] body class toggle failed:', e);
+      console.warn("[Vanta] body class toggle failed:", e);
     }
   }, [enabled]);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!enabled) {
       if (effectRef.current) {
-        try { effectRef.current.destroy(); } catch (e) {
-          console.warn('[Vanta] destroy failed:', e);
+        try {
+          effectRef.current.destroy();
+        } catch (e) {
+          console.warn("[Vanta] destroy failed:", e);
         }
         effectRef.current = null;
       }
@@ -82,8 +95,10 @@ export default function useVantaBackground(isDarkMode = false) {
 
     // Destroy prev instance sebelum re-init (dark mode swap)
     if (effectRef.current) {
-      try { effectRef.current.destroy(); } catch (e) {
-        console.warn('[Vanta] destroy failed:', e);
+      try {
+        effectRef.current.destroy();
+      } catch (e) {
+        console.warn("[Vanta] destroy failed:", e);
       }
       effectRef.current = null;
     }
@@ -96,34 +111,54 @@ export default function useVantaBackground(isDarkMode = false) {
       midtoneColor: 0xff1f00,
       lowlightColor: 0xffffff,
       baseColor: 0xffebeb,
-      blurFactor: 0.70,
-      speed: 0.00,
-      zoom: 0.20,
+      blurFactor: 0.7,
+      speed: 0.0,
+      zoom: 0.2,
     };
 
-    try {
-      effectRef.current = FOG({
-        el: containerRef.current,
-        THREE,
-        mouseControls: true,
-        touchControls: true,
-        gyroControls: false,
-        minHeight: 200,
-        minWidth: 200,
-        ...colors,
-      });
-    } catch (e) {
-      console.warn('[Vanta] init failed — disabling:', e.message);
-      setEnabledState(false);
-      try { localStorage.setItem(STORAGE_KEY, '0'); } catch (persistErr) {
-        console.warn('[Vanta] localStorage persist failed:', persistErr.message);
+    const initVanta = async () => {
+      try {
+        const [threeModule, fogModule] = await Promise.all([
+          import("three"),
+          import("vanta/dist/vanta.fog.min"),
+        ]);
+        if (cancelled || !containerRef.current) return;
+
+        const THREE = threeModule;
+        const FOG = fogModule.default || fogModule;
+        effectRef.current = FOG({
+          el: containerRef.current,
+          THREE,
+          mouseControls: true,
+          touchControls: true,
+          gyroControls: false,
+          minHeight: 200,
+          minWidth: 200,
+          ...colors,
+        });
+      } catch (e) {
+        if (cancelled) return;
+        console.warn("[Vanta] init failed — disabling:", e.message);
+        setEnabledState(false);
+        try {
+          localStorage.setItem(STORAGE_KEY, "0");
+        } catch (persistErr) {
+          console.warn(
+            "[Vanta] localStorage persist failed:",
+            persistErr.message,
+          );
+        }
       }
-    }
+    };
+    initVanta();
 
     return () => {
+      cancelled = true;
       if (effectRef.current) {
-        try { effectRef.current.destroy(); } catch (e) {
-          console.warn('[Vanta] destroy failed:', e);
+        try {
+          effectRef.current.destroy();
+        } catch (e) {
+          console.warn("[Vanta] destroy failed:", e);
         }
         effectRef.current = null;
       }
