@@ -84,7 +84,7 @@ const ensureSchema = async () => {
         ) = 1
     `);
 };
-
+ensureSchema().catch(e => console.error('sales ensureSchema:', e));
 
 const generateOrderNumber = async (client) => {
   // v1.8.1: format HSB-NOTA-{YYMM}{NNN} dengan reset per bulan + sync to MAX per current month.
@@ -671,4 +671,3 @@ router.patch('/:id/payment-status', auth, async (req, res) => {
 });
 
 module.exports = router;
-module.exports.ensureSchema = ensureSchema;

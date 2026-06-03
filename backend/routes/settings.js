@@ -27,6 +27,8 @@ const ensureSchema = async () => {
     [JSON.stringify(DEFAULT_PROFIT_THRESHOLDS)]
   );
 };
+ensureSchema().catch(console.error);
+
 router.use(auth);
 
 const parseThresholds = (value = {}) => {
@@ -154,4 +156,3 @@ router.put('/counters/:doc_type', async (req, res) => {
 });
 
 module.exports = router;
-module.exports.ensureSchema = ensureSchema;

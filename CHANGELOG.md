@@ -2,14 +2,6 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
-## [v1.18.2-stable] - 2026-06-04
-
-### Changed
-- Schema bootstrap: 11 route modules now export ensureSchema, auto-calls removed
-- Central bootstrap.js — awaited sequential schema init before server.listen
-- app.js is now DB-free during import (safe for test/CI)
-- Server startup awaits bootstrap; non-prod exits on failure, prod degraded
-
 ## [v1.18.1-stable] - 2026-06-03
 
 ### Fixed

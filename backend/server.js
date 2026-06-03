@@ -1,11 +1,9 @@
 /**
- * server.js — Entry point. Imports app.js, runs bootstrap, starts listener.
+ * server.js — Entry point. Imports app.js and starts listener.
  */
 const app = require('./app');
 const http = require('http');
 const socketIo = require('socket.io');
-const runBootstrap = require('./bootstrap');
-
 const server = http.createServer(app);
 const io = socketIo(server, { cors: {
   origin: function (origin, callback) {
@@ -28,26 +26,10 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 5001;
-
-async function start() {
-  try {
-    await runBootstrap();
-    console.log('[BOOTSTRAP] Schema ready');
-  } catch (e) {
-    console.error('[BOOTSTRAP] FATAL:', e.message);
-    if (process.env.NODE_ENV !== 'production') {
-      process.exit(1);
-    }
-    // Prod: lanjut listen degraded — /api/health tetap up untuk diagnosa
-  }
-
-  server.listen(PORT, () => {
-    console.log(`[${new Date().toISOString()}] Backend server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV}`);
-  });
-}
-
-start();
+server.listen(PORT, () => {
+  console.log(`[${new Date().toISOString()}] Backend server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
+});
 
 process.on('SIGINT', () => {
   console.log('\nShutting down gracefully...');
