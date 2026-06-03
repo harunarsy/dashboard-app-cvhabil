@@ -14,15 +14,28 @@ const ensureTable = async () => {
 };
 ensureTable().catch(console.error);
 
-// GET all products (catalog + from invoice_items)
+// GET all products (catalog + from invoice_items), with limit + q search
 router.get('/', auth, async (req, res) => {
   try {
+    const limit = Math.min(parseInt(req.query.limit) || 1000, 2000);
+    const q = req.query.q?.trim();
+    let whereClause = '';
+    const params = [];
+    let idx = 1;
+    if (q) {
+      whereClause = `WHERE name ILIKE $${idx}`;
+      params.push(`%${q}%`);
+      idx++;
+    }
     const result = await pool.query(`
       SELECT name FROM product_catalog
+      ${whereClause ? whereClause.replace('name', 'product_catalog.name') : ''}
       UNION
       SELECT DISTINCT product_name AS name FROM invoice_items WHERE product_name IS NOT NULL AND product_name != ''
+      ${whereClause ? `AND product_name ILIKE $${idx - 1}` : ''}
       ORDER BY name
-    `);
+      LIMIT $${idx}
+    `, q ? [`%${q}%`, limit] : [limit]);
     res.json(result.rows.map(r => ({ name: r.name })));
   } catch (err) {
     res.status(500).json({ error: err.message });

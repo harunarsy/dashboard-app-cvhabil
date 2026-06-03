@@ -42,10 +42,11 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET all bugs — admin only
+// GET all bugs — admin only (with limit)
 router.get('/', auth, async (req, res) => {
   try {
-    const r = await pool.query(`SELECT * FROM bug_reports ORDER BY reported_at DESC`);
+    const limit = Math.min(parseInt(req.query.limit) || 200, 500);
+    const r = await pool.query('SELECT * FROM bug_reports ORDER BY reported_at DESC LIMIT $1', [limit]);
     res.json(r.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });

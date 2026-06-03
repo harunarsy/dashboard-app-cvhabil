@@ -16,6 +16,8 @@ const ensureTable = async () => {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  // Index for search-by-name
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_customers_name_lc ON customers (LOWER(name))`);
   // Sync sequence to MAX(id) to prevent duplicate key after data migration
   await pool.query(`
     SELECT setval('customers_id_seq', COALESCE((SELECT MAX(id) FROM customers), 0) + 1, false)
@@ -23,9 +25,20 @@ const ensureTable = async () => {
 };
 ensureTable().catch(e => console.error('customers ensureTable:', e));
 
-// GET all (with aggregate sales metadata: total_orders, total_spent, last_sale_date)
+// GET all (with aggregate sales metadata + limit + q search)
 router.get('/', auth, async (req, res) => {
   try {
+    const limit = Math.min(parseInt(req.query.limit) || 1000, 2000);
+    const q = req.query.q?.trim();
+    let customerFilter = '';
+    const params = [];
+    let idx = 1;
+    if (q) {
+      // Search by name or phone using LOWER for index match
+      customerFilter = `WHERE (LOWER(c.name) LIKE LOWER($${idx}) OR c.phone ILIKE $${idx})`;
+      params.push(`%${q}%`);
+      idx++;
+    }
     const { rows } = await pool.query(`
       SELECT
         c.*,
@@ -44,8 +57,10 @@ router.get('/', auth, async (req, res) => {
         WHERE COALESCE(is_deleted, FALSE) = FALSE
         GROUP BY customer_id, customer_name
       ) agg ON (agg.customer_id = c.id OR (agg.customer_id IS NULL AND agg.customer_name = c.name))
+      ${customerFilter}
       ORDER BY c.name ASC
-    `);
+      LIMIT $${idx}
+    `, [...params, limit]);
     // Karena 1 customer bisa punya 2 baris (matched by id DAN matched by name fallback), merge:
     const merged = {};
     for (const r of rows) {

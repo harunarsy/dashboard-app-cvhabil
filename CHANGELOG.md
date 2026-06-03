@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.16.8-stable] - 2026-06-03
+
+### Added
+- Pagination/search safety: 8 list endpoints now have LIMIT + optional ?q= search
+- Customers/products/distributors cap 1000-2000 to preserve dropdown UX
+
+### Fixed
+- Missing index idx_customers_name_lc for customer search
+- Inventory/tasks/bugs list queries bounded
+
 ## [v1.16.7-stable] - 2026-06-03
 
 ### Added

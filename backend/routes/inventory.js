@@ -114,9 +114,19 @@ ensureSchema().catch(e => console.error('inventory ensureSchema:', e));
 // PRODUCT MASTER
 // ══════════════════════════════════════════════════════════════════════════════
 
-// GET all products with stock summary
+// GET all products with stock summary (+ limit + q search)
 router.get('/products', auth, async (req, res) => {
   try {
+    const limit = Math.min(parseInt(req.query.limit) || 500, 1000);
+    const q = req.query.q?.trim();
+    let whereClause = 'WHERE p.is_active = TRUE';
+    const params = [];
+    let idx = 1;
+    if (q) {
+      whereClause += ` AND (p.name ILIKE $${idx} OR p.code ILIKE $${idx})`;
+      params.push(`%${q}%`);
+      idx++;
+    }
     const { rows } = await pool.query(`
       SELECT p.*,
         COALESCE(SUM(b.qty_current), 0) AS total_stock,
@@ -124,10 +134,11 @@ router.get('/products', auth, async (req, res) => {
         COUNT(b.id) FILTER (WHERE b.qty_current > 0 AND b.expired_date IS NOT NULL AND b.expired_date >= CURRENT_DATE AND b.expired_date < CURRENT_DATE + INTERVAL '90 days') AS expiring_batches
       FROM product_master p
       LEFT JOIN inventory_batches b ON b.product_id = p.id
-      WHERE p.is_active = TRUE
+      ${whereClause}
       GROUP BY p.id
       ORDER BY p.name ASC
-    `);
+      LIMIT $${idx}
+    `, [...params, limit]);
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -467,15 +478,17 @@ router.put('/products/:id/tiers', auth, async (req, res) => {
 // STOCK OPNAME
 // ══════════════════════════════════════════════════════════════════════════════
 
-// GET opname history
+// GET opname history (with limit)
 router.get('/opname', auth, async (req, res) => {
   try {
+    const limit = Math.min(parseInt(req.query.limit) || 200, 500);
     const { rows } = await pool.query(`
       SELECT so.*, pm.name AS product_name, pm.unit
       FROM stock_opname so
       JOIN product_master pm ON pm.id = so.product_id
       ORDER BY so.opname_date DESC, so.created_at DESC
-    `);
+      LIMIT $1
+    `, [limit]);
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

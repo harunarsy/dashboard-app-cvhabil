@@ -33,12 +33,14 @@ const ensureTable = async () => {
 };
 ensureTable().catch(console.error);
 
-// GET all distributors
+// GET all distributors (with limit)
 router.get('/', auth, async (req, res) => {
   try {
+    const limit = Math.min(parseInt(req.query.limit) || 1000, 2000);
     const result = await pool.query(`
       SELECT * FROM distributors ORDER BY name
-    `);
+      LIMIT $1
+    `, [limit]);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -3,20 +3,22 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 
-// GET all active tasks
+// GET all active tasks (with limit)
 router.get('/', auth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM tasks WHERE is_deleted = false ORDER BY created_at DESC');
+    const limit = Math.min(parseInt(req.query.limit) || 200, 500);
+    const result = await pool.query('SELECT * FROM tasks WHERE is_deleted = false ORDER BY created_at DESC LIMIT $1', [limit]);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET trash tasks
+// GET trash tasks (with limit)
 router.get('/trash', auth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM tasks WHERE is_deleted = true ORDER BY updated_at DESC');
+    const limit = Math.min(parseInt(req.query.limit) || 200, 500);
+    const result = await pool.query('SELECT * FROM tasks WHERE is_deleted = true ORDER BY updated_at DESC LIMIT $1', [limit]);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });

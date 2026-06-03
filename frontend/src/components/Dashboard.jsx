@@ -33,9 +33,36 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.16.7-stable",
+    version: "v1.16.8-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "added",
+        text: "Pagination/search safety: 8 list endpoints now have LIMIT + optional ?q= search",
+        dev: "",
+      },
+      {
+        type: "added",
+        text: "Customers/products/distributors cap 1000-2000 to preserve dropdown UX",
+        dev: "",
+      },
+      {
+        type: "fix",
+        text: "Missing index idx_customers_name_lc for customer search",
+        dev: "",
+      },
+      {
+        type: "fix",
+        text: "Inventory/tasks/bugs list queries bounded",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.16.7-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "added",
@@ -2176,7 +2203,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.16.7-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.16.8-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
