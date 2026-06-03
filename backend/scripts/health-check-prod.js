@@ -220,26 +220,76 @@ async function check7(client) {
   }
 }
 
-/** 8. Invoice items hpp_inc_ppn suspicious (per-unit mismatch, report only) */
-async function check8(client) {
-  const label = 'Invoice items hpp_inc_ppn per-unit mismatch (REPORT ONLY)';
+/** 8a. Invoice items hpp_inc_ppn <= 0 on active invoices */
+async function check8a(client) {
+  const label = 'Invoice items hpp_inc_ppn <= 0 on active invoices';
   const { rows } = await client.query(`
-    SELECT ii.id, ii.invoice_id, ii.product_name, ii.quantity, ii.unit_price,
-      ii.hpp_inc_ppn, ii.hpp_inc_ppn AS total_hpp,
-      ROUND(ii.hpp_inc_ppn / NULLIF(ii.quantity, 0), 2) AS computed_per_unit,
-      ROUND(ii.unit_price, 2) AS unit_price_rounded
+    SELECT ii.id, ii.invoice_id, ii.product_name, ii.quantity,
+      ii.hpp_inc_ppn, ii.hna_per_item
     FROM invoice_items ii
+    JOIN invoices i ON i.id = ii.invoice_id
+      AND i.deleted_at IS NULL
+      AND (i.is_draft IS NULL OR i.is_draft = FALSE)
+    WHERE ii.quantity > 0
+      AND ii.hpp_inc_ppn <= 0
+    ORDER BY ii.id
+  `);
+  if (rows.length === 0) {
+    pass(label);
+  } else {
+    fail(label, rows.map(r =>
+      `id=${r.id} invoice_id=${r.invoice_id} product='${r.product_name}' qty=${r.quantity} hpp_inc_ppn=${r.hpp_inc_ppn} hna_per_item=${r.hna_per_item}`
+    ));
+  }
+}
+
+/** 8b. Invoice items hpp_inc_ppn deviates from hna_per_item * 1.11 (tolerance 1 rupiah) */
+async function check8b(client) {
+  const label = 'Invoice items hpp_inc_ppn vs hna_per_item*1.11 mismatch (>1 rp)';
+  const { rows } = await client.query(`
+    SELECT ii.id, ii.invoice_id, ii.product_name, ii.quantity,
+      ii.hpp_inc_ppn, ii.hna_per_item,
+      ROUND(ii.hpp_inc_ppn::numeric, 2) AS hpp_rounded,
+      ROUND(ii.hna_per_item * 1.11, 2) AS expected_hpp
+    FROM invoice_items ii
+    JOIN invoices i ON i.id = ii.invoice_id
+      AND i.deleted_at IS NULL
+      AND (i.is_draft IS NULL OR i.is_draft = FALSE)
     WHERE ii.quantity > 0
       AND ii.hpp_inc_ppn IS NOT NULL
-      AND ii.hpp_inc_ppn > 0
-      AND ABS(ii.hpp_inc_ppn / ii.quantity - ii.unit_price) > 0.02
+      AND ii.hna_per_item > 0
+      AND ABS(ii.hpp_inc_ppn - ii.hna_per_item * 1.11) > 1.0
     ORDER BY ii.id
   `);
   if (rows.length === 0) {
     pass(label);
   } else {
     report(label, rows.map(r =>
-      `id=${r.id} invoice_id=${r.invoice_id} product='${r.product_name}' qty=${r.quantity} unit_price=${r.unit_price} hpp_inc_ppn=${r.hpp_inc_ppn} computed_per_unit=${r.computed_per_unit}`
+      `id=${r.id} invoice_id=${r.invoice_id} product='${r.product_name}' qty=${r.quantity} hpp_inc_ppn=${r.hpp_rounded} expected_hpp=${r.expected_hpp} hna_per_item=${r.hna_per_item}`
+    ));
+  }
+}
+
+/** 8c. Invoice items hpp_inc_ppn IS NULL where stock-in mutations exist (faktur PO) */
+async function check8c(client) {
+  const label = 'Invoice items NULL hpp_inc_ppn with stock-in mutations';
+  const { rows } = await client.query(`
+    SELECT ii.id, ii.invoice_id, ii.product_name, ii.quantity,
+      ii.hpp_inc_ppn, ii.hna_per_item, i.purchase_order_id
+    FROM invoice_items ii
+    JOIN invoices i ON i.id = ii.invoice_id
+      AND i.deleted_at IS NULL
+      AND (i.is_draft IS NULL OR i.is_draft = FALSE)
+    WHERE ii.hpp_inc_ppn IS NULL
+      AND ii.quantity > 0
+      AND i.purchase_order_id IS NOT NULL
+    ORDER BY ii.id
+  `);
+  if (rows.length === 0) {
+    pass(label);
+  } else {
+    fail(label, rows.map(r =>
+      `id=${r.id} invoice_id=${r.invoice_id} product='${r.product_name}' qty=${r.quantity} hpp_inc_ppn=NULL hna_per_item=${r.hna_per_item} po_id=${r.purchase_order_id}`
     ));
   }
 }
@@ -300,7 +350,7 @@ async function main() {
     await client.query('BEGIN');
     await client.query('SET TRANSACTION READ ONLY');
 
-    const checks = [check1, check2, check3, check4, check5, check6, check7, check8];
+    const checks = [check1, check2, check3, check4, check5, check6, check7, check8a, check8b, check8c];
     for (const fn of checks) {
       try {
         await fn(client);

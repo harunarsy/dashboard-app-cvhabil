@@ -122,12 +122,20 @@ export const distributorsAPI = {
   },
   add: (input) => {
     cacheInvalidate('/distributors');
-    const payload = typeof input === 'string' ? { name: input } : input;
-    if (!payload || (!payload.name && !payload.short_code)) {
-      const err = new Error('distributor name or short_code required');
-      console.error('[distributorsAPI.add] Invalid payload:', payload, err);
+    const rawPayload = typeof input === 'string' ? { name: input } : { ...(input || {}) };
+    const name = rawPayload.name ? String(rawPayload.name).trim() : '';
+    if (!name) {
+      const err = new Error('Nama distributor wajib');
+      console.error('[distributorsAPI.add] Invalid payload:', input, err);
       return Promise.reject(err);
     }
+    const payload = {
+      ...rawPayload,
+      name,
+      short_code: rawPayload.short_code || null,
+      salesman_name: rawPayload.salesman_name || null,
+      salesman_phone: rawPayload.salesman_phone || null,
+    };
     return api.post('/distributors', payload).catch((e) => {
       console.error('[distributorsAPI.add] Failed:', e.response?.data || e.message);
       throw e;

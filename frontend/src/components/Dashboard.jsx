@@ -33,9 +33,36 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.18.0-stable",
+    version: "v1.18.1-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fixed",
+        text: "Health check HPP false positive: removed incorrect division by qty, check8 is now REPORT only",
+        dev: "",
+      },
+      {
+        type: "fixed",
+        text: "Null batch duplicates: repair script with --dry-run/--apply",
+        dev: "",
+      },
+      {
+        type: "fixed",
+        text: "Distributor API validation: trims name, requires non-empty, rejects short_code-only",
+        dev: "",
+      },
+      {
+        type: "fixed",
+        text: "HTTP route test: assertions now validate exact 401 + error body, reject 500 as pass",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.18.0-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "changed",
@@ -2406,7 +2433,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.18.0-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.18.1-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

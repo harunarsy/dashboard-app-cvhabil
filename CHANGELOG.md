@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.18.1-stable] - 2026-06-03
+
+### Fixed
+- Health check HPP false positive: removed incorrect division by qty, check8 is now REPORT only
+- Null batch duplicates: repair script with --dry-run/--apply
+- Distributor API validation: trims name, requires non-empty, rejects short_code-only
+- HTTP route test: assertions now validate exact 401 + error body, reject 500 as pass
+
 ## [v1.18.0-stable] - 2026-06-03
 
 ### Changed

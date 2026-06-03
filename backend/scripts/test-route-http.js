@@ -58,13 +58,8 @@ async function run() {
   ]) {
     await test(`${label} returns 401 without auth`, async () => {
       const res = await request[method](url);
-      // 401 if auth required, or could be 500 if DB not available
-      // But it should NOT return 200 (which would mean no auth check)
-      assert.ok(res.status !== 200, `Expected non-200, got ${res.status}`);
-      // Auth endpoints should return error field
-      if (res.status === 401) {
-        assert.ok(res.body.error || true, 'Should have error message');
-      }
+      assert.strictEqual(res.status, 401, `Expected 401, got ${res.status}`);
+      assert.ok(res.body.error, 'Response should have error message');
     });
   }
 
@@ -84,9 +79,9 @@ async function run() {
   ]) {
     await test(`${label} route mounted (not 404)`, async () => {
       const res = await request.get(url);
-      // Route exists - either auth error, DB error, or success
-      // But NOT 404 (which would mean route not mounted)
-      assert.notStrictEqual(res.status, 404, `Route ${url} should be mounted`);
+      // Route exists (401=no auth) — must NOT be 404 (unmounted) or 500 (crash)
+      assert.ok(res.status !== 404 && res.status !== 500,
+        `Route ${url} should be mounted (not 404 or 500), got ${res.status}`);
     });
   }
 
