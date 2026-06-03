@@ -118,7 +118,19 @@ export const distributorsAPI = {
       return res;
     });
   },
-  add: (name) => { cacheInvalidate('/distributors'); return api.post('/distributors', { name }); },
+  add: (input) => {
+    cacheInvalidate('/distributors');
+    const payload = typeof input === 'string' ? { name: input } : input;
+    if (!payload || (!payload.name && !payload.short_code)) {
+      const err = new Error('distributor name or short_code required');
+      console.error('[distributorsAPI.add] Invalid payload:', payload, err);
+      return Promise.reject(err);
+    }
+    return api.post('/distributors', payload).catch((e) => {
+      console.error('[distributorsAPI.add] Failed:', e.response?.data || e.message);
+      throw e;
+    });
+  },
   remove: (name) => { cacheInvalidate('/distributors'); return api.delete('/distributors', { data: { name } }); },
   rename: (oldName, newName) => { cacheInvalidate('/distributors'); return api.patch('/distributors', { oldName, newName }); },
 };
@@ -132,7 +144,19 @@ export const productsAPI = {
       return res;
     });
   },
-  add: (name) => { cacheInvalidate('/products'); return api.post('/products', { name }); },
+  add: (input) => {
+    cacheInvalidate('/products');
+    const payload = typeof input === 'string' ? { name: input } : input;
+    if (!payload || (!payload.name)) {
+      const err = new Error('product name required');
+      console.error('[productsAPI.add] Invalid payload:', payload, err);
+      return Promise.reject(err);
+    }
+    return api.post('/products', payload).catch((e) => {
+      console.error('[productsAPI.add] Failed:', e.response?.data || e.message);
+      throw e;
+    });
+  },
   remove: (name) => { cacheInvalidate('/products'); return api.delete('/products', { data: { name } }); },
   rename: (oldName, newName) => { cacheInvalidate('/products'); return api.patch('/products', { oldName, newName }); },
 };

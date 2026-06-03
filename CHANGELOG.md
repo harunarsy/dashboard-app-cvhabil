@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.17.1-stable] - 2026-06-03
+
+### Fixed
+- distributorsAPI.add now accepts string OR object (short_code, salesman_name no longer lost)
+- productsAPI.add same fix
+- Cache properly invalidated on distributor/product mutations
+- API error now logs to console.error instead of silent catch
+
 ## [v1.17.0-stable] - 2026-06-03
 
 ### Added
