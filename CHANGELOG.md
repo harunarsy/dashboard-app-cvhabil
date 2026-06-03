@@ -2,6 +2,20 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.15.8-stable] - 2026-06-03
+
+### Fixed
+- Release modal center viewport + portal. Escape close + X button added.
+- Dashboard test timeout: mock useOnboarding + sessionStorage, fake timers flush.
+- InvoiceList SP prefill qty: now uses ordered qty (it.qty), not received_qty.
+- Active product filter: resolveProductByIdOrName now only matches active products. Backfill also from active unique only.
+
+### Changed
+- Backend: product_id + name lookups filter is_active = TRUE.
+
+### Security
+- Inactive products cannot be used for new stock-in operations.
+
 ## [v1.15.7-stable] - 2026-06-03
 
 ### Added

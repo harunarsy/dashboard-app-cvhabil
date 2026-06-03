@@ -67,6 +67,7 @@ const ensureSchema = async () => {
       WITH unique_products AS (
         SELECT LOWER(TRIM(name)) AS normalized_name, MIN(id) AS product_id
         FROM product_master
+        WHERE is_active = TRUE
         GROUP BY 1
         HAVING COUNT(*) = 1
       )
@@ -116,7 +117,7 @@ const resolveProductByIdOrName = async (client, { product_id, product_name }) =>
     const { rows: [product] } = await client.query(
       `SELECT id, name, unit, base_unit, pack_unit, pack_size, hna, is_active
        FROM product_master
-       WHERE id = $1
+       WHERE id = $1 AND is_active = TRUE
        LIMIT 1`,
       [numericProductId]
     );

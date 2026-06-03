@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import React, { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
 import Icons from "./common/Icon";
 import api from "../services/api";
@@ -8,6 +8,7 @@ import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import { UI_MOTION } from "../constants/ui";
 import useCountUp from "../hooks/useCountUp";
 import useOnboarding from "../hooks/useOnboarding";
+import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import OnboardingTour from "./common/OnboardingTour";
 const StockMovementChart = lazy(() => import("./dashboard/StockMovementChart"));
 
@@ -32,9 +33,31 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.15.7-stable",
+    version: "v1.15.8-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Release modal center viewport + portal. Escape close + X button added. Dashboard test timeout: mock useOnboarding + sessionStorage, fake timers flush. InvoiceList SP prefill qty: now uses ordered qty (it.qty), not received_qty. Active product filter: resolveProductByIdOrName now only matches active products. Backfill also from active unique only.",
+        dev: "",
+      },
+      {
+        type: "change",
+        text: "Backend: product_id + name lookups filter is_active = TRUE.",
+        dev: "",
+      },
+      {
+        type: "security",
+        text: "Inactive products cannot be used for new stock-in operations.",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.15.7-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -1940,8 +1963,9 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.15.7-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.15.8-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
+  useBodyScrollLock(showModal || showReleaseModal);
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)
   const bg = "var(--color-bg)";
@@ -2075,12 +2099,22 @@ export default function Dashboard({
     };
   }, [releaseStorageKey]);
 
-  const closeReleaseModal = () => {
+  const closeReleaseModal = useCallback(() => {
     setShowReleaseModal(false);
     try {
       sessionStorage.setItem(releaseStorageKey, "true");
     } catch {}
-  };
+  }, [releaseStorageKey]);
+
+  // Escape key closes release modal
+  useEffect(() => {
+    if (!showReleaseModal) return;
+    const handler = (e) => {
+      if (e.key === "Escape") closeReleaseModal();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [showReleaseModal, closeReleaseModal]);
 
   const formatRupiah = (number) => {
     const n = parseFloat(number) || 0;
@@ -2871,7 +2905,7 @@ export default function Dashboard({
         createPortal(
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 transition-opacity">
             <div
-              className="ui-motion-modal ui-modal-shell w-full max-w-[min(560px,calc(100vw-32px))] overflow-hidden rounded-3xl shadow-2xl flex flex-col transform transition-all scale-100"
+              className="ui-motion-modal ui-modal-shell w-full max-w-[min(1040px,calc(100vw-32px))] max-h-[calc(100dvh-32px)] overflow-hidden rounded-3xl shadow-2xl flex flex-col transform transition-all scale-100"
               style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
             >
               {/* Spotlight Header */}
@@ -2882,6 +2916,13 @@ export default function Dashboard({
                     "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)",
                 }}
               >
+                <button
+                  onClick={closeReleaseModal}
+                  aria-label="Tutup popup rilis"
+                  className="ui-motion-button ui-focus-ring absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
                 <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4 shadow-inner backdrop-blur-sm">
                   <span className="text-3xl">🚀</span>
                 </div>
@@ -3032,10 +3073,11 @@ export default function Dashboard({
       />
 
       {/* Changelog & Upcoming Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
-          <div
-            className="ui-motion-modal ui-modal-shell w-full max-w-4xl max-h-[85vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col"
+      {showModal &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
+            <div
+              className="ui-motion-modal ui-modal-shell w-full max-w-[min(1040px,calc(100vw-32px))] max-h-[calc(100dvh-32px)] overflow-hidden rounded-3xl shadow-2xl flex flex-col"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             {/* Modal Header */}
@@ -3282,8 +3324,9 @@ export default function Dashboard({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
       {/* Developer Notes Modal */}
       {showDevNotes && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">

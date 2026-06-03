@@ -568,7 +568,7 @@ export default function InvoiceList({
               ...blankItem(),
               product_name: it.product_name,
               product_id: it.product_id || null,
-              quantity: it.received_qty || it.qty || 1,
+              quantity: it.qty || 1, // invoice qty follows supplier faktur; stock-in still limited by backend room logic
               unit: it.unit || "pcs",
             }),
           ),

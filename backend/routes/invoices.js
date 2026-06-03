@@ -84,6 +84,7 @@ const ensureSchema = async () => {
       WITH unique_products AS (
         SELECT LOWER(TRIM(name)) AS normalized_name, MIN(id) AS product_id
         FROM product_master
+        WHERE is_active = TRUE
         GROUP BY 1
         HAVING COUNT(*) = 1
       )
@@ -143,7 +144,7 @@ const resolveProductByIdOrName = async (client, item = {}) => {
     const { rows: [product] } = await client.query(
       `SELECT id, name, hna, base_unit, pack_unit, pack_size, is_active
        FROM product_master
-       WHERE id = $1
+       WHERE id = $1 AND is_active = TRUE
        LIMIT 1`,
       [numericProductId]
     );
@@ -195,7 +196,7 @@ const loadProductLookupForItems = async (client, items = []) => {
     const { rows } = await client.query(
       `SELECT id, name, hna, base_unit, pack_unit, pack_size, is_active
        FROM product_master
-       WHERE id = ANY($1::int[])`,
+       WHERE id = ANY($1::int[]) AND is_active = TRUE`,
       [productIds]
     );
     rows.forEach((row) => lookup.byId.set(String(row.id), row));
@@ -206,6 +207,7 @@ const loadProductLookupForItems = async (client, items = []) => {
       `SELECT LOWER(TRIM(name)) AS normalized_name
        FROM product_master
        WHERE LOWER(TRIM(name)) = ANY($1::text[])
+         AND is_active = TRUE
        GROUP BY 1
        HAVING COUNT(*) > 1`,
       [normalizedNames]
@@ -217,6 +219,7 @@ const loadProductLookupForItems = async (client, items = []) => {
          SELECT LOWER(TRIM(name)) AS normalized_name, MIN(id) AS product_id
          FROM product_master
          WHERE LOWER(TRIM(name)) = ANY($1::text[])
+           AND is_active = TRUE
          GROUP BY 1
          HAVING COUNT(*) = 1
        )

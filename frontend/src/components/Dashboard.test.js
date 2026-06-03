@@ -19,6 +19,22 @@ jest.mock("../services/api", () => ({
   },
 }));
 
+// Mock useOnboarding to avoid pending setTimeout(900ms)
+jest.mock("../hooks/useOnboarding", () => () => ({
+  active: false,
+  currentStep: null,
+  stepIndex: 0,
+  steps: [],
+  next: jest.fn(),
+  skip: jest.fn(),
+}));
+
+// Mock sessionStorage so release modal doesn't auto-show (no pending timers)
+global.sessionStorage = {
+  getItem: () => "true",
+  setItem: jest.fn(),
+};
+
 import { render, screen, waitFor, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import Dashboard from "./Dashboard";
@@ -72,7 +88,10 @@ describe("Dashboard Component - Loading State", () => {
     });
     api.get.mockReturnValue(apiPromise);
 
+    jest.useFakeTimers();
     render(<Dashboard isDarkMode={false} isSidebarOpen={true} />);
+    act(() => { jest.runAllTimers(); });
+    jest.useRealTimers();
 
     // Check if skeletons are present
     // Based on Dashboard.jsx, there should be 4 stats card skeletons
