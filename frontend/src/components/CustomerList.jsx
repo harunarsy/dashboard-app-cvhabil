@@ -58,6 +58,7 @@ export default function CustomerList({
   const [toast, setToast] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const bg = isDarkMode ? "#000" : "var(--color-bg)";
   const cardBg = isDarkMode ? "var(--color-surface-elevated)" : "#FFF";
@@ -135,7 +136,11 @@ export default function CustomerList({
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) return;
+    if (!form.name.trim()) {
+      flash("Nama customer wajib diisi");
+      return;
+    }
+    setIsSaving(true);
     try {
       if (editId) {
         await customersAPI.update(editId, form);
@@ -148,6 +153,8 @@ export default function CustomerList({
       fetchCustomers();
     } catch (e) {
       flash(e.response?.data?.error || e.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -787,20 +794,22 @@ export default function CustomerList({
               <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
                 <button
                   onClick={handleSave}
+                  disabled={isSaving}
                   className="ui-motion-button ui-focus-ring"
                   style={{
                     flex: 1,
                     padding: "13px",
-                    backgroundColor: "var(--color-primary)",
+                    backgroundColor: isSaving ? "var(--color-text-subtle)" : "var(--color-primary)",
                     color: "#FFF",
                     border: "none",
                     borderRadius: "10px",
-                    cursor: "pointer",
+                    cursor: isSaving ? "not-allowed" : "pointer",
                     fontWeight: "700",
                     fontSize: "14px",
+                    opacity: isSaving ? 0.7 : 1,
                   }}
                 >
-                  {editId ? "Simpan" : "Tambah"}
+                  {isSaving ? "Menyimpan..." : editId ? "Simpan" : "Tambah"}
                 </button>
                 <button
                   onClick={() => setShowModal(false)}

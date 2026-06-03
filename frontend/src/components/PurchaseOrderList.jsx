@@ -119,6 +119,8 @@ export default function PurchaseOrderList({
   const [isSaving, setIsSaving] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(null); // order id being printed
   const [sortKeys, setSortKeys] = useState([]);
+  const [isReceiving, setIsReceiving] = useState(false);
+  const [distributorSaving, setDistributorSaving] = useState(false);
 
   const [isAutoSP, setIsAutoSP] = useState(true);
   const [manualNumber, setManualNumber] = useState("");
@@ -440,6 +442,7 @@ export default function PurchaseOrderList({
 
   const handleSaveDistributor = async () => {
     if (!distForm.name.trim()) return flash("Nama distributor wajib");
+    setDistributorSaving(true);
     try {
       const res = await distributorsAPI.add(distForm); // Backend handles UPSERT using name
       flash("Data Distributor Disimpan");
@@ -448,6 +451,8 @@ export default function PurchaseOrderList({
       setShowModal("create");
     } catch (e) {
       flash(e.response?.data?.error || e.message);
+    } finally {
+      setDistributorSaving(false);
     }
   };
 
@@ -466,6 +471,7 @@ export default function PurchaseOrderList({
         `${overReceivedItem.product_name}: total batch melebihi sisa pesanan`,
       );
     }
+    setIsReceiving(true);
     try {
       await purchaseOrdersAPI.receive(editId, { items: toReceive });
       flash("Barang diterima & stok diperbarui");
@@ -473,6 +479,8 @@ export default function PurchaseOrderList({
       fetchOrders();
     } catch (e) {
       flash(e.response?.data?.error || e.message);
+    } finally {
+      setIsReceiving(false);
     }
   };
 
@@ -1866,21 +1874,23 @@ export default function PurchaseOrderList({
                 >
                   <button
                     onClick={handleReceive}
+                    disabled={isReceiving}
                     className="btn-primary ui-motion-button ui-focus-ring"
                     data-magnetic="true"
                     style={{
                       flex: 1,
                       padding: "13px",
-                      backgroundColor: "var(--color-success)",
+                      backgroundColor: isReceiving ? "var(--color-text-subtle)" : "var(--color-success)",
                       color: "#FFF",
                       border: "none",
                       borderRadius: "10px",
-                      cursor: "pointer",
+                      cursor: isReceiving ? "not-allowed" : "pointer",
                       fontWeight: "700",
                       fontSize: "14px",
+                      opacity: isReceiving ? 0.7 : 1,
                     }}
                   >
-                    Terima & Update Stok
+                    {isReceiving ? "Menyimpan..." : "Terima & Update Stok"}
                   </button>
                   <button
                     onClick={() => setShowModal(null)}
@@ -2027,21 +2037,23 @@ export default function PurchaseOrderList({
                 <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
                   <button
                     onClick={handleSaveDistributor}
+                    disabled={distributorSaving}
                     className="btn-primary ui-motion-button ui-focus-ring"
                     data-magnetic="true"
                     style={{
                       flex: 1,
                       padding: "13px",
-                      backgroundColor: "var(--color-primary)",
+                      backgroundColor: distributorSaving ? "var(--color-text-subtle)" : "var(--color-primary)",
                       color: "#FFF",
                       border: "none",
                       borderRadius: "10px",
-                      cursor: "pointer",
+                      cursor: distributorSaving ? "not-allowed" : "pointer",
                       fontWeight: "700",
                       fontSize: "14px",
+                      opacity: distributorSaving ? 0.7 : 1,
                     }}
                   >
-                    Simpan Data Master
+                    {distributorSaving ? "Menyimpan..." : "Simpan Data Master"}
                   </button>
                   <button
                     onClick={() => setShowModal("create")}

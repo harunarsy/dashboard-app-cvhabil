@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.16.9-stable] - 2026-06-03
+
+### Fixed
+- Save buttons now properly disabled while submitting across all major forms
+- Silent catch blocks replaced with console.error in user-facing flows
+- Loading/empty states clarified in CustomerList, InventoryDashboard
+
+### Changed
+- API error handling more robust: errors now show user-readable messages
+
 ## [v1.16.8-stable] - 2026-06-03
 
 ### Added

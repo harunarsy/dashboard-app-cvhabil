@@ -447,6 +447,7 @@ export default function InvoiceList({
   const [successToast, setSuccessToast] = useState("");
   const [auditModal, setAuditModal] = useState(null); // { invoiceId, invoiceNumber }
   const [auditLog, setAuditLog] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const draftDebounceRef = useRef(null);
   const toastTimerRef = useRef(null);
@@ -1045,6 +1046,7 @@ export default function InvoiceList({
   };
 
   const doSave = async (payload) => {
+    setIsSaving(true);
     try {
       const isEdit = !!editingId;
       if (isEdit) await invoicesAPI.update(editingId, payload);
@@ -1069,6 +1071,8 @@ export default function InvoiceList({
       );
     } catch (err) {
       showToast("Error: " + (err.response?.data?.error || err.message));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -3365,6 +3369,7 @@ export default function InvoiceList({
             setShowModal(false);
             resetForm();
           }}
+          isSaving={isSaving}
           S={S}
           formatRpInput={formatRpInput}
           parseNum={parseNum}
@@ -3928,6 +3933,7 @@ function InvoiceModal({
   removeItem,
   onSubmit,
   onClose,
+  isSaving,
   S,
   formatRpInput,
   parseNum,
@@ -4976,21 +4982,23 @@ function InvoiceModal({
             <button
               type="button"
               onClick={onSubmit}
+              disabled={isSaving}
               className="btn-primary ui-motion-button ui-focus-ring"
               data-magnetic="true"
               style={{
                 flex: 1,
                 padding: "14px",
-                backgroundColor: "var(--color-primary)",
+                backgroundColor: isSaving ? "var(--color-text-subtle)" : "var(--color-primary)",
                 color: "white",
                 border: "none",
                 borderRadius: "12px",
-                cursor: "pointer",
+                cursor: isSaving ? "not-allowed" : "pointer",
                 fontSize: "15px",
                 fontWeight: "700",
+                opacity: isSaving ? 0.7 : 1,
               }}
             >
-              {editingId ? "💾 Update Faktur" : "✅ Simpan Faktur"}
+              {isSaving ? "Menyimpan..." : editingId ? "💾 Update Faktur" : "✅ Simpan Faktur"}
             </button>
             <button
               type="button"

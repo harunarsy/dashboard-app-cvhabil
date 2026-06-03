@@ -33,9 +33,36 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.16.8-stable",
+    version: "v1.16.9-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fixed",
+        text: "Save buttons now properly disabled while submitting across all major forms",
+        dev: "",
+      },
+      {
+        type: "fixed",
+        text: "Silent catch blocks replaced with console.error in user-facing flows",
+        dev: "",
+      },
+      {
+        type: "fixed",
+        text: "Loading/empty states clarified in CustomerList, InventoryDashboard",
+        dev: "",
+      },
+      {
+        type: "changed",
+        text: "API error handling more robust: errors now show user-readable messages",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.16.8-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "added",
@@ -2203,7 +2230,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.16.8-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.16.9-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

@@ -655,7 +655,8 @@ export default function SalesOrderList({
             return n;
           });
         } catch (e) {
-          /* batch fetch failed, dropdown akan kosong → fallback Auto FEFO */
+          console.error("Batch fetch failed for item idx", idx, e);
+          /* dropdown akan kosong → fallback Auto FEFO */
         }
       }
     }
@@ -845,6 +846,7 @@ export default function SalesOrderList({
             updated.unit_hpp = parseFloat(match.hna) || 0;
           }
         } catch (e) {
+          console.error("Failed to fetch batches/tiers for product", match?.id, e);
           updated.unit_hpp = parseFloat(match.hna) || 0;
         }
       } else {

@@ -306,7 +306,7 @@ export default function InventoryDashboard({
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast({ msg, type: "error" });
     toastTimerRef.current = setTimeout(
-      () => setToast({ msg: "", type: "success" }),
+      () => setToast({ msg: "", type: "error" }),
       UI_MOTION.duration.toastError,
     );
   };
@@ -423,6 +423,7 @@ export default function InventoryDashboard({
       const { data } = await inventoryAPI.getProductTiers(p.id);
       setPForm((prev) => ({ ...prev, price_tiers: data || [] }));
     } catch (e) {
+      console.error("Failed to fetch product tiers", p.id, e);
       /* tiers optional, skip silently */
     }
   };
@@ -629,6 +630,7 @@ export default function InventoryDashboard({
       const { data } = await inventoryAPI.getProductBatches(productId);
       setSoBatches((data || []).filter((b) => b.qty_current > 0));
     } catch (e) {
+      console.error("Failed to load stock out batches", e);
       setSoBatches([]);
     }
   }, []);
@@ -675,6 +677,7 @@ export default function InventoryDashboard({
         const { data } = await printSettingsAPI.get();
         settings = data?.nota_layout || data || {};
       } catch (_) {
+        console.error("Failed to fetch print settings", _);
         /* fallback default */
       }
       const { data: rows } = await inventoryAPI.getOpnameTemplate();
