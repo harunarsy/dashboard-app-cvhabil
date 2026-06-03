@@ -64,6 +64,39 @@ const statusColors = {
   },
 };
 
+const TooltipButton = ({
+  label,
+  children,
+  className = "",
+  style = {},
+  isDarkMode,
+  ...buttonProps
+}) => (
+  <span className="group relative inline-flex">
+    <button
+      {...buttonProps}
+      aria-label={label}
+      className={`ui-motion-button ui-focus-ring ${className}`.trim()}
+      style={style}
+    >
+      {children}
+    </button>
+    <span
+      role="tooltip"
+      className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-md border px-2.5 py-1 text-[10px] font-semibold shadow-lg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+      style={{
+        backgroundColor: isDarkMode ? "var(--color-surface-elevated)" : "#FFF",
+        color: isDarkMode ? "#FFF" : "#000",
+        borderColor: isDarkMode
+          ? "var(--color-surface-raised)"
+          : "var(--color-border)",
+      }}
+    >
+      {label}
+    </span>
+  </span>
+);
+
 export default function PurchaseOrderList({
   isDarkMode,
   isSidebarOpen,
@@ -130,40 +163,6 @@ export default function PurchaseOrderList({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [showModal]);
-  const TooltipButton = ({
-    label,
-    children,
-    className = "",
-    style = {},
-    ...buttonProps
-  }) => (
-    <span className="group relative inline-flex">
-      <button
-        {...buttonProps}
-        aria-label={label}
-        className={`ui-motion-button ui-focus-ring ${className}`.trim()}
-        style={style}
-      >
-        {children}
-      </button>
-      <span
-        role="tooltip"
-        className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-md border px-2.5 py-1 text-[10px] font-semibold shadow-lg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-        style={{
-          backgroundColor: isDarkMode
-            ? "var(--color-surface-elevated)"
-            : "#FFF",
-          color: isDarkMode ? "#FFF" : "#000",
-          borderColor: isDarkMode
-            ? "var(--color-surface-raised)"
-            : "var(--color-border)",
-        }}
-      >
-        {label}
-      </span>
-    </span>
-  );
-
   const fetchOrders = async () => {
     setLoading(true);
     try {
@@ -855,6 +854,7 @@ export default function PurchaseOrderList({
                           >
                             <TooltipButton
                               label="Cetak SP"
+                              isDarkMode={isDarkMode}
                               disabled={pdfLoading === o.id}
                               onClick={() => handlePrintSP(o)}
                               style={{
@@ -876,6 +876,7 @@ export default function PurchaseOrderList({
                             {o.status !== "received" && (
                               <TooltipButton
                                 label="Terima Barang"
+                                isDarkMode={isDarkMode}
                                 onClick={() => openReceive(o)}
                                 style={{
                                   background: "none",
@@ -892,6 +893,7 @@ export default function PurchaseOrderList({
                             )}
                             <TooltipButton
                               label="Edit pesanan"
+                              isDarkMode={isDarkMode}
                               onClick={() => openEdit(o)}
                               style={{
                                 background: "none",
@@ -907,6 +909,7 @@ export default function PurchaseOrderList({
                             </TooltipButton>
                             <TooltipButton
                               label="Hapus pesanan"
+                              isDarkMode={isDarkMode}
                               onClick={() => handleDelete(o.id)}
                               style={{
                                 background: "none",
@@ -1438,6 +1441,7 @@ export default function PurchaseOrderList({
                             {items.length > 1 && (
                               <TooltipButton
                                 label="Hapus baris produk"
+                                isDarkMode={isDarkMode}
                                 onClick={() => removeItem(idx)}
                                 style={{
                                   background: "none",

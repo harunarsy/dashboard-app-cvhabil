@@ -448,6 +448,7 @@ export default function InvoiceList({
   const [auditLog, setAuditLog] = useState([]);
 
   const draftDebounceRef = useRef(null);
+  const toastTimerRef = useRef(null);
 
   // Sort
   const [sortKey, setSortKey] = useState("");
@@ -493,10 +494,20 @@ export default function InvoiceList({
     }, UI_MOTION.duration.draftDebounce);
     return () => clearTimeout(draftDebounceRef.current);
   }, [form, items, showModal]);
+  useEffect(
+    () => () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    },
+    [],
+  );
 
   const showToast = (msg) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setSuccessToast(msg);
-    setTimeout(() => setSuccessToast(""), UI_MOTION.duration.toastSuccess);
+    toastTimerRef.current = setTimeout(
+      () => setSuccessToast(""),
+      UI_MOTION.duration.toastSuccess,
+    );
   };
 
   const fetchInvoices = async () => {

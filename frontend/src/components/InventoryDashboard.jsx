@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   Plus,
@@ -120,6 +120,7 @@ export default function InventoryDashboard({
   const [modalError, setModalError] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const toastTimerRef = useRef(null);
 
   // Expand + Drawer state (Phase 2 additions)
   const [expandedIds, setExpandedIds] = useState(new Set());
@@ -214,6 +215,12 @@ export default function InventoryDashboard({
     fetchProducts();
     fetchAlerts();
   }, [fetchProducts, fetchAlerts]);
+  useEffect(
+    () => () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    },
+    [],
+  );
 
   const fetchBatches = useCallback(
     async (productId, force = false) => {
@@ -288,15 +295,17 @@ export default function InventoryDashboard({
   );
 
   const flashSuccess = (msg) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast({ msg, type: "success" });
-    setTimeout(
+    toastTimerRef.current = setTimeout(
       () => setToast({ msg: "", type: "success" }),
       UI_MOTION.duration.toastSuccess,
     );
   };
   const flashError = (msg) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast({ msg, type: "error" });
-    setTimeout(
+    toastTimerRef.current = setTimeout(
       () => setToast({ msg: "", type: "success" }),
       UI_MOTION.duration.toastError,
     );

@@ -188,6 +188,7 @@ export default function SalesOrderList({
   const [itemBatches, setItemBatches] = useState([]);
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const toastTimerRef = useRef(null);
 
   const bg = isDarkMode ? "#000" : "var(--color-bg)";
   const cardBg = isDarkMode ? "var(--color-surface-elevated)" : "#FFF";
@@ -216,6 +217,12 @@ export default function SalesOrderList({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [paymentModal.open, showModal, showPrintModal]);
+  useEffect(
+    () => () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    },
+    [],
+  );
   const labelStyle = {
     display: "block",
     fontSize: "12px",
@@ -641,8 +648,12 @@ export default function SalesOrderList({
   };
 
   const flash = (msg) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast(msg);
-    setTimeout(() => setToast(""), UI_MOTION.duration.toastSuccess);
+    toastTimerRef.current = setTimeout(
+      () => setToast(""),
+      UI_MOTION.duration.toastSuccess,
+    );
   };
 
   const handlePrintPDF = async () => {

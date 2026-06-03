@@ -2,6 +2,19 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.15.6-stable] - 2026-06-03
+
+### Changed
+
+- `AuthContext` sekarang memakai `useCallback` dan `useMemo` supaya consumer tidak re-render karena value object baru di setiap render provider.
+- Timer toast di Nota Penjualan, Faktur Pembelian, dan Inventory sekarang disimpan di `useRef` dan dibersihkan saat komponen unmount.
+- Tooltip action Surat Pesanan dipindah ke module scope agar tidak dibuat ulang di setiap render list.
+
+### Notes
+
+- Tidak ada perubahan API, logika finansial, HNA/HPP SSOT, atau `generateNotaPDF.js`.
+- Format ulang file one-liner besar dan automated stock regression test masih deferred karena membutuhkan diff/test harness terpisah.
+
 ## [v1.15.5-stable] - 2026-06-03
 
 ### Security

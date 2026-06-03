@@ -1,4 +1,4 @@
-import React, { createContext, useState, useCallback } from 'react';
+import React, { createContext, useState, useCallback, useMemo } from 'react';
 import { authAPI } from '../services/api';
 
 export const AuthContext = createContext();
@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
   });
   const [loading, setLoading] = useState(false);
 
-  const login = async (username, password) => {
+  const login = useCallback(async (username, password) => {
     setLoading(true);
     try {
       const response = await authAPI.login(username, password);
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
@@ -45,8 +45,13 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   }, []);
 
+  const value = useMemo(
+    () => ({ user, token, login, logout, loading }),
+    [user, token, login, logout, loading],
+  );
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

@@ -32,9 +32,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.15.5-stable",
+    version: "v1.15.6-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "perf",
+        text: "Maintainability ringan: context login dan toast timer sekarang lebih stabil tanpa mengubah flow bisnis.",
+        dev: "AuthContext memakai useCallback/useMemo agar consumer tidak re-render karena object baru tiap render. Toast timer di Nota/Faktur/Inventory disimpan di ref dan dibersihkan saat unmount. TooltipButton Surat Pesanan dipindah ke module scope.",
+      },
+    ],
+  },
+  {
+    version: "v1.15.5-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "security",
@@ -1916,7 +1928,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.15.5-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.15.6-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)
