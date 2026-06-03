@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "node scripts/check-db.js && nodemon server.js",
     "start": "node server.js",
-    "test": "node scripts/test-regression.js"
+    "test": "node scripts/test-regression.js && node scripts/test-route-regression.js",
+    "test-db": "node scripts/test-regression.js",
+    "test-route": "node scripts/test-route-regression.js"
   },
   "keywords": [],
   "author": "",

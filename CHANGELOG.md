@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.16.7-stable] - 2026-06-03
+
+### Added
+- Route-level regression tests: 18 tests for batch resolution, PO room logic, faktur stock-in, sales PUT preservation
+- npm test now runs both DB health (18 tests) + route regression (18 tests) = 36 total
+
+### Changed
+- Sales helper priority behavior locked by tests (selected_batch_id > batch_id_snapshot > batch_no+expired > batch_no only)
+
 ## [v1.16.6-stable] - 2026-06-03
 
 ### Added

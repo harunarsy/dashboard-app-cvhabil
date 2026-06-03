@@ -33,9 +33,31 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.16.6-stable",
+    version: "v1.16.7-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "added",
+        text: "Route-level regression tests: 18 tests for batch resolution, PO room logic, faktur stock-in, sales PUT preservation",
+        dev: "",
+      },
+      {
+        type: "added",
+        text: "npm test now runs both DB health (18 tests) + route regression (18 tests) = 36 total",
+        dev: "",
+      },
+      {
+        type: "changed",
+        text: "Sales helper priority behavior locked by tests (selected_batch_id > batch_id_snapshot > batch_no+expired > batch_no only)",
+        dev: "",
+      },
+    ],
+  },
+  {
+    version: "v1.16.6-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "added",
@@ -2154,7 +2176,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.16.6-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.16.7-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
