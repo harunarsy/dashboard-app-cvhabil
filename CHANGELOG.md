@@ -2,6 +2,24 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.15.5-stable] - 2026-06-03
+
+### Security
+
+- Backend sekarang memakai `helmet` untuk security headers dasar tanpa mengaktifkan CSP yang berisiko mematahkan aset legacy.
+- Login punya lockout tambahan berbasis username setelah percobaan gagal berulang, selain rate-limit IP yang sudah ada.
+- Default masa berlaku JWT dipendekkan dari 7 hari menjadi 8 jam bila `JWT_EXPIRE` tidak diset.
+
+### Fixed
+
+- Buku Besar menolak input debit/kredit non-angka, negatif, kosong dua-duanya, atau sama-sama terisi saat membuat entry baru.
+- Error backend auth/ledger tidak lagi mengirim detail internal mentah di production.
+
+### Notes
+
+- Rotasi kredensial Neon/JWT secret tetap perlu dilakukan manual di provider karena secret lama sudah pernah tracked.
+- `generateNotaPDF.js`, HNA/HPP SSOT, dan flow bisnis frontend tidak disentuh.
+
 ## [v1.15.4-stable] - 2026-06-03
 
 ### Fixed

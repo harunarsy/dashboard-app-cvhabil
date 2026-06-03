@@ -4,6 +4,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const bodyParser = require('body-parser');
 const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 const os = require('os');
 const { execSync } = require('child_process');
 const fs = require('fs');
@@ -63,6 +64,9 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, { cors: corsOptions });
 
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors(corsOptions));

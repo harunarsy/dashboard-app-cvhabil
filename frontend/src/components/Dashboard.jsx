@@ -32,9 +32,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.15.4-stable",
+    version: "v1.15.5-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "security",
+        text: "Hardening backend ringan: login sekarang punya lockout tambahan, token default lebih pendek, security headers aktif, dan input debit/kredit Buku Besar divalidasi.",
+        dev: "Server memakai Helmet tanpa CSP agar aset lama tetap aman, auth menambahkan username-based lockout + JWT fallback 8 jam, dan ledger menolak amount non-angka/negatif serta entry debit-kredit kosong.",
+      },
+    ],
+  },
+  {
+    version: "v1.15.4-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -1904,7 +1916,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.15.4-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.15.5-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)
