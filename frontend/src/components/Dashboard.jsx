@@ -32,9 +32,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.15.3-stable",
+    version: "v1.15.4-stable",
     date: "3 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Integritas stok SP/Faktur diperketat: Terima Barang dan Faktur linked sekarang sama-sama mengisi stok berdasarkan sisa qty per item SP, bukan boolean global.",
+        dev: "Backend invoices.js dan purchaseOrders.js memakai purchase_order_items.received_qty sebagai SSOT stock-in. Faktur linked hanya nambah room tersisa, Terima Barang setelah faktur tidak dobel, stock_received jadi derived display, dan PUT faktur posted dibungkus transaction + blokir edit item.",
+      },
+    ],
+  },
+  {
+    version: "v1.15.3-stable",
+    date: "3 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "perf",
@@ -1892,7 +1904,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.15.3-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.15.4-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)

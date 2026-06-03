@@ -2,6 +2,19 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.15.4-stable] - 2026-06-03
+
+### Fixed
+
+- Stock-in dari Terima Barang SP dan Faktur linked sekarang granular memakai `purchase_order_items.received_qty` sebagai source of truth.
+- Faktur linked hanya menambah stok sebesar sisa qty SP, sehingga kombinasi receive partial/full dan faktur partial/full tidak dobel atau menghilangkan stok.
+- `PUT /invoices/:id` sekarang transactional dan menolak perubahan item/qty faktur yang sudah pernah membuat mutasi stok.
+
+### Notes
+
+- `stock_received` dipertahankan sebagai status display/derived, bukan gate utama stock-in.
+- `generateNotaPDF.js` dan HNA/HPP SSOT tidak disentuh.
+
 ## [v1.15.3-stable] - 2026-06-03
 
 ### Changed

@@ -78,6 +78,19 @@ const generatePONumber = async (client) => {
   return `${rows[0].prefix}${rows[0].last_number.toString().padStart(4, '0')}`;
 };
 
+const toNumber = (value) => {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const prorateSourceQty = (sourceQty, fullBaseQty, stockedBaseQty) => {
+  const source = toNumber(sourceQty) || toNumber(fullBaseQty);
+  const full = toNumber(fullBaseQty);
+  const stocked = toNumber(stockedBaseQty);
+  if (!full || stocked >= full) return source;
+  return Number(((source * stocked) / full).toFixed(4));
+};
+
 // ══════════════════════════════════════════════════════════════════════════════
 // CRUD
 // ══════════════════════════════════════════════════════════════════════════════
@@ -247,10 +260,6 @@ router.post('/:id/receive', auth, async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // v1.10.0: kalau stok SP ini SUDAH masuk (mis. via Faktur duluan) → JANGAN stock-in lagi (cegah dobel); received_qty tetap di-update utk tracking.
-    const poFlagRow = await client.query('SELECT stock_received FROM purchase_orders WHERE id = $1', [req.params.id]);
-    const alreadyStocked = !!(poFlagRow.rows[0] && poFlagRow.rows[0].stock_received);
-
     for (const item of items) {
       // v1.6.0: receive qty bisa dikirim di unit asal PO (e.g., 5 karton) atau base unit (60 pcs)
       // Frontend convention: kirim received_qty_in_unit (di unit PO) + received_qty (di base unit) untuk clarity
@@ -285,11 +294,10 @@ router.post('/:id/receive', auth, async (req, res) => {
       }
       if (recvBase <= 0) continue;
 
-      // Validate over-receive (di base unit — qty stored sudah di base post-v1.6.0)
-      if (current.received_qty + recvBase > current.qty) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({ error: `Jumlah diterima melebihi jumlah pesanan (maks: ${current.qty - current.received_qty} ${product?.base_unit || 'pcs'})` });
-      }
+      const room = Math.max(0, toNumber(current.qty) - toNumber(current.received_qty));
+      const stockInBase = Math.min(recvBase, room);
+      const sourceQtyValue = prorateSourceQty(recvInUnit || recvBase, recvBase, stockInBase);
+      if (stockInBase <= 0) continue;
 
       // Update PO item received_qty (base) + received_qty_in_unit (pack unit running total)
       await client.query(
@@ -297,25 +305,25 @@ router.post('/:id/receive', auth, async (req, res) => {
          SET received_qty = received_qty + $1,
              received_qty_in_unit = COALESCE(received_qty_in_unit, 0) + $2
          WHERE id = $3`,
-        [recvBase, recvInUnit || 0, item.po_item_id]
+        [stockInBase, sourceQtyValue, item.po_item_id]
       );
 
-      if (product && !alreadyStocked) {
+      if (product) {
         const packSize = product.pack_size || current.pack_size_at_po || 1;
         const displayUnit = current.unit || product.base_unit || 'pcs';
         // Auto stock-in to inventory (qty_current di base unit + source snapshot)
         const { rows: [batch] } = await client.query(
           `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size)
            VALUES ($1,$2,$3,$4,$5,'purchase',$6,$7,$8,$9) RETURNING *`,
-          [product.id, item.batch_no || null, item.expired_date || null, recvBase, product.hna || 0, `PO-${req.params.id}`,
-           recvInUnit || recvBase, displayUnit, packSize]
+          [product.id, item.batch_no || null, item.expired_date || null, stockInBase, product.hna || 0, `PO-${req.params.id}`,
+           sourceQtyValue, displayUnit, packSize]
         );
         await client.query(
           `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by, qty_unit, qty_in_unit)
            VALUES ($1,$2,'in',$3,'purchase',$4,$5,$6,$7,$8)`,
-          [product.id, batch.id, recvBase, parseInt(req.params.id),
-           `Terima dari SP #${req.params.id}${displayUnit !== product.base_unit ? ` (${recvInUnit || recvBase} ${displayUnit})` : ''}`,
-           req.user?.id || null, displayUnit, recvInUnit || recvBase]
+          [product.id, batch.id, stockInBase, parseInt(req.params.id),
+           `Terima dari SP #${req.params.id}${displayUnit !== product.base_unit ? ` (${sourceQtyValue} ${displayUnit})` : ''}`,
+           req.user?.id || null, displayUnit, sourceQtyValue]
         );
       }
     }
@@ -327,7 +335,7 @@ router.post('/:id/receive', auth, async (req, res) => {
     const newStatus = allReceived ? 'received' : (anyReceived ? 'partial' : 'sent');
     await client.query(
       `UPDATE purchase_orders SET status = $1,
-         stock_received = CASE WHEN $3 THEN TRUE ELSE stock_received END,
+         stock_received = $3,
          updated_at = NOW() WHERE id = $2`,
       [newStatus, req.params.id, newStatus === 'received']
     );
