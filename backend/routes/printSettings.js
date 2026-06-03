@@ -22,7 +22,7 @@ const ensureSchema = async () => {
     ON CONFLICT (setting_key) DO NOTHING
   `);
 };
-ensureSchema().catch(console.error);
+
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
@@ -96,3 +96,4 @@ router.post('/bulk', auth, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.ensureSchema = ensureSchema;

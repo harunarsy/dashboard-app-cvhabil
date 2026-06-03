@@ -99,7 +99,7 @@ const ensureSchema = async () => {
     `);
   }
 };
-ensureSchema().catch(console.error);
+
 
 // Helper: log audit
 const logAudit = async (invoiceId, invoiceNumber, action, snapshot, note = '') => {
@@ -957,3 +957,4 @@ router.delete('/:id/permanent', auth, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.ensureSchema = ensureSchema;

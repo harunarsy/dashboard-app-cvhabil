@@ -79,7 +79,7 @@ const ensureSchema = async () => {
     `);
   }
 };
-ensureSchema().catch(e => console.error('purchase_orders ensureSchema:', e));
+
 
 // ─── Helper: generate PO number ─────────────────────────────────────────────
 const generatePONumber = async (client) => {
@@ -423,3 +423,4 @@ router.post('/:id/receive', auth, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.ensureSchema = ensureSchema;

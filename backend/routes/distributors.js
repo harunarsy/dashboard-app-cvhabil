@@ -31,8 +31,6 @@ const ensureTable = async () => {
     ON CONFLICT (name) DO NOTHING;
   `);
 };
-ensureTable().catch(console.error);
-
 // GET all distributors (with limit)
 router.get('/', auth, async (req, res) => {
   try {
@@ -117,3 +115,4 @@ router.patch('/', auth, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.ensureSchema = ensureTable;

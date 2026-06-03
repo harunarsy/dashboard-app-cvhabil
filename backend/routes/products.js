@@ -12,8 +12,6 @@ const ensureTable = async () => {
     )
   `);
 };
-ensureTable().catch(console.error);
-
 // GET all products (catalog + from invoice_items), with limit + q search
 router.get('/', auth, async (req, res) => {
   try {
@@ -82,3 +80,4 @@ router.patch('/', auth, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.ensureSchema = ensureTable;

@@ -33,9 +33,36 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.18.2-stable",
+    date: "4 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "changed",
+        text: "Schema bootstrap: 11 route modules now export ensureSchema, auto-calls removed",
+        dev: "",
+      },
+      {
+        type: "changed",
+        text: "Central bootstrap.js — awaited sequential schema init before server.listen",
+        dev: "",
+      },
+      {
+        type: "changed",
+        text: "app.js is now DB-free during import (safe for test/CI)",
+        dev: "",
+      },
+      {
+        type: "changed",
+        text: "Server startup awaits bootstrap; non-prod exits on failure, prod degraded",
+        dev: "",
+      },
+    ],
+  },
+  {
     version: "v1.18.1-stable",
     date: "3 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fixed",
@@ -2433,7 +2460,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.18.1-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.18.2-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

@@ -3,28 +3,26 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 
-// Auto-create bugs table
-pool.query(`
-  CREATE TABLE IF NOT EXISTS bug_reports (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    steps TEXT,
-    contact VARCHAR(255),
-    user_agent TEXT,
-    reported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(50) DEFAULT 'open',
-    type VARCHAR(20) DEFAULT 'bug'
-  )
-`).then(() =>
+const ensureSchema = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bug_reports (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      steps TEXT,
+      contact VARCHAR(255),
+      user_agent TEXT,
+      reported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      status VARCHAR(50) DEFAULT 'open',
+      type VARCHAR(20) DEFAULT 'bug'
+    )
+  `);
   // Sync sequence to MAX(id) to prevent duplicate key after data migration
-  pool.query(`SELECT setval('bug_reports_id_seq', COALESCE((SELECT MAX(id) FROM bug_reports), 0) + 1, false)`)
-).catch(console.error);
-
-// Add type column if not exists (for existing DBs)
-pool.query(`ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'bug'`).catch((err) => {
-  console.error('[bugs] add type column failed:', err);
-});
+  await pool.query(`SELECT setval('bug_reports_id_seq', COALESCE((SELECT MAX(id) FROM bug_reports), 0) + 1, false)`);
+  // Add type column if not exists (for existing DBs)
+  try { await pool.query(`ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'bug'`); }
+  catch { /* column may already exist */ }
+};
 
 // POST — submit bug report (no auth required, user bisa submit)
 router.post('/', async (req, res) => {
@@ -68,3 +66,4 @@ router.patch('/:id', auth, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.ensureSchema = ensureSchema;
