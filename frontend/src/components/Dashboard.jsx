@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.18.3-stable",
+    date: "4 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Nomor Surat Pesanan otomatis sekarang reset tiap bulan — tidak lagi stuck di angka bulan lalu.",
+        dev: "generatePONumber: REPLACE prefix per-month, monthly reset via last_yymm",
+      },
+    ],
+  },
+  {
     version: "v1.18.1-stable",
     date: "3 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fixed",
@@ -2433,7 +2445,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.18.1-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.18.3-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

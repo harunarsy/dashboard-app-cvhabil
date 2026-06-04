@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.18.3-stable] - 2026-06-04
+
+### Fixed
+- SP auto-number now resets monthly instead of sticking on previous month
+- REPLACE month prefix instead of REGEXP_REPLACE all-digits
+- NULLIF('') guard prevents CAST empty string crash
+- Sets last_yymm for future monthly reset detection
+
 ## [v1.18.1-stable] - 2026-06-03
 
 ### Fixed

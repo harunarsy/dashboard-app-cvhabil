@@ -83,25 +83,55 @@ ensureSchema().catch(e => console.error('purchase_orders ensureSchema:', e));
 
 // ─── Helper: generate PO number ─────────────────────────────────────────────
 const generatePONumber = async (client) => {
-  // Sync counter to actual MAX so deleted SPs don't cause gaps in auto-numbering
-  await client.query(`
-    UPDATE document_counters
-    SET last_number = GREATEST(last_number,
-      COALESCE((
-        SELECT MAX(CAST(REGEXP_REPLACE(po_number, '[^0-9]', '', 'g') AS INT))
-        FROM purchase_orders WHERE is_deleted = FALSE
-      ), 0))
-    WHERE doc_type = 'SP'
-  `);
-  const { rows } = await client.query(
-    "UPDATE document_counters SET last_number = last_number + 1 WHERE doc_type = 'SP' RETURNING prefix, last_number"
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const currentYymm = `${yy}${mm}`;
+  const monthPrefix = `HSB-SP-${currentYymm}`;
+
+  // Sync counter ke MAX SP bulan ini SAJA (pakai REPLACE prefix, bukan REGEXP global)
+  await client.query(
+    `UPDATE document_counters
+     SET last_number = COALESCE((
+       SELECT MAX(CAST(NULLIF(REPLACE(po_number, $1, ''), '') AS INTEGER))
+       FROM purchase_orders
+       WHERE is_deleted = FALSE AND po_number LIKE $2
+     ), 0)
+     WHERE doc_type = 'SP'`,
+    [monthPrefix, `${monthPrefix}%`]
   );
-  if (!rows.length) {
-    const now = new Date();
-    const prefix = `SP${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
-    return `${prefix}0001`;
+
+  const { rows: [counter] } = await client.query(
+    `SELECT last_number, last_yymm FROM document_counters WHERE doc_type = 'SP'`
+  );
+  if (!counter) {
+    await client.query(
+      `INSERT INTO document_counters (doc_type, prefix, last_number, last_yymm, is_active)
+       VALUES ('SP', 'HSB-SP-', 1, $1, TRUE)
+       ON CONFLICT (doc_type) DO UPDATE SET last_number = 1, last_yymm = EXCLUDED.last_yymm`,
+      [currentYymm]
+    );
+    return `${monthPrefix}001`;
   }
-  return `${rows[0].prefix}${rows[0].last_number.toString().padStart(4, '0')}`;
+
+  let nextNumber;
+  if (counter.last_yymm && counter.last_yymm !== currentYymm) {
+    // Bulan baru → reset ke 1
+    nextNumber = 1;
+    await client.query(
+      `UPDATE document_counters SET last_number = $1, last_yymm = $2 WHERE doc_type = 'SP'`,
+      [nextNumber, currentYymm]
+    );
+  } else {
+    // Bulan sama (atau last_yymm NULL row legacy) → increment + set last_yymm
+    const { rows: [updated] } = await client.query(
+      `UPDATE document_counters SET last_number = last_number + 1, last_yymm = $1
+       WHERE doc_type = 'SP' RETURNING last_number`,
+      [currentYymm]
+    );
+    nextNumber = updated.last_number;
+  }
+  return `${monthPrefix}${String(nextNumber).padStart(3, '0')}`;
 };
 
 const toNumber = (value) => {
