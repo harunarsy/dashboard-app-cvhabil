@@ -139,7 +139,7 @@ export default function PurchaseOrderList({
       .map((o) => parseInt(o.po_number.slice(monthPrefix.length), 10))
       .filter((n) => Number.isFinite(n));
     const next = (seqs.length ? Math.max(...seqs) : 0) + 1;
-    return String(next).padStart(3, "0");
+    return yymm + String(next).padStart(3, "0");
   }, [orders]);
   const [form, setForm] = useState({
     po_number: "",

@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.18.5-stable] - 2026-06-04
+
+### Fixed
+- SP preview number now includes YYMM prefix (fixes v1.18.4 regression)
+
 ## [v1.18.4-stable] - 2026-06-04
 
 ### Fixed
