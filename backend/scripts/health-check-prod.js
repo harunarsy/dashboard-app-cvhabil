@@ -36,8 +36,10 @@ try {
 require('dotenv').config({ path: path.join(__dirname, '../', envFile) });
 const { Pool } = require('pg');
 
+// Strip sslmode dari connstring (SSL via objek ssl) → hindari pg v9 deprecation warning. Perilaku TLS sama.
+const stripSslmode = (raw) => { try { const u = new URL(raw); u.searchParams.delete('sslmode'); return u.toString(); } catch { return raw; } };
 const config = process.env.DATABASE_URL
-  ? { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
+  ? { connectionString: stripSslmode(process.env.DATABASE_URL), ssl: { rejectUnauthorized: false } }
   : {
       user: process.env.DB_USER || 'dashboard_user',
       password: process.env.DB_PASSWORD || 'test_password_123',

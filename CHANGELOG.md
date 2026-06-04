@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.18.7-stable] - 2026-06-04
+
+### Changed
+- DB connection: strip sslmode from connstring, SSL controlled via ssl object (silences pg v9 deprecation warning, TLS behavior unchanged)
+
 ## [v1.18.6-stable] - 2026-06-04
 
 ### Fixed

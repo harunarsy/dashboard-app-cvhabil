@@ -1,8 +1,21 @@
 const { Pool } = require('pg');
 
 
-const poolConfig = process.env.DATABASE_URL 
-  ? { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
+// SSL dikontrol via objek `ssl` di bawah (rejectUnauthorized:false untuk Neon).
+// sslmode di-strip dari connection string agar pg-connection-string tidak emit deprecation
+// warning (pg v9 akan ubah arti 'require'→'verify-full'). Perilaku TLS efektif tetap sama.
+const stripSslmode = (raw) => {
+  try {
+    const u = new URL(raw);
+    u.searchParams.delete('sslmode');
+    return u.toString();
+  } catch {
+    return raw;
+  }
+};
+
+const poolConfig = process.env.DATABASE_URL
+  ? { connectionString: stripSslmode(process.env.DATABASE_URL), ssl: { rejectUnauthorized: false } }
   : {
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
