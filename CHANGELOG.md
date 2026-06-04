@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.19.1-stable] - 2026-06-05
+
+### Fixed
+- Kotak petunjuk SP di form Faktur sekarang memakai border color-mix yang valid, jadi garis tepinya tampil tipis seperti yang diharapkan
+- Komentar placeholder nudge SP diselaraskan ke versi rilis terbaru
+
 ## [v1.19.0-stable] - 2026-06-04
 
 ### Changed

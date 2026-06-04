@@ -33,14 +33,14 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.19.0-stable",
+    version: "v1.19.1-stable",
     date: "4 Juni 2026",
     status: "latest",
     changes: [
       {
         type: "change",
-        text: "Faktur baru: SP yang cocok tampil otomatis di urutan atas + hint sambungkan biar stok tidak dobel",
-        dev: "sort matching SPs by distributor+product overlap, inline nudge with Sambungkan button",
+        text: "Rapikan tampilan kotak petunjuk SP di form Faktur",
+        dev: "InvoiceList hint box border now uses valid color-mix() border and keeps matching SP nudge inline",
       },
     ],
   },
@@ -2522,7 +2522,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.19.0-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.19.1-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

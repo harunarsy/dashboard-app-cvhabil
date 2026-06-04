@@ -3966,7 +3966,7 @@ function InvoiceModal({
       else n.add(id);
       return n;
     });
-  // v1.x.x: compute matching SPs for nudge — sort matching to top + inline hint
+  // v1.19.0: compute matching SPs for nudge — sort matching to top + inline hint
   const invItemNames = items
     ? items.filter((i) => i.product_name?.trim()).map((i) => i.product_name.trim().toLowerCase())
     : [];
@@ -4120,7 +4120,7 @@ function InvoiceModal({
                     padding: "8px 10px",
                     borderRadius: "8px",
                     background: "var(--color-primary-soft)",
-                    border: "1px solid var(--color-primary)30",
+                    border: "1px solid color-mix(in srgb, var(--color-primary) 30%, transparent)",
                     fontSize: "11px",
                     color: "var(--color-primary)",
                     display: "flex",
