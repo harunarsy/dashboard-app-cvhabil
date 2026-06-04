@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.18.8-stable",
+    version: "v1.19.0-stable",
     date: "4 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "change",
+        text: "Faktur baru: SP yang cocok tampil otomatis di urutan atas + hint sambungkan biar stok tidak dobel",
+        dev: "sort matching SPs by distributor+product overlap, inline nudge with Sambungkan button",
+      },
+    ],
+  },
+  {
+    version: "v1.18.8-stable",
+    date: "4 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "polish",
@@ -2510,7 +2522,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.18.8-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.19.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

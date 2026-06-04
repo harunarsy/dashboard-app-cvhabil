@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.19.0-stable] - 2026-06-04
+
+### Changed
+- Invoice SP dropdown sorts matching SPs (same distributor + product overlap) to top
+- Added inline hint with "Sambungkan" button when matching SP found but not linked
+- Hint is non-blocking, disappears once SP is linked
+
 ## [v1.18.8-stable] - 2026-06-04
 
 ### Changed

@@ -3966,6 +3966,27 @@ function InvoiceModal({
       else n.add(id);
       return n;
     });
+  // v1.x.x: compute matching SPs for nudge — sort matching to top + inline hint
+  const invItemNames = items
+    ? items.filter((i) => i.product_name?.trim()).map((i) => i.product_name.trim().toLowerCase())
+    : [];
+  const matchingSPs =
+    form.distributor_name && invItemNames.length > 0
+      ? (purchaseOrders || []).filter((po) => {
+          if (!po.distributor_name || !po.items) return false;
+          if (po.distributor_name.trim().toLowerCase() !== form.distributor_name.trim().toLowerCase()) return false;
+          const poNames = po.items
+            .filter((pi) => pi.product_name?.trim())
+            .map((pi) => pi.product_name.trim().toLowerCase());
+          return poNames.some((pn) => invItemNames.includes(pn));
+        })
+      : [];
+  const matchingIds = new Set(matchingSPs.map((po) => po.id));
+  const sortedPOs = [...(purchaseOrders || [])].sort((a, b) => {
+    const aMatch = matchingIds.has(a.id) ? 1 : 0;
+    const bMatch = matchingIds.has(b.id) ? 1 : 0;
+    return bMatch - aMatch;
+  });
 
   return (
     <div
@@ -4061,7 +4082,7 @@ function InvoiceModal({
                 }
               >
                 <option value="">— Tanpa SP / beli langsung —</option>
-                {(purchaseOrders || []).map((po) => (
+                {sortedPOs.map((po) => (
                   <option key={po.id} value={po.id}>
                     {po.po_number} · {po.distributor_name}
                     {po.stock_received ? " (stok sudah diterima)" : ""}
@@ -4091,6 +4112,44 @@ function InvoiceModal({
                 >
                   Jika faktur terhubung ke SP, stok hanya menambah sisa qty SP yang belum diterima.
                 </p>
+              ) : null}
+              {!form.purchase_order_id && matchingSPs.length > 0 ? (
+                <div
+                  style={{
+                    marginTop: "8px",
+                    padding: "8px 10px",
+                    borderRadius: "8px",
+                    background: "var(--color-primary-soft)",
+                    border: "1px solid var(--color-primary)30",
+                    fontSize: "11px",
+                    color: "var(--color-primary)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "8px",
+                  }}
+                >
+                  <span>
+                    Ada SP cocok dari {matchingSPs[0].distributor_name}: {matchingSPs[0].po_number}. Sambungkan biar stok tidak dobel.
+                  </span>
+                  <button
+                    onClick={() => onSelectSP(matchingSPs[0].id)}
+                    style={{
+                      background: "var(--color-primary)",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: "4px 10px",
+                      fontSize: "10px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
+                  >
+                    Sambungkan
+                  </button>
+                </div>
               ) : null}
             </div>
             <div style={r2}>
