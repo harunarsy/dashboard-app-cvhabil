@@ -46,7 +46,7 @@ const ensureSchema = async () => {
     CREATE INDEX IF NOT EXISTS idx_ledger_account ON ledger_entries(account_name);
   `);
 };
-ensureSchema().catch(e => console.error('ledger ensureSchema:', e));
+if (process.env.NODE_ENV !== 'test') ensureSchema().catch(e => console.error('ledger ensureSchema:', e));
 
 // All ledger routes are Direktur-only
 router.use(auth, roleGuard('direktur'));

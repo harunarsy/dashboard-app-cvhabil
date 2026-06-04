@@ -4,6 +4,8 @@
  *
  * Run: node scripts/test-route-http.js
  */
+// Force test mode so route modules skip import-time schema init (no prod DB writes during smoke test)
+process.env.NODE_ENV = 'test';
 require('dotenv').config();
 const supertest = require('supertest');
 const assert = require('assert');

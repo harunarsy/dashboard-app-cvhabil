@@ -23,7 +23,7 @@ const ensureTable = async () => {
     SELECT setval('customers_id_seq', COALESCE((SELECT MAX(id) FROM customers), 0) + 1, false)
   `);
 };
-ensureTable().catch(e => console.error('customers ensureTable:', e));
+if (process.env.NODE_ENV !== 'test') ensureTable().catch(e => console.error('customers ensureTable:', e));
 
 // GET all (with aggregate sales metadata + limit + q search)
 router.get('/', auth, async (req, res) => {

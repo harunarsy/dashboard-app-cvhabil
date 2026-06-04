@@ -79,7 +79,7 @@ const ensureSchema = async () => {
     `);
   }
 };
-ensureSchema().catch(e => console.error('purchase_orders ensureSchema:', e));
+if (process.env.NODE_ENV !== 'test') ensureSchema().catch(e => console.error('purchase_orders ensureSchema:', e));
 
 // ─── Helper: generate PO number ─────────────────────────────────────────────
 const generatePONumber = async (client) => {

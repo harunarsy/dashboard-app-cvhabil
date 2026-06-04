@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.18.8-stable] - 2026-06-04
+
+### Changed
+- Schema init in route modules guarded by NODE_ENV!=='test' (13 routes); test-route-http.js runs in test mode → smoke test no longer writes schema to prod DB on import. Prod behavior unchanged.
+
 ## [v1.18.7-stable] - 2026-06-04
 
 ### Changed

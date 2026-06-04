@@ -99,7 +99,7 @@ const ensureSchema = async () => {
     `);
   }
 };
-ensureSchema().catch(console.error);
+if (process.env.NODE_ENV !== 'test') ensureSchema().catch(console.error);
 
 // Helper: log audit
 const logAudit = async (invoiceId, invoiceNumber, action, snapshot, note = '') => {

@@ -63,7 +63,7 @@ const ensureTable = async () => {
     console.log('[Auth] Seeded default users: direktur / admin');
   }
 };
-ensureTable().catch(e => console.error('app_users ensureTable:', e));
+if (process.env.NODE_ENV !== 'test') ensureTable().catch(e => console.error('app_users ensureTable:', e));
 
 // ─── Login ──────────────────────────────────────────────────────────────────
 router.post('/login', async (req, res) => {

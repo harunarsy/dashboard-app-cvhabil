@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.18.7-stable",
+    version: "v1.18.8-stable",
     date: "4 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "polish",
+        text: "Penguatan internal: pengujian otomatis tidak lagi menyentuh data produksi",
+        dev: "schema init guarded by NODE_ENV!=='test' (13 routes); test-route-http runs hermetic",
+      },
+    ],
+  },
+  {
+    version: "v1.18.7-stable",
+    date: "4 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2498,7 +2510,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.18.7-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.18.8-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

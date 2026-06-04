@@ -35,7 +35,7 @@ const ensureSchema = async () => {
     CREATE INDEX IF NOT EXISTS idx_oss_batch ON online_store_sales(batch_import_id);
   `);
 };
-ensureSchema().catch(e => console.error('online_store ensureSchema:', e));
+if (process.env.NODE_ENV !== 'test') ensureSchema().catch(e => console.error('online_store ensureSchema:', e));
 
 // ══════════════════════════════════════════════════════════════════════════════
 // CSV IMPORT

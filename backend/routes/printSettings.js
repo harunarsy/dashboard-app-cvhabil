@@ -22,7 +22,7 @@ const ensureSchema = async () => {
     ON CONFLICT (setting_key) DO NOTHING
   `);
 };
-ensureSchema().catch(console.error);
+if (process.env.NODE_ENV !== 'test') ensureSchema().catch(console.error);
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 

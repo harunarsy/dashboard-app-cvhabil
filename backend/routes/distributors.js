@@ -31,7 +31,7 @@ const ensureTable = async () => {
     ON CONFLICT (name) DO NOTHING;
   `);
 };
-ensureTable().catch(console.error);
+if (process.env.NODE_ENV !== 'test') ensureTable().catch(console.error);
 
 // GET all distributors (with limit)
 router.get('/', auth, async (req, res) => {

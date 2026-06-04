@@ -4,6 +4,7 @@ const pool = require('../config/database');
 const auth = require('../middleware/auth');
 
 // Auto-create bugs table
+if (process.env.NODE_ENV !== 'test') {
 pool.query(`
   CREATE TABLE IF NOT EXISTS bug_reports (
     id SERIAL PRIMARY KEY,
@@ -25,6 +26,7 @@ pool.query(`
 pool.query(`ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'bug'`).catch((err) => {
   console.error('[bugs] add type column failed:', err);
 });
+}
 
 // POST — submit bug report (no auth required, user bisa submit)
 router.post('/', async (req, res) => {

@@ -27,7 +27,7 @@ const ensureSchema = async () => {
     [JSON.stringify(DEFAULT_PROFIT_THRESHOLDS)]
   );
 };
-ensureSchema().catch(console.error);
+if (process.env.NODE_ENV !== 'test') ensureSchema().catch(console.error);
 
 router.use(auth);
 

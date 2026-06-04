@@ -108,7 +108,7 @@ const ensureSchema = async () => {
   await pool.query(`SELECT setval('inventory_mutations_id_seq', COALESCE((SELECT MAX(id) FROM inventory_mutations), 0) + 1, false)`);
   await pool.query(`SELECT setval('stock_opname_id_seq', COALESCE((SELECT MAX(id) FROM stock_opname), 0) + 1, false)`);
 };
-ensureSchema().catch(e => console.error('inventory ensureSchema:', e));
+if (process.env.NODE_ENV !== 'test') ensureSchema().catch(e => console.error('inventory ensureSchema:', e));
 
 // ══════════════════════════════════════════════════════════════════════════════
 // PRODUCT MASTER
