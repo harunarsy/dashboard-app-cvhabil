@@ -45,6 +45,18 @@ const RELEASES = [
     ],
   },
   {
+    version: "v1.19.0-stable",
+    date: "4 Juni 2026",
+    status: "stable",
+    changes: [
+      {
+        type: "change",
+        text: "Faktur baru: SP yang cocok tampil otomatis di urutan atas + hint sambungkan biar stok tidak dobel",
+        dev: "sort matching SPs by distributor+product overlap, inline nudge with Sambungkan button",
+      },
+    ],
+  },
+  {
     version: "v1.18.8-stable",
     date: "4 Juni 2026",
     status: "stable",
