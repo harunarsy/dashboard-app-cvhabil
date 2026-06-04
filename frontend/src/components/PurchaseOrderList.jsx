@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Plus, Trash2, X, CheckCircle, FileText } from "lucide-react";
 import {
@@ -126,6 +126,21 @@ export default function PurchaseOrderList({
   const [manualNumber, setManualNumber] = useState("");
   const [spCounter, setSpCounter] = useState({ prefix: "SP", last_number: 0 });
   const numberInputRef = useRef(null);
+
+  // Compute preview SP number matching backend generatePONumber (per-month, 3-digit)
+  const autoSPNumber = useMemo(() => {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const yymm = yy + mm;
+    const monthPrefix = "HSB-SP-" + yymm;
+    const seqs = (orders || [])
+      .filter((o) => !o.is_deleted && typeof o.po_number === "string" && o.po_number.startsWith(monthPrefix))
+      .map((o) => parseInt(o.po_number.slice(monthPrefix.length), 10))
+      .filter((n) => Number.isFinite(n));
+    const next = (seqs.length ? Math.max(...seqs) : 0) + 1;
+    return String(next).padStart(3, "0");
+  }, [orders]);
   const [form, setForm] = useState({
     po_number: "",
     distributor_name: "",
@@ -1187,10 +1202,7 @@ export default function PurchaseOrderList({
                           ref={numberInputRef}
                           value={
                             isAutoSP
-                              ? String(spCounter.last_number + 1).padStart(
-                                  4,
-                                  "0",
-                                )
+                              ? autoSPNumber
                               : manualNumber
                           }
                           onChange={(e) =>
@@ -1216,12 +1228,7 @@ export default function PurchaseOrderList({
                             const newMode = !isAutoSP;
                             setIsAutoSP(newMode);
                             if (!newMode) {
-                              setManualNumber(
-                                String(spCounter.last_number + 1).padStart(
-                                  4,
-                                  "0",
-                                ),
-                              );
+                              setManualNumber(autoSPNumber);
                               setTimeout(() => {
                                 if (numberInputRef.current) {
                                   numberInputRef.current.focus();
@@ -1604,7 +1611,7 @@ export default function PurchaseOrderList({
                         ...form,
                         po_number: editId
                           ? form.po_number
-                          : `${spCounter.prefix || ""}${isAutoSP ? String(spCounter.last_number + 1).padStart(4, "0") : manualNumber}`,
+                          : `${spCounter.prefix || ""}${isAutoSP ? autoSPNumber : manualNumber}`,
                       }}
                       items={items}
                       settings={layoutSettings || {}}

@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.18.3-stable",
+    version: "v1.18.4-stable",
     date: "4 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Preview nomor SP otomatis sekarang sesuai dengan nomor yang tersimpan",
+        dev: "autoSPNumber useMemo computes per-month seq from orders state, 3-digit format",
+      },
+    ],
+  },
+  {
+    version: "v1.18.3-stable",
+    date: "4 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2445,7 +2457,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.18.3-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.18.4-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

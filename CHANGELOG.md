@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.18.4-stable] - 2026-06-04
+
+### Fixed
+- SP preview number now matches backend generator: per-month, 3-digit format
+- PurchaseOrderList autoSPNumber helper replaces spCounter.last_number + 1
+
 ## [v1.18.3-stable] - 2026-06-04
 
 ### Fixed
