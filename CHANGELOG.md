@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.18.6-stable] - 2026-06-04
+
+### Fixed
+- Health check PO status: accept legitimate draft/sent before receive (no more false FAIL on new SP)
+- Health check 8b HPP: COD-aware — compare vs effective HNA after COD discount (clears 16 false positives)
+- RELEASES v1.18.1 entries rewritten in operator-friendly language (changelog convention)
+
 ## [v1.18.5-stable] - 2026-06-04
 
 ### Fixed

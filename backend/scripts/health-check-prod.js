@@ -133,18 +133,22 @@ async function check4(client) {
 
   const mismatches = [];
   for (const r of rows) {
-    let expectedStatus, expectedStockReceived;
+    let expectedStatus, expectedStockReceived, validStatuses;
     if (r.fully_received >= r.total_items) {
       expectedStatus = 'received';
       expectedStockReceived = true;
+      validStatuses = ['received'];
     } else if (r.received_items > 0) {
       expectedStatus = 'partial';
       expectedStockReceived = false;
+      validStatuses = ['partial'];
     } else {
-      expectedStatus = 'sent';
+      // received=0 → 'draft' (belum dikirim) atau 'sent' (dikirim, belum diterima) dua-duanya valid
+      expectedStatus = 'draft/sent';
       expectedStockReceived = false;
+      validStatuses = ['draft', 'sent'];
     }
-    if (r.status !== expectedStatus || r.stock_received !== expectedStockReceived) {
+    if (!validStatuses.includes(r.status) || r.stock_received !== expectedStockReceived) {
       mismatches.push(`id=${r.id} status=${r.status}→${expectedStatus} stock_received=${r.stock_received}→${expectedStockReceived} (items=${r.total_items} received=${r.received_items} fully=${r.fully_received})`);
     }
   }
@@ -245,12 +249,14 @@ async function check8a(client) {
 
 /** 8b. Invoice items hpp_inc_ppn deviates from hna_per_item * 1.11 (tolerance 1 rupiah) */
 async function check8b(client) {
-  const label = 'Invoice items hpp_inc_ppn vs hna_per_item*1.11 mismatch (>1 rp)';
+  const label = 'Invoice items hpp_inc_ppn vs effective HNA*1.11 mismatch (>1 rp, COD-aware)';
+  // Effective HNA = hna_after_cod/qty bila ada diskon COD, else hna_per_item. (Diskon COD bikin HPP sah lebih rendah dari hna_per_item*1.11.)
   const { rows } = await client.query(`
     SELECT ii.id, ii.invoice_id, ii.product_name, ii.quantity,
       ii.hpp_inc_ppn, ii.hna_per_item,
       ROUND(ii.hpp_inc_ppn::numeric, 2) AS hpp_rounded,
-      ROUND(ii.hna_per_item * 1.11, 2) AS expected_hpp
+      ROUND((CASE WHEN COALESCE(ii.disc_cod_per_item, 0) > 0 AND ii.hna_after_cod IS NOT NULL AND ii.quantity > 0
+                  THEN ii.hna_after_cod / ii.quantity ELSE ii.hna_per_item END) * 1.11, 2) AS expected_hpp
     FROM invoice_items ii
     JOIN invoices i ON i.id = ii.invoice_id
       AND i.deleted_at IS NULL
@@ -258,7 +264,8 @@ async function check8b(client) {
     WHERE ii.quantity > 0
       AND ii.hpp_inc_ppn IS NOT NULL
       AND ii.hna_per_item > 0
-      AND ABS(ii.hpp_inc_ppn - ii.hna_per_item * 1.11) > 1.0
+      AND ABS(ii.hpp_inc_ppn - (CASE WHEN COALESCE(ii.disc_cod_per_item, 0) > 0 AND ii.hna_after_cod IS NOT NULL AND ii.quantity > 0
+                  THEN ii.hna_after_cod / ii.quantity ELSE ii.hna_per_item END) * 1.11) > 1.0
     ORDER BY ii.id
   `);
   if (rows.length === 0) {

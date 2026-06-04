@@ -33,9 +33,26 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.18.5-stable",
+    version: "v1.18.6-stable",
     date: "4 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Pemeriksaan kesehatan data lebih akurat — tidak lagi salah alarm untuk Surat Pesanan draft & produk berdiskon COD",
+        dev: "health check4 allow draft/sent pre-receive; check8b COD-aware (effective HNA after COD)",
+      },
+      {
+        type: "polish",
+        text: "Catatan rilis versi sebelumnya dibuat lebih ramah dibaca operator",
+        dev: "RELEASES v1.18.1 entries: text→operator language, jargon moved to dev field",
+      },
+    ],
+  },
+  {
+    version: "v1.18.5-stable",
+    date: "4 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -75,23 +92,23 @@ const RELEASES = [
     changes: [
       {
         type: "fixed",
-        text: "Health check HPP false positive: removed incorrect division by qty, check8 is now REPORT only",
-        dev: "",
+        text: "Pemeriksaan kesehatan data HPP diperbaiki agar tidak salah memberi peringatan",
+        dev: "check8 HPP: removed incorrect division by qty, REPORT-only",
       },
       {
         type: "fixed",
-        text: "Null batch duplicates: repair script with --dry-run/--apply",
-        dev: "",
+        text: "Perbaikan data batch kosong yang terduplikasi",
+        dev: "repair-v1181-null-batches.js with --dry-run/--apply",
       },
       {
         type: "fixed",
-        text: "Distributor API validation: trims name, requires non-empty, rejects short_code-only",
-        dev: "",
+        text: "Tambah distributor lebih aman — nama wajib diisi, data salesman ikut tersimpan",
+        dev: "distributorsAPI.add: trim + reject empty, preserve metadata via spread",
       },
       {
         type: "fixed",
-        text: "HTTP route test: assertions now validate exact 401 + error body, reject 500 as pass",
-        dev: "",
+        text: "Penguatan pengujian internal rute API",
+        dev: "HTTP route test: assert exact 401 + error body, reject 500",
       },
     ],
   },
@@ -2469,7 +2486,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.18.5-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.18.6-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
