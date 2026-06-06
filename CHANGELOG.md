@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.19.3-stable] - 2026-06-06
+
+### Changed
+- Pilot theme Customers: header, search toolbar, customer cards, modal shell, dan action buttons dibuat lebih konsisten dengan gaya premium operational console
+- Touch target tombol aksi customer diperbesar agar lebih nyaman di tablet/mobile
+
 ## [v1.19.2-stable] - 2026-06-06
 
 ### Added

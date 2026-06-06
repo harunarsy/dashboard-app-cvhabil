@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.19.2-stable",
+    version: "v1.19.3-stable",
     date: "6 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "change",
+        text: "Pilot tampilan Customer dibuat lebih rapi: toolbar, kartu, modal, dan tombol aksi lebih konsisten di desktop dan mobile",
+        dev: "CustomerList pilot only; no backend/schema/PDF/business logic touched",
+      },
+    ],
+  },
+  {
+    version: "v1.19.2-stable",
+    date: "6 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "change",
@@ -2546,7 +2558,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.19.2-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.19.3-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

@@ -60,15 +60,11 @@ export default function CustomerList({
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const bg = isDarkMode ? "#000" : "var(--color-bg)";
-  const cardBg = isDarkMode ? "var(--color-surface-elevated)" : "#FFF";
-  const surface = isDarkMode
-    ? "var(--color-surface-raised)"
-    : "var(--color-bg)";
-  const border = isDarkMode
-    ? "var(--color-surface-raised)"
-    : "var(--color-border)";
-  const text = isDarkMode ? "#FFF" : "#000";
+  const bg = "var(--color-bg)";
+  const cardBg = "var(--color-surface)";
+  const surface = "var(--color-surface-elevated)";
+  const border = "var(--color-border)";
+  const text = "var(--color-text)";
   const sub = "var(--color-text-subtle)";
   useBodyScrollLock(showModal || !!deleteConfirmId);
 
@@ -241,13 +237,15 @@ export default function CustomerList({
 
       {/* Header */}
       <div
+        className="ui-surface-panel"
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "1.5rem",
+          marginBottom: "1rem",
           flexWrap: "wrap",
           gap: "12px",
+          padding: isMobile ? "16px" : "18px 20px",
         }}
       >
         <div>
@@ -271,7 +269,8 @@ export default function CustomerList({
         </div>
         <button
           onClick={openAdd}
-          className="ui-motion-button ui-focus-ring"
+          className="btn-primary ui-motion-button ui-focus-ring"
+          data-magnetic="true"
           style={{
             display: "flex",
             alignItems: "center",
@@ -281,10 +280,11 @@ export default function CustomerList({
             backgroundColor: "var(--color-primary)",
             color: "#FFF",
             border: "none",
-            borderRadius: "10px",
+            borderRadius: "12px",
             cursor: "pointer",
             fontWeight: "700",
             fontSize: "14px",
+            boxShadow: "var(--shadow-card)",
           }}
         >
           <Plus size={18} /> Tambah Customer
@@ -293,12 +293,14 @@ export default function CustomerList({
 
       {/* Search + Sort */}
       <div
+        className="ui-surface-panel"
         style={{
           display: "flex",
           gap: "8px",
           marginBottom: "1.5rem",
           flexWrap: "wrap",
           alignItems: "center",
+          padding: "12px",
         }}
       >
         <SearchBox
@@ -346,11 +348,10 @@ export default function CustomerList({
           [1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
-              className="ui-motion-card"
+              className="ui-surface-panel ui-motion-card"
               style={{
                 backgroundColor: cardBg,
                 border: `1px solid ${border}`,
-                borderRadius: "14px",
                 padding: "16px 18px",
               }}
             >
@@ -390,11 +391,10 @@ export default function CustomerList({
               return (
                 <div
                   key={c.id}
-                  className="ui-hover-delight"
+                  className="ui-surface-panel ui-hover-delight"
                   style={{
                     backgroundColor: cardBg,
                     border: `1px solid ${border}`,
-                    borderRadius: "14px",
                     padding: "16px 18px",
                     display: "flex",
                     flexDirection: "column",
@@ -668,7 +668,7 @@ export default function CustomerList({
           style={{
             position: "fixed",
             inset: 0,
-            backgroundColor: "rgba(0,0,0,0.6)",
+            backgroundColor: "rgba(15,23,42,0.58)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -678,14 +678,13 @@ export default function CustomerList({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="ui-motion-modal ui-modal-shell"
+            className="ui-motion-modal ui-modal-shell ui-surface-panel"
             style={{
               backgroundColor: cardBg,
-              borderRadius: "16px",
               width: "100%",
               maxWidth: "460px",
-              overflow: "hidden",
-              boxShadow: "0 32px 64px rgba(0,0,0,0.35)",
+              maxHeight: "calc(100dvh - 32px)",
+              overflow: "auto",
               border: `1px solid ${border}`,
             }}
           >
@@ -855,13 +854,16 @@ export default function CustomerList({
 }
 
 const iconBtnStyle = {
-  background: "none",
-  border: "none",
+  background: "var(--color-surface-elevated)",
+  border: "1px solid var(--color-border)",
   cursor: "pointer",
-  padding: "6px",
-  borderRadius: "6px",
+  padding: "8px",
+  minWidth: "40px",
+  minHeight: "40px",
+  borderRadius: "10px",
   display: "flex",
   alignItems: "center",
+  justifyContent: "center",
   transition: uiTransition("background", UI_MOTION.duration.fast),
 };
 

@@ -35,6 +35,10 @@ global.sessionStorage = {
   setItem: jest.fn(),
 };
 
+jest.mock("./dashboard/StockMovementChart", () => () => (
+  <div data-testid="stock-movement-chart" />
+));
+
 import { render, screen, waitFor, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import Dashboard from "./Dashboard";
