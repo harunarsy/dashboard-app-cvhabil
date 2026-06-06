@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.20.2-stable] - 2026-06-07
+
+### Changed
+- Sidebar sekarang lebih rapat dan operasional: active state lebih jelas, touch target footer tetap aman, dan drawer mobile tetap fixed tanpa backdrop-close.
+
 ## [v1.20.1-stable] - 2026-06-06
 
 ### Changed

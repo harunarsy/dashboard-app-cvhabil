@@ -189,7 +189,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.20.1-stable";
+  const appVersion = "v1.20.2-stable";
   const TooltipButton = ({
     label,
     children,
@@ -206,7 +206,7 @@ export default function Sidebar({
       <button
         {...buttonProps}
         aria-label={label}
-        className={`ui-motion-button ui-focus-ring ${className}`.trim()}
+        className={`ui-action-button ui-motion-button ui-focus-ring ${className}`.trim()}
         style={style}
       >
         {children}
@@ -292,17 +292,18 @@ export default function Sidebar({
         >
           <button
             onClick={() => setMobileOpen((o) => !o)}
+            className="ui-action-button ui-motion-button ui-focus-ring"
             style={{
               background: bg,
               border: `1px solid ${border}`,
-              borderRadius: "10px",
-              width: "40px",
-              height: "40px",
+              borderRadius: "12px",
+              width: "44px",
+              height: "44px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+              boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
             }}
             aria-label={mobileOpen ? "Tutup menu" : "Buka menu"}
             aria-expanded={mobileOpen}
@@ -339,7 +340,7 @@ export default function Sidebar({
         role={isMobile ? "dialog" : undefined}
         aria-modal={isMobile ? true : undefined}
         aria-label={isMobile ? "Navigasi" : undefined}
-        className={
+        className={`${
           isMobile
             ? [
                 "fixed left-0 top-0 z-[100] h-dvh",
@@ -350,8 +351,8 @@ export default function Sidebar({
                 mobileOpen ? "translate-x-0" : "-translate-x-full",
                 "flex flex-col",
               ].join(" ")
-            : ""
-        }
+            : "ui-panel"
+        }`}
         style={
           isMobile
             ? {
@@ -359,6 +360,8 @@ export default function Sidebar({
                   ? "var(--color-surface-elevated)"
                   : "var(--color-surface)",
                 borderRight: `1px solid ${border}`,
+                backdropFilter: "blur(18px)",
+                WebkitBackdropFilter: "blur(18px)",
               }
             : {
                 position: "fixed",
@@ -497,7 +500,7 @@ export default function Sidebar({
         <nav
           style={{
             flex: 1,
-            padding: isMobile ? "1rem 0.75rem" : "1rem",
+            padding: isMobile ? "0.9rem 0.75rem" : "0.85rem",
             overflowY: "auto",
           }}
           aria-label="Menu utama"
@@ -511,38 +514,49 @@ export default function Sidebar({
               <button
                 key={index}
                 onClick={() => handleNavigate(item.path, isActive)}
+                className="ui-action-button ui-motion-button ui-focus-ring"
                 style={{
                   width: "100%",
                   minHeight: "44px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: showLabel ? "flex-start" : "center",
-                  gap: "0.75rem",
-                  padding: showLabel ? "0.75rem 1rem" : "0.75rem 0",
-                  marginBottom: "0.5rem",
-                  borderRadius: "0.75rem",
-                  border: "none",
+                  gap: "0.7rem",
+                  padding: showLabel ? "0.78rem 0.95rem" : "0.78rem 0",
+                  marginBottom: "0.35rem",
+                  borderRadius: "0.9rem",
+                  border: `1px solid ${isCurrent ? (isDarkMode ? "rgba(10,132,255,0.25)" : "var(--color-primary-soft-strong)") : "transparent"}`,
                   cursor: isActive ? "pointer" : "not-allowed",
                   backgroundColor: isCurrent
-                    ? "var(--color-primary)"
+                    ? isDarkMode
+                      ? "rgba(10,132,255,0.16)"
+                      : "var(--color-primary-soft)"
                     : isActive
                       ? isDarkMode
                         ? "var(--color-surface-elevated)"
                         : "var(--color-bg)"
                       : "transparent",
                   color: isCurrent
-                    ? "#FFF"
+                    ? isDarkMode
+                      ? "#FFF"
+                      : "var(--color-primary-hover)"
                     : isActive
                       ? txt
                       : isDarkMode
                         ? "var(--color-border-strong)"
                         : "var(--color-border)",
                   opacity: isActive ? 1 : 0.5,
-                  fontSize: "0.875rem",
+                  fontSize: "0.86rem",
                   fontWeight: isCurrent ? "700" : "600",
                   textAlign: "left",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
+                  borderLeft: `3px solid ${isCurrent ? "var(--color-primary)" : "transparent"}`,
+                  boxShadow: isCurrent
+                    ? isDarkMode
+                      ? "inset 0 0 0 1px rgba(255,255,255,0.04)"
+                      : "inset 0 0 0 1px rgba(10,132,255,0.08)"
+                    : "none",
                 }}
               >
                 <Icon size={20} style={{ minWidth: "20px" }} />
@@ -585,7 +599,6 @@ export default function Sidebar({
           <TooltipButton
             data-onboarding="feedback"
             onClick={() => {
-              if (isMobile) closeMobileDrawer();
               setShowBugModal(true);
             }}
             label="Bug / Saran Fitur"
@@ -616,7 +629,6 @@ export default function Sidebar({
           <TooltipButton
             onClick={() => {
               setIsDarkMode(!isDarkMode);
-              if (isMobile) closeMobileDrawer();
             }}
             label={isDarkMode ? "Light Mode" : "Dark Mode"}
             className=""
@@ -651,7 +663,6 @@ export default function Sidebar({
 
           <TooltipButton
             onClick={() => {
-              if (isMobile) closeMobileDrawer();
               handleLogout();
             }}
             label="Logout"
@@ -684,6 +695,27 @@ export default function Sidebar({
               >
                 Sistem {appVersion}
               </div>
+            </div>
+          )}
+          {!isMobile && !isSidebarOpen && (
+            <div className="mt-3 flex justify-center">
+              <span
+                className="ui-density-compact"
+                style={{
+                  padding: "0.35rem 0.65rem",
+                  borderRadius: "999px",
+                  border: `1px solid ${border}`,
+                  color: sub,
+                  fontSize: "10px",
+                  fontWeight: "700",
+                  letterSpacing: "0.02em",
+                  backgroundColor: isDarkMode
+                    ? "var(--color-surface-elevated)"
+                    : "var(--color-bg)",
+                }}
+              >
+                {appVersion}
+              </span>
             </div>
           )}
         </div>

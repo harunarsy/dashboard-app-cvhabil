@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.20.2-stable",
+    date: "7 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "polish",
+        text: "Sidebar diubah jadi operational console yang lebih rapat, jelas, dan stabil di desktop maupun mobile.",
+        dev: "Sidebar.jsx menajamkan active state, touch target, footer console shell, dan behavior drawer tanpa mengubah menu items, role logic, route paths, auth/logout logic, atau bug report payload.",
+      },
+    ],
+  },
+  {
     version: "v1.20.1-stable",
     date: "6 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "polish",
@@ -2630,7 +2642,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.20.1-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.20.2-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
