@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.20.1-stable] - 2026-06-06
+
+### Changed
+- Login polish: panel, input, error state, dan tombol masuk diselaraskan dengan design foundation v1.20 tanpa mengubah auth flow
+
 ## [v1.20.0-stable] - 2026-06-06
 
 ### Added

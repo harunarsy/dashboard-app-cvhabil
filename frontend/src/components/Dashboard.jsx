@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.20.0-stable",
+    version: "v1.20.1-stable",
     date: "6 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "polish",
+        text: "Login dibuat lebih solid dan nyaman: panel, input, error, dan tombol masuk diselaraskan dengan design foundation v1.20",
+        dev: "Login.jsx visual polish only; auth flow, token storage, backend login, and Vanta behavior unchanged",
+      },
+    ],
+  },
+  {
+    version: "v1.20.0-stable",
+    date: "6 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "change",
@@ -2618,7 +2630,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.20.0-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.20.1-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

@@ -21,7 +21,7 @@ export default function Login({
     setError("");
 
     if (!username || !password) {
-      setError("Username and password are required");
+      setError("Username dan password wajib diisi.");
       return;
     }
 
@@ -33,7 +33,7 @@ export default function Login({
         result.error === "Network Error" ||
         result.error.includes("timeout")
       ) {
-        setError("Cannot connect to the server. Please check your connection.");
+        setError("Server belum bisa dihubungi. Cek koneksi lalu coba lagi.");
       } else {
         setError(result.error);
       }
@@ -73,7 +73,7 @@ export default function Login({
 
   return (
     <div
-      className="ui-motion-page min-h-screen flex flex-col justify-center items-center p-4 font-sans transition-colors duration-300"
+      className="ui-page ui-motion-page min-h-screen flex flex-col justify-center items-center px-4 py-6 sm:py-10 font-sans transition-colors duration-300"
       style={{ backgroundColor: isVantaMode ? "transparent" : bg, color: text }}
     >
       {/* Theme toggle (floating top-right) */}
@@ -94,10 +94,12 @@ export default function Login({
               isDarkMode ? "Aktifkan light mode" : "Aktifkan dark mode"
             }
             label={isDarkMode ? "Light mode" : "Dark mode"}
+            className="ui-action-button"
             style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "12px",
+              width: "44px",
+              height: "44px",
+              padding: 0,
+              borderRadius: "14px",
               background: card,
               border: `1px solid ${cardBorder}`,
               color: text,
@@ -118,26 +120,26 @@ export default function Login({
 
       <div className="w-full max-w-md">
         {/* Header section */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-7">
           <div
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl text-white shadow-lg mb-4"
+            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl text-white shadow-lg mb-4"
             style={{ backgroundColor: focusRing }}
           >
-            <Building2 size={32} />
+            <Building2 size={28} />
           </div>
           <h1
-            className="text-3xl font-bold tracking-tight"
+            className="text-3xl font-extrabold tracking-tight"
             style={{ color: text }}
           >
             HABIL SUPERAPP
           </h1>
-          <p className="mt-8 text-xs font-medium" style={{ color: sub }}>
-            HABIL SUPERAPP v1.20.0-stable — 2026
+          <p className="mt-3 text-xs font-semibold" style={{ color: sub }}>
+            HABIL SUPERAPP v1.20.1-stable — 2026
           </p>
         </div>
 
         <div
-          className="ui-motion-modal ui-modal-shell rounded-3xl p-8 transition-colors duration-300"
+          className="ui-panel ui-dialog-shell ui-motion-modal rounded-2xl p-6 sm:p-8 transition-colors duration-300"
           style={{
             backgroundColor: card,
             border: `1px solid ${cardBorder}`,
@@ -147,18 +149,21 @@ export default function Login({
           }}
         >
           <h2
-            className="text-xl font-semibold mb-6 text-center"
+            className="text-xl font-bold mb-2 text-center"
             style={{ color: text }}
           >
             Sign In
           </h2>
+          <p className="text-xs font-medium text-center mb-6" style={{ color: sub }}>
+            Masuk ke dashboard operasional CV Habil
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <FieldError message={error} visible={!!error} />
 
             <div>
               <label
-                className="block text-sm font-medium mb-1.5 ml-1"
+                className="block text-[11px] font-bold uppercase tracking-[0.05em] mb-1.5 ml-1"
                 style={{ color: sub }}
               >
                 Username
@@ -171,12 +176,13 @@ export default function Login({
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className={`ui-form-field ui-focus-ring w-full pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl ${error && !username ? "ui-form-invalid" : ""}`}
+                  className={`ui-form-field ui-focus-ring w-full min-h-11 pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl ${error && !username ? "ui-form-invalid" : ""}`}
                   style={{
                     backgroundColor: inputBg,
                     border: `1px solid ${inputBorder}`,
                     color: text,
                   }}
+                  aria-invalid={!!error && !username}
                   onFocus={(e) => {
                     e.currentTarget.style.borderColor = focusRing;
                     e.currentTarget.style.boxShadow = `0 0 0 4px ${focusRing}1A`;
@@ -195,7 +201,7 @@ export default function Login({
 
             <div>
               <label
-                className="block text-sm font-medium mb-1.5 ml-1"
+                className="block text-[11px] font-bold uppercase tracking-[0.05em] mb-1.5 ml-1"
                 style={{ color: sub }}
               >
                 Password
@@ -208,12 +214,13 @@ export default function Login({
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`ui-form-field ui-focus-ring w-full pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl ${error && !password ? "ui-form-invalid" : ""}`}
+                  className={`ui-form-field ui-focus-ring w-full min-h-11 pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl ${error && !password ? "ui-form-invalid" : ""}`}
                   style={{
                     backgroundColor: inputBg,
                     border: `1px solid ${inputBorder}`,
                     color: text,
                   }}
+                  aria-invalid={!!error && !password}
                   onFocus={(e) => {
                     e.currentTarget.style.borderColor = focusRing;
                     e.currentTarget.style.boxShadow = `0 0 0 4px ${focusRing}1A`;
@@ -233,7 +240,7 @@ export default function Login({
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary ui-motion-button ui-focus-ring w-full py-3.5 px-4 text-white font-medium text-sm rounded-xl transition-colors shadow-sm focus:outline-none mt-2"
+              className="btn-primary ui-motion-button ui-focus-ring w-full min-h-11 py-3.5 px-4 text-white font-bold text-sm rounded-xl transition-colors shadow-sm focus:outline-none mt-2"
               data-magnetic="true"
               style={{
                 backgroundColor: focusRing,
