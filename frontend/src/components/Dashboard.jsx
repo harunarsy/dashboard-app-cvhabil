@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.19.2-stable",
+    date: "6 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "change",
+        text: "Pengamanan environment: audit dan repair data sekarang wajib jelas target DB-nya sebelum theme pilot berjalan",
+        dev: "docs/ENVIRONMENT_SAFETY_v1.19.2.md defines prod/dev/audit-readonly roles, dry-run defaults, and local seed login",
+      },
+    ],
+  },
+  {
     version: "v1.19.1-stable",
     date: "4 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "change",
@@ -2534,7 +2546,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.19.1-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.19.2-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

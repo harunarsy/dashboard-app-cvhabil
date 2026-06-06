@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.19.2-stable] - 2026-06-06
+
+### Added
+- SOP environment safety untuk memisahkan prod, dev/staging, dan audit read-only sebelum theme pilot atau repair data
+- Guardrail audit/repair: default dry-run/read-only, `--apply` hanya untuk repair eksplisit, dan seed login lokal wajib stabil
+
 ## [v1.19.1-stable] - 2026-06-05
 
 ### Fixed
