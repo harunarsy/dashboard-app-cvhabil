@@ -1,9 +1,9 @@
 # 🧠 HABIL SUPERAPP — Source of Truth
 
-> **Current Version: v1.20.2-stable
-> System Version: v1.20.2-stable
+> **Current Version: v1.20.3-stable
+> System Version: v1.20.3-stable
 > Status: PROD-STABLE
-> **VERSI SISTEM\\*\\*: v1.20.2-stable
+> **VERSI SISTEM\\*\\*: v1.20.3-stable
 
 > **CREDENTIALS (LOKAL):** Lihat `CREDENTIALS.local.md` di root project untuk semua akses: DB URL, JWT, Vercel, GitHub. File ini hanya ada di lokal (tidak di-commit).
 
@@ -142,4 +142,4 @@
 ---
 
 _Dokumen Master Brain ini menggantikan README, Master Framework, dan Roadmap lama._
-_Terakhir diupdate: v1.20.2-stable (7 Juni 2026) — prosedur Auto-Versioning sejak v1.3.16-stable_
+_Terakhir diupdate: v1.20.3-stable (7 Juni 2026) — prosedur Auto-Versioning sejak v1.3.16-stable_

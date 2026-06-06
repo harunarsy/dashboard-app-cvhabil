@@ -63,6 +63,8 @@ function ProtectedRoute({
       <div
         className="flex-1"
         style={{
+          minWidth: 0,
+          overflowX: "hidden",
           marginLeft: isMobile ? 0 : isSidebarOpen ? "284px" : "108px",
           transition: uiTransition("margin-left", UI_MOTION.duration.page),
         }}

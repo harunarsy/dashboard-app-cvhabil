@@ -369,7 +369,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
 
   return (
     <div
-      className="ui-motion-page flex flex-col h-full p-0 overflow-hidden"
+      className="ui-motion-page flex min-w-0 flex-col h-full w-full max-w-full p-0 overflow-hidden"
       style={{ color: text }}
     >
       {/* Header */}
@@ -609,7 +609,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       )}
 
       {/* Board Content */}
-      <div className="flex-1 flex gap-4 overflow-x-auto pb-2 custom-scrollbar p-1">
+      <div className="flex-1 min-w-0 flex gap-4 overflow-x-auto pb-2 custom-scrollbar p-1">
         {COLUMNS.map((column) => (
           <div
             key={column.id}

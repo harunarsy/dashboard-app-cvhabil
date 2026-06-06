@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.20.2-stable",
+    version: "v1.20.3-stable",
     date: "7 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Dashboard mobile dan desktop sekarang tetap rapat di viewport: root page dikunci ke lebar kontainer, sidebar tetap fixed overlay, dan TasksKanban tetap scroll di dalam panel tanpa mendorong root ke samping.",
+        dev: "App.js flex-1 diberi min-width: 0, Dashboard root constrained, dan TasksKanban panel/board memakai min-w-0 + overflow-hidden/overflow-x-auto agar shell tidak melebar sementara interaksi drawer tetap sama.",
+      },
+    ],
+  },
+  {
+    version: "v1.20.2-stable",
+    date: "7 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "polish",
@@ -2642,7 +2654,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.20.2-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.20.3-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
@@ -2913,9 +2925,12 @@ export default function Dashboard({
     <div
       className="ui-motion-page font-sans min-h-screen transition-all duration-300"
       style={{
+        width: "100%",
+        maxWidth: "100%",
         padding: isMobile ? "1rem" : "2.5rem",
         paddingTop: isMobile ? "4rem" : "2.5rem",
         backgroundColor: isVantaMode ? "transparent" : bg,
+        overflowX: "hidden",
       }}
     >
       {/* Header Section */}
@@ -2951,7 +2966,7 @@ export default function Dashboard({
       {/* Kanban Tasks Section - MOVED TO TOP. v1.8.8: hapus inline bg supaya CSS token tint apply */}
       <div
         data-onboarding="tasks"
-        className="ui-surface-panel ui-motion-card mb-10 rounded-3xl p-5 md:p-8 border shadow-sm"
+        className="ui-surface-panel ui-motion-card mb-10 min-w-0 overflow-hidden rounded-3xl p-5 md:p-8 border shadow-sm"
         style={{ borderColor: border }}
       >
         <TasksKanban isDarkMode={isDarkMode} isMobile={isMobile} />

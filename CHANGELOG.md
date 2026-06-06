@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.20.3-stable] - 2026-06-07
+
+### Fixed
+- Dashboard mobile dan desktop sekarang tetap rapat di viewport: root page tidak melebar, drawer sidebar tetap fixed overlay, dan TasksKanban tetap scroll internal tanpa mendorong root ke samping.
+
 ## [v1.20.2-stable] - 2026-06-07
 
 ### Changed
