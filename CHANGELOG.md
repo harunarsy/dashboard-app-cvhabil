@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.20.0-stable] - 2026-06-06
+
+### Added
+- Utility design foundation tervalidasi dari pilot Customers, Tasks, dan Dashboard: `ui-page`, `ui-panel`, `ui-toolbar`, `ui-action-button`, `ui-density-compact`, `ui-stat-card`, dan `ui-dialog-shell`
+- Dokumentasi design system v1.20 diperbarui agar rollout tema berikutnya tetap additive dan per halaman
+
 ## [v1.19.7-stable] - 2026-06-06
 
 ### Changed

@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.19.7-stable",
+    version: "v1.20.0-stable",
     date: "6 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "change",
+        text: "Design foundation v1.20 diformalisasi dari pilot Customers, Tasks, dan Dashboard untuk rollout tema berikutnya",
+        dev: "index.css adds additive ui-page/ui-panel/ui-toolbar/ui-action-button/ui-density-compact/ui-stat-card/ui-dialog-shell utilities; docs updated",
+      },
+    ],
+  },
+  {
+    version: "v1.19.7-stable",
+    date: "6 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "polish",
@@ -2606,7 +2618,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.19.7-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.20.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
