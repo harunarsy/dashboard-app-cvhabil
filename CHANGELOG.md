@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.19.4-stable] - 2026-06-06
+
+### Added
+- Dokumentasi design system v1.20 dari hasil pilot Customers: surface, toolbar, card/table, modal/form, mobile, dan rollout rules
+
 ## [v1.19.3-stable] - 2026-06-06
 
 ### Changed

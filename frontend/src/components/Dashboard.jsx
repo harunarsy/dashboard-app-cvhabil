@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.19.3-stable",
+    version: "v1.19.4-stable",
     date: "6 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "change",
+        text: "Design system v1.20 didokumentasikan dari hasil pilot Customer supaya rollout tema berikutnya lebih aman dan konsisten",
+        dev: "docs/DESIGN_SYSTEM_v1.20.md captures surface, toolbar, card/table, modal/form, mobile, and rollout rules",
+      },
+    ],
+  },
+  {
+    version: "v1.19.3-stable",
+    date: "6 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "change",
@@ -2558,7 +2570,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.19.3-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.19.4-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
