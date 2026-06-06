@@ -34,6 +34,11 @@ const fmtDate = (d) =>
       })
     : "-";
 
+const fmtCompactId = (n, maximumFractionDigits = 1) =>
+  new Intl.NumberFormat("id-ID", {
+    maximumFractionDigits,
+  }).format(n);
+
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
 
@@ -204,12 +209,12 @@ export default function CustomerList({
     marginBottom: "6px",
   };
 
-  // Compress big numbers (1.2M, 870K)
+  // Compact nominal for Indonesian operators (34,1 jt, 180 rb).
   const compact = (n) => {
     const v = parseFloat(n) || 0;
     if (v >= 1_000_000)
-      return `Rp ${(v / 1_000_000).toFixed(1).replace(".0", "")}M`;
-    if (v >= 1_000) return `Rp ${(v / 1_000).toFixed(0)}K`;
+      return `Rp ${fmtCompactId(v / 1_000_000)} jt`;
+    if (v >= 1_000) return `Rp ${fmtCompactId(v / 1_000, 0)} rb`;
     return fmtRp(v);
   };
 

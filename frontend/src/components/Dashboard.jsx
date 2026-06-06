@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.19.4-stable",
+    version: "v1.19.5-stable",
     date: "6 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "polish",
+        text: "Nominal ringkas di halaman Customer sekarang memakai format Indonesia seperti rb dan jt",
+        dev: "Customer compact currency labels now use id-ID separators and rb/jt suffixes",
+      },
+    ],
+  },
+  {
+    version: "v1.19.4-stable",
+    date: "6 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "change",
@@ -2570,7 +2582,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.19.4-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.19.5-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

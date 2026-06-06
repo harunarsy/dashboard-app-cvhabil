@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.19.5-stable] - 2026-06-06
+
+### Changed
+- Compact nominal di halaman Customers memakai format Indonesia (`rb`/`jt`) agar lebih natural untuk operator lokal
+
 ## [v1.19.4-stable] - 2026-06-06
 
 ### Added
