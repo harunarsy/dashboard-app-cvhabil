@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.19.7-stable] - 2026-06-06
+
+### Changed
+- Pilot theme Dashboard: KPI card, panel data, quick actions, dan popup rilis diselaraskan dengan surface premium operational console
+- Touch target tombol popup Dashboard dirapikan tanpa mengubah fetch, chart, onboarding, atau urutan release history
+
 ## [v1.19.6-stable] - 2026-06-06
 
 ### Changed

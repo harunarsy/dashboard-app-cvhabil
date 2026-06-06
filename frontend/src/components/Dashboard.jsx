@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.19.6-stable",
+    version: "v1.19.7-stable",
     date: "6 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "polish",
+        text: "Pilot Dashboard merapikan KPI, panel data, quick actions, dan popup rilis agar lebih scannable tanpa mengubah data",
+        dev: "Dashboard surface classes only; API fetch, charts, onboarding, and release ordering preserved",
+      },
+    ],
+  },
+  {
+    version: "v1.19.6-stable",
+    date: "6 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "polish",
@@ -2594,7 +2606,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.19.6-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.19.7-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
@@ -2871,7 +2883,7 @@ export default function Dashboard({
       }}
     >
       {/* Header Section */}
-      <div className="flex justify-between items-center mb-10">
+      <div className="ui-surface-panel flex justify-between items-center mb-10 gap-4 p-4 md:p-5 flex-wrap">
         <div>
           <h1
             className="text-3xl font-bold mb-2 tracking-tight"
@@ -2887,7 +2899,7 @@ export default function Dashboard({
         {/* Version Badge & Changelog Trigger */}
         <button
           onClick={() => setShowModal(true)}
-          className="ui-motion-button ui-focus-ring flex items-center gap-2 px-4 py-2 rounded-full border transition-colors hover:shadow-sm"
+          className="ui-motion-button ui-focus-ring flex min-h-10 items-center gap-2 px-4 py-2 rounded-full border transition-colors hover:shadow-sm"
           style={{ borderColor: border, color: text }}
         >
           <Info size={16} className="text-blue-500" />
@@ -2903,7 +2915,7 @@ export default function Dashboard({
       {/* Kanban Tasks Section - MOVED TO TOP. v1.8.8: hapus inline bg supaya CSS token tint apply */}
       <div
         data-onboarding="tasks"
-        className="ui-motion-card mb-10 rounded-3xl p-8 border shadow-sm"
+        className="ui-surface-panel ui-motion-card mb-10 rounded-3xl p-5 md:p-8 border shadow-sm"
         style={{ borderColor: border }}
       >
         <TasksKanban isDarkMode={isDarkMode} isMobile={isMobile} />
@@ -2954,7 +2966,7 @@ export default function Dashboard({
           return (
             <div
               key={i}
-              className={`ui-motion-card ui-hover-delight rounded-2xl p-6 border shadow-sm`}
+              className={`ui-surface-card ui-motion-card ui-hover-delight rounded-2xl p-6 border shadow-sm`}
               style={{ borderColor: border }}
             >
               <div className="flex justify-between items-start gap-3 mb-4">
@@ -3009,7 +3021,7 @@ export default function Dashboard({
 
       {/* Activity Heatmap */}
       <section
-        className="ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm mb-10"
+        className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm mb-10"
         style={{ backgroundColor: cardBg, borderColor: border }}
       >
         <div className="flex items-start justify-between gap-4 mb-5">
@@ -3118,7 +3130,7 @@ export default function Dashboard({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
         <section
           data-onboarding="chart"
-          className="ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm"
+          className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm"
           style={{ backgroundColor: cardBg, borderColor: border }}
         >
           <div className="flex items-start justify-between gap-4 mb-5">
@@ -3225,7 +3237,7 @@ export default function Dashboard({
         </section>
 
         <section
-          className="ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm"
+          className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm"
           style={{ backgroundColor: cardBg, borderColor: border }}
         >
           <div className="flex items-start justify-between gap-4 mb-5">
@@ -3319,7 +3331,7 @@ export default function Dashboard({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
         <section
-          className="ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm"
+          className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm"
           style={{ backgroundColor: cardBg, borderColor: border }}
         >
           <div className="flex items-start justify-between gap-4 mb-5">
@@ -3428,7 +3440,7 @@ export default function Dashboard({
         </section>
 
         <section
-          className="ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm"
+          className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm"
           style={{ backgroundColor: cardBg, borderColor: border }}
         >
           <div className="flex items-start justify-between gap-4 mb-5">
@@ -3490,7 +3502,7 @@ export default function Dashboard({
         className="flex flex-col md:flex-row gap-6 mb-10"
       >
         <div
-          className="ui-motion-card ui-hover-delight flex-1 rounded-3xl p-6 border shadow-sm flex items-center justify-between"
+          className="ui-surface-panel ui-motion-card ui-hover-delight flex-1 rounded-3xl p-6 border shadow-sm flex items-center justify-between"
           style={{ backgroundColor: cardBg, borderColor: border }}
         >
           <div className="flex items-center gap-6">
@@ -3536,7 +3548,7 @@ export default function Dashboard({
         createPortal(
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 transition-opacity">
             <div
-              className="ui-motion-modal ui-modal-shell w-full max-w-[min(1040px,calc(100vw-32px))] max-h-[calc(100dvh-32px)] overflow-hidden rounded-3xl shadow-2xl flex flex-col transform transition-all scale-100"
+              className="ui-surface-panel ui-motion-modal ui-modal-shell w-full max-w-[min(1040px,calc(100vw-32px))] max-h-[calc(100dvh-32px)] overflow-hidden rounded-3xl shadow-2xl flex flex-col transform transition-all scale-100"
               style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
             >
               {/* Spotlight Header */}
@@ -3550,7 +3562,7 @@ export default function Dashboard({
                 <button
                   onClick={closeReleaseModal}
                   aria-label="Tutup popup rilis"
-                  className="ui-motion-button ui-focus-ring absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+                  className="ui-motion-button ui-focus-ring absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
                 >
                   <X size={20} />
                 </button>
@@ -3708,7 +3720,7 @@ export default function Dashboard({
         createPortal(
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
             <div
-              className="ui-motion-modal ui-modal-shell w-full max-w-[min(1040px,calc(100vw-32px))] max-h-[calc(100dvh-32px)] overflow-hidden rounded-3xl shadow-2xl flex flex-col"
+              className="ui-surface-panel ui-motion-modal ui-modal-shell w-full max-w-[min(1040px,calc(100vw-32px))] max-h-[calc(100dvh-32px)] overflow-hidden rounded-3xl shadow-2xl flex flex-col"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             {/* Modal Header */}
@@ -3728,7 +3740,7 @@ export default function Dashboard({
               <button
                 onClick={() => setShowModal(false)}
                 aria-label="Tutup popup rilis"
-                className="ui-motion-button ui-focus-ring p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="ui-motion-button ui-focus-ring w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 <X size={20} style={{ color: sub }} />
               </button>
@@ -3751,7 +3763,7 @@ export default function Dashboard({
                   {RELEASES.map((rel, ri) => (
                     <div
                       key={ri}
-                      className="ui-hover-delight rounded-2xl p-5 mb-4 border shadow-sm"
+                      className="ui-surface-card ui-hover-delight rounded-2xl p-5 mb-4 border shadow-sm"
                       style={{ backgroundColor: cardBg, borderColor: border }}
                     >
                       <div className="flex justify-between items-center mb-4">
@@ -3900,7 +3912,7 @@ export default function Dashboard({
                     return (
                       <div
                         key={i}
-                        className="ui-motion-card rounded-2xl p-5 mb-3 border flex gap-4 items-start shadow-sm transition-transform hover:-translate-y-0.5"
+                        className="ui-surface-card ui-motion-card rounded-2xl p-5 mb-3 border flex gap-4 items-start shadow-sm transition-transform hover:-translate-y-0.5"
                         style={{ backgroundColor: cardBg, borderColor: border }}
                       >
                         <div
@@ -3949,7 +3961,7 @@ export default function Dashboard({
             >
               <button
                 onClick={() => setShowModal(false)}
-                className="ui-motion-button ui-focus-ring px-6 py-2 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors"
+                className="ui-motion-button ui-focus-ring min-h-10 px-6 py-2 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors"
               >
                 Tutup
               </button>
@@ -3962,7 +3974,7 @@ export default function Dashboard({
       {showDevNotes && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
           <div
-            className="ui-motion-modal ui-modal-shell w-full max-w-md overflow-hidden rounded-3xl shadow-2xl flex flex-col"
+            className="ui-surface-panel ui-motion-modal ui-modal-shell w-full max-w-md overflow-hidden rounded-3xl shadow-2xl flex flex-col"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div
@@ -3976,7 +3988,7 @@ export default function Dashboard({
               <button
                 onClick={() => setShowDevNotes(false)}
                 aria-label="Tutup catatan developer"
-                className="ui-motion-button ui-focus-ring p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="ui-motion-button ui-focus-ring w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 <X size={20} style={{ color: sub }} />
               </button>
