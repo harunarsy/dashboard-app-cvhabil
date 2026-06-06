@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.19.6-stable] - 2026-06-06
+
+### Changed
+- Pilot theme Tasks: header, toolbar, kanban columns, task cards, trash, dan modal dibuat lebih konsisten dengan pola Customers
+- Touch target tombol Tasks dirapikan agar lebih nyaman di mobile/tablet tanpa mengubah drag/drop atau status logic
+
 ## [v1.19.5-stable] - 2026-06-06
 
 ### Changed

@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.19.5-stable",
+    version: "v1.19.6-stable",
     date: "6 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "polish",
+        text: "Pilot tampilan Tasks dibuat lebih solid: panel, kartu tugas, modal, dan tombol aksi lebih nyaman di desktop dan mobile",
+        dev: "TasksKanban visual pilot only; drag/drop/status/data flow unchanged",
+      },
+    ],
+  },
+  {
+    version: "v1.19.5-stable",
+    date: "6 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "polish",
@@ -2582,7 +2594,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.19.5-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.19.6-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

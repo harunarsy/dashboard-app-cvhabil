@@ -373,7 +373,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       style={{ color: text }}
     >
       {/* Header */}
-      <div className="flex justify-between items-end mb-6 flex-wrap gap-3">
+      <div className="ui-surface-panel flex justify-between items-end mb-6 flex-wrap gap-3 p-4 md:p-5">
         <div>
           <h2
             className="text-2xl font-bold tracking-tight"
@@ -387,7 +387,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="btn-primary ui-motion-button ui-focus-ring flex items-center gap-2 text-white px-4 py-2 rounded-full text-xs font-semibold transition-all shadow-md hover:shadow-lg"
+          className="btn-primary ui-motion-button ui-focus-ring flex min-h-11 items-center gap-2 text-white px-4 py-2 rounded-full text-xs font-semibold transition-all shadow-md hover:shadow-lg"
           data-magnetic="true"
           style={{ backgroundColor: accent }}
           onMouseEnter={(e) =>
@@ -401,7 +401,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       </div>
 
       {/* Toolbar */}
-      <div className="flex gap-4 mb-4 items-center">
+      <div className="ui-surface-panel flex gap-3 mb-4 items-center p-3 flex-wrap">
         <SearchBox
           value={searchTerm}
           onChange={setSearchTerm}
@@ -422,7 +422,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
             fetchTrash();
             setShowTrashModal(true);
           }}
-          className="ui-motion-button ui-focus-ring flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm"
+          className="ui-motion-button ui-focus-ring flex min-h-10 items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm"
           style={{
             backgroundColor: cardBg,
             color: danger,
@@ -443,7 +443,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
             onClick={() => setShowTrashModal(false)}
           />
           <div
-            className="ui-motion-modal ui-modal-shell relative w-full max-w-3xl max-h-[80vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col"
+            className="ui-surface-panel ui-motion-modal ui-modal-shell relative w-full max-w-3xl max-h-[calc(100dvh-32px)] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
           >
             <div
@@ -472,7 +472,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
               <button
                 onClick={() => setShowTrashModal(false)}
                 aria-label="Tutup sampah"
-                className="ui-motion-button ui-focus-ring w-8 h-8 flex items-center justify-center rounded-full transition-colors"
+                className="ui-motion-button ui-focus-ring w-10 h-10 flex items-center justify-center rounded-full transition-colors"
                 style={{ color: text }}
                 onMouseEnter={(e) =>
                   (e.currentTarget.style.backgroundColor = surface)
@@ -519,7 +519,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                   {trashTasks.map((task) => (
                     <div
                       key={task.id}
-                      className="ui-motion-card ui-hover-delight p-4 rounded-2xl flex items-center justify-between transition-all"
+                      className="ui-surface-card ui-motion-card ui-hover-delight p-4 rounded-2xl flex items-center justify-between transition-all"
                       style={{
                         backgroundColor: bg,
                         border: `1px solid ${subtleBorder}`,
@@ -562,7 +562,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                       <div className="flex items-center gap-2 ml-4">
                         <button
                           onClick={() => handleRestoreTask(task.id)}
-                          className="btn-primary ui-motion-button ui-focus-ring flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all"
+                          className="btn-primary ui-motion-button ui-focus-ring flex min-h-10 items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all"
                           data-magnetic="true"
                           style={{
                             backgroundColor: cardBg,
@@ -576,7 +576,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                         <TooltipButton
                           onClick={() => handlePermanentDelete(task.id)}
                           label="Hapus Permanen"
-                          className="flex items-center justify-center w-8 h-8 rounded-xl transition-all"
+                          className="flex items-center justify-center w-10 h-10 rounded-xl transition-all"
                           style={{
                             backgroundColor: cardBg,
                             color: sub,
@@ -598,7 +598,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
             >
               <button
                 onClick={() => setShowTrashModal(false)}
-                className="ui-motion-button ui-focus-ring px-6 py-2 rounded-full text-xs font-bold transition-opacity"
+                className="ui-motion-button ui-focus-ring min-h-10 px-6 py-2 rounded-full text-xs font-bold transition-opacity"
                 style={{ backgroundColor: text, color: cardBg }}
               >
                 Tutup
@@ -639,7 +639,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
             </div>
 
             <div
-              className="ui-motion-card rounded-2xl p-2 flex flex-col gap-2 overflow-y-auto custom-scrollbar h-[320px]"
+              className="ui-surface-panel ui-motion-card rounded-2xl p-2 flex flex-col gap-2 overflow-y-auto custom-scrollbar h-[320px]"
               style={{
                 backgroundColor: columnBg,
                 border: `1px solid ${subtleBorder}`,
@@ -683,7 +683,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                         draggable
                         onDragStart={(e) => onDragStart(e, task.id)}
                         onClick={() => setEditingTask(task)}
-                        className="ui-motion-card ui-hover-delight p-3 rounded-xl shadow-sm hover:shadow-md transition-all group cursor-pointer active:scale-95"
+                        className="ui-surface-card ui-motion-card ui-hover-delight p-3 rounded-xl shadow-sm hover:shadow-md transition-all group cursor-pointer active:scale-95"
                         style={{
                           backgroundColor: cardBg,
                           border: `1px solid ${subtleBorder}`,
@@ -742,7 +742,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
 
                   {getTasksByStatus(column.id).length === 0 && (
                     <div
-                      className="ui-motion-card ui-hover-delight flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl py-8"
+                      className="ui-surface-card ui-motion-card ui-hover-delight flex-1 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl py-8"
                       style={{ borderColor: subtleBorder }}
                     >
                       <p
@@ -764,7 +764,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       <div
         onDragOver={onDragOver}
         onDrop={(e) => onDrop(e, "trash")}
-        className="ui-motion-card mt-6 p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all group"
+        className="ui-surface-panel ui-motion-card mt-6 p-4 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all group"
         style={{ borderColor: subtleBorder, color: sub }}
         onMouseEnter={(e) => {
           e.currentTarget.style.borderColor = danger;
@@ -790,7 +790,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       {showAddModal && renderPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-6">
           <div
-            className="ui-motion-modal ui-modal-shell w-full max-w-lg rounded-[2.5rem] shadow-2xl p-8 transform transition-all"
+            className="ui-surface-panel ui-motion-modal ui-modal-shell w-full max-w-lg max-h-[calc(100dvh-32px)] overflow-y-auto rounded-[2.5rem] shadow-2xl p-6 md:p-8 transform transition-all"
             style={{
               backgroundColor: cardBg,
               color: text,
@@ -806,7 +806,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
               </h2>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="ui-motion-button ui-focus-ring p-2 rounded-full transition-colors"
+                className="ui-motion-button ui-focus-ring w-10 h-10 flex items-center justify-center rounded-full transition-colors"
                 style={{ color: sub }}
                 onMouseEnter={(e) =>
                   (e.currentTarget.style.backgroundColor = surface)
@@ -897,7 +897,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                 <button
                   type="submit"
                   disabled={taskSaving}
-                  className="btn-primary ui-motion-button ui-focus-ring w-full py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
+                  className="btn-primary ui-motion-button ui-focus-ring w-full min-h-11 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
                   data-magnetic="true"
                   style={{ backgroundColor: accent, color: "#FFF" }}
                 >
@@ -913,7 +913,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       {editingTask && renderPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-6">
           <div
-            className="ui-motion-modal ui-modal-shell w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden transform transition-all"
+            className="ui-surface-panel ui-motion-modal ui-modal-shell w-full max-w-lg max-h-[calc(100dvh-32px)] rounded-[2.5rem] shadow-2xl overflow-hidden transform transition-all"
             style={{
               backgroundColor: cardBg,
               color: text,
@@ -931,7 +931,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                 <TooltipButton
                   onClick={() => fetchHistory(editingTask.id)}
                   label="Lihat Riwayat"
-                  className="p-2 rounded-full transition-colors"
+                  className="w-10 h-10 flex items-center justify-center rounded-full transition-colors"
                   style={{ color: sub }}
                   onMouseEnter={(e) =>
                     (e.currentTarget.style.backgroundColor = surface)
@@ -944,7 +944,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                 </TooltipButton>
                 <button
                   onClick={() => setEditingTask(null)}
-                  className="ui-motion-button ui-focus-ring p-2 rounded-full transition-colors"
+                  className="ui-motion-button ui-focus-ring w-10 h-10 flex items-center justify-center rounded-full transition-colors"
                   style={{ color: sub }}
                   onMouseEnter={(e) =>
                     (e.currentTarget.style.backgroundColor = surface)
@@ -1128,7 +1128,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                           setEditingTask(null),
                         )
                       }
-                      className="ui-motion-button ui-focus-ring flex-1 py-4 rounded-2xl font-bold text-sm transition-all"
+                      className="ui-motion-button ui-focus-ring flex-1 min-h-11 py-4 rounded-2xl font-bold text-sm transition-all"
                       style={{ backgroundColor: dangerSoft, color: danger }}
                     >
                       Hapus
@@ -1136,7 +1136,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
                     <button
                       type="submit"
                       disabled={taskSaving}
-                      className="btn-primary ui-motion-button ui-focus-ring flex-[2] py-4 rounded-2xl font-bold text-sm shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
+                      className="btn-primary ui-motion-button ui-focus-ring flex-[2] min-h-11 py-4 rounded-2xl font-bold text-sm shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
                       data-magnetic="true"
                       style={{ backgroundColor: accent, color: "#FFF" }}
                     >
