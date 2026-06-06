@@ -373,7 +373,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       style={{ color: text }}
     >
       {/* Header */}
-      <div className="ui-surface-panel flex justify-between items-end mb-6 flex-wrap gap-3 p-4 md:p-5">
+      <div className="ui-surface-panel ui-toolbar flex justify-between items-end mb-6 flex-wrap gap-3 p-4 md:p-5">
         <div>
           <h2
             className="text-2xl font-bold tracking-tight"
@@ -401,7 +401,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
       </div>
 
       {/* Toolbar */}
-      <div className="ui-surface-panel flex gap-3 mb-4 items-center p-3 flex-wrap">
+      <div className="ui-surface-panel ui-toolbar flex gap-3 mb-4 items-center p-3 flex-wrap">
         <SearchBox
           value={searchTerm}
           onChange={setSearchTerm}

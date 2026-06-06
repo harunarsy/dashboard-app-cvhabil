@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.20.4-stable] - 2026-06-07
+
+### Changed
+- Header dan strip kontrol di Dashboard serta Tasks diseragamkan ke `ui-toolbar` agar shell terasa lebih rapat tanpa mengubah data, drag/drop, atau alur modal.
+
 ## [v1.20.3-stable] - 2026-06-07
 
 ### Fixed

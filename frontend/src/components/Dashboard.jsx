@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.20.3-stable",
+    version: "v1.20.4-stable",
     date: "7 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "polish",
+        text: "Header dan strip kontrol di Dashboard serta Tasks sekarang lebih konsisten karena memakai ui-toolbar yang sama, jadi shell terasa lebih rapat tanpa mengubah data atau interaksi.",
+        dev: "Dashboard header action bar dan TasksKanban header/search strip diselaraskan ke ui-toolbar; data fetch, drag/drop, modal, dan route logic tetap utuh.",
+      },
+    ],
+  },
+  {
+    version: "v1.20.3-stable",
+    date: "7 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2654,7 +2666,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.20.3-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.20.4-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
