@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.20.6-stable",
+    version: "v1.20.7-stable",
     date: "7 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Angka KPI Dashboard lebih stabil di Arc/sidebar terbuka: nominal panjang sekarang mengecil berdasarkan lebar card dan tidak keluar container.",
+        dev: "Add ui-stat-card-fluid + ui-fluid-number container-query utilities; Dashboard KPI cards use them. Tasks/Dashboard data fetch and drag/drop/status logic unchanged.",
+      },
+    ],
+  },
+  {
+    version: "v1.20.6-stable",
+    date: "7 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -2690,7 +2702,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.20.6-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.20.7-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
@@ -3053,7 +3065,7 @@ export default function Dashboard({
           return (
             <div
               key={i}
-              className={`ui-surface-card ui-motion-card ui-hover-delight rounded-2xl p-6 border shadow-sm`}
+              className={`ui-surface-card ui-motion-card ui-hover-delight ui-stat-card-fluid rounded-2xl p-6 border shadow-sm`}
               style={{ borderColor: border }}
             >
               <div className="flex justify-between items-start gap-3 mb-4">
@@ -3083,7 +3095,7 @@ export default function Dashboard({
               {loading ? (
                 <Skeleton width="80%" height="36px" className="mb-2" />
               ) : (
-                <h3 className="text-3xl font-bold mb-1" style={{ color: text }}>
+                <h3 className="ui-fluid-number mb-1" style={{ color: text }}>
                   <CountUpValue
                     value={stat.value}
                     loading={loading}

@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.20.7-stable] - 2026-06-07
+
+### Fixed
+- Angka KPI Dashboard dibuat stabil di card sempit memakai utility container-aware, sehingga nominal panjang tidak crop saat sidebar terbuka atau di Arc default.
+
 ## [v1.20.6-stable] - 2026-06-07
 
 ### Changed
