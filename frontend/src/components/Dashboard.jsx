@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.20.4-stable",
+    version: "v1.20.5-stable",
     date: "7 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Local audit lebih aman: frontend sekarang menghormati REACT_APP_API_URL di localhost, jadi dev/staging/prod read-only bisa dipilih eksplisit tanpa menyentuh data live.",
+        dev: "services/api.js memakai env override sebelum fallback localhost. Environment SOP dan frontend .env.example non-secret ditambah; tidak ada backend business logic, schema, atau PDF yang disentuh.",
+      },
+    ],
+  },
+  {
+    version: "v1.20.4-stable",
+    date: "7 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "polish",
@@ -2666,7 +2678,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.20.4-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.20.5-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

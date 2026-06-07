@@ -29,6 +29,18 @@ Credential lokal/dev yang harus stabil:
 
 Jika DB lokal/dev kosong, jalankan aplikasi backend normal agar seed auth membuat user default. Jika login gagal saat smoke, cek dulu backend target dan `DATABASE_URL` yang dipakai, bukan langsung mengubah data prod.
 
+## Frontend API Targeting
+
+Frontend lokal wajib bisa diarahkan ke backend yang jelas lewat `REACT_APP_API_URL`.
+
+| Mode | Contoh `REACT_APP_API_URL` | Catatan |
+| --- | --- | --- |
+| Local backend | `http://localhost:5006/api` | Default fallback saat frontend dibuka di `localhost` tanpa env override |
+| Dev/staging backend | `https://<dev-backend>.vercel.app/api` | Untuk smoke theme dan audit UI tanpa menyentuh prod write |
+| Prod read-only smoke | `https://habil-backend.vercel.app/api` | Hanya buka halaman/inspect; jangan submit/save/delete |
+
+Jika `REACT_APP_API_URL` diset, frontend harus memakai value tersebut termasuk saat berjalan di `localhost`. Ini mencegah kasus `.env` menunjuk backend tertentu tetapi app tetap memaksa endpoint fallback lama.
+
 ## Safe Command Matrix
 
 | Aktivitas | Environment | Command / pola |
@@ -46,4 +58,3 @@ Jika DB lokal/dev kosong, jalankan aplikasi backend normal agar seed auth membua
 - Jangan memakai `--apply` di prod dari prompt umum seperti "audit" atau "cek"; harus ada instruksi eksplisit repair production.
 - Theme work harus frontend-only sampai ada instruksi terpisah; `git diff backend/` dan `git diff frontend/src/utils/generateNotaPDF.js` harus kosong.
 - Jika muncul drift antara localhost dan production login, perlakukan sebagai environment mismatch terlebih dahulu.
-

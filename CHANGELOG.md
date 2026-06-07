@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.20.5-stable] - 2026-06-07
+
+### Fixed
+- Frontend lokal sekarang menghormati `REACT_APP_API_URL` sebelum fallback localhost, jadi audit bisa diarahkan eksplisit ke local/dev/staging/prod read-only.
+- Dokumentasi environment safety diperjelas dengan contoh API target non-secret agar login smoke lokal tidak salah endpoint.
+
 ## [v1.20.4-stable] - 2026-06-07
 
 ### Changed

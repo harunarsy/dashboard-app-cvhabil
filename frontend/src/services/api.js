@@ -1,9 +1,9 @@
 import axios from 'axios';
 
 const isLocal = window.location.hostname === 'localhost';
-const API_BASE_URL = isLocal 
-  ? 'http://localhost:5006/api' 
-  : (process.env.REACT_APP_API_URL || '/api');
+const configuredApiUrl = process.env.REACT_APP_API_URL?.trim();
+const localApiFallback = 'http://localhost:5006/api';
+const API_BASE_URL = configuredApiUrl || (isLocal ? localApiFallback : '/api');
 // Cache bust v2
 
 /* ─── sessionStorage master data cache (5 min TTL) ─── */
@@ -58,8 +58,10 @@ const api = axios.create({
   timeout: 30000,
 });
 
-if (isLocal) {
-  console.log(`[API] Initialized with static local endpoint: ${API_BASE_URL}`);
+if (configuredApiUrl) {
+  console.log(`[API] Initialized with REACT_APP_API_URL override: ${API_BASE_URL}`);
+} else if (isLocal) {
+  console.log(`[API] Initialized with local fallback endpoint: ${API_BASE_URL}`);
 } else {
   console.log(`[API] Initialized with dynamic production endpoint.`);
 }
