@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.20.6-stable] - 2026-06-07
+
+### Changed
+- Login, mode toggle, dan surface di atas background animasi diberi readability guard agar teks tidak lagi bergantung pada gradient/Vanta.
+- Dashboard header benar-benar memakai `ui-toolbar`, selaras dengan release note sebelumnya.
+
 ## [v1.20.5-stable] - 2026-06-07
 
 ### Fixed

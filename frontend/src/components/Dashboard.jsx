@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.20.5-stable",
+    version: "v1.20.6-stable",
     date: "7 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Readability guard ditambahkan: teks Login, toggle mode, dan surface di atas background animasi dibuat lebih solid agar tetap terbaca di light maupun dark mode.",
+        dev: "index.css adds ui-readable-surface/ui-over-media-copy/ui-mode-toggle. Login.jsx and Sidebar.jsx apply stronger contrast states; Dashboard header uses ui-toolbar. No auth, backend, stock, PDF, or business logic changes.",
+      },
+    ],
+  },
+  {
+    version: "v1.20.5-stable",
+    date: "7 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2678,7 +2690,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.20.5-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.20.6-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
@@ -2958,7 +2970,7 @@ export default function Dashboard({
       }}
     >
       {/* Header Section */}
-      <div className="ui-surface-panel flex justify-between items-center mb-10 gap-4 p-4 md:p-5 flex-wrap">
+      <div className="ui-surface-panel ui-toolbar justify-between mb-10 gap-4 p-4 md:p-5">
         <div>
           <h1
             className="text-3xl font-bold mb-2 tracking-tight"

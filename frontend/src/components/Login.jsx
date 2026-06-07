@@ -93,34 +93,31 @@ export default function Login({
             aria-label={
               isDarkMode ? "Aktifkan light mode" : "Aktifkan dark mode"
             }
-            label={isDarkMode ? "Light mode" : "Dark mode"}
-            className="ui-action-button"
+            label={isDarkMode ? "Aktifkan light mode" : "Aktifkan dark mode"}
+            className="ui-mode-toggle ui-action-button"
+            data-mode={isDarkMode ? "light" : "dark"}
             style={{
-              width: "44px",
-              height: "44px",
-              padding: 0,
-              borderRadius: "14px",
-              background: card,
-              border: `1px solid ${cardBorder}`,
-              color: text,
+              padding: "0 14px",
               cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: isDarkMode
-                ? "0 4px 12px rgba(0,0,0,0.4)"
-                : "0 4px 12px rgba(0,0,0,0.06)",
-              transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           >
             {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            <span>{isDarkMode ? "Light" : "Dark"}</span>
           </TooltipButton>
         )}
       </div>
 
       <div className="w-full max-w-md">
         {/* Header section */}
-        <div className="text-center mb-7">
+        <div
+          className="ui-readable-surface text-center mb-7 rounded-3xl px-5 py-5"
+          style={{
+            backgroundColor: isVantaMode
+              ? "color-mix(in srgb, var(--color-surface) 90%, transparent)"
+              : "transparent",
+            boxShadow: isVantaMode ? "var(--shadow-card)" : "none",
+          }}
+        >
           <div
             className="inline-flex items-center justify-center w-14 h-14 rounded-2xl text-white shadow-lg mb-4"
             style={{ backgroundColor: focusRing }}
@@ -133,8 +130,11 @@ export default function Login({
           >
             HABIL SUPERAPP
           </h1>
-          <p className="mt-3 text-xs font-semibold" style={{ color: sub }}>
-            HABIL SUPERAPP v1.20.5-stable — 2026
+          <p
+            className="ui-over-media-copy mt-3 px-3 py-1 text-xs font-semibold"
+            style={{ color: sub }}
+          >
+            HABIL SUPERAPP v1.20.6-stable — 2026
           </p>
         </div>
 
@@ -259,7 +259,10 @@ export default function Login({
           </form>
         </div>
 
-        <p className="text-center text-xs mt-8" style={{ color: subtle }}>
+        <p
+          className="ui-over-media-copy mx-auto mt-8 px-3 py-1 text-center text-xs"
+          style={{ color: subtle }}
+        >
           &copy; 2026 HABIL SUPERAPP. All rights reserved.
         </p>
       </div>

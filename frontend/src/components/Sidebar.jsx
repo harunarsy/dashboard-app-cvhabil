@@ -189,7 +189,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.20.5-stable";
+  const appVersion = "v1.20.6-stable";
   const TooltipButton = ({
     label,
     children,
@@ -631,7 +631,8 @@ export default function Sidebar({
               setIsDarkMode(!isDarkMode);
             }}
             label={isDarkMode ? "Light Mode" : "Dark Mode"}
-            className=""
+            className="ui-mode-toggle"
+            data-mode={isDarkMode ? "light" : "dark"}
             style={{
               width: "100%",
               minHeight: "44px",
@@ -641,14 +642,16 @@ export default function Sidebar({
               padding: "0.75rem 1rem",
               marginBottom: "0.5rem",
               borderRadius: "0.75rem",
-              border: "none",
+              border: `1px solid ${
+                isDarkMode
+                  ? "color-mix(in srgb, var(--color-warning) 42%, var(--color-border))"
+                  : "color-mix(in srgb, var(--color-primary) 36%, var(--color-border))"
+              }`,
               cursor: "pointer",
-              backgroundColor: isDarkMode
-                ? "var(--color-surface-elevated)"
-                : "var(--color-bg)",
               color: txt,
               fontSize: "0.875rem",
-              fontWeight: "600",
+              fontWeight: "800",
+              boxShadow: "var(--shadow-flat)",
             }}
           >
             {isDarkMode ? (
