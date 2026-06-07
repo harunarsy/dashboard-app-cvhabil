@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.20.8-stable] - 2026-06-07
+
+### Changed
+- Nota Penjualan memakai surface yang lebih solid untuk header, filter, dan table shell agar teks/filter/status lebih readable di light dan dark mode.
+- Root Nota Penjualan disamakan ke `ui-motion-page` supaya transisi klik sidebar terasa konsisten dengan Dashboard/Customer.
+
 ## [v1.20.7-stable] - 2026-06-07
 
 ### Fixed

@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.20.7-stable",
+    version: "v1.20.8-stable",
     date: "7 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Nota Penjualan lebih readable: header/filter/table dibuat lebih solid, angka tetap tabular, dan transisi halaman disamakan dengan surface Dashboard/Customer.",
+        dev: "SalesOrderList.jsx visual-only: root uses ui-page/ui-motion-page, header/filter/table use readable utility surfaces, row action hit targets strengthened. Save payload, batch selection, FEFO, SP nudge, PDF, and backend untouched.",
+      },
+    ],
+  },
+  {
+    version: "v1.20.7-stable",
+    date: "7 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2702,7 +2714,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.20.7-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.20.8-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

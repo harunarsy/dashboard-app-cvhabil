@@ -190,13 +190,11 @@ export default function SalesOrderList({
   const [saving, setSaving] = useState(false);
   const toastTimerRef = useRef(null);
 
-  const bg = isDarkMode ? "#000" : "var(--color-bg)";
-  const cardBg = isDarkMode ? "var(--color-surface-elevated)" : "#FFF";
-  const border = isDarkMode
-    ? "var(--color-surface-raised)"
-    : "var(--color-border)";
-  const text = isDarkMode ? "#FFF" : "#000";
-  const sub = "var(--color-text-subtle)";
+  const bg = "var(--color-bg)";
+  const cardBg = "var(--color-surface)";
+  const border = "var(--color-border)";
+  const text = "var(--color-text)";
+  const sub = "var(--color-text-muted)";
   useBodyScrollLock(showModal || showPrintModal || !!deleteConfirmId);
   useEffect(() => {
     if (!showModal && !showPrintModal && !paymentModal.open) return;
@@ -945,9 +943,7 @@ export default function SalesOrderList({
     padding: "10px 12px",
     border: `1px solid ${border}`,
     borderRadius: "10px",
-    backgroundColor: isDarkMode
-      ? "var(--color-surface-raised)"
-      : "var(--color-bg)",
+    backgroundColor: "var(--color-surface-elevated)",
     color: text,
     fontSize: "14px",
     outline: "none",
@@ -956,6 +952,7 @@ export default function SalesOrderList({
 
   return (
     <div
+      className="ui-page ui-motion-page"
       style={{
         padding: isMobile ? "1rem" : "2rem",
         paddingTop: isMobile ? "4rem" : "2rem",
@@ -976,6 +973,7 @@ export default function SalesOrderList({
 
       {/* Header */}
       <div
+        className="ui-readable-surface"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -983,6 +981,8 @@ export default function SalesOrderList({
           marginBottom: "1.5rem",
           flexWrap: "wrap",
           gap: "12px",
+          padding: "18px 20px",
+          borderRadius: "18px",
         }}
       >
         <div>
@@ -1026,12 +1026,14 @@ export default function SalesOrderList({
 
       {/* Search & Filters */}
       <div
+        className="ui-toolbar"
         style={{
           display: "flex",
           gap: "12px",
           marginBottom: "1.5rem",
           flexWrap: "wrap",
           alignItems: "center",
+          padding: "14px",
         }}
       >
         <SearchBox
@@ -1039,7 +1041,7 @@ export default function SalesOrderList({
           onChange={setSearch}
           placeholder="Cari nomor nota atau customer..."
           ariaLabel="Cari nota"
-          style={{ flex: 1, minWidth: "300px" }}
+          style={{ flex: 1, minWidth: isMobile ? "100%" : "300px" }}
           inputStyle={{
             backgroundColor: inputStyle.backgroundColor,
             borderColor: border,
@@ -1177,6 +1179,7 @@ export default function SalesOrderList({
             fontSize: "11px",
             color: sub,
             marginTop: "-4px",
+            lineHeight: 1.5,
           }}
         >
           Ambang aktif: tinggi &gt;{" "}
@@ -1251,6 +1254,7 @@ export default function SalesOrderList({
 
       {/* Table */}
       <div
+        className="ui-panel ui-density-compact"
         style={{
           backgroundColor: cardBg,
           border: `1px solid ${border}`,
@@ -1595,11 +1599,17 @@ export default function SalesOrderList({
                             }}
                             aria-label={`Cetak nota ${o.order_number}`}
                             title="Cetak PDF"
-                            style={{
-                              background: "none",
-                              border: "none",
+                          style={{
+                              background: "var(--color-surface-elevated)",
+                              border: `1px solid ${border}`,
                               cursor: "pointer",
-                              padding: "4px",
+                              padding: "0",
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "10px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
                             }}
                           >
                             <FileText size={15} color="var(--color-success)" />
@@ -1611,11 +1621,17 @@ export default function SalesOrderList({
                             }}
                             aria-label={`Edit nota ${o.order_number}`}
                             title="Edit"
-                            style={{
-                              background: "none",
-                              border: "none",
+                          style={{
+                              background: "var(--color-surface-elevated)",
+                              border: `1px solid ${border}`,
                               cursor: "pointer",
-                              padding: "4px",
+                              padding: "0",
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "10px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
                             }}
                           >
                             <Icons.Edit2
@@ -1630,11 +1646,17 @@ export default function SalesOrderList({
                             }}
                             aria-label={`Hapus nota ${o.order_number}`}
                             title="Hapus"
-                            style={{
-                              background: "none",
-                              border: "none",
+                          style={{
+                              background: "var(--color-surface-elevated)",
+                              border: `1px solid ${border}`,
                               cursor: "pointer",
-                              padding: "4px",
+                              padding: "0",
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "10px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
                             }}
                           >
                             <Icons.Trash2
