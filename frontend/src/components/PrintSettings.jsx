@@ -119,18 +119,12 @@ export default function PrintSettings({
       setSavingThresholds(false);
     }
   };
-  const bg = isDarkMode ? "#000" : "var(--color-bg)";
-  const cardBg = isDarkMode ? "rgba(28,28,30,0.7)" : "rgba(255,255,255,0.7)";
-  const border = isDarkMode
-    ? "var(--color-surface-raised)"
-    : "var(--color-border)";
-  const text = isDarkMode ? "#FFF" : "#000";
-  const sub = isDarkMode
-    ? "var(--color-text-subtle)"
-    : "var(--color-text-muted)";
-  const inputBg = isDarkMode
-    ? "var(--color-surface-raised)"
-    : "var(--color-bg)";
+  const bg = "var(--color-bg)";
+  const cardBg = "var(--color-surface)";
+  const border = "var(--color-border)";
+  const text = "var(--color-text)";
+  const sub = "var(--color-text-muted)";
+  const inputBg = "var(--color-surface-elevated)";
   if (loading)
     return (
       <div
@@ -237,6 +231,7 @@ export default function PrintSettings({
   const fieldGroupStyle = { minWidth: 0 };
   return (
     <div
+      className="ui-page ui-motion-page"
       style={{
         padding: isMobile ? "1rem" : "2rem",
         paddingTop: isMobile ? "4rem" : "2rem",
@@ -254,11 +249,16 @@ export default function PrintSettings({
         {" "}
         {/* Page Header */}{" "}
         <div
+          className="ui-readable-surface"
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             marginBottom: "2rem",
+            gap: "16px",
+            flexWrap: "wrap",
+            padding: "18px 20px",
+            borderRadius: "18px",
           }}
         >
           {" "}
@@ -287,6 +287,7 @@ export default function PrintSettings({
               display: "flex",
               alignItems: "center",
               gap: "8px",
+              minHeight: "44px",
               padding: "10px 20px",
               backgroundColor: "var(--color-primary)",
               color: "#FFF",
@@ -312,7 +313,9 @@ export default function PrintSettings({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+            gridTemplateColumns: isMobile
+              ? "1fr"
+              : "repeat(2, minmax(0, 1fr))",
             gap: "16px",
             alignItems: "start",
           }}
@@ -320,13 +323,13 @@ export default function PrintSettings({
           {" "}
           {/* LEFT — Form Inputs */}{" "}
           <div
-            className="ui-motion-card"
+            className="ui-panel ui-motion-card"
             style={{
               backgroundColor: cardBg,
               borderRadius: "16px",
               padding: "24px",
               border: `1px solid ${border}`,
-              boxShadow: isDarkMode ? "none" : "0 1px 3px rgba(0,0,0,0.05)",
+              boxShadow: "var(--shadow-card)",
             }}
           >
             {" "}
@@ -490,8 +493,8 @@ export default function PrintSettings({
                 borderRadius: "14px",
                 border: `1px solid ${border}`,
                 backgroundColor: isDarkMode
-                  ? "var(--color-surface-elevated)"
-                  : "#FAFAFA",
+                  ? "var(--color-surface)"
+                  : "var(--color-surface-elevated)",
               }}
             >
               {" "}
@@ -576,6 +579,7 @@ export default function PrintSettings({
                     display: "flex",
                     alignItems: "center",
                     gap: "8px",
+                    minHeight: "44px",
                     padding: "10px 18px",
                     backgroundColor: "var(--color-success)",
                     color: "#FFF",
@@ -603,12 +607,12 @@ export default function PrintSettings({
             </div>{" "}
           </div>{" "}
           {/* RIGHT — Live Preview */}{" "}
-          <div style={{ position: "sticky", top: "24px" }}>
+          <div style={{ position: isMobile ? "static" : "sticky", top: "24px" }}>
             {" "}
             <div
-              className="ui-motion-card"
+              className="ui-panel ui-motion-card"
               style={{
-                backgroundColor: "var(--color-surface-elevated)",
+                backgroundColor: cardBg,
                 borderRadius: "12px",
                 padding: "20px",
                 border: `1px solid ${border}`,
@@ -630,6 +634,8 @@ export default function PrintSettings({
                   border: "1px solid var(--color-border)",
                   boxShadow: "var(--shadow-card)",
                   fontFamily: "Helvetica, Arial, sans-serif",
+                  maxWidth: "100%",
+                  overflow: "hidden",
                 }}
               >
                 {" "}

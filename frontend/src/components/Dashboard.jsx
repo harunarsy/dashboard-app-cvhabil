@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.20.8-stable",
+    version: "v1.20.9-stable",
     date: "7 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Pengaturan cetak diperbaiki: panel form dan live preview sekarang solid, readable, dan lebih aman di desktop maupun mobile.",
+        dev: "PrintSettings.jsx visual-only: token surface, readable header, solid form/preview panels, desktop sticky preview disabled on mobile. printSettingsAPI/settingsAPI signatures and save flow unchanged.",
+      },
+    ],
+  },
+  {
+    version: "v1.20.8-stable",
+    date: "7 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -2714,7 +2726,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.20.8-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.20.9-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

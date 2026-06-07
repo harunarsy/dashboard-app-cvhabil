@@ -9,5 +9,5 @@ root.render(
     <App />
   </React.StrictMode>,
 );
-document.title = "HABIL SUPERAPP — v1.20.8-stable";
-// HABIL SUPERAPP v1.20.8-stable
+document.title = "HABIL SUPERAPP — v1.20.9-stable";
+// HABIL SUPERAPP v1.20.9-stable

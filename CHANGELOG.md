@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.20.9-stable] - 2026-06-07
+
+### Changed
+- Halaman Pengaturan/Print Settings dibuat lebih solid dan readable: form panel, preview, input, dan header tidak lagi bergantung pada surface transparan.
+- Live Preview tetap customer-facing white preview, tetapi wrapper-nya lebih stabil dan tidak sticky di mobile.
+
 ## [v1.20.8-stable] - 2026-06-07
 
 ### Changed
