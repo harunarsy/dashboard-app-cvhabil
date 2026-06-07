@@ -173,12 +173,10 @@ export default function InventoryDashboard({
   // Modal save loading flags
   const [modalSaving, setModalSaving] = useState(false);
 
-  const bg = isDarkMode ? "#000" : "var(--color-bg)";
-  const cardBg = isDarkMode ? "var(--color-surface-elevated)" : "#FFF";
-  const border = isDarkMode
-    ? "var(--color-surface-raised)"
-    : "var(--color-border)";
-  const text = isDarkMode ? "#FFF" : "#000";
+  const bg = "var(--color-bg)";
+  const cardBg = "var(--color-surface)";
+  const border = "var(--color-border)";
+  const text = "var(--color-text)";
   const sub = "var(--color-text-subtle)";
   useBodyScrollLock(
     showModal ||
@@ -187,9 +185,7 @@ export default function InventoryDashboard({
       !!drawerProductId ||
       !!deleteConfirmId,
   );
-  const surface = isDarkMode
-    ? "var(--color-surface-raised)"
-    : "var(--color-bg)";
+  const surface = "var(--color-surface-elevated)";
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -720,7 +716,7 @@ export default function InventoryDashboard({
 
   return (
     <div
-      className="ui-motion-page"
+      className="ui-page ui-motion-page"
       style={{
         padding: isMobile ? "1rem" : "2rem",
         paddingTop: isMobile ? "4rem" : "2rem",
@@ -741,6 +737,7 @@ export default function InventoryDashboard({
 
       {/* Header */}
       <div
+        className="ui-readable-surface"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -748,6 +745,8 @@ export default function InventoryDashboard({
           marginBottom: "1.5rem",
           flexWrap: "wrap",
           gap: "12px",
+          padding: isMobile ? "1rem" : "1.25rem 1.5rem",
+          borderRadius: "1rem",
         }}
       >
         <div>
@@ -800,12 +799,11 @@ export default function InventoryDashboard({
 
       {/* Tabs */}
       <div
+        className="ui-toolbar"
         style={{
           display: "flex",
           gap: "4px",
-          backgroundColor: isDarkMode
-            ? "var(--color-surface-elevated)"
-            : "var(--color-border)",
+          backgroundColor: "var(--color-surface)",
           borderRadius: "10px",
           padding: "3px",
           marginBottom: "1.5rem",
@@ -842,6 +840,7 @@ export default function InventoryDashboard({
       {/* Search + filter */}
       {tab === "products" && (
         <div
+          className="ui-toolbar"
           style={{
             display: "flex",
             gap: "8px",
@@ -878,7 +877,7 @@ export default function InventoryDashboard({
       {/* ─── Products Tab ───────────────────────────────────────────────── */}
       {tab === "products" && (
         <div
-          className="ui-hover-delight"
+          className="ui-table-shell"
           style={{
             backgroundColor: cardBg,
             border: `1px solid ${border}`,
@@ -1054,9 +1053,7 @@ export default function InventoryDashboard({
                             style={{
                               borderBottom: `1px solid ${border}`,
                               background: isSelected
-                                ? isDarkMode
-                                  ? "var(--color-primary-soft)"
-                                  : "var(--color-primary)08"
+                                ? "color-mix(in srgb, var(--color-primary) 10%, transparent)"
                                 : isExpanded
                                   ? surface
                                   : "transparent",
@@ -1453,10 +1450,8 @@ export default function InventoryDashboard({
       {tab === "alerts" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div
-            className="ui-hover-delight"
+            className="ui-panel ui-hover-delight"
             style={{
-              backgroundColor: cardBg,
-              border: `1px solid ${border}`,
               borderRadius: "14px",
               padding: "18px",
             }}
@@ -1535,10 +1530,8 @@ export default function InventoryDashboard({
           </div>
 
           <div
-            className="ui-hover-delight"
+            className="ui-panel ui-hover-delight"
             style={{
-              backgroundColor: cardBg,
-              border: `1px solid ${border}`,
               borderRadius: "14px",
               padding: "18px",
             }}
@@ -2964,6 +2957,7 @@ function ExpandedBatches({
   }
   return (
     <div
+      className="ui-table-shell"
       style={{
         background: cardBg,
         border: `1px solid ${border}`,
@@ -3311,6 +3305,7 @@ function ProductBatchPanel({
         />
       ) : (
         <div
+          className="ui-table-shell"
           style={{
             border: `1px solid ${border}`,
             borderRadius: "12px",

@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.1-stable] - 2026-06-07
+
+### Changed
+- Inventory & Stok mendapat readability pass: header, tabs, filter, product table, alert cards, dan batch rows dibuat solid dan token-driven.
+- Tint selected row yang invalid diperbaiki ke `color-mix`, sementara flow stok masuk/keluar/opname/batch tetap tidak berubah.
+
 ## [v1.21.0-stable] - 2026-06-07
 
 ### Changed

@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.0-stable",
+    version: "v1.21.1-stable",
     date: "7 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Inventory & Stok diselesaikan readability-nya: header, tabs, filter, product table, alert cards, dan batch rows memakai surface solid serta angka tabular.",
+        dev: "InventoryDashboard.jsx visual-only pass: tokenized bg/card/text, readable header/search/tabs, ui-table-shell for product and batch tables, fixed invalid selected-row tint. Stock in/out/opname/batch logic untouched.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.0-stable",
+    date: "7 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -2738,7 +2750,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.0-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.1-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
