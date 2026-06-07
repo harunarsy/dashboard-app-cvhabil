@@ -160,12 +160,10 @@ export default function PurchaseOrderList({
   const [receiveItems, setReceiveItems] = useState([]);
   const [layoutSettings, setLayoutSettings] = useState(null);
 
-  const bg = isDarkMode ? "#000" : "var(--color-bg)";
-  const cardBg = isDarkMode ? "rgba(28,28,30,0.7)" : "rgba(255,255,255,0.7)";
-  const border = isDarkMode
-    ? "var(--color-surface-raised)"
-    : "var(--color-border)";
-  const text = isDarkMode ? "#FFF" : "#000";
+  const bg = "var(--color-bg)";
+  const cardBg = "var(--color-surface)";
+  const border = "var(--color-border)";
+  const text = "var(--color-text)";
   const sub = "var(--color-text-subtle)";
   useBodyScrollLock(showModal || !!deleteConfirmId);
   useEffect(() => {
@@ -300,6 +298,18 @@ export default function PurchaseOrderList({
     fontSize: "14px",
     outline: "none",
     boxSizing: "border-box",
+  };
+  const iconButtonStyle = {
+    minWidth: "40px",
+    minHeight: "40px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "var(--color-surface-elevated)",
+    border: `1px solid ${border}`,
+    borderRadius: "10px",
+    cursor: "pointer",
+    padding: "0",
   };
   const labelStyle = {
     display: "block",
@@ -629,6 +639,7 @@ export default function PurchaseOrderList({
 
   return (
     <div
+      className="ui-page ui-motion-page"
       style={{
         padding: isMobile ? "1rem" : "2rem",
         paddingTop: isMobile ? "4rem" : "2rem",
@@ -648,6 +659,7 @@ export default function PurchaseOrderList({
       />
       {/* Header */}
       <div
+        className="ui-readable-surface"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -655,6 +667,8 @@ export default function PurchaseOrderList({
           marginBottom: "1.5rem",
           flexWrap: "wrap",
           gap: "12px",
+          padding: isMobile ? "1rem" : "1.25rem 1.5rem",
+          borderRadius: "1rem",
         }}
       >
         <div>
@@ -700,6 +714,7 @@ export default function PurchaseOrderList({
 
       {/* Search */}
       <div
+        className="ui-toolbar"
         style={{
           display: "flex",
           alignItems: "center",
@@ -712,7 +727,11 @@ export default function PurchaseOrderList({
           onChange={setSearch}
           placeholder="Cari nomor SP atau distributor..."
           ariaLabel="Cari surat pesanan"
-          style={{ maxWidth: "400px", flex: 1 }}
+          style={{
+            maxWidth: isMobile ? "100%" : "400px",
+            minWidth: isMobile ? "100%" : "280px",
+            flex: 1,
+          }}
           inputStyle={{
             backgroundColor: inputStyle.backgroundColor,
             borderColor: border,
@@ -741,11 +760,9 @@ export default function PurchaseOrderList({
 
       {/* Table */}
       <div
-        className="ui-hover-delight"
+        className="ui-table-shell"
         style={{
           backgroundColor: cardBg,
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
           border: `1px solid ${border}`,
           borderRadius: "12px",
           overflowX: "auto",
@@ -762,9 +779,7 @@ export default function PurchaseOrderList({
           <thead>
             <tr
               style={{
-                backgroundColor: isDarkMode
-                  ? "var(--color-surface-elevated)"
-                  : "var(--color-bg)",
+                backgroundColor: "var(--color-surface-elevated)",
               }}
             >
               {[
@@ -888,13 +903,11 @@ export default function PurchaseOrderList({
                               disabled={pdfLoading === o.id}
                               onClick={() => handlePrintSP(o)}
                               style={{
-                                background: "none",
-                                border: "none",
+                                ...iconButtonStyle,
                                 cursor:
                                   pdfLoading === o.id
                                     ? "not-allowed"
                                     : "pointer",
-                                padding: "4px",
                                 opacity: pdfLoading === o.id ? 0.5 : 1,
                               }}
                             >
@@ -909,10 +922,7 @@ export default function PurchaseOrderList({
                                 isDarkMode={isDarkMode}
                                 onClick={() => openReceive(o)}
                                 style={{
-                                  background: "none",
-                                  border: "none",
-                                  cursor: "pointer",
-                                  padding: "4px",
+                                  ...iconButtonStyle,
                                 }}
                               >
                                 <CheckCircle
@@ -926,10 +936,7 @@ export default function PurchaseOrderList({
                               isDarkMode={isDarkMode}
                               onClick={() => openEdit(o)}
                               style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                padding: "4px",
+                                ...iconButtonStyle,
                               }}
                             >
                               <Icons.Edit2
@@ -942,10 +949,7 @@ export default function PurchaseOrderList({
                               isDarkMode={isDarkMode}
                               onClick={() => handleDelete(o.id)}
                               style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                padding: "4px",
+                                ...iconButtonStyle,
                               }}
                             >
                               <Icons.Trash2
@@ -963,8 +967,8 @@ export default function PurchaseOrderList({
                             style={{
                               padding: "0 14px 14px",
                               backgroundColor: isDarkMode
-                                ? "#0A0A0A"
-                                : "#FAFAFA",
+                                ? "var(--color-surface-elevated)"
+                                : "var(--color-surface-elevated)",
                             }}
                           >
                             <div style={{ overflowX: "auto" }}>
@@ -1103,10 +1107,9 @@ export default function PurchaseOrderList({
           >
             <div
               onClick={(e) => e.stopPropagation()}
+              className="ui-dialog-shell"
               style={{
                 backgroundColor: cardBg,
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
                 borderRadius: "16px",
                 width: "100%",
                 maxWidth: "min(1100px, calc(100vw - 32px))",
@@ -1124,7 +1127,7 @@ export default function PurchaseOrderList({
                   alignItems: "center",
                   position: "sticky",
                   top: 0,
-                  backgroundColor: cardBg,
+                  backgroundColor: "var(--color-surface)",
                   zIndex: 1,
                 }}
               >
@@ -1641,10 +1644,9 @@ export default function PurchaseOrderList({
           >
             <div
               onClick={(e) => e.stopPropagation()}
+              className="ui-dialog-shell"
               style={{
                 backgroundColor: cardBg,
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
                 borderRadius: "16px",
                 width: "100%",
                 maxWidth: "640px",
@@ -1662,7 +1664,7 @@ export default function PurchaseOrderList({
                   alignItems: "center",
                   position: "sticky",
                   top: 0,
-                  backgroundColor: cardBg,
+                  backgroundColor: "var(--color-surface)",
                   zIndex: 1,
                 }}
               >
@@ -1953,10 +1955,9 @@ export default function PurchaseOrderList({
           >
             <div
               onClick={(e) => e.stopPropagation()}
+              className="ui-dialog-shell"
               style={{
                 backgroundColor: cardBg,
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
                 borderRadius: "16px",
                 width: "100%",
                 maxWidth: "480px",

@@ -1335,18 +1335,18 @@ export default function InvoiceList({
 
   const S = {
     card: {
-      border: `1px solid ${isDarkMode ? "var(--color-surface-raised)" : "var(--color-border)"}`,
+      backgroundColor: "var(--color-surface)",
+      border: "1px solid var(--color-border)",
       borderRadius: "12px",
+      boxShadow: "var(--shadow-card)",
     },
     input: {
       width: "100%",
       padding: "10px 12px",
-      border: `1px solid ${isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
+      border: "1px solid var(--color-border)",
       borderRadius: "10px",
-      backgroundColor: isDarkMode
-        ? "var(--color-surface-raised)"
-        : "var(--color-bg)",
-      color: isDarkMode ? "#FFF" : "#000",
+      backgroundColor: "var(--color-surface-elevated)",
+      color: "var(--color-text)",
       fontSize: "14px",
       outline: "none",
       boxSizing: "border-box",
@@ -1354,12 +1354,10 @@ export default function InvoiceList({
     inputDis: {
       width: "100%",
       padding: "10px 12px",
-      border: `1px solid ${isDarkMode ? "var(--color-surface-raised)" : "var(--color-border)"}`,
+      border: "1px solid var(--color-border)",
       borderRadius: "10px",
-      backgroundColor: isDarkMode
-        ? "var(--color-surface-elevated)"
-        : "var(--color-border)",
-      color: isDarkMode ? "#636366" : "var(--color-text-subtle)",
+      backgroundColor: "var(--color-bg-subtle)",
+      color: "var(--color-text-muted)",
       cursor: "not-allowed",
       fontSize: "14px",
       boxSizing: "border-box",
@@ -1369,21 +1367,17 @@ export default function InvoiceList({
       fontSize: "11px",
       fontWeight: "700",
       marginBottom: "6px",
-      color: isDarkMode
-        ? "var(--color-text-muted)"
-        : "var(--color-border-strong)",
+      color: "var(--color-text-muted)",
       letterSpacing: "0.05em",
       textTransform: "uppercase",
     },
     computed: {
       width: "100%",
       padding: "10px 12px",
-      border: `1px solid ${isDarkMode ? "var(--color-surface-raised)" : "var(--color-border)"}`,
+      border: "1px solid var(--color-border)",
       borderRadius: "10px",
-      backgroundColor: isDarkMode
-        ? "var(--color-surface-elevated)"
-        : "var(--color-border)",
-      color: isDarkMode ? "#30D158" : "#1C7C2A",
+      backgroundColor: "var(--color-success-soft)",
+      color: "var(--color-success)",
       fontWeight: "600",
       cursor: "not-allowed",
       fontSize: "14px",
@@ -1410,14 +1404,11 @@ export default function InvoiceList({
 
   return (
     <div
+      className="ui-page ui-motion-page"
       style={{
         padding: isMobile ? "1rem" : "2rem",
         paddingTop: isMobile ? "4rem" : "2rem",
-        backgroundColor: isVantaMode
-          ? "transparent"
-          : isDarkMode
-            ? "#000"
-            : "var(--color-bg)",
+        backgroundColor: isVantaMode ? "transparent" : "var(--color-bg)",
         minHeight: "100vh",
         transition: uiTransition(
           "margin-left",
@@ -1525,11 +1516,16 @@ export default function InvoiceList({
 
       {/* Header */}
       <div
+        className="ui-readable-surface"
         style={{
           marginBottom: "1.5rem",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
+          gap: "1rem",
+          flexWrap: "wrap",
+          padding: isMobile ? "1rem" : "1.25rem 1.5rem",
+          borderRadius: "1rem",
         }}
       >
         <div>
@@ -1538,7 +1534,7 @@ export default function InvoiceList({
               fontSize: "2rem",
               fontWeight: "700",
               margin: "0 0 4px 0",
-              color: isDarkMode ? "#FFF" : "#000",
+              color: "var(--color-text)",
             }}
           >
             📄 Faktur Pembelian
@@ -1665,7 +1661,7 @@ export default function InvoiceList({
         ].map((m, i) => (
           <div
             key={i}
-            className="ui-hover-delight ui-motion-card"
+            className="ui-stat-card-fluid ui-hover-delight ui-motion-card"
             style={{ ...S.card, padding: "1.25rem" }}
           >
             <div style={{ fontSize: "1.5rem", marginBottom: "6px" }}>
@@ -1687,6 +1683,7 @@ export default function InvoiceList({
               <Skeleton width="100px" height="24px" />
             ) : (
               <p
+                className="ui-kpi-value"
                 style={{
                   margin: 0,
                   fontSize: "1.1rem",
@@ -1704,9 +1701,8 @@ export default function InvoiceList({
       {/* Per-distributor summary */}
       {distSummary.length > 1 && (
         <div
-          className="ui-motion-card"
+          className="ui-panel ui-motion-card"
           style={{
-            ...S.card,
             padding: "1rem 1.25rem",
             marginBottom: "1.25rem",
           }}
@@ -2033,8 +2029,14 @@ export default function InvoiceList({
 
       {/* Search + Filter */}
       <div
-        className="ui-motion-card"
-        style={{ ...S.card, padding: "1rem", marginBottom: "1rem" }}
+        className="ui-toolbar ui-motion-card"
+        style={{
+          ...S.card,
+          padding: "1rem",
+          marginBottom: "1rem",
+          flexDirection: "column",
+          alignItems: "stretch",
+        }}
       >
         <div
           style={{
@@ -2051,11 +2053,9 @@ export default function InvoiceList({
               alignItems: "center",
               gap: "10px",
               padding: "10px 14px",
-              backgroundColor: isDarkMode
-                ? "var(--color-surface-raised)"
-                : "var(--color-bg)",
+              backgroundColor: "var(--color-surface-elevated)",
               borderRadius: "10px",
-              border: `1px solid ${isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
+              border: "1px solid var(--color-border)",
             }}
           >
             <Search size={16} color="var(--color-text-subtle)" />
@@ -2068,7 +2068,7 @@ export default function InvoiceList({
                 border: "none",
                 outline: "none",
                 backgroundColor: "transparent",
-                color: isDarkMode ? "#FFF" : "#000",
+                color: "var(--color-text)",
                 fontSize: "14px",
               }}
             />
@@ -2102,11 +2102,9 @@ export default function InvoiceList({
               padding: "10px 16px",
               backgroundColor: showFilters
                 ? "var(--color-primary)"
-                : isDarkMode
-                  ? "var(--color-surface-raised)"
-                  : "var(--color-border)",
-              color: showFilters ? "white" : isDarkMode ? "#FFF" : "#000",
-              border: "none",
+                : "var(--color-surface-elevated)",
+              color: showFilters ? "white" : "var(--color-text)",
+              border: "1px solid var(--color-border)",
               borderRadius: "10px",
               cursor: "pointer",
               fontWeight: "600",
@@ -2402,7 +2400,10 @@ export default function InvoiceList({
       )}
 
       {/* Invoice Table */}
-      <div className="ui-motion-card" style={{ ...S.card, overflow: "hidden" }}>
+      <div
+        className="ui-table-shell ui-motion-card"
+        style={{ overflowX: "auto", overflowY: "hidden" }}
+      >
         {/* Table header — sortable */}
         <div
           style={{
@@ -2410,10 +2411,8 @@ export default function InvoiceList({
             gridTemplateColumns:
               "36px 110px 140px 1fr 130px 130px 150px 120px 100px",
             padding: "12px 16px",
-            backgroundColor: isDarkMode
-              ? "var(--color-surface-raised)"
-              : "var(--color-bg)",
-            borderBottom: `1px solid ${isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
+            backgroundColor: "var(--color-surface-elevated)",
+            borderBottom: "1px solid var(--color-border)",
             alignItems: "center",
           }}
         >
@@ -2469,11 +2468,9 @@ export default function InvoiceList({
                 gridTemplateColumns:
                   "36px 110px 140px 1fr 130px 130px 150px 120px 100px",
                 padding: "14px 16px",
-                borderBottom: `1px solid ${isDarkMode ? "var(--color-surface-raised)" : "#F0F0F0"}`,
+                borderBottom: "1px solid var(--color-border)",
                 alignItems: "center",
-                backgroundColor: isDarkMode
-                  ? "var(--color-surface-elevated)"
-                  : "#FFF",
+                backgroundColor: "var(--color-surface)",
               }}
             >
               <Skeleton width="15px" height="15px" />

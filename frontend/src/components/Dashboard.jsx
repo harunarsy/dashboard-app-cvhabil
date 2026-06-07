@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.20.9-stable",
+    version: "v1.21.0-stable",
     date: "7 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Faktur Pembelian dan Surat Pesanan dibuat lebih solid: panel KPI, filter, tabel, status, dan action icon sekarang lebih readable tanpa rasa glass yang mengganggu.",
+        dev: "InvoiceList.jsx and PurchaseOrderList.jsx visual-only pass: tokenized surfaces, ui-table-shell usage, stronger action hit targets, and solid dialog shells. Purchase receive, invoice stock-in, SP-link, HNA/HPP/PPN formulas, backend, and PDF untouched.",
+      },
+    ],
+  },
+  {
+    version: "v1.20.9-stable",
+    date: "7 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -2726,7 +2738,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.20.9-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

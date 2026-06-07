@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.0-stable] - 2026-06-07
+
+### Changed
+- Faktur Pembelian dan Surat Pesanan dipulihkan ke surface solid: KPI, filter, tabel, modal shell, dan action icon lebih readable di light/dark mode.
+- Sisa efek glass pada Surat Pesanan dihapus dari live surface tanpa mengubah flow terima barang, edit SP, invoice stock-in, atau formula finansial.
+
 ## [v1.20.9-stable] - 2026-06-07
 
 ### Changed
