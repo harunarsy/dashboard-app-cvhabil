@@ -574,8 +574,8 @@ body.dark .ui-over-media-copy {
 }
 
 .ui-row-action {
-  opacity: 0;
-  transform: translateY(2px);
+  opacity: 1;
+  transform: none;
   transition:
     opacity 160ms cubic-bezier(0.16, 1, 0.3, 1),
     transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -585,6 +585,26 @@ body.dark .ui-over-media-copy {
 .ui-row:focus-within .ui-row-action {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Auth entrance animation (login page mount + after logout) */
+@keyframes ui-auth-zoom {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.ui-auth-enter {
+  animation: ui-auth-zoom 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-auth-enter {
+    animation: none;
+  }
 }
 
 .ui-empty-shell {

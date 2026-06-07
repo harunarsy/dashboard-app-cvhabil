@@ -107,7 +107,7 @@ export default function Login({
         )}
       </div>
 
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md ui-auth-enter">
         {/* Header section */}
         <div
           className="ui-readable-surface text-center mb-7 rounded-3xl px-5 py-5"
@@ -134,7 +134,7 @@ export default function Login({
             className="ui-over-media-copy mt-3 px-3 py-1 text-xs font-semibold"
             style={{ color: sub }}
           >
-            HABIL SUPERAPP v1.21.1-stable — 2026
+            HABIL SUPERAPP v1.21.2-stable — 2026
           </p>
         </div>
 
@@ -259,12 +259,14 @@ export default function Login({
           </form>
         </div>
 
-        <p
-          className="ui-over-media-copy mx-auto mt-8 px-3 py-1 text-center text-xs"
-          style={{ color: subtle }}
-        >
-          &copy; 2026 HABIL SUPERAPP. All rights reserved.
-        </p>
+        <div className="mt-8 flex justify-center">
+          <p
+            className="ui-over-media-copy px-3 py-1 text-center text-xs"
+            style={{ color: subtle }}
+          >
+            &copy; 2026 HABIL SUPERAPP. All rights reserved.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -3524,7 +3524,7 @@ function InvoiceRow({
               fontSize: "13px",
               color: isDarkMode
                 ? "var(--color-text-muted)"
-                : "var(--color-surface-elevated)",
+                : "var(--color-text)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",

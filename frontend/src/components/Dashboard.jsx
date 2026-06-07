@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.1-stable",
+    version: "v1.21.2-stable",
     date: "7 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Perbaikan keterbacaan & kerapian: nama distributor di Faktur kembali tampil, teks changelog di light mode lebih jelas, tombol aksi tabel selalu terlihat (tanpa perlu hover), copyright login di tengah, plus animasi masuk halaman login.",
+        dev: "fix invisible distributor (surface-elevated→text), changelog light contrast (border-strong→text-muted), .ui-row-action opacity 1, login copyright flex-center, ui-auth-enter zoom keyframe.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.1-stable",
+    date: "7 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -2750,7 +2762,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.1-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.2-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
@@ -3971,7 +3983,7 @@ export default function Dashboard({
                                       style={{
                                         color: isDarkMode
                                           ? "var(--color-text-muted)"
-                                          : "var(--color-border-strong)",
+                                          : "var(--color-text-muted)",
                                       }}
                                     >
                                       {c.text}

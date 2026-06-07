@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.2-stable] - 2026-06-07
+
+### Fixed
+- Faktur: distributor name visible in light mode (was using surface token as text color → invisible)
+- Changelog release notes readable in light mode (border-strong → text-muted)
+- Table action buttons always visible, no hover required (.ui-row-action) — Faktur, Nota, Inventory
+- Login copyright centered
+### Added
+- Login page entrance zoom animation (ui-auth-enter), respects reduced-motion
+
 ## [v1.21.1-stable] - 2026-06-07
 
 ### Changed
