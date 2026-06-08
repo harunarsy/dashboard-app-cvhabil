@@ -6,7 +6,14 @@
  *
  * Run: node scripts/test-route-regression.js
  */
-require('dotenv').config();
+const path = require('path');
+const {
+  ensureDbTargetSafety,
+  loadRuntimeEnv,
+} = require('../config/runtimeEnv');
+
+loadRuntimeEnv({ baseDir: path.join(__dirname, '..'), context: 'backend/test-route-regression' });
+ensureDbTargetSafety({ context: 'backend/test-route-regression', allowProdLocal: false, allowProdSmoke: true });
 const { Pool } = require('pg');
 const assert = require('assert');
 

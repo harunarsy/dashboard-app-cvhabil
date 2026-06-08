@@ -6,13 +6,16 @@ Tujuan: bisa develop + audit **lokal** tanpa pernah menyentuh data **produksi**.
 
 | Env | DB | File env | Kapan dipakai |
 |-----|----|----------|---------------|
-| **local / dev** | DB terpisah (Neon dev branch atau Postgres lokal) | `backend/.env.dev` | develop & audit di laptop |
-| **prod** | Neon (branch utama) | `backend/.env` (di Vercel: env vars) | live, dipakai keluarga |
+| **local / dev** | DB terpisah (Neon dev branch atau Postgres lokal) | `backend/.env.dev` lalu `backend/.env` sebagai fallback legacy | develop & audit di laptop |
+| **prod** | Neon (branch utama) | Vercel env vars saja | live, dipakai keluarga |
 
 ## Cara backend memilih DB
 `backend/config/database.js`:
 - Kalau `DATABASE_URL` ada → pakai itu (Neon).
 - Kalau tidak → fallback ke `DB_HOST/DB_NAME/...` (localhost).
+- Runtime local/dev sekarang prefer `backend/.env.dev` kalau ada, baru fallback `backend/.env`.
+- Kalau local/dev menunjuk remote DB, wajib set `HABIL_DB_TARGET=dev|audit|prod-smoke`.
+- Kalau local/dev set `HABIL_DB_TARGET=prod`, backend akan menolak start kecuali `ALLOW_PROD_LOCAL=true`.
 
 > Masalah umum: `.env.dev` punya `DATABASE_URL` **kosong** → backend jatuh ke localhost yang tidak jalan → **login lokal gagal**.
 
@@ -23,6 +26,7 @@ Tujuan: bisa develop + audit **lokal** tanpa pernah menyentuh data **produksi**.
 3. Isi `backend/.env.dev`:
    ```
    DATABASE_URL=<connection string dev branch>
+   HABIL_DB_TARGET=dev
    JWT_SECRET=<isi apa saja untuk lokal>
    NODE_ENV=development
    ```
@@ -33,7 +37,9 @@ Alternatif: Postgres lokal (isi `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD` di
 
 ## Aturan keras (anti ngacak-ngacak data live)
 - **Jangan** develop / audit langsung ke DB prod. Pakai dev branch / lokal.
+- Prod smoke read-only boleh hanya untuk inspect, pakai `HABIL_DB_TARGET=prod-smoke` dan jangan jalankan flow write.
 - Script audit & repair **default `--dry-run`** (read-only). `--apply` harus eksplisit dan hanya setelah yakin.
   - Contoh: `node scripts/repair-v1181-null-batches.js` (dry-run) vs `... --apply` (eksekusi).
 - `health-check-prod.js` read-only — aman dijalankan, tapi idealnya ke dev branch saat develop.
 - Jangan commit isi `.env` / `.env.dev` (kredensial). Yang di-commit hanya dokumen ini.
+- Frontend lokal default ke `http://localhost:5001/api` bila `REACT_APP_API_URL` kosong.

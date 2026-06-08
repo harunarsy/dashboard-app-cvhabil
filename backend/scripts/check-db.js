@@ -1,18 +1,12 @@
-const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const {
+  describeDbTarget,
+  ensureDbTargetSafety,
+  loadRuntimeEnv,
+} = require('../config/runtimeEnv');
 
-let envFile = '.env';
-try {
-  const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
-  if (currentBranch === 'dev' && fs.existsSync(path.join(__dirname, '../.env.dev'))) {
-    envFile = '.env.dev';
-  }
-} catch (e) {
-  console.warn('[check-db] git branch detection failed, defaulting to .env:', e.message);
-}
-
-require('dotenv').config({ path: path.join(__dirname, '../', envFile) });
+loadRuntimeEnv({ baseDir: path.join(__dirname, '..'), context: 'backend/check-db' });
+ensureDbTargetSafety({ context: 'backend/check-db', allowProdLocal: false, allowProdSmoke: false });
 const { Pool } = require('pg');
 
 const config = process.env.DATABASE_URL 
@@ -26,9 +20,11 @@ const config = process.env.DATABASE_URL
     };
 
 const pool = new Pool(config);
+const dbTarget = describeDbTarget();
 
 console.log('--- Database Connectivity Check ---');
-console.log(`Mode: ${process.env.DATABASE_URL ? 'Remote (Cloud)' : 'Local'}`);
+console.log(`Mode: ${dbTarget.isRemote ? 'Remote (Cloud)' : 'Local'}`);
+console.log(`Target: ${process.env.HABIL_DB_TARGET || 'unset'}`);
 console.log(`Host: ${config.host || 'from DATABASE_URL'}`);
 console.log('-----------------------------------');
 

@@ -35,11 +35,13 @@ Frontend lokal wajib bisa diarahkan ke backend yang jelas lewat `REACT_APP_API_U
 
 | Mode | Contoh `REACT_APP_API_URL` | Catatan |
 | --- | --- | --- |
-| Local backend | `http://localhost:5006/api` | Default fallback saat frontend dibuka di `localhost` tanpa env override |
+| Local backend | `http://localhost:5001/api` | Default fallback saat frontend dibuka di `localhost` tanpa env override |
 | Dev/staging backend | `https://<dev-backend>.vercel.app/api` | Untuk smoke theme dan audit UI tanpa menyentuh prod write |
 | Prod read-only smoke | `https://habil-backend.vercel.app/api` | Hanya buka halaman/inspect; jangan submit/save/delete |
 
 Jika `REACT_APP_API_URL` diset, frontend harus memakai value tersebut termasuk saat berjalan di `localhost`. Ini mencegah kasus `.env` menunjuk backend tertentu tetapi app tetap memaksa endpoint fallback lama.
+
+Untuk backend lokal/dev, gunakan `backend/.env.dev` sebagai sumber utama. Bila remote DB dipakai saat local/dev, wajib set `HABIL_DB_TARGET=dev|audit|prod-smoke`. Target `prod` lokal diblokir kecuali `ALLOW_PROD_LOCAL=true`.
 
 ## Safe Command Matrix
 

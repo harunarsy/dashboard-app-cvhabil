@@ -15,9 +15,12 @@
  *   1  At least one FAIL check found
  */
 
-const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const {
+  describeDbTarget,
+  ensureDbTargetSafety,
+  loadRuntimeEnv,
+} = require('../config/runtimeEnv');
 
 // ─── CLI flags ───────────────────────────────────────────────────────────────
 const FLAGS = new Set(process.argv.slice(2));
@@ -25,15 +28,8 @@ const OUTPUT_JSON = FLAGS.has('--json');
 const READ_ONLY = FLAGS.has('--read-only') || !FLAGS.has('--json'); // default
 
 // ─── DB connection ───────────────────────────────────────────────────────────
-let envFile = '.env';
-try {
-  const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
-  if (currentBranch === 'dev' && fs.existsSync(path.join(__dirname, '../.env.dev'))) {
-    envFile = '.env.dev';
-  }
-} catch (_) { /* ignore */ }
-
-require('dotenv').config({ path: path.join(__dirname, '../', envFile) });
+loadRuntimeEnv({ baseDir: path.join(__dirname, '..'), context: 'backend/health-check-prod' });
+ensureDbTargetSafety({ context: 'backend/health-check-prod', allowProdLocal: false, allowProdSmoke: true });
 const { Pool } = require('pg');
 
 // Strip sslmode dari connstring (SSL via objek ssl) → hindari pg v9 deprecation warning. Perilaku TLS sama.
@@ -52,6 +48,8 @@ config.idleTimeoutMillis = 10000;
 config.connectionTimeoutMillis = 10000;
 
 const pool = new Pool(config);
+const dbTarget = describeDbTarget();
+console.log(`[HEALTH] Target: ${process.env.HABIL_DB_TARGET || 'unset'} (${dbTarget.isRemote ? 'remote' : 'local'})`);
 
 // ─── Result accumulator ──────────────────────────────────────────────────────
 const results = [];

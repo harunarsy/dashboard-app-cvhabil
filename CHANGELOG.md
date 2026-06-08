@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.5-stable] - 2026-06-08
+
+### Fixed
+- Runtime env lokal/dev sekarang lebih aman: backend prefer `backend/.env.dev`, remote DB wajib jelas lewat `HABIL_DB_TARGET`, dan target `prod` lokal diblokir tanpa override eksplisit.
+
+### Changed
+- Frontend API fallback lokal diseragamkan ke `http://localhost:5001/api`, selaras dengan backend port canonical baru.
+
 ## [v1.21.4-stable] - 2026-06-08
 
 ### Fixed

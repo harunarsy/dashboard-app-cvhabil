@@ -6,7 +6,10 @@
  */
 // Force test mode so route modules skip import-time schema init (no prod DB writes during smoke test)
 process.env.NODE_ENV = 'test';
-require('dotenv').config();
+const path = require('path');
+const { loadRuntimeEnv } = require('../config/runtimeEnv');
+
+loadRuntimeEnv({ baseDir: path.join(__dirname, '..'), context: 'backend/test-route-http', preferDevEnv: true });
 const supertest = require('supertest');
 const assert = require('assert');
 

@@ -13,7 +13,14 @@
  * 5. Faktur linked SP room logic (data integrity)
  * 6. Direct faktur tanpa SP (data integrity)
  */
-require('dotenv').config();
+const path = require('path');
+const {
+  ensureDbTargetSafety,
+  loadRuntimeEnv,
+} = require('../config/runtimeEnv');
+
+loadRuntimeEnv({ baseDir: path.join(__dirname, '..'), context: 'backend/test-regression' });
+ensureDbTargetSafety({ context: 'backend/test-regression', allowProdLocal: false, allowProdSmoke: true });
 const { Pool } = require('pg');
 const assert = require('assert');
 

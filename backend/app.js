@@ -9,24 +9,14 @@ const bodyParser = require('body-parser');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const os = require('os');
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+const {
+  ensureDbTargetSafety,
+  loadRuntimeEnv,
+} = require('./config/runtimeEnv');
 
 // ─── Environment Loading ───
-let envFile = '.env';
-if (process.env.NODE_ENV !== 'production') {
-  try {
-    const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
-    if (currentBranch === 'dev' && fs.existsSync(path.join(__dirname, '.env.dev'))) envFile = '.env.dev';
-  } catch (e) { /* fallback */ }
-}
-if (fs.existsSync(path.join(__dirname, envFile))) {
-  require('dotenv').config({ path: path.join(__dirname, envFile) });
-  console.log(`[Env] Loaded from ${envFile} → DB: ${process.env.DB_NAME || 'DATABASE_URL used'}`);
-} else {
-  console.log('[Env] No .env file found, using system environment variables');
-}
+loadRuntimeEnv({ baseDir: __dirname, context: 'backend/app' });
+ensureDbTargetSafety({ context: 'backend/app', allowProdLocal: false, allowProdSmoke: false });
 
 const app = express();
 
