@@ -135,6 +135,21 @@ across both light and dark modes.
 
 ---
 
+## Operator Smoke Checklist (v1.21.8)
+
+Gunakan section ini saat smoke harian operator. Mark `[✓]` hanya setelah dites manual di browser/app.
+
+| Flow | Check | Notes |
+|------|-------|-------|
+| Auth | Login lalu logout kembali ke `/login` tanpa token sisa | Pastikan token lokal terhapus dan refresh tetap aman. |
+| Modal | Create/Edit modal buka-tutup bersih di tiap modul yang relevan | Cek overlay, Escape, dan CTA close. |
+| Sidebar | Navigasi sidebar konsisten di desktop dan mobile drawer | Inventory/Customer/Sales/Invoices/Orders/Print Settings harus parity. |
+| Tables | Action button selalu terlihat tanpa hover | Fokus ke desktop and mobile state. |
+| Contrast | Light/dark mode tetap readable di shell utama | Cek teks, chip status, input, dan tombol primary. |
+| Mobile 375 | Tidak ada horizontal overflow | Pastikan `document.documentElement.scrollWidth <= window.innerWidth + 1`. |
+
+---
+
 ## Devices to Test
 
 | Class | Viewport | Examples |
@@ -152,5 +167,6 @@ across both light and dark modes.
 ## Version Info
 
 - **Release:** v1.17.3
+- **Last updated:** v1.21.8
 - **Created:** 2026-06-03
 - **Previous:** v1.17.2 (72519e3)

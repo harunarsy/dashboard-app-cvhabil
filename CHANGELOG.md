@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.8-stable] - 2026-06-08
+
+### Added
+- Operator smoke checklist dirapikan untuk flow login/logout, modal open-close, sidebar parity, table actions, contrast, dan mobile 375 overflow.
+- Shell smoke test ditambahkan untuk memastikan sidebar navigation parity dan logout kembali ke `/login` tanpa DB write path.
+
 ## [v1.21.7-stable] - 2026-06-08
 
 ### Added

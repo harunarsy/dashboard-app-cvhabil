@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.7-stable",
+    version: "v1.21.8-stable",
     date: "8 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "smoke",
+        text: "Operator smoke checklist dan sidebar shell test diperjelas: login/logout, modal flow, sidebar parity, table actions, contrast, dan overflow 375 sekarang punya pegangan yang lebih rapi.",
+        dev: "docs/SMOKE_CHECKLIST_CROSS_PLATFORM.md ditambah operator smoke flow; frontend/src/components/SidebarSmoke.test.js memverifikasi sidebar navigation parity dan logout tanpa DB write path.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.7-stable",
+    date: "8 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "note",
@@ -2822,7 +2834,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.7-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.8-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
