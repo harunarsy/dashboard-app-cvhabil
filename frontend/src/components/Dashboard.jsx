@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.5-stable",
+    version: "v1.21.6-stable",
     date: "8 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "report",
+        text: "Visual QA baseline sudah dicatat: login, dashboard, sales, invoices, orders, inventory, customers, tasks section, dan print settings lolos tanpa P0/P1/P2.",
+        dev: "docs/VISUAL_QA_v1.21.6.md merangkum audit light/dark di 375, 768, 1440, dan desktop Arc/default; `/tasks` bukan route terpisah di App.js jadi divalidasi lewat TasksKanban pada Dashboard.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.5-stable",
+    date: "8 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2798,7 +2810,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.5-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.6-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.6-stable] - 2026-06-08
+
+### Added
+- Visual QA baseline report v1.21.6: audit light/dark pada login, dashboard, sales, invoices, orders, inventory, customers, tasks section, dan print settings menemukan tidak ada P0/P1/P2.
+
+### Fixed
+- Fresh dashboard session still shows the release modal and onboarding tour in a dismissable way; overlay behavior stays intentional and non-blocking after CTA close/skip.
+
 ## [v1.21.5-stable] - 2026-06-08
 
 ### Fixed
