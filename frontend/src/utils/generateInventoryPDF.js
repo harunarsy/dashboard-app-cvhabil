@@ -1,12 +1,12 @@
-// Generate PDF Template Opname Inventory (v1.8.5; v1.10.3 per-batch)
+// Generate PDF Template Opname Inventory (v1.8.5; v1.10.3 per-batch; v1.21.10 print polish)
 // Landscape A4 — list PER-BATCH (No.Batch + ED per baris) dgn kolom Stok Fisik / Selisih / Catatan kosong.
-// Batch/ED kosong tampil "(kosong)" → petugas isi tangan saat opname → balik input ke app.
+// Batch/ED yang belum tercatat dibiarkan kosong agar area tersebut bisa ditulis tangan saat opname.
 // Input `rows`: [{ product_id, code, name, unit, batch_id, batch_no, expired_date, qty_current }] (1 baris per batch; produk tanpa batch = 1 baris batch null).
 // NOTE: jsPDF helvetica = ASCII only — JANGAN pakai emoji.
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '(kosong)';
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
 
 export const generateInventoryPDF = (rows, options = {}) => {
   if (!Array.isArray(rows) || rows.length === 0) {
@@ -46,6 +46,14 @@ export const generateInventoryPDF = (rows, options = {}) => {
   doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.3);
   doc.line(margin + 30, margin + 16, margin + 90, margin + 16);
 
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+  doc.setTextColor(70, 70, 70);
+  doc.text(
+    'Isi Stok Fisik, Selisih, dan Catatan. Jika Batch/ED belum tercatat, tulis manual saat opname.',
+    margin + 96,
+    margin + 16,
+  );
+
   // Divider
   doc.setDrawColor(...accentColor);
   doc.setLineWidth(0.4);
@@ -59,11 +67,11 @@ export const generateInventoryPDF = (rows, options = {}) => {
 
   const body = rows.map((r, i) => [
     i + 1,
-    r.code || '-',
+    r.code || '',
     r.name || '-',
     r.unit || 'pcs',
-    r.batch_no || '(kosong)',
-    r.expired_date ? fmtDate(r.expired_date) : '(kosong)',
+    r.batch_no || '',
+    fmtDate(r.expired_date),
     r.qty_current != null ? String(r.qty_current) : '0',
     '', // Stok Fisik — kosong (diisi tangan)
     '', // Selisih — kosong
@@ -86,21 +94,24 @@ export const generateInventoryPDF = (rows, options = {}) => {
     bodyStyles: {
       fontSize: 8,
       cellPadding: 2,
-      minCellHeight: 8, // ruang cukup buat tulisan tangan
+      minCellHeight: 9, // ruang cukup buat tulisan tangan
       lineColor: [200, 200, 200],
       lineWidth: 0.1,
     },
+    alternateRowStyles: {
+      fillColor: [252, 253, 255],
+    },
     columnStyles: {
       0: { halign: 'center', cellWidth: 9 },
-      1: { halign: 'left', cellWidth: 20 },
-      2: { halign: 'left', cellWidth: 58 },
+      1: { halign: 'left', cellWidth: 18 },
+      2: { halign: 'left', cellWidth: 54 },
       3: { halign: 'center', cellWidth: 14 },
-      4: { halign: 'left', cellWidth: 28 },
-      5: { halign: 'center', cellWidth: 22 },
-      6: { halign: 'center', cellWidth: 20 },
-      7: { halign: 'center', cellWidth: 22, fillColor: [250, 250, 250] },
-      8: { halign: 'center', cellWidth: 18, fillColor: [250, 250, 250] },
-      9: { halign: 'left', fillColor: [250, 250, 250] },
+      4: { halign: 'left', cellWidth: 26 },
+      5: { halign: 'center', cellWidth: 21 },
+      6: { halign: 'center', cellWidth: 18, fillColor: [245, 248, 252] },
+      7: { halign: 'center', cellWidth: 24, fillColor: [255, 255, 255] },
+      8: { halign: 'center', cellWidth: 20, fillColor: [255, 255, 255] },
+      9: { halign: 'left', cellWidth: 69, fillColor: [255, 255, 255] },
     },
     // v1.8.5.1: bottom margin 28mm reserve buat sig + page# (auto-paginate kalau row gak fit)
     margin: { left: margin, right: margin, bottom: 28 },

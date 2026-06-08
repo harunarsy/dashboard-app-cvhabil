@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.10-stable] - 2026-06-08
+
+### Changed
+- Template opname cetak sekarang lebih rapi untuk input manual: kolom Batch/ED kosong tidak lagi menampilkan teks `(kosong)`, area tulis dibuat lebih lega, dan instruksi pengisian ditambahkan di header.
+
 ## [v1.21.9-stable] - 2026-06-08
 
 ### Fixed

@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.9-stable",
+    version: "v1.21.10-stable",
     date: "8 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Template opname cetak sekarang lebih rapi untuk input manual: kolom Batch/ED kosong tidak lagi menampilkan teks kosong dan area tulis dibuat lebih lega.",
+        dev: "generateInventoryPDF.js removes printed empty placeholders from Batch/ED, adds print instructions, increases row height, and widens manual input columns for Stok Fisik/Selisih/Catatan.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.9-stable",
+    date: "8 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2846,7 +2858,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.9-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.10-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
