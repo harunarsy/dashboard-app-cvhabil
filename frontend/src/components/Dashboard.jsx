@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.21.3-stable",
+    date: "8 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Animasi transisi: masuk dari login ke dashboard dan keluar (logout) sekarang punya efek zoom halus yang mulus.",
+        dev: "route-fade scale+fade; login submit ui-auth-exit zoom-out; respects prefers-reduced-motion.",
+      },
+    ],
+  },
+  {
     version: "v1.21.2-stable",
     date: "7 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2762,7 +2774,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.2-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.3-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

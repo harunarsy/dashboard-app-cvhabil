@@ -13,6 +13,7 @@ export default function Login({
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [exiting, setExiting] = useState(false);
   const { login, loading } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -27,7 +28,8 @@ export default function Login({
 
     const result = await login(username, password);
     if (result.success) {
-      navigate("/dashboard");
+      setExiting(true);
+      setTimeout(() => navigate("/dashboard"), 300);
     } else {
       if (
         result.error === "Network Error" ||
@@ -73,7 +75,7 @@ export default function Login({
 
   return (
     <div
-      className="ui-page ui-motion-page min-h-screen flex flex-col justify-center items-center px-4 py-6 sm:py-10 font-sans transition-colors duration-300"
+      className={`ui-page ui-motion-page min-h-screen flex flex-col justify-center items-center px-4 py-6 sm:py-10 font-sans transition-colors duration-300${exiting ? " ui-auth-exit" : ""}`}
       style={{ backgroundColor: isVantaMode ? "transparent" : bg, color: text }}
     >
       {/* Theme toggle (floating top-right) */}
@@ -134,7 +136,7 @@ export default function Login({
             className="ui-over-media-copy mt-3 px-3 py-1 text-xs font-semibold"
             style={{ color: sub }}
           >
-            HABIL SUPERAPP v1.21.2-stable — 2026
+            HABIL SUPERAPP v1.21.3-stable — 2026
           </p>
         </div>
 

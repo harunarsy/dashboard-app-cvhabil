@@ -601,8 +601,22 @@ body.dark .ui-over-media-copy {
 .ui-auth-enter {
   animation: ui-auth-zoom 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+@keyframes ui-auth-zoom-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+.ui-auth-exit {
+  animation: ui-auth-zoom-out 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 @media (prefers-reduced-motion: reduce) {
-  .ui-auth-enter {
+  .ui-auth-enter,
+  .ui-auth-exit {
     animation: none;
   }
 }
@@ -1008,14 +1022,18 @@ tr.ui-row.ui-hover-delight:focus-within {
 
 .route-fade {
   opacity: 0;
+  transform: scale(0.985) translateY(4px);
   transition:
     opacity var(--route-fade-duration, var(--ui-motion-page))
+      var(--ui-motion-enter),
+    transform var(--route-fade-duration, var(--ui-motion-page))
       var(--ui-motion-enter);
-  will-change: opacity;
+  will-change: opacity, transform;
 }
 
 .route-fade--entered {
   opacity: 1;
+  transform: none;
 }
 
 .ui-tooltip-anchor {

@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.3-stable] - 2026-06-08
+
+### Added
+- Login → dashboard and logout → login zoom transition (route-fade scale + fade; login submit zoom-out exit). Respects reduced-motion.
+
 ## [v1.21.2-stable] - 2026-06-07
 
 ### Fixed
