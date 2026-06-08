@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.4-stable] - 2026-06-08
+
+### Fixed
+- Login transition respects reduced-motion: navigate immediately (no 300ms delay) when prefers-reduced-motion; exit timer cleaned up on unmount
+
+### Added
+- docs/ENV_SETUP.md — local/dev/prod DB SOP (dev branch, dry-run audit rule, local login)
+
 ## [v1.21.3-stable] - 2026-06-08
 
 ### Added

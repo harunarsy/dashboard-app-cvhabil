@@ -1,9 +1,10 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { Lock, User, Building2, Sun, Moon } from "lucide-react";
 import Tooltip from "./common/Tooltip";
 import FieldError from "./common/FieldError";
+import useReducedMotion from "../hooks/useReducedMotion";
 
 export default function Login({
   isDarkMode = false,
@@ -16,6 +17,14 @@ export default function Login({
   const [exiting, setExiting] = useState(false);
   const { login, loading } = useContext(AuthContext);
   const navigate = useNavigate();
+  const reducedMotion = useReducedMotion();
+  const exitTimer = useRef(null);
+  useEffect(
+    () => () => {
+      if (exitTimer.current) clearTimeout(exitTimer.current);
+    },
+    [],
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,8 +37,12 @@ export default function Login({
 
     const result = await login(username, password);
     if (result.success) {
-      setExiting(true);
-      setTimeout(() => navigate("/dashboard"), 300);
+      if (reducedMotion) {
+        navigate("/dashboard");
+      } else {
+        setExiting(true);
+        exitTimer.current = setTimeout(() => navigate("/dashboard"), 300);
+      }
     } else {
       if (
         result.error === "Network Error" ||
@@ -136,7 +149,7 @@ export default function Login({
             className="ui-over-media-copy mt-3 px-3 py-1 text-xs font-semibold"
             style={{ color: sub }}
           >
-            HABIL SUPERAPP v1.21.3-stable — 2026
+            HABIL SUPERAPP v1.21.4-stable — 2026
           </p>
         </div>
 

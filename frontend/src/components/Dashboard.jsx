@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.3-stable",
+    version: "v1.21.4-stable",
     date: "8 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Transisi login lebih rapi: kalau perangkat mengaktifkan mode hemat animasi, langsung masuk dashboard tanpa jeda.",
+        dev: "Login respects useReducedMotion: skip 300ms exit delay + cleanup timer on unmount. Added docs/ENV_SETUP.md.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.3-stable",
+    date: "8 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -2774,7 +2786,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.3-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.4-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
