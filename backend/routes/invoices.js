@@ -132,7 +132,13 @@ const toNumber = (value) => {
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : 0;
 };
-const toDateOnly = (value) => (value ? String(value).slice(0, 10) : null);
+const toDateOnly = (value) => {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+  return String(value).slice(0, 10);
+};
 const prorateSourceQty = (sourceQty, fullBaseQty, stockedBaseQty) => {
   const source = toNumber(sourceQty) || toNumber(fullBaseQty);
   const full = toNumber(fullBaseQty);

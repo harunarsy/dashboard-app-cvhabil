@@ -1842,7 +1842,7 @@ export default function InvoiceList({
                         ? "#FFF"
                         : isDarkMode
                           ? "var(--color-text-muted)"
-                          : "var(--color-surface-elevated)",
+                          : "var(--color-text)",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -3451,7 +3451,7 @@ function InvoiceRow({
             fontSize: "13px",
             color: isDarkMode
               ? "var(--color-text-muted)"
-              : "var(--color-border-strong)",
+              : "var(--color-text-muted)",
             fontWeight: "500",
           }}
         >
@@ -3522,9 +3522,7 @@ function InvoiceRow({
             style={{
               fontWeight: "600",
               fontSize: "13px",
-              color: isDarkMode
-                ? "var(--color-text-muted)"
-                : "var(--color-text)",
+              color: "var(--color-text)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",

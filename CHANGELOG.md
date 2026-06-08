@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.9-stable] - 2026-06-08
+
+### Fixed
+- Faktur Pembelian: update status lunas untuk faktur posted tidak lagi tertolak karena mismatch normalisasi tanggal expired item.
+- Faktur Pembelian: teks distributor di rekap/list light mode kembali memakai token teks, bukan token surface.
+
 ## [v1.21.8-stable] - 2026-06-08
 
 ### Added

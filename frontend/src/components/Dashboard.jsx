@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.8-stable",
+    version: "v1.21.9-stable",
     date: "8 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Faktur Pembelian lebih aman: update status lunas untuk faktur yang sudah masuk stok tidak lagi tertolak, dan teks distributor di light mode kembali terbaca.",
+        dev: "backend/routes/invoices.js normalizes Date objects to ISO date before comparing posted invoice items; InvoiceList distributor summary/row text uses text tokens instead of surface token.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.8-stable",
+    date: "8 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "smoke",
@@ -2834,7 +2846,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.8-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.9-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
