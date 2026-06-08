@@ -2409,7 +2409,8 @@ export default function InvoiceList({
           style={{
             display: "grid",
             gridTemplateColumns:
-              "36px 110px 140px 1fr 130px 130px 150px 120px 100px",
+              "36px 110px 140px minmax(160px, 1fr) 130px 130px 150px 120px 100px",
+            minWidth: "1080px",
             padding: "12px 16px",
             backgroundColor: "var(--color-surface-elevated)",
             borderBottom: "1px solid var(--color-border)",
@@ -3413,7 +3414,8 @@ function InvoiceRow({
         style={{
           display: "grid",
           gridTemplateColumns:
-            "36px 110px 140px 1fr 130px 130px 150px 120px 100px",
+            "36px 110px 140px minmax(160px, 1fr) 130px 130px 150px 120px 100px",
+          minWidth: "1080px",
           padding: "14px 16px",
           borderBottom: `1px solid ${isDarkMode ? "var(--color-surface-raised)" : "#F0F0F0"}`,
           alignItems: "center",

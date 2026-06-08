@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.11-stable] - 2026-06-08
+
+### Fixed
+- Faktur table: distributor column no longer collapses/vanishes on narrow viewports (e.g. Arc with sidebar open). Added minmax(160px,1fr) + grid min-width 1080px so the table scrolls horizontally instead of squishing.
+
 ## [v1.21.10-stable] - 2026-06-08
 
 ### Changed

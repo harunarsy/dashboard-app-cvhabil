@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.10-stable",
+    version: "v1.21.11-stable",
     date: "8 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Tabel Faktur sekarang bisa di-scroll samping di layar sempit — nama distributor tidak hilang lagi saat sidebar browser dibuka.",
+        dev: "InvoiceList table header+rows: distributor minmax(160px,1fr) + grid minWidth 1080px; ui-table-shell scrolls instead of collapsing on narrow viewports.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.10-stable",
+    date: "8 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -2858,7 +2870,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.10-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.11-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
