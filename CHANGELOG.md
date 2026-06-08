@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.7-stable] - 2026-06-08
+
+### Added
+- Fresh visual QA follow-up tetap clean; tidak ada frontend fix baru yang perlu dipaksa untuk inventory/customers/dashboard shell.
+
 ## [v1.21.6-stable] - 2026-06-08
 
 ### Added

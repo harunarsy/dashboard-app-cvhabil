@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.6-stable",
+    version: "v1.21.7-stable",
     date: "8 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "note",
+        text: "Follow-up visual QA tetap clean; tidak ada frontend fix baru yang perlu dipaksakan untuk shell inventory/customers/dashboard.",
+        dev: "v1.21.6 baseline report tetap berlaku: 375/768/1280/1440 light-dark checks pass; TasksKanban tetap divalidasi lewat Dashboard karena tidak ada route /tasks terpisah.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.6-stable",
+    date: "8 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "report",
@@ -2810,7 +2822,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.6-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.7-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
