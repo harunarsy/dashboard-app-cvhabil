@@ -216,10 +216,13 @@ export function generateNotaPDF(order, options = {}) {
   if (type !== 'terima') {
     // v1.8.1: tax-friendly breakdown — DPP (subtotal exc PPN) + PPN 11% + Grand Total
     // Indo practice: harga jual customer = gross (inc PPN). Decompose: GT = DPP + PPN.
+    // v1.21.14: ongkir baris terpisah, TIDAK kena PPN. DPP/PPN dihitung dari nilai produk saja.
     const grandTotal = parseFloat(order.total) || 0;
+    const ongkir = parseFloat(order.ongkir) || 0;
+    const productTotal = grandTotal - ongkir;
     const PPN_RATE = 0.11;
-    const dpp = grandTotal / (1 + PPN_RATE);
-    const ppn = grandTotal - dpp;
+    const dpp = productTotal / (1 + PPN_RATE);
+    const ppn = productTotal - dpp;
     const rightX = pageWidth - margin;
 
     doc.setFontSize(baseFontSize - 1);
@@ -229,6 +232,10 @@ export function generateNotaPDF(order, options = {}) {
     finalY += isA6 ? 2.4 : (isA5 ? 3.3 : 4.5);
     doc.text(`PPN 11%: ${fmtRp(ppn)}`, rightX, finalY, { align: 'right' });
     finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
+    if (ongkir > 0) {
+      doc.text(`Ongkir: ${fmtRp(ongkir)}`, rightX, finalY, { align: 'right' });
+      finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
+    }
 
     doc.setFontSize(baseFontSize + 1);
     doc.setFont('helvetica', 'bold');

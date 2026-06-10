@@ -63,6 +63,9 @@ const ensureSchema = async () => {
     } catch (e) { /* sudah didrop, abaikan */ }
     await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS sales_orders_order_number_active_idx
                       ON sales_orders(order_number) WHERE is_deleted = FALSE`);
+    // v1.21.14: ongkir nota-level (ditagih ke customer) + ongkir_cost (biaya kurir asli, internal)
+    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS ongkir DECIMAL(15,2) DEFAULT 0`);
+    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS ongkir_cost DECIMAL(15,2) DEFAULT 0`);
     // v1.16.2+: batch_id_snapshot for tracking selected batch in sales_items
     await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS batch_id_snapshot INT`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_sales_items_batch_snapshot ON sales_items(batch_id_snapshot)`);
@@ -231,8 +234,12 @@ router.post('/', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, payment_method, payment_details, order_number: manualOrderNumber, channel: rawChannel, due_date, payment_terms } = req.body;
+    const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, payment_method, payment_details, order_number: manualOrderNumber, channel: rawChannel, due_date, payment_terms, ongkir: rawOngkir, ongkir_cost: rawOngkirCost } = req.body;
     const channel = ['offline', 'online'].includes(rawChannel) ? rawChannel : 'offline';
+    // v1.21.14: ongkir = biaya yang DITAGIH ke customer (masuk total + nota PDF);
+    // ongkir_cost = biaya kurir asli (internal, buat hitung untung; TIDAK di nota).
+    const ongkir = Math.max(0, parseFloat(rawOngkir) || 0);
+    const ongkirCost = Math.max(0, parseFloat(rawOngkirCost) || 0);
     if (!customer_name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
     if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
 
@@ -251,16 +258,19 @@ router.post('/', auth, async (req, res) => {
 
     let total = 0;
     let gross_profit = 0;
-    items.forEach(it => { 
+    items.forEach(it => {
       total += (it.qty || 1) * (it.unit_price || 0);
       // v1.11.12: unit_hpp = HNA exc PPN (SSOT). Margin real = vs HPP inc PPN.
       gross_profit += (it.qty || 1) * ((it.unit_price || 0) - (it.unit_hpp || 0) * (1 + tax.PPN_RATE));
     });
+    // v1.21.14: ongkir ditagih masuk total; untung ongkir = ditagih - biaya asli.
+    total += ongkir;
+    gross_profit += (ongkir - ongkirCost);
 
     const { rows } = await client.query(
-      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
-      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null]
+      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms, ongkir, ongkir_cost)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null, ongkir, ongkirCost]
     );
     const order = rows[0];
 
@@ -410,8 +420,10 @@ router.put('/:id', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, status, payment_method, payment_details, channel: rawChannel, due_date, payment_terms } = req.body;
+    const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, status, payment_method, payment_details, channel: rawChannel, due_date, payment_terms, ongkir: rawOngkir, ongkir_cost: rawOngkirCost } = req.body;
     const channel = ['offline', 'online'].includes(rawChannel) ? rawChannel : 'offline';
+    const ongkir = Math.max(0, parseFloat(rawOngkir) || 0);
+    const ongkirCost = Math.max(0, parseFloat(rawOngkirCost) || 0);
     if (!customer_name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
     if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
 
@@ -422,11 +434,14 @@ router.put('/:id', auth, async (req, res) => {
       // v1.11.12: unit_hpp = HNA exc PPN (SSOT). Margin real = vs HPP inc PPN.
       gross_profit += (it.qty || 1) * ((it.unit_price || 0) - (it.unit_hpp || 0) * (1 + tax.PPN_RATE));
     });
+    // v1.21.14: ongkir ditagih masuk total; untung ongkir = ditagih - biaya asli.
+    total += ongkir;
+    gross_profit += (ongkir - ongkirCost);
 
     const { rowCount } = await client.query(
-      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, channel=$12, due_date=$13, payment_terms=$14, updated_at=NOW()
-       WHERE id=$15 AND is_deleted=FALSE`,
-      [customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'draft', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, req.params.id]
+      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, channel=$12, due_date=$13, payment_terms=$14, ongkir=$15, ongkir_cost=$16, updated_at=NOW()
+       WHERE id=$17 AND is_deleted=FALSE`,
+      [customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'draft', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, ongkir, ongkirCost, req.params.id]
     );
     if (!rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
 

@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.13-stable",
+    version: "v1.21.14-stable",
     date: "10 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "feature",
+        text: "Ongkir bisa diisi langsung di nota — gak perlu bikin produk ONGKIR lagi. Ada 2 kolom: yang ditagih ke customer (muncul di nota) dan biaya kurir asli (opsional, buat hitung untung, gak muncul di nota). Cocok buat kirim sendiri (untung), pihak ketiga (impas), atau subsidi ongkir (motong margin).",
+        dev: "sales_orders +ongkir +ongkir_cost. POST/PUT: total += ongkir, gross_profit += (ongkir - ongkir_cost). PDF: ongkir baris terpisah, TIDAK kena PPN (DPP/PPN dari nilai produk saja). Produk ONGKIR legacy disembunyikan dari product picker. Nota lama dibiarkan utuh.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.13-stable",
+    date: "10 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2899,7 +2911,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.13-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.14-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

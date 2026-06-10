@@ -87,11 +87,11 @@ const blankItem = () => ({
 });
 const computeNotaMargin = (order) => {
   const items = order.items || [];
-  const revenue = items.reduce(
+  const itemRevenue = items.reduce(
     (s, it) => s + (parseFloat(it.unit_price) || 0) * (parseFloat(it.qty) || 0),
     0,
   );
-  const margin = items.reduce(
+  const itemMargin = items.reduce(
     (s, it) =>
       s +
       ((parseFloat(it.unit_price) || 0) -
@@ -99,6 +99,11 @@ const computeNotaMargin = (order) => {
         (parseFloat(it.qty) || 0),
     0,
   );
+  // v1.21.14: ongkir ikut revenue & margin (untung ongkir = ditagih - biaya asli)
+  const ongkir = parseFloat(order.ongkir) || 0;
+  const ongkirCost = parseFloat(order.ongkir_cost) || 0;
+  const revenue = itemRevenue + ongkir;
+  const margin = itemMargin + (ongkir - ongkirCost);
   const pct = revenue > 0 ? (margin / revenue) * 100 : 0;
   return { revenue, margin, pct };
 };
@@ -183,6 +188,8 @@ export default function SalesOrderList({
     channel: "offline",
     due_date: "",
     payment_terms: null,
+    ongkir: "",
+    ongkir_cost: "",
   });
   const [items, setItems] = useState([blankItem()]);
   const [itemBatches, setItemBatches] = useState([]);
@@ -252,7 +259,12 @@ export default function SalesOrderList({
   const fetchProducts = async () => {
     try {
       const { data } = await inventoryAPI.getProducts();
-      setProducts(data);
+      // v1.21.14: ONGKIR jadi field nota (legacy product disembunyikan dari pemilih produk)
+      setProducts(
+        (data || []).filter(
+          (p) => (p.name || "").trim().toUpperCase() !== "ONGKIR",
+        ),
+      );
     } catch (e) {
       console.error(e);
     }
@@ -525,6 +537,8 @@ export default function SalesOrderList({
       channel: "offline",
       due_date: "",
       payment_terms: null,
+      ongkir: "",
+      ongkir_cost: "",
     });
     setItems([blankItem()]);
     setItemBatches([]);
@@ -544,6 +558,8 @@ export default function SalesOrderList({
       channel: order.channel || "offline",
       due_date: order.due_date ? order.due_date.split("T")[0] : "",
       payment_terms: order.payment_terms || null,
+      ongkir: parseFloat(order.ongkir) > 0 ? String(parseFloat(order.ongkir)) : "",
+      ongkir_cost: parseFloat(order.ongkir_cost) > 0 ? String(parseFloat(order.ongkir_cost)) : "",
     });
     // v1.8.1: include batch snapshot fields supaya batch picker bisa pre-fill
     // v1.16.2: tambah _selected_batch_id untuk lookup berbasis id
@@ -933,10 +949,13 @@ export default function SalesOrderList({
     setItems(newItems);
   };
 
-  const grandTotal = items.reduce(
+  const productSubtotal = items.reduce(
     (sum, it) => sum + (it.qty || 0) * (it.unit_price || 0),
     0,
   );
+  // v1.21.14: ongkir (ditagih) masuk grand total nota.
+  const ongkirAmount = Math.max(0, parseFloat(form.ongkir) || 0);
+  const grandTotal = productSubtotal + ongkirAmount;
 
   const inputStyle = {
     width: "100%",
@@ -2667,6 +2686,76 @@ export default function SalesOrderList({
                         fontFamily: "inherit",
                       }}
                     />
+                  </div>
+
+                  {/* v1.21.14: Ongkir (nota-level) */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "12px",
+                      padding: "10px 0",
+                      borderTop: `1px solid ${border}`,
+                    }}
+                  >
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          color: sub,
+                          marginBottom: "4px",
+                        }}
+                      >
+                        Ongkir (ditagih ke customer)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        inputMode="numeric"
+                        value={form.ongkir}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, ongkir: e.target.value }))
+                        }
+                        placeholder="0"
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          color: sub,
+                          marginBottom: "4px",
+                        }}
+                      >
+                        Biaya kurir asli (opsional)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        inputMode="numeric"
+                        value={form.ongkir_cost}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, ongkir_cost: e.target.value }))
+                        }
+                        placeholder="0"
+                        style={inputStyle}
+                      />
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          color: "var(--color-text-subtle)",
+                          display: "block",
+                          marginTop: "2px",
+                        }}
+                      >
+                        Buat hitung untung — TIDAK muncul di nota
+                      </span>
+                    </div>
                   </div>
 
                   {/* Total */}

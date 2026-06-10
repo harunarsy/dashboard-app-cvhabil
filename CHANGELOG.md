@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.14-stable] - 2026-06-10
+
+### Added
+- Nota Penjualan: fitur **ongkir nota-level**. Dua kolom baru di `sales_orders`: `ongkir` (ditagih ke customer, masuk total + muncul di PDF nota) dan `ongkir_cost` (biaya kurir asli, internal, untuk hitung untung — TIDAK muncul di nota). `total += ongkir`; `gross_profit += (ongkir − ongkir_cost)` → mendukung kirim sendiri (untung), pihak ketiga (impas), dan subsidi ongkir (motong margin). PDF: ongkir baris terpisah, TIDAK kena PPN (DPP/PPN tetap dihitung dari nilai produk saja). Produk "ONGKIR" lama disembunyikan dari pemilih produk nota; nota lama yang masih memakai produk ONGKIR dibiarkan utuh (non-destruktif).
+
 ## [v1.21.13-stable] - 2026-06-10
 
 ### Fixed
