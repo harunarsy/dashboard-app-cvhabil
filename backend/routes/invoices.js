@@ -135,7 +135,12 @@ const toNumber = (value) => {
 const toDateOnly = (value) => {
   if (!value) return null;
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toISOString().slice(0, 10);
+    // pg parses DATE columns as Date at LOCAL midnight; use local parts so the
+    // YYYY-MM-DD matches the string sent from the client regardless of server TZ.
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, '0');
+    const d = String(value.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
   return String(value).slice(0, 10);
 };
@@ -342,6 +347,9 @@ const syncProductHna = async (client, productId, hna, purchaseOrderId = null, ba
 };
 
 const roundQty = (value) => Number(toNumber(value).toFixed(4));
+// Money columns are DECIMAL(15,2) — compare at 2 decimals so a recomputed value
+// like 314176.875 doesn't false-positive against the stored 314176.88.
+const round2 = (value) => Number(toNumber(value).toFixed(2));
 const canonicalInvoiceItem = async (client, item) => {
   const { product } = await resolveProductByIdOrName(client, item);
   const qtyInUnit = toNumber(item.quantity);
@@ -352,10 +360,10 @@ const canonicalInvoiceItem = async (client, item) => {
     product_name: normalizeProductName(item.product_name),
     quantity: roundQty(qtyBase),
     unit,
-    unit_price: roundQty(item.unit_price || item.hna || 0),
+    unit_price: round2(item.unit_price || item.hna || 0),
     expired_date: toDateOnly(item.expired_date),
-    hna: roundQty(item.hna),
-    hna_baru: roundQty(item.hna_baru),
+    hna: round2(item.hna),
+    hna_baru: round2(item.hna_baru),
     batch_number: item.batch_number || '',
   };
 };
@@ -365,10 +373,10 @@ const canonicalStoredInvoiceItem = (item) => ({
   product_name: normalizeProductName(item.product_name),
   quantity: roundQty(item.quantity),
   unit: item.unit || 'pcs',
-  unit_price: roundQty(item.unit_price || item.hna || 0),
+  unit_price: round2(item.unit_price || item.hna || 0),
   expired_date: toDateOnly(item.expired_date),
-  hna: roundQty(item.hna),
-  hna_baru: roundQty(item.hna_baru),
+  hna: round2(item.hna),
+  hna_baru: round2(item.hna_baru),
   batch_number: item.batch_number || '',
 });
 

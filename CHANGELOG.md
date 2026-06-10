@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.13-stable] - 2026-06-10
+
+### Fixed
+- Faktur Pembelian: update status pembayaran (Sudah/Belum Bayar) untuk faktur yang sudah jadi stok tidak lagi tertolak. Root cause: `invoiceItemsChanged` membandingkan nilai uang dengan 4 desimal padahal kolom DB `DECIMAL(15,2)` membulatkan ke 2 desimal (mis. hna_baru 314176.875 vs tersimpan 314176.88) → false-positive "items changed". Sekarang field uang (hna/hna_baru/unit_price) dibandingkan pada 2 desimal, dan `toDateOnly` memakai komponen tanggal lokal (TZ-safe) bukan `toISOString`.
+
 ## [v1.21.12-stable] - 2026-06-10
 
 ### Fixed

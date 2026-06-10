@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.12-stable",
+    version: "v1.21.13-stable",
     date: "10 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Faktur yang sudah jadi stok sekarang bisa diubah status bayarnya (Sudah/Belum Bayar) tanpa ditolak — sebelumnya gagal simpan untuk faktur yang harganya ada pecahan koma.",
+        dev: "invoiceItemsChanged false-positive: canonical compare money fields (hna/hna_baru/unit_price) now round2 to match DECIMAL(15,2); toDateOnly uses local date parts (TZ-safe) instead of toISOString.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.12-stable",
+    date: "10 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2887,7 +2899,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.12-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.13-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
