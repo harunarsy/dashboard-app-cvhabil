@@ -33,9 +33,26 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.21.12-stable",
+    date: "10 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Koreksi HNA 7 produk yang tersimpan sebagai HPP (inc PPN) — ENTRAMIX 555, ENTRASOY ALMOND SOYA, PEPTIBREN VANILA, PEPTISOL COKLAT/VANILA, TS NFDM, TS SWEET DIABTX. HPP di inventory sekarang akurat.",
+        dev: "DB fix: product_master.hna ROUND(hna/1.11) for id IN (7,12,26,29,28,4,3). inventory_batches.hna=67500 for PEPTISOL batch #33,34.",
+      },
+      {
+        type: "fix",
+        text: "Warning otomatis muncul saat simpan faktur dengan nama produk yang tidak cocok di master — stok tidak masuk diam-diam tidak terjadi lagi.",
+        dev: "Backend POST/PUT /api/invoices returns unmatchedProducts[]. Frontend doSave shows amber toast (8s) listing unmatched names.",
+      },
+    ],
+  },
+  {
     version: "v1.21.11-stable",
     date: "8 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2870,7 +2887,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.11-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.12-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

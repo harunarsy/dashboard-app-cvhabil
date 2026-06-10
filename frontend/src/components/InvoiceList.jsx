@@ -503,12 +503,12 @@ export default function InvoiceList({
     [],
   );
 
-  const showToast = (msg) => {
+  const showToast = (msg, durationMs) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setSuccessToast(msg);
     toastTimerRef.current = setTimeout(
       () => setSuccessToast(""),
-      UI_MOTION.duration.toastSuccess,
+      durationMs || UI_MOTION.duration.toastSuccess,
     );
   };
 
@@ -1049,8 +1049,9 @@ export default function InvoiceList({
     setIsSaving(true);
     try {
       const isEdit = !!editingId;
-      if (isEdit) await invoicesAPI.update(editingId, payload);
-      else await invoicesAPI.create(payload);
+      const res = isEdit
+        ? await invoicesAPI.update(editingId, payload)
+        : await invoicesAPI.create(payload);
       try {
         await invoicesAPI.clearDraft();
       } catch (e) {
@@ -1064,11 +1065,20 @@ export default function InvoiceList({
       fetchProducts();
       resetForm();
       setShowModal(false);
-      showToast(
-        isEdit
-          ? "✅ Faktur berhasil diupdate!"
-          : "✅ Faktur berhasil disimpan!",
-      );
+      const unmatched = res?.data?.unmatchedProducts || [];
+      if (unmatched.length > 0) {
+        const names = unmatched.map((u) => `"${u.name}"`).join(", ");
+        showToast(
+          `⚠️ Faktur tersimpan. ${unmatched.length} produk tidak ada di master — stok TIDAK masuk otomatis. Sesuaikan nama: ${names}`,
+          8000,
+        );
+      } else {
+        showToast(
+          isEdit
+            ? "✅ Faktur berhasil diupdate!"
+            : "✅ Faktur berhasil disimpan!",
+        );
+      }
     } catch (err) {
       showToast("Error: " + (err.response?.data?.error || err.message));
     } finally {
@@ -1499,15 +1509,20 @@ export default function InvoiceList({
             top: "24px",
             left: "50%",
             transform: "translateX(-50%)",
-            backgroundColor: "var(--color-success)",
+            backgroundColor: successToast.startsWith("⚠️")
+              ? "var(--color-warning, #d97706)"
+              : "var(--color-success)",
             color: "white",
             padding: "12px 28px",
             borderRadius: "12px",
             fontWeight: "700",
-            fontSize: "15px",
+            fontSize: "14px",
             zIndex: 9999,
             boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
             transition: uiTransition("all", UI_MOTION.duration.page),
+            maxWidth: "600px",
+            textAlign: "center",
+            lineHeight: "1.5",
           }}
         >
           {successToast}

@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.12-stable] - 2026-06-10
+
+### Fixed
+- Data integrity: koreksi `product_master.hna` untuk 7 produk yang tersimpan sebagai HPP (inc PPN 11%) bukan HNA (exc PPN) — ENTRAMIX 555, ENTRASOY ALMOND SOYA 200G, PEPTIBREN VANILA, PEPTISOL COKLAT, PEPTISOL VANILA, TS NFDM 1000G, TS SWEET DIABTX 150'S. Root cause: nama produk di faktur distributor tidak cocok dengan product_master → syncProductHna tidak berjalan → produk diedit manual dengan nilai HPP.
+- Data integrity: koreksi `inventory_batches.hna` untuk PEPTISOL COKLAT dan PEPTISOL VANILA (batch HNA sebelumnya 0 → 67.500 sesuai HNA after diskon 10%).
+- UX: warning toast otomatis muncul saat faktur disimpan dengan nama produk yang tidak cocok di master produk, sehingga silent bug "stok tidak masuk" tidak terjadi diam-diam.
+
 ## [v1.21.11-stable] - 2026-06-08
 
 ### Fixed

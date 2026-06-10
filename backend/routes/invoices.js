@@ -661,6 +661,7 @@ router.post('/', auth, async (req, res) => {
     const poItemsByName = purchase_order_id
       ? await loadPurchaseOrderItemsForUpdate(client, purchase_order_id)
       : null;
+    const unmatchedProducts = [];
     if (items && items.length > 0) {
       for (const item of items) {
         const product = (item.product_id && productLookup.byId.get(String(item.product_id)))
@@ -748,10 +749,9 @@ router.post('/', auth, async (req, res) => {
           }
         } else if (!product) {
           const normalizedName = normalizeProductName(item.product_name);
-          const warningSuffix = productLookup.ambiguousNames.has(normalizedName)
-            ? ' (nama duplikat)'
-            : '';
-          console.warn(`[Invoice ${invoice_number}] Produk "${item.product_name}" tidak bisa dipetakan ke product_master${warningSuffix} — stok tidak dibuat otomatis`);
+          const isDuplicate = productLookup.ambiguousNames.has(normalizedName);
+          console.warn(`[Invoice ${invoice_number}] Produk "${item.product_name}" tidak bisa dipetakan ke product_master${isDuplicate ? ' (nama duplikat)' : ''} — stok tidak dibuat otomatis`);
+          unmatchedProducts.push({ name: item.product_name, duplicate: isDuplicate });
         }
       }
     }
@@ -762,7 +762,7 @@ router.post('/', auth, async (req, res) => {
 
     const final = await pool.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
     if (global.io) global.io.emit('invoiceCreated', final.rows[0]);
-    res.status(201).json({ invoice: final.rows[0], items: items||[] });
+    res.status(201).json({ invoice: final.rows[0], items: items||[], unmatchedProducts });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Create invoice error:', err);
@@ -840,6 +840,7 @@ router.put('/:id', auth, async (req, res) => {
       if (Object.keys(before).length > 0) await logAudit(id, afterSnap.invoice_number, 'UPDATE', { before, after }, 'Field(s) changed: ' + Object.keys(before).join(', '));
     }
 
+    const unmatchedProducts = [];
     if (items !== undefined && !hasStockMutations) {
       await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [id]);
       const productLookup = items && items.length > 0
@@ -849,6 +850,9 @@ router.put('/:id', auth, async (req, res) => {
         const product = (item.product_id && productLookup.byId.get(String(item.product_id)))
           || productLookup.byName.get(normalizeProductName(item.product_name))
           || null;
+        if (!product && item.product_name?.trim()) {
+          unmatchedProducts.push({ name: item.product_name, duplicate: productLookup.ambiguousNames.has(normalizeProductName(item.product_name)) });
+        }
         const qtyInUnit = parseFloat(item.quantity) || 0;
         const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
         const packSize = product?.pack_size || 1;
@@ -880,7 +884,7 @@ router.put('/:id', auth, async (req, res) => {
 
     await client.query('COMMIT');
     if (global.io) global.io.emit('invoiceUpdated', result.rows[0]);
-    res.json(result.rows[0]);
+    res.json({ ...result.rows[0], unmatchedProducts });
   } catch (err) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
