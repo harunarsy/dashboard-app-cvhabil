@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.16-stable] - 2026-06-10
+
+### Fixed
+- Dashboard "Total Laba": kini menyertakan untung/rugi ongkir (`SUM(ongkir − ongkir_cost)`) agar konsisten dengan "Total Penjualan" yang sudah memuat ongkir. Sebelumnya laba hanya dari margin produk (`sales_items`) sehingga ongkir menaikkan pemasukan tapi tidak laba. `total_laba` + `prev_total_laba` di `dashboard.js` ditambah subquery ongkir yang di-scope per-order (tidak terkali jumlah item). Breakdown channel/kategori tetap product-level (ongkir tidak punya kategori).
+
 ## [v1.21.15-stable] - 2026-06-10
 
 ### Fixed

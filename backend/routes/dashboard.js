@@ -32,8 +32,17 @@ router.get('/stats', auth, async (req, res) => {
     // padahal unit_hpp = HNA exc PPN → margin overstate ~11% (PPN masukan = cost yg gak ke-account).
     // SEKARANG: recompute on-the-fly dari sales_items dgn HPP inc PPN = unit_hpp × (1 + PPN_RATE).
     // Field sales_orders.gross_profit dibiarkan legacy (audit) — gak diapus.
+    // v1.21.16: total_laba = margin produk + untung ongkir (ongkir - ongkir_cost),
+    // biar konsisten dgn total_penjualan yg sudah termasuk ongkir. Subquery ongkir
+    // di-scope independen (per-order, bukan per item-row) supaya tidak terkali jumlah item.
     const { rows: [{ total_laba }] } = await pool.query(`
-      SELECT COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - COALESCE(si.unit_hpp, 0) * $1)), 0) AS total_laba
+      SELECT COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - COALESCE(si.unit_hpp, 0) * $1)), 0)
+        + COALESCE((
+            SELECT SUM(COALESCE(so2.ongkir, 0) - COALESCE(so2.ongkir_cost, 0))
+            FROM sales_orders so2
+            WHERE so2.is_deleted = false AND so2.payment_status = 'paid' AND so2.status = 'final'
+              AND DATE_TRUNC('month', so2.sale_date) = DATE_TRUNC('month', CURRENT_DATE)
+          ), 0) AS total_laba
       FROM sales_orders so
       JOIN sales_items si ON si.sales_order_id = so.id
       WHERE so.is_deleted = false
@@ -43,7 +52,14 @@ router.get('/stats', auth, async (req, res) => {
     `, [hppMultiplier]);
 
     const { rows: [{ prev_total_laba }] } = await pool.query(`
-      SELECT COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - COALESCE(si.unit_hpp, 0) * $1)), 0) AS prev_total_laba
+      SELECT COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - COALESCE(si.unit_hpp, 0) * $1)), 0)
+        + COALESCE((
+            SELECT SUM(COALESCE(so2.ongkir, 0) - COALESCE(so2.ongkir_cost, 0))
+            FROM sales_orders so2
+            WHERE so2.is_deleted = false AND so2.payment_status = 'paid' AND so2.status = 'final'
+              AND so2.sale_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
+              AND so2.sale_date < DATE_TRUNC('month', CURRENT_DATE)
+          ), 0) AS prev_total_laba
       FROM sales_orders so
       JOIN sales_items si ON si.sales_order_id = so.id
       WHERE so.is_deleted = false

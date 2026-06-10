@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.15-stable",
+    version: "v1.21.16-stable",
     date: "10 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Dashboard 'Total Laba' sekarang ikut menghitung untung/rugi ongkir (sebelumnya pemasukan naik karena ongkir tapi laba tidak ikut — tidak konsisten).",
+        dev: "dashboard.js total_laba + prev_total_laba: tambah subquery scoped SUM(ongkir - ongkir_cost). Channel/category breakdown tetap product-level (ongkir tidak punya kategori).",
+      },
+    ],
+  },
+  {
+    version: "v1.21.15-stable",
+    date: "10 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2923,7 +2935,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.15-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.16-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
