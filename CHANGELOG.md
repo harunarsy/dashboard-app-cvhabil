@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.15-stable] - 2026-06-10
+
+### Fixed
+- Nota Penjualan: "Total Margin Nota" di list sekarang menyertakan untung ongkir (`ongkir − ongkir_cost`), sebelumnya hanya margin produk (inline `items.reduce` tidak ikut ongkir). Ditambah baris ongkir terpisah pada footer margin.
+- Data: sinkron semua batch DIANERAL 180G aktif ke HNA 30.096,57 (HPP 33.407,19). Batch dari invoice-122 (faktur 29.05) tersimpan 30.324 (HPP 33.659,64) karena tidak menerapkan diskon COD 0,75% → menyebabkan HPP tidak konsisten antar batch + nota mengambil HPP terlalu tinggi via FEFO. Snapshot HPP & gross_profit nota terdampak (HSB-NOTA-2606019) ikut dikoreksi.
+
 ## [v1.21.14-stable] - 2026-06-10
 
 ### Added

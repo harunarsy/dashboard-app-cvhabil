@@ -1806,7 +1806,7 @@ export default function SalesOrderList({
                             </tbody>
                             <tfoot>
                               {(() => {
-                                const totalMargin = o.items.reduce(
+                                const itemMargin = o.items.reduce(
                                   (s, it) =>
                                     s +
                                     (parseFloat(it.unit_price) -
@@ -1814,7 +1814,47 @@ export default function SalesOrderList({
                                       parseFloat(it.qty || 0),
                                   0,
                                 );
+                                // v1.21.14: ongkir ikut total margin (untung = ditagih - biaya asli)
+                                const ongkirVal = parseFloat(o.ongkir) || 0;
+                                const ongkirCostVal = parseFloat(o.ongkir_cost) || 0;
+                                const ongkirMargin = ongkirVal - ongkirCostVal;
+                                const totalMargin = itemMargin + ongkirMargin;
                                 return (
+                                  <>
+                                  {ongkirVal > 0 && (
+                                    <tr style={{ borderTop: `1px dashed ${border}` }}>
+                                      <td
+                                        colSpan={6}
+                                        style={{
+                                          padding: "6px 10px",
+                                          textAlign: "right",
+                                          fontWeight: "600",
+                                          fontSize: "12px",
+                                          color: sub,
+                                        }}
+                                      >
+                                        Ongkir (untung {fmtRp(ongkirVal)}
+                                        {ongkirCostVal > 0
+                                          ? ` − biaya ${fmtRp(ongkirCostVal)}`
+                                          : ""}
+                                        )
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: "6px 10px",
+                                          textAlign: "right",
+                                          fontWeight: "600",
+                                          fontSize: "12px",
+                                          color:
+                                            ongkirMargin >= 0
+                                              ? "var(--color-success)"
+                                              : "var(--color-danger)",
+                                        }}
+                                      >
+                                        {fmtRp(ongkirMargin)}
+                                      </td>
+                                    </tr>
+                                  )}
                                   <tr
                                     style={{ borderTop: `2px solid ${border}` }}
                                   >
@@ -1844,6 +1884,7 @@ export default function SalesOrderList({
                                       {fmtRp(totalMargin)}
                                     </td>
                                   </tr>
+                                  </>
                                 );
                               })()}
                             </tfoot>

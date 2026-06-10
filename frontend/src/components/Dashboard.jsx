@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.14-stable",
+    version: "v1.21.15-stable",
     date: "10 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Untung ongkir sekarang ikut kehitung di 'Total Margin Nota' (sebelumnya cuma margin produk). Muncul baris ongkir terpisah juga biar jelas.",
+        dev: "SalesOrderList tfoot totalMargin: itemMargin + (ongkir - ongkir_cost), tambah baris ongkir. Data: sinkron batch DIANERAL ke HNA 30096.57 (HPP 33407.19) — batch invoice-122 ketinggalan COD 0.75%.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.14-stable",
+    date: "10 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "feature",
@@ -2911,7 +2923,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.14-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.15-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
