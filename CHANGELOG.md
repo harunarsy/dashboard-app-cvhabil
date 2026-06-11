@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.18-stable] - 2026-06-11
+
+### Changed
+- Produk (tambah/edit): **KODE wajib & unik** (Fase 1a fondasi identitas by-KODE). `inventory.js` POST/PUT memvalidasi `code` non-kosong + cek duplikat `UPPER(TRIM(code))` (exclude self saat PUT) → balas 409 bila bentrok; kode dinormalisasi uppercase saat simpan. Form `InventoryDashboard`: field Kode ditandai wajib (*), auto-uppercase, validasi sisi klien sebelum submit. Mencegah produk tanpa identitas → prasyarat matching by-KODE/ID, gate anti stok-hilang, dan alias di fase berikutnya.
+
 ## [v1.21.17-stable] - 2026-06-11
 
 ### Added

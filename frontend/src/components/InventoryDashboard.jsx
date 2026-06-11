@@ -462,14 +462,19 @@ export default function InventoryDashboard({
       setModalError("Nama produk wajib diisi");
       return;
     }
+    if (!pForm.code.trim()) {
+      setModalError("KODE produk wajib diisi (identitas unik tiap barang)");
+      return;
+    }
+    const payload = { ...pForm, code: pForm.code.trim().toUpperCase() };
     setModalError("");
     setModalSaving(true);
     try {
       let productId = editId;
       if (editId) {
-        await inventoryAPI.updateProduct(editId, pForm);
+        await inventoryAPI.updateProduct(editId, payload);
       } else {
-        const { data: created } = await inventoryAPI.createProduct(pForm);
+        const { data: created } = await inventoryAPI.createProduct(payload);
         productId = created?.id;
       }
       // v1.7.0: PUT tiers (bulk replace) — kalau ada perubahan
@@ -1772,13 +1777,19 @@ export default function InventoryDashboard({
                     }}
                   >
                     <div>
-                      <label style={labelStyle}>Kode</label>
+                      <label style={labelStyle}>
+                        Kode{" "}
+                        <span style={{ color: "var(--color-danger)" }}>*</span>
+                      </label>
                       <input
                         value={pForm.code}
                         onChange={(e) =>
-                          setPForm((p) => ({ ...p, code: e.target.value }))
+                          setPForm((p) => ({
+                            ...p,
+                            code: e.target.value.toUpperCase(),
+                          }))
                         }
-                        placeholder="OBT-001"
+                        placeholder="BRAND-VARIAN-UKURAN (mis. ENTMX-VAN-555G)"
                         style={inputStyle}
                       />
                     </div>

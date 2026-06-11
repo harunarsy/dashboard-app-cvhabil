@@ -177,13 +177,17 @@ router.get('/products/:id', auth, async (req, res) => {
 router.post('/products', auth, async (req, res) => {
   const { code, name, unit, hna, sell_price, category, min_stock, base_unit, pack_unit, pack_size, sell_price_pack } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Nama produk wajib diisi' });
+  if (!code?.trim()) return res.status(400).json({ error: 'KODE produk wajib diisi' });
+  const normCode = code.trim().toUpperCase();
   try {
+    const dup = await pool.query('SELECT id, name FROM product_master WHERE UPPER(TRIM(code)) = $1 LIMIT 1', [normCode]);
+    if (dup.rows.length) return res.status(409).json({ error: `KODE "${normCode}" sudah dipakai produk: ${dup.rows[0].name}` });
     const resolvedBaseUnit = base_unit || unit || 'pcs';
     const resolvedPackSize = parseInt(pack_size) || 1;
     const { rows } = await pool.query(
       `INSERT INTO product_master (code, name, unit, hna, sell_price, category, min_stock, base_unit, pack_unit, pack_size, sell_price_pack)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [code || null, name.trim(), resolvedBaseUnit, hna || 0, sell_price || 0, category || '', min_stock || 5,
+      [normCode, name.trim(), resolvedBaseUnit, hna || 0, sell_price || 0, category || '', min_stock || 5,
        resolvedBaseUnit, pack_unit || null, resolvedPackSize, sell_price_pack || 0]
     );
     res.status(201).json(rows[0]);
@@ -194,14 +198,18 @@ router.post('/products', auth, async (req, res) => {
 router.put('/products/:id', auth, async (req, res) => {
   const { code, name, unit, hna, sell_price, category, min_stock, base_unit, pack_unit, pack_size, sell_price_pack } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Nama produk wajib diisi' });
+  if (!code?.trim()) return res.status(400).json({ error: 'KODE produk wajib diisi' });
+  const normCode = code.trim().toUpperCase();
   try {
+    const dup = await pool.query('SELECT id, name FROM product_master WHERE UPPER(TRIM(code)) = $1 AND id <> $2 LIMIT 1', [normCode, req.params.id]);
+    if (dup.rows.length) return res.status(409).json({ error: `KODE "${normCode}" sudah dipakai produk: ${dup.rows[0].name}` });
     const resolvedBaseUnit = base_unit || unit || 'pcs';
     const resolvedPackSize = parseInt(pack_size) || 1;
     const { rows } = await pool.query(
       `UPDATE product_master SET code=$1, name=$2, unit=$3, hna=$4, sell_price=$5, category=$6, min_stock=$7,
         base_unit=$8, pack_unit=$9, pack_size=$10, sell_price_pack=$11, updated_at=NOW()
        WHERE id=$12 RETURNING *`,
-      [code || null, name.trim(), resolvedBaseUnit, hna || 0, sell_price || 0, category || '', min_stock || 5,
+      [normCode, name.trim(), resolvedBaseUnit, hna || 0, sell_price || 0, category || '', min_stock || 5,
        resolvedBaseUnit, pack_unit || null, resolvedPackSize, sell_price_pack || 0, req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Product not found' });

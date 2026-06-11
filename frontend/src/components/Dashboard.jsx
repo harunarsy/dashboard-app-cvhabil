@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.17-stable",
+    version: "v1.21.18-stable",
     date: "11 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "changed",
+        text: "Tambah/edit produk sekarang WAJIB isi KODE, dan KODE nggak boleh kembar (mis. ENTMX-VAN-555G). Mencegah barang nyelonong tanpa identitas — fondasi biar stok & HPP nggak ketuker.",
+        dev: "Fase 1a. inventory.js POST/PUT: validasi code required + cek unik (UPPER(TRIM(code)), exclude self saat PUT) → 409 kalau bentrok; code dinormalisasi uppercase. Form InventoryDashboard: field Kode wajib + auto-uppercase + validasi klien.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.17-stable",
+    date: "11 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -2952,7 +2964,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.17-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.18-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
