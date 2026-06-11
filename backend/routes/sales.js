@@ -513,6 +513,7 @@ router.put('/:id', auth, async (req, res) => {
       let snapshotBatchId = null;
       let snapshotBatchNo = null;
       let snapshotExpiredDate = null;
+      let snapshotTaxType = tax.normalizeTaxType(it.unit_hpp_tax_type);
 
       if (product) {
         const resolved = await resolveSelectedBatchForSale(client, product.id, it);
