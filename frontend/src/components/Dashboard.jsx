@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.19-stable",
+    version: "v1.21.20-stable",
     date: "11 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Faktur Pembelian sekarang menolak produk yang belum dikenali master Inventory, supaya stok dan HPP tidak hilang diam-diam.",
+        dev: "Invoice POST/PUT editable: resolve semua item di awal transaksi. Unmatched/ambiguous product rollback + HTTP 422 dengan unmatchedProducts; frontend menampilkan daftar produk bermasalah dan tidak menutup modal sebagai sukses.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.19-stable",
+    date: "11 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "changed",
@@ -2976,7 +2988,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.19-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.20-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

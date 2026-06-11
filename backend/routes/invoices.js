@@ -256,6 +256,47 @@ const loadProductLookupForItems = async (client, items = []) => {
   return lookup;
 };
 
+const emptyProductLookup = () => ({
+  byId: new Map(),
+  byName: new Map(),
+  ambiguousNames: new Set(),
+});
+
+const getProductFromLookup = (productLookup, item = {}) => {
+  if (!item) return null;
+  return (item.product_id && productLookup.byId.get(String(item.product_id)))
+    || productLookup.byName.get(normalizeProductName(item.product_name))
+    || null;
+};
+
+const collectUnmatchedProducts = (productLookup, items = []) => {
+  const seen = new Set();
+  const unmatchedProducts = [];
+
+  for (const item of items || []) {
+    const name = String(item.product_name || '').trim();
+    if (!name || getProductFromLookup(productLookup, item)) continue;
+
+    const normalizedName = normalizeProductName(name);
+    const key = `${normalizedName}:${item.product_id || ''}`;
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    unmatchedProducts.push({
+      name,
+      product_id: item.product_id || null,
+      duplicate: productLookup.ambiguousNames.has(normalizedName),
+    });
+  }
+
+  return unmatchedProducts;
+};
+
+const buildUnmatchedProductError = (unmatchedProducts) => ({
+  error: 'Ada produk faktur yang belum dikenali master Inventory. Pilih produk dari master atau buat produk baru di Inventory dulu.',
+  unmatchedProducts,
+});
+
 const loadPurchaseOrderItemsForUpdate = async (client, purchaseOrderId) => {
   if (!purchaseOrderId) return null;
   const { rows } = await client.query(
@@ -577,10 +618,20 @@ router.post('/', auth, async (req, res) => {
   const resolvedHnaFinal = hna_final ?? final_hna ?? null;
   const resolvedPpn = ppn_masukan ?? ppn_input ?? null;
   const purchase_order_id = req.body.purchase_order_id ?? null;
+  const invoiceItems = items || [];
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    const productLookup = invoiceItems.length > 0
+      ? await loadProductLookupForItems(client, invoiceItems)
+      : emptyProductLookup();
+    const unmatchedProducts = collectUnmatchedProducts(productLookup, invoiceItems);
+    if (unmatchedProducts.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(422).json(buildUnmatchedProductError(unmatchedProducts));
+    }
 
     const existing = await client.query(
       'SELECT id FROM invoices WHERE invoice_number = $1 AND deleted_at IS NULL AND (is_draft IS NULL OR is_draft = FALSE)',
@@ -632,14 +683,9 @@ router.post('/', auth, async (req, res) => {
     }
 
     await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
-    const productLookup = items && items.length > 0
-      ? await loadProductLookupForItems(client, items)
-      : { byId: new Map(), byName: new Map(), ambiguousNames: new Set() };
-    if (items && items.length > 0) {
-      for (const item of items) {
-        const product = (item.product_id && productLookup.byId.get(String(item.product_id)))
-          || productLookup.byName.get(normalizeProductName(item.product_name))
-          || null;
+    if (invoiceItems.length > 0) {
+      for (const item of invoiceItems) {
+        const product = getProductFromLookup(productLookup, item);
         const qtyInUnit = parseFloat(item.quantity) || 0;
         const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
         const packSize = product?.pack_size || 1;
@@ -669,12 +715,9 @@ router.post('/', auth, async (req, res) => {
     const poItemsByName = purchase_order_id
       ? await loadPurchaseOrderItemsForUpdate(client, purchase_order_id)
       : null;
-    const unmatchedProducts = [];
-    if (items && items.length > 0) {
-      for (const item of items) {
-        const product = (item.product_id && productLookup.byId.get(String(item.product_id)))
-          || productLookup.byName.get(normalizeProductName(item.product_name))
-          || null;
+    if (invoiceItems.length > 0) {
+      for (const item of invoiceItems) {
+        const product = getProductFromLookup(productLookup, item);
         const qtyInUnit = parseFloat(item.quantity) || 0;
         const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
         const packSize = product?.pack_size || 1;
@@ -755,11 +798,6 @@ router.post('/', auth, async (req, res) => {
                displayUnit, sourceQtyValue]
             );
           }
-        } else if (!product) {
-          const normalizedName = normalizeProductName(item.product_name);
-          const isDuplicate = productLookup.ambiguousNames.has(normalizedName);
-          console.warn(`[Invoice ${invoice_number}] Produk "${item.product_name}" tidak bisa dipetakan ke product_master${isDuplicate ? ' (nama duplikat)' : ''} — stok tidak dibuat otomatis`);
-          unmatchedProducts.push({ name: item.product_name, duplicate: isDuplicate });
         }
       }
     }
@@ -770,7 +808,7 @@ router.post('/', auth, async (req, res) => {
 
     const final = await pool.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
     if (global.io) global.io.emit('invoiceCreated', final.rows[0]);
-    res.status(201).json({ invoice: final.rows[0], items: items||[], unmatchedProducts });
+    res.status(201).json({ invoice: final.rows[0], items: invoiceItems, unmatchedProducts: [] });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Create invoice error:', err);
@@ -794,6 +832,7 @@ router.put('/:id', auth, async (req, res) => {
 
   const resolvedHnaFinal = hna_final ?? final_hna ?? null;
   const resolvedPpn = ppn_masukan ?? ppn_input ?? null;
+  const invoiceItems = items || [];
 
   const client = await pool.connect();
   try {
@@ -817,6 +856,18 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(400).json({
         error: 'Qty faktur posted tidak bisa diedit — koreksi lewat Stok Opname',
       });
+    }
+
+    const shouldRewriteItems = items !== undefined && !hasStockMutations;
+    const productLookup = shouldRewriteItems && invoiceItems.length > 0
+      ? await loadProductLookupForItems(client, invoiceItems)
+      : emptyProductLookup();
+    if (shouldRewriteItems) {
+      const unmatchedProducts = collectUnmatchedProducts(productLookup, invoiceItems);
+      if (unmatchedProducts.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(422).json(buildUnmatchedProductError(unmatchedProducts));
+      }
     }
 
     const result = await client.query(
@@ -848,19 +899,10 @@ router.put('/:id', auth, async (req, res) => {
       if (Object.keys(before).length > 0) await logAudit(id, afterSnap.invoice_number, 'UPDATE', { before, after }, 'Field(s) changed: ' + Object.keys(before).join(', '));
     }
 
-    const unmatchedProducts = [];
-    if (items !== undefined && !hasStockMutations) {
+    if (shouldRewriteItems) {
       await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [id]);
-      const productLookup = items && items.length > 0
-        ? await loadProductLookupForItems(client, items)
-        : { byId: new Map(), byName: new Map(), ambiguousNames: new Set() };
-      for (const item of (items || [])) {
-        const product = (item.product_id && productLookup.byId.get(String(item.product_id)))
-          || productLookup.byName.get(normalizeProductName(item.product_name))
-          || null;
-        if (!product && item.product_name?.trim()) {
-          unmatchedProducts.push({ name: item.product_name, duplicate: productLookup.ambiguousNames.has(normalizeProductName(item.product_name)) });
-        }
+      for (const item of invoiceItems) {
+        const product = getProductFromLookup(productLookup, item);
         const qtyInUnit = parseFloat(item.quantity) || 0;
         const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
         const packSize = product?.pack_size || 1;
@@ -892,7 +934,7 @@ router.put('/:id', auth, async (req, res) => {
 
     await client.query('COMMIT');
     if (global.io) global.io.emit('invoiceUpdated', result.rows[0]);
-    res.json({ ...result.rows[0], unmatchedProducts });
+    res.json({ ...result.rows[0], unmatchedProducts: [] });
   } catch (err) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });

@@ -1034,9 +1034,11 @@ export default function InvoiceList({
     setIsSaving(true);
     try {
       const isEdit = !!editingId;
-      const res = isEdit
-        ? await invoicesAPI.update(editingId, payload)
-        : await invoicesAPI.create(payload);
+      if (isEdit) {
+        await invoicesAPI.update(editingId, payload);
+      } else {
+        await invoicesAPI.create(payload);
+      }
       try {
         await invoicesAPI.clearDraft();
       } catch (e) {
@@ -1050,21 +1052,21 @@ export default function InvoiceList({
       fetchProducts();
       resetForm();
       setShowModal(false);
-      const unmatched = res?.data?.unmatchedProducts || [];
-      if (unmatched.length > 0) {
+      showToast(
+        isEdit
+          ? "✅ Faktur berhasil diupdate!"
+          : "✅ Faktur berhasil disimpan!",
+      );
+    } catch (err) {
+      const unmatched = err.response?.data?.unmatchedProducts || [];
+      if (err.response?.status === 422 && unmatched.length > 0) {
         const names = unmatched.map((u) => `"${u.name}"`).join(", ");
         showToast(
-          `⚠️ Faktur tersimpan. ${unmatched.length} produk tidak ada di master — stok TIDAK masuk otomatis. Sesuaikan nama: ${names}`,
-          8000,
+          `⚠️ Faktur tidak disimpan. Produk belum dikenali master Inventory: ${names}. Pilih produk dari master atau buat produk baru dulu.`,
+          9000,
         );
-      } else {
-        showToast(
-          isEdit
-            ? "✅ Faktur berhasil diupdate!"
-            : "✅ Faktur berhasil disimpan!",
-        );
+        return;
       }
-    } catch (err) {
       showToast("Error: " + (err.response?.data?.error || err.message));
     } finally {
       setIsSaving(false);

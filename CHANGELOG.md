@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.20-stable] - 2026-06-11
+
+### Fixed
+- Faktur Pembelian: produk yang belum dikenali master Inventory sekarang ditolak dengan HTTP `422` sebelum invoice/items/stok disimpan. UI menampilkan daftar produk bermasalah dan tidak lagi memberi pesan "tersimpan" ketika stok akan skip diam-diam.
+
 ## [v1.21.19-stable] - 2026-06-11
 
 ### Changed
