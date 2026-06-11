@@ -3,11 +3,25 @@
 // HPP = Harga Pokok Penjualan (cost per pcs INC PPN) = HNA × (1 + PPN_RATE)
 
 const PPN_RATE = 0.11; // Indonesia PPN 11%
+const TAX_TYPE_FAKTUR = 'faktur';
+const TAX_TYPE_NOTA = 'nota';
+
+const normalizeTaxType = (value) => (
+  String(value || '').toLowerCase() === TAX_TYPE_NOTA
+    ? TAX_TYPE_NOTA
+    : TAX_TYPE_FAKTUR
+);
 
 const hppFromHna = (hna) => {
   const n = parseFloat(hna);
   if (isNaN(n)) return 0;
   return n * (1 + PPN_RATE);
+};
+
+const hppFromHnaByTaxType = (hna, taxType = TAX_TYPE_FAKTUR) => {
+  const n = parseFloat(hna);
+  if (isNaN(n)) return 0;
+  return normalizeTaxType(taxType) === TAX_TYPE_NOTA ? n : hppFromHna(n);
 };
 
 const hnaFromHpp = (hpp) => {
@@ -16,4 +30,19 @@ const hnaFromHpp = (hpp) => {
   return n / (1 + PPN_RATE);
 };
 
-module.exports = { PPN_RATE, hppFromHna, hnaFromHpp };
+const hnaFromHppByTaxType = (hpp, taxType = TAX_TYPE_FAKTUR) => {
+  const n = parseFloat(hpp);
+  if (isNaN(n)) return 0;
+  return normalizeTaxType(taxType) === TAX_TYPE_NOTA ? n : hnaFromHpp(n);
+};
+
+module.exports = {
+  PPN_RATE,
+  TAX_TYPE_FAKTUR,
+  TAX_TYPE_NOTA,
+  normalizeTaxType,
+  hppFromHna,
+  hppFromHnaByTaxType,
+  hnaFromHpp,
+  hnaFromHppByTaxType,
+};

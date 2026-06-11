@@ -63,10 +63,11 @@ const ensureSchema = async () => {
     CREATE INDEX IF NOT EXISTS idx_product_master_name_lc ON product_master ((LOWER(TRIM(name))));
   `);
   // Add hna column to inventory_batches if not exists
-  await pool.query(`
-    ALTER TABLE inventory_batches
-      ADD COLUMN IF NOT EXISTS hna DECIMAL(15,2) DEFAULT 0;
-  `);
+	  await pool.query(`
+	    ALTER TABLE inventory_batches
+	      ADD COLUMN IF NOT EXISTS hna DECIMAL(15,2) DEFAULT 0,
+	      ADD COLUMN IF NOT EXISTS tax_type VARCHAR(20) DEFAULT 'faktur';
+	  `);
   // Phase 1 additions: per-batch opname tracking + batch notes/soft-delete
   await pool.query(`
     ALTER TABLE inventory_batches ADD COLUMN IF NOT EXISTS notes TEXT;
@@ -725,11 +726,16 @@ router.get('/batches-by-product/:productId', auth, async (req, res) => {
       )`;
     }
 
-    // batch.hna sudah per-pcs (RAW, exc PPN) — HPP per pcs = hna * (1 + PPN_RATE)
-    const { rows } = await pool.query(`
-      SELECT id, batch_no, expired_date, qty_current, hna,
-             CASE WHEN hna > 0 THEN hna * ${1 + tax.PPN_RATE} ELSE 0 END AS hpp_inc_ppn,
-             CASE WHEN qty_current <= 0 THEN true ELSE false END AS is_historical
+	    // batch.hna faktur = HNA exc PPN; batch.hna nota = harga beli riil.
+	    const { rows } = await pool.query(`
+	      SELECT id, batch_no, expired_date, qty_current, hna,
+	             COALESCE(tax_type, 'faktur') AS tax_type,
+	             CASE
+	               WHEN hna <= 0 THEN 0
+	               WHEN COALESCE(tax_type, 'faktur') = 'nota' THEN hna
+	               ELSE hna * ${1 + tax.PPN_RATE}
+	             END AS hpp_inc_ppn,
+	             CASE WHEN qty_current <= 0 THEN true ELSE false END AS is_historical
       FROM inventory_batches
       ${whereClause}
       ORDER BY expired_date ASC NULLS LAST

@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.22.0-stable] - 2026-06-11
+
+### Added
+- Pembelian kini dibedakan **Faktur** (ada PPN masukan 11%) vs **Nota** (tanpa PPN) via toggle di form Faktur Pembelian. Mode Nota: PPN masukan `0`, HPP = harga beli apa adanya (tanpa ×1,11), batch inventory menyimpan harga beli riil dengan `tax_type='nota'`, dan `product_master.hna` tidak di-overwrite. Mode Faktur: perilaku lama tidak berubah.
+- Jalur cost end-to-end ikut sadar `tax_type`: `sales_items.unit_hpp_tax_type` di-snapshot dari batch terpilih/FEFO saat nota penjualan dibuat, Dashboard (Total Laba, margin per channel/kategori) menghitung cost per item sesuai tipe pajaknya, dan UI nota penjualan (margin, kolom HPP, dropdown batch) menampilkan HPP nota tanpa ×1,11. Data lama default `faktur` — tidak ada perubahan angka untuk transaksi existing.
+
 ## [v1.21.20-stable] - 2026-06-11
 
 ### Fixed

@@ -44,8 +44,9 @@ const ensureSchema = async () => {
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS channel VARCHAR(10) DEFAULT 'offline'`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS due_date DATE`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS payment_terms INTEGER`);
-    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS gross_profit DECIMAL(15,2) DEFAULT 0`);
-    await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS unit_hpp DECIMAL(15,2) DEFAULT 0`);
+	    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS gross_profit DECIMAL(15,2) DEFAULT 0`);
+	    await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS unit_hpp DECIMAL(15,2) DEFAULT 0`);
+	    await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS unit_hpp_tax_type VARCHAR(20) DEFAULT 'faktur'`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'unpaid'`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP`);
     // v1.6.0 multi-unit packaging: snapshot qty di unit input + pack_size saat sale
@@ -68,11 +69,11 @@ const ensureSchema = async () => {
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS ongkir_cost DECIMAL(15,2) DEFAULT 0`);
     // v1.16.2+: batch_id_snapshot for tracking selected batch in sales_items
     await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS batch_id_snapshot INT`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_sales_items_batch_snapshot ON sales_items(batch_id_snapshot)`);
+	    await pool.query(`CREATE INDEX IF NOT EXISTS idx_sales_items_batch_snapshot ON sales_items(batch_id_snapshot)`);
     // Safe backfill: only where unique match exists (batch_no + expired_date + product_name)
-    await pool.query(`
-      UPDATE sales_items si
-      SET batch_id_snapshot = b.id
+	    await pool.query(`
+	      UPDATE sales_items si
+	      SET batch_id_snapshot = b.id
       FROM inventory_batches b
       JOIN product_master p ON p.id = b.product_id
       WHERE si.batch_id_snapshot IS NULL
@@ -84,9 +85,17 @@ const ensureSchema = async () => {
              WHERE b2.product_id = p.id
              AND b2.batch_no = si.batch_no_snapshot
              AND (b2.expired_date = si.expired_date_snapshot OR (b2.expired_date IS NULL AND si.expired_date_snapshot IS NULL))
-        ) = 1
-    `);
-};
+	        ) = 1
+	    `);
+	    await pool.query(`
+	      UPDATE sales_items si
+	      SET unit_hpp_tax_type = COALESCE(b.tax_type, 'faktur')
+	      FROM inventory_batches b
+	      WHERE si.batch_id_snapshot = b.id
+	        AND (si.unit_hpp_tax_type IS NULL OR si.unit_hpp_tax_type = 'faktur')
+	        AND COALESCE(b.tax_type, 'faktur') = 'nota'
+	    `);
+	};
 if (process.env.NODE_ENV !== 'test') ensureSchema().catch(e => console.error('sales ensureSchema:', e));
 
 const generateOrderNumber = async (client) => {
@@ -188,6 +197,14 @@ const resolveSelectedBatchForSale = async (client, productId, item) => {
   return { batch: null, source: null };
 };
 
+const resolveItemHppTaxType = (item = {}, batch = null) => (
+  tax.normalizeTaxType(batch?.tax_type || item.unit_hpp_tax_type)
+);
+
+const getItemUnitCost = (item = {}) => (
+  tax.hppFromHnaByTaxType(item.unit_hpp || 0, item.unit_hpp_tax_type)
+);
+
 // GET all (excluding soft-deleted)
 router.get('/', auth, async (req, res) => {
   try {
@@ -258,11 +275,10 @@ router.post('/', auth, async (req, res) => {
 
     let total = 0;
     let gross_profit = 0;
-    items.forEach(it => {
-      total += (it.qty || 1) * (it.unit_price || 0);
-      // v1.11.12: unit_hpp = HNA exc PPN (SSOT). Margin real = vs HPP inc PPN.
-      gross_profit += (it.qty || 1) * ((it.unit_price || 0) - (it.unit_hpp || 0) * (1 + tax.PPN_RATE));
-    });
+	    items.forEach(it => {
+	      total += (it.qty || 1) * (it.unit_price || 0);
+	      gross_profit += (it.qty || 1) * ((it.unit_price || 0) - getItemUnitCost(it));
+	    });
     // v1.21.14: ongkir ditagih masuk total; untung ongkir = ditagih - biaya asli.
     total += ongkir;
     gross_profit += (ongkir - ongkirCost);
@@ -298,6 +314,7 @@ router.post('/', auth, async (req, res) => {
       let snapshotBatchId = null;
       let snapshotBatchNo = null;
       let snapshotExpiredDate = null;
+      let snapshotTaxType = tax.normalizeTaxType(it.unit_hpp_tax_type);
 
       if (product) {
         const resolved = await resolveSelectedBatchForSale(client, product.id, it);
@@ -307,34 +324,36 @@ router.post('/', auth, async (req, res) => {
             await client.query('ROLLBACK');
             return res.status(400).json({ error: `Stok batch tidak cukup untuk ${product.name} (tersedia: ${resolved.batch.qty_current})` });
           }
-          snapshotBatchId = resolved.batch.id;
-          snapshotBatchNo = resolved.batch.batch_no;
-          snapshotExpiredDate = resolved.batch.expired_date;
-          itemBatchInfo.push({ product, selectedBatchId: resolved.batch.id, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: true });
-        } else {
-          // FEFO fallback (existing behavior)
-          const { rows: [firstBatch] } = await client.query(
-            `SELECT id, batch_no, expired_date FROM inventory_batches
-             WHERE product_id = $1 AND qty_current > 0 AND COALESCE(is_active, TRUE) = TRUE
-             AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
-             ORDER BY expired_date ASC NULLS LAST LIMIT 1`,
-            [product.id]
-          );
-          snapshotBatchId = firstBatch?.id || null;
-          snapshotBatchNo = firstBatch?.batch_no || null;
-          snapshotExpiredDate = firstBatch?.expired_date || null;
-          itemBatchInfo.push({ product, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: false });
-        }
+	          snapshotBatchId = resolved.batch.id;
+	          snapshotBatchNo = resolved.batch.batch_no;
+	          snapshotExpiredDate = resolved.batch.expired_date;
+	          snapshotTaxType = resolveItemHppTaxType(it, resolved.batch);
+	          itemBatchInfo.push({ product, selectedBatchId: resolved.batch.id, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: true });
+	        } else {
+	          // FEFO fallback (existing behavior)
+	          const { rows: [firstBatch] } = await client.query(
+	            `SELECT id, batch_no, expired_date, tax_type FROM inventory_batches
+	             WHERE product_id = $1 AND qty_current > 0 AND COALESCE(is_active, TRUE) = TRUE
+	             AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
+	             ORDER BY expired_date ASC NULLS LAST LIMIT 1`,
+	            [product.id]
+	          );
+	          snapshotBatchId = firstBatch?.id || null;
+	          snapshotBatchNo = firstBatch?.batch_no || null;
+	          snapshotExpiredDate = firstBatch?.expired_date || null;
+	          snapshotTaxType = resolveItemHppTaxType(it, firstBatch);
+	          itemBatchInfo.push({ product, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: false });
+	        }
       } else {
         itemBatchInfo.push({ product: null, qtyBase: 0, qtyInUnit, unit: 'pcs', isSelected: false });
       }
 
-      await client.query(
-        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, subtotal, qty_in_unit, pack_size_at_sale, batch_id_snapshot, batch_no_snapshot, expired_date_snapshot)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-        [order.id, it.product_name, qtyBase, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, subtotal, qtyInUnit, packSize,
-         snapshotBatchId, snapshotBatchNo, snapshotExpiredDate]
-      );
+	      await client.query(
+	        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, unit_hpp_tax_type, subtotal, qty_in_unit, pack_size_at_sale, batch_id_snapshot, batch_no_snapshot, expired_date_snapshot)
+	         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+	        [order.id, it.product_name, qtyBase, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, snapshotTaxType, subtotal, qtyInUnit, packSize,
+	         snapshotBatchId, snapshotBatchNo, snapshotExpiredDate]
+	      );
     }
 
     // ─── Auto Stock-Out (FEFO or Selected Batch): Nota Penjualan → Inventory ───
@@ -429,11 +448,10 @@ router.put('/:id', auth, async (req, res) => {
 
     let total = 0;
     let gross_profit = 0;
-    items.forEach(it => {
-      total += (it.qty || 1) * (it.unit_price || 0);
-      // v1.11.12: unit_hpp = HNA exc PPN (SSOT). Margin real = vs HPP inc PPN.
-      gross_profit += (it.qty || 1) * ((it.unit_price || 0) - (it.unit_hpp || 0) * (1 + tax.PPN_RATE));
-    });
+	    items.forEach(it => {
+	      total += (it.qty || 1) * (it.unit_price || 0);
+	      gross_profit += (it.qty || 1) * ((it.unit_price || 0) - getItemUnitCost(it));
+	    });
     // v1.21.14: ongkir ditagih masuk total; untung ongkir = ditagih - biaya asli.
     total += ongkir;
     gross_profit += (ongkir - ongkirCost);
@@ -504,34 +522,36 @@ router.put('/:id', auth, async (req, res) => {
             await client.query('ROLLBACK');
             return res.status(400).json({ error: `Stok batch tidak cukup untuk ${product.name} (tersedia: ${resolved.batch.qty_current})` });
           }
-          snapshotBatchId = resolved.batch.id;
-          snapshotBatchNo = resolved.batch.batch_no;
-          snapshotExpiredDate = resolved.batch.expired_date;
-          itemBatchInfo.push({ product, selectedBatchId: resolved.batch.id, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: true });
-        } else {
-          // FEFO fallback (existing behavior)
-          const { rows: [firstBatch] } = await client.query(
-            `SELECT id, batch_no, expired_date FROM inventory_batches
-             WHERE product_id = $1 AND qty_current > 0 AND COALESCE(is_active, TRUE) = TRUE
-             AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
-             ORDER BY expired_date ASC NULLS LAST LIMIT 1`,
-            [product.id]
-          );
-          snapshotBatchId = firstBatch?.id || null;
-          snapshotBatchNo = firstBatch?.batch_no || null;
-          snapshotExpiredDate = firstBatch?.expired_date || null;
-          itemBatchInfo.push({ product, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: false });
-        }
+	          snapshotBatchId = resolved.batch.id;
+	          snapshotBatchNo = resolved.batch.batch_no;
+	          snapshotExpiredDate = resolved.batch.expired_date;
+	          snapshotTaxType = resolveItemHppTaxType(it, resolved.batch);
+	          itemBatchInfo.push({ product, selectedBatchId: resolved.batch.id, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: true });
+	        } else {
+	          // FEFO fallback (existing behavior)
+	          const { rows: [firstBatch] } = await client.query(
+	            `SELECT id, batch_no, expired_date, tax_type FROM inventory_batches
+	             WHERE product_id = $1 AND qty_current > 0 AND COALESCE(is_active, TRUE) = TRUE
+	             AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
+	             ORDER BY expired_date ASC NULLS LAST LIMIT 1`,
+	            [product.id]
+	          );
+	          snapshotBatchId = firstBatch?.id || null;
+	          snapshotBatchNo = firstBatch?.batch_no || null;
+	          snapshotExpiredDate = firstBatch?.expired_date || null;
+	          snapshotTaxType = resolveItemHppTaxType(it, firstBatch);
+	          itemBatchInfo.push({ product, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: false });
+	        }
       } else {
         itemBatchInfo.push({ product: null, qtyBase: 0, qtyInUnit, unit: 'pcs', isSelected: false });
       }
 
-      await client.query(
-        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, subtotal, qty_in_unit, pack_size_at_sale, batch_id_snapshot, batch_no_snapshot, expired_date_snapshot)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-        [req.params.id, it.product_name, qtyBase, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, subtotal, qtyInUnit, packSize,
-         snapshotBatchId, snapshotBatchNo, snapshotExpiredDate]
-      );
+	      await client.query(
+	        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, unit_hpp_tax_type, subtotal, qty_in_unit, pack_size_at_sale, batch_id_snapshot, batch_no_snapshot, expired_date_snapshot)
+	         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+	        [req.params.id, it.product_name, qtyBase, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, snapshotTaxType, subtotal, qtyInUnit, packSize,
+	         snapshotBatchId, snapshotBatchNo, snapshotExpiredDate]
+	      );
     }
 
     // 3) Apply-new stock-out: selected batch or FEFO deduct + INSERT mutations

@@ -8,6 +8,10 @@ const tax = require('../utils/tax');
 router.get('/stats', auth, async (req, res) => {
   try {
     const hppMultiplier = 1 + tax.PPN_RATE;
+    const unitHppCostSql = `CASE
+      WHEN COALESCE(si.unit_hpp_tax_type, 'faktur') = 'nota' THEN COALESCE(si.unit_hpp, 0)
+      ELSE COALESCE(si.unit_hpp, 0) * $1
+    END`;
 
     // 1. Total Penjualan bln ini
     const { rows: [{ total_penjualan }] } = await pool.query(`
@@ -30,13 +34,13 @@ router.get('/stats', auth, async (req, res) => {
     // 1b. Laba Kotor bln ini (Paid only) — v1.11.12 fix: pakai HPP inc PPN.
     // SEBELUMNYA: SUM(sales_orders.gross_profit) — formula sales.js pakai (unit_price - unit_hpp),
     // padahal unit_hpp = HNA exc PPN → margin overstate ~11% (PPN masukan = cost yg gak ke-account).
-    // SEKARANG: recompute on-the-fly dari sales_items dgn HPP inc PPN = unit_hpp × (1 + PPN_RATE).
+    // SEKARANG: recompute on-the-fly dari sales_items dgn HPP aktual per tax_type batch.
     // Field sales_orders.gross_profit dibiarkan legacy (audit) — gak diapus.
     // v1.21.16: total_laba = margin produk + untung ongkir (ongkir - ongkir_cost),
     // biar konsisten dgn total_penjualan yg sudah termasuk ongkir. Subquery ongkir
     // di-scope independen (per-order, bukan per item-row) supaya tidak terkali jumlah item.
     const { rows: [{ total_laba }] } = await pool.query(`
-      SELECT COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - COALESCE(si.unit_hpp, 0) * $1)), 0)
+      SELECT COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0)
         + COALESCE((
             SELECT SUM(COALESCE(so2.ongkir, 0) - COALESCE(so2.ongkir_cost, 0))
             FROM sales_orders so2
@@ -52,7 +56,7 @@ router.get('/stats', auth, async (req, res) => {
     `, [hppMultiplier]);
 
     const { rows: [{ prev_total_laba }] } = await pool.query(`
-      SELECT COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - COALESCE(si.unit_hpp, 0) * $1)), 0)
+      SELECT COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0)
         + COALESCE((
             SELECT SUM(COALESCE(so2.ongkir, 0) - COALESCE(so2.ongkir_cost, 0))
             FROM sales_orders so2
@@ -81,7 +85,8 @@ router.get('/stats', auth, async (req, res) => {
           so.id AS order_id,
           COALESCE(si.qty, 0) AS qty,
           COALESCE(si.unit_price, 0) AS unit_price,
-          COALESCE(si.unit_hpp, 0) AS unit_hpp
+	          COALESCE(si.unit_hpp, 0) AS unit_hpp,
+	          ${unitHppCostSql} AS unit_hpp_cost
         FROM sales_orders so
         JOIN sales_items si ON si.sales_order_id = so.id
         WHERE so.is_deleted = false
@@ -93,10 +98,10 @@ router.get('/stats', auth, async (req, res) => {
         channel,
         COUNT(DISTINCT order_id) AS order_count,
         COALESCE(SUM(qty * unit_price), 0) AS revenue,
-        COALESCE(SUM(qty * (unit_price - unit_hpp * $1)), 0) AS margin,
+	        COALESCE(SUM(qty * (unit_price - unit_hpp_cost)), 0) AS margin,
         CASE
           WHEN COALESCE(SUM(qty * unit_price), 0) > 0
-          THEN COALESCE(SUM(qty * (unit_price - unit_hpp * $1)), 0) / SUM(qty * unit_price) * 100
+	          THEN COALESCE(SUM(qty * (unit_price - unit_hpp_cost)), 0) / SUM(qty * unit_price) * 100
           ELSE 0
         END AS margin_pct
       FROM scoped_items
@@ -111,10 +116,10 @@ router.get('/stats', auth, async (req, res) => {
         COUNT(DISTINCT so.id) AS order_count,
         COALESCE(SUM(si.qty), 0) AS qty,
         COALESCE(SUM(COALESCE(si.qty, 0) * COALESCE(si.unit_price, 0)), 0) AS revenue,
-        COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - COALESCE(si.unit_hpp, 0) * $1)), 0) AS margin,
+	        COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0) AS margin,
         CASE
           WHEN COALESCE(SUM(COALESCE(si.qty, 0) * COALESCE(si.unit_price, 0)), 0) > 0
-          THEN COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - COALESCE(si.unit_hpp, 0) * $1)), 0)
+	          THEN COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0)
             / SUM(COALESCE(si.qty, 0) * COALESCE(si.unit_price, 0)) * 100
           ELSE 0
         END AS margin_pct

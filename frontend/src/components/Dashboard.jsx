@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.20-stable",
+    version: "v1.22.0-stable",
     date: "11 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Pembelian sekarang bisa dibedakan: Faktur (ada PPN masukan 11%) atau Nota (tanpa PPN). Kalau beli pakai nota, HPP dicatat sesuai harga beli asli — tidak lagi ketambahan 11% yang sebenarnya tidak kita bayar. Laba di Dashboard dan margin nota penjualan ikut akurat.",
+        dev: "invoices/inventory_batches/invoice_items/sales_items +tax_type (default 'faktur', backward compatible). Mode nota: PPN masukan 0, batch hna = harga beli, skip sync product_master.hna, skip ×1.11 di HPP. sales.js: snapshot unit_hpp_tax_type per item dari batch terpilih/FEFO; dashboard.js: cost CASE per tax_type. Frontend: toggle Faktur/Nota di form pembelian, kalkulasi PPN faktor 0 utk nota, SalesOrderList hppIncFor() per item + label batch dropdown.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.20-stable",
+    date: "11 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2988,7 +3000,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.20-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.22.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

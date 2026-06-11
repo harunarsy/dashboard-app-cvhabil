@@ -21,7 +21,8 @@ const ensureSchema = async () => {
       ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP,
       ADD COLUMN IF NOT EXISTS is_draft BOOLEAN DEFAULT FALSE,
       ADD COLUMN IF NOT EXISTS draft_data JSONB,
-      ADD COLUMN IF NOT EXISTS purchase_order_id INTEGER
+      ADD COLUMN IF NOT EXISTS purchase_order_id INTEGER,
+      ADD COLUMN IF NOT EXISTS tax_type VARCHAR(20) DEFAULT 'faktur'
   `);
   await pool.query(`
     ALTER TABLE invoice_items
@@ -32,7 +33,8 @@ const ensureSchema = async () => {
       ADD COLUMN IF NOT EXISTS disc_nominal DECIMAL(15,2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS hna_baru DECIMAL(15,2),
       ADD COLUMN IF NOT EXISTS hna_per_item DECIMAL(15,2),
-      ADD COLUMN IF NOT EXISTS product_id INTEGER
+      ADD COLUMN IF NOT EXISTS product_id INTEGER,
+      ADD COLUMN IF NOT EXISTS tax_type VARCHAR(20) DEFAULT 'faktur'
   `);
   // Audit log table
   await pool.query(`
@@ -63,6 +65,10 @@ const ensureSchema = async () => {
       ADD COLUMN IF NOT EXISTS unit VARCHAR(30) DEFAULT 'pcs',
       ADD COLUMN IF NOT EXISTS qty_in_unit DECIMAL(15,4),
       ADD COLUMN IF NOT EXISTS pack_size_at_invoice INT
+  `);
+  await pool.query(`
+    ALTER TABLE inventory_batches
+      ADD COLUMN IF NOT EXISTS tax_type VARCHAR(20) DEFAULT 'faktur'
   `);
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_invoice_items_product_id
@@ -615,8 +621,9 @@ router.post('/', auth, async (req, res) => {
     due_date, payment_date, status, items
   } = req.body;
 
+  const taxType = tax.normalizeTaxType(req.body.tax_type);
   const resolvedHnaFinal = hna_final ?? final_hna ?? null;
-  const resolvedPpn = ppn_masukan ?? ppn_input ?? null;
+  const resolvedPpn = taxType === tax.TAX_TYPE_NOTA ? 0 : (ppn_masukan ?? ppn_input ?? null);
   const purchase_order_id = req.body.purchase_order_id ?? null;
   const invoiceItems = items || [];
 
@@ -652,14 +659,15 @@ router.post('/', auth, async (req, res) => {
           hna_final=$8, ppn_input=$9, ppn_masukan=$10, ppn_pembulatan=$11,
           hna_plus_ppn=$12, harga_per_produk=$13,
           due_date=$14, payment_date=$15, status=$16,
-          purchase_order_id=COALESCE($17, purchase_order_id), updated_at=NOW()
-        WHERE id=$18`,
+          purchase_order_id=COALESCE($17, purchase_order_id),
+          tax_type=$18, updated_at=NOW()
+        WHERE id=$19`,
         [purchase_date, distributor_name,
          total_hna||null, discount_amount||null, hna_baru||null,
          disc_cod_ada||false, disc_cod_amount||null,
          resolvedHnaFinal, resolvedPpn, resolvedPpn, ppn_pembulatan||null,
          hna_plus_ppn||null, harga_per_produk||null,
-         due_date||null, payment_date||null, status||'Pending', purchase_order_id, invoiceId]
+         due_date||null, payment_date||null, status||'Pending', purchase_order_id, taxType, invoiceId]
       );
     } else {
       const r = await client.query(
@@ -669,14 +677,14 @@ router.post('/', auth, async (req, res) => {
            disc_cod_ada, disc_cod_amount,
            hna_final, ppn_input, ppn_masukan, ppn_pembulatan,
            hna_plus_ppn, harga_per_produk,
-           due_date, payment_date, status, purchase_order_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING id`,
+	           due_date, payment_date, status, purchase_order_id, tax_type)
+	         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id`,
         [invoice_number, purchase_date, distributor_name,
          total_hna||null, discount_amount||null, hna_baru||null,
          disc_cod_ada||false, disc_cod_amount||null,
          resolvedHnaFinal, resolvedPpn, resolvedPpn, ppn_pembulatan||null,
-         hna_plus_ppn||null, harga_per_produk||null,
-         due_date||null, payment_date||null, status||'Pending', purchase_order_id]
+	         hna_plus_ppn||null, harga_per_produk||null,
+	         due_date||null, payment_date||null, status||'Pending', purchase_order_id, taxType]
       );
       invoiceId = r.rows[0].id;
       await logAudit(invoiceId, invoice_number, 'CREATE', { invoice_number, distributor_name, status, hna_final: resolvedHnaFinal, hna_plus_ppn });
@@ -692,18 +700,18 @@ router.post('/', auth, async (req, res) => {
         const storedProductId = product ? product.id : null;
         await client.query(
           `INSERT INTO invoice_items
-            (invoice_id, product_name, product_id, quantity, unit_price, total_price,
-             expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
-             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+	            (invoice_id, product_name, product_id, quantity, unit_price, total_price,
+	             expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
+	             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice, tax_type)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
           [invoiceId, item.product_name, storedProductId, qtyBase,
            item.unit_price||item.hna||0, item.total_price||item.hna_times_qty||0,
            item.expired_date||null, item.hna||0, item.hna_times_qty||0,
            item.disc_percent||0, item.disc_nominal||0, item.hna_baru||0,
            item.hna_per_item||0, item.margin||0,
            item.disc_cod_per_item||0, item.hna_after_cod||0, item.hpp_inc_ppn||0,
-           item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize]
-        );
+	           item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize, taxType]
+	        );
       }
     }
 
@@ -723,7 +731,7 @@ router.post('/', auth, async (req, res) => {
         const packSize = product?.pack_size || 1;
         const displayUnit = item.unit || product?.base_unit || 'pcs';
 
-        if (product) {
+	        if (product && taxType === tax.TAX_TYPE_FAKTUR) {
           if (purchase_order_id) {
             let batchNo = item.batch_number || null;
             if (!batchNo) {
@@ -771,9 +779,9 @@ router.post('/', auth, async (req, res) => {
           if (purchase_order_id && poItem) {
             const batchHna = effectiveHna(item, stockQtyBase || qtyBase);
             const { rows: [batch] } = await client.query(
-              `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size)
-               VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9) RETURNING id`,
-              [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize]
+	              `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size, tax_type)
+	               VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9, $10) RETURNING id`,
+	              [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize, taxType]
             );
             await client.query(
               `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
@@ -786,9 +794,9 @@ router.post('/', auth, async (req, res) => {
             // No PO linked: create new batch
             const batchHna = effectiveHna(item, stockQtyBase || qtyBase);
             const { rows: [batch] } = await client.query(
-              `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size)
-               VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9) RETURNING id`,
-              [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize]
+	              `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size, tax_type)
+	               VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9, $10) RETURNING id`,
+	              [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize, taxType]
             );
             await client.query(
               `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
@@ -830,8 +838,9 @@ router.put('/:id', auth, async (req, res) => {
     due_date, payment_date, status, items
   } = req.body;
 
+  const taxType = tax.normalizeTaxType(req.body.tax_type);
   const resolvedHnaFinal = hna_final ?? final_hna ?? null;
-  const resolvedPpn = ppn_masukan ?? ppn_input ?? null;
+  const resolvedPpn = taxType === tax.TAX_TYPE_NOTA ? 0 : (ppn_masukan ?? ppn_input ?? null);
   const invoiceItems = items || [];
 
   const client = await pool.connect();
@@ -876,24 +885,25 @@ router.put('/:id', auth, async (req, res) => {
         total_hna=$4, discount_amount=$5, hna_baru=$6,
         disc_cod_ada=$7, disc_cod_amount=$8,
         hna_final=$9, ppn_input=$10, ppn_masukan=$11, ppn_pembulatan=$12,
-        hna_plus_ppn=$13, harga_per_produk=$14,
-        due_date=$15, payment_date=$16, status=$17,
-        updated_at=NOW()
-       WHERE id=$18 RETURNING *`,
+	        hna_plus_ppn=$13, harga_per_produk=$14,
+	        due_date=$15, payment_date=$16, status=$17,
+	        tax_type=$18,
+	        updated_at=NOW()
+	       WHERE id=$19 RETURNING *`,
       [invoice_number, purchase_date, distributor_name,
        total_hna||null, discount_amount||null, hna_baru||null,
        disc_cod_ada||false, disc_cod_amount||null,
        resolvedHnaFinal, resolvedPpn, resolvedPpn, ppn_pembulatan||null,
-       hna_plus_ppn||null, harga_per_produk||null,
-       due_date||null, payment_date||null, status||'Pending', id]
+	       hna_plus_ppn||null, harga_per_produk||null,
+	       due_date||null, payment_date||null, status||'Pending', taxType, id]
     );
     if (!result.rows.length) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Not found' });
     }
     if (beforeSnap) {
-      const afterSnap = result.rows[0];
-      const TRACK = ['invoice_number','purchase_date','distributor_name','status','hna_final','hna_plus_ppn','disc_cod_amount','due_date','payment_date'];
+	      const afterSnap = result.rows[0];
+	      const TRACK = ['invoice_number','purchase_date','distributor_name','status','hna_final','hna_plus_ppn','disc_cod_amount','due_date','payment_date','tax_type'];
       const before = {}; const after = {};
       TRACK.forEach(k => { if (String(beforeSnap[k]||'') !== String(afterSnap[k]||'')) { before[k] = beforeSnap[k]; after[k] = afterSnap[k]; } });
       if (Object.keys(before).length > 0) await logAudit(id, afterSnap.invoice_number, 'UPDATE', { before, after }, 'Field(s) changed: ' + Object.keys(before).join(', '));
@@ -909,20 +919,20 @@ router.put('/:id', auth, async (req, res) => {
         const storedProductId = product ? product.id : null;
         await client.query(
           `INSERT INTO invoice_items
-            (invoice_id, product_name, product_id, quantity, unit_price, total_price,
-             expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
-             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+	            (invoice_id, product_name, product_id, quantity, unit_price, total_price,
+	             expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
+	             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice, tax_type)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
           [id, item.product_name, storedProductId, qtyBase,
            item.unit_price||item.hna||0, item.total_price||item.hna_times_qty||0,
            item.expired_date||null, item.hna||0, item.hna_times_qty||0,
            item.disc_percent||0, item.disc_nominal||0, item.hna_baru||0,
            item.hna_per_item||0, item.margin||0,
            item.disc_cod_per_item||0, item.hna_after_cod||0, item.hpp_inc_ppn||0,
-           item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize]
-        );
-        // v1.8.2: sync product_master.hna ke RAW HNA per pcs dari faktur edit (mirror POST behavior)
-        if (product && parseFloat(item.hna) > 0) {
+	           item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize, taxType]
+	        );
+	        // v1.8.2: sync product_master.hna ke RAW HNA per pcs dari faktur edit (mirror POST behavior)
+	        if (taxType === tax.TAX_TYPE_FAKTUR && product && parseFloat(item.hna) > 0) {
           await client.query(
             `UPDATE product_master SET hna = $1, updated_at = NOW()
              WHERE id = $2`,

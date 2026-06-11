@@ -84,7 +84,13 @@ const blankItem = () => ({
   unit: "pcs",
   unit_price: 0,
   unit_hpp: 0,
+  unit_hpp_tax_type: "faktur",
 });
+// v1.22.0: batch nota = harga beli riil (tanpa PPN) → HPP tidak dikali 1,11.
+const hppIncFor = (it) =>
+  it?.unit_hpp_tax_type === "nota"
+    ? parseFloat(it?.unit_hpp) || 0
+    : hppFromHna(parseFloat(it?.unit_hpp) || 0);
 const computeNotaMargin = (order) => {
   const items = order.items || [];
   const itemRevenue = items.reduce(
@@ -94,8 +100,7 @@ const computeNotaMargin = (order) => {
   const itemMargin = items.reduce(
     (s, it) =>
       s +
-      ((parseFloat(it.unit_price) || 0) -
-        hppFromHna(parseFloat(it.unit_hpp) || 0)) *
+      ((parseFloat(it.unit_price) || 0) - hppIncFor(it)) *
         (parseFloat(it.qty) || 0),
     0,
   );
@@ -570,6 +575,7 @@ export default function SalesOrderList({
           unit: i.unit || "pcs",
           unit_price: parseFloat(i.unit_price) || 0,
           unit_hpp: parseFloat(i.unit_hpp) || 0,
+          unit_hpp_tax_type: i.unit_hpp_tax_type === "nota" ? "nota" : "faktur",
           _selected_batch_id: i.batch_id_snapshot || null,
           _selected_batch: i.batch_no_snapshot || "",
           batch_no_snapshot: i.batch_no_snapshot,
@@ -629,6 +635,8 @@ export default function SalesOrderList({
                   batch_no_snapshot: matchedBatch.batch_no,
                   expired_date_snapshot: matchedBatch.expired_date,
                   unit_hpp: parseFloat(matchedBatch.hna) || 0,
+                  unit_hpp_tax_type:
+                    matchedBatch.tax_type === "nota" ? "nota" : "faktur",
                 };
               }
               return n;
@@ -854,14 +862,18 @@ export default function SalesOrderList({
           // Auto-select FEFO (first batch)
           if (batches.length > 0) {
             updated.unit_hpp = parseFloat(batches[0].hna) || 0;
+            updated.unit_hpp_tax_type =
+              batches[0].tax_type === "nota" ? "nota" : "faktur";
             updated._selected_batch = batches[0].batch_no;
             updated._selected_batch_id = batches[0].id || null;
           } else {
             updated.unit_hpp = parseFloat(match.hna) || 0;
+            updated.unit_hpp_tax_type = "faktur";
           }
         } catch (e) {
           console.error("Failed to fetch batches/tiers for product", match?.id, e);
           updated.unit_hpp = parseFloat(match.hna) || 0;
+          updated.unit_hpp_tax_type = "faktur";
         }
       } else {
         // Clear batch list when product name doesn't match
@@ -922,6 +934,8 @@ export default function SalesOrderList({
         const packSize = parseInt(match?.pack_size) || 1;
         updated.unit_hpp =
           (parseFloat(batch.hna) || 0) * (isPack ? packSize : 1);
+        updated.unit_hpp_tax_type =
+          batch.tax_type === "nota" ? "nota" : "faktur";
       }
     }
 
@@ -1732,7 +1746,7 @@ export default function SalesOrderList({
                             </thead>
                             <tbody>
                               {o.items.map((it, idx) => {
-                                const hppInc = hppFromHna(it.unit_hpp);
+                                const hppInc = hppIncFor(it);
                                 const margin =
                                   (parseFloat(it.unit_price) - hppInc) *
                                   parseFloat(it.qty || 0);
@@ -1809,8 +1823,7 @@ export default function SalesOrderList({
                                 const itemMargin = o.items.reduce(
                                   (s, it) =>
                                     s +
-                                    (parseFloat(it.unit_price) -
-                                      hppFromHna(it.unit_hpp)) *
+                                    (parseFloat(it.unit_price) - hppIncFor(it)) *
                                       parseFloat(it.qty || 0),
                                   0,
                                 );
@@ -2540,17 +2553,25 @@ export default function SalesOrderList({
                             </select>
                             <input
                               type="number"
-                              value={Math.round(hppFromHna(it.unit_hpp || 0))}
+                              value={Math.round(hppIncFor(it))}
                               onChange={(e) =>
                                 updateItem(
                                   idx,
                                   "unit_hpp",
-                                  hnaFromHpp(parseFloat(e.target.value) || 0),
+                                  it.unit_hpp_tax_type === "nota"
+                                    ? parseFloat(e.target.value) || 0
+                                    : hnaFromHpp(
+                                        parseFloat(e.target.value) || 0,
+                                      ),
                                 )
                               }
                               min="0"
                               placeholder="0"
-                              title="HPP inc PPN 11% (disimpan sebagai HNA exc PPN)"
+                              title={
+                                it.unit_hpp_tax_type === "nota"
+                                  ? "HPP dari pembelian nota (tanpa PPN) — disimpan apa adanya"
+                                  : "HPP inc PPN 11% (disimpan sebagai HNA exc PPN)"
+                              }
                               style={{
                                 ...inputStyle,
                                 fontSize: "12px",
@@ -2666,12 +2687,20 @@ export default function SalesOrderList({
                                             year: "numeric",
                                           })
                                         : "-"}{" "}
-                                      | Stok: {b.qty_current} | HPP (inc PPN):{" "}
+                                      | Stok: {b.qty_current} | HPP
+                                      {b.tax_type === "nota"
+                                        ? " (nota)"
+                                        : " (inc PPN)"}
+                                      :{" "}
                                       {new Intl.NumberFormat("id-ID", {
                                         style: "currency",
                                         currency: "IDR",
                                         minimumFractionDigits: 0,
-                                      }).format(hppFromHna(b.hna))}
+                                      }).format(
+                                        b.tax_type === "nota"
+                                          ? parseFloat(b.hna) || 0
+                                          : hppFromHna(b.hna),
+                                      )}
                                       {isHistorical ? " (historis)" : ""}
                                     </option>
                                   );

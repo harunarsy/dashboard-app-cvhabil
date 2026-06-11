@@ -169,18 +169,23 @@ const normalizeItem = (item) => ({
   disc_mode: "percent",
   ...item,
 });
-const displayUnitPrice = (item) => {
+// v1.22.0: nota = pembelian tanpa PPN masukan → faktor PPN 0, harga beli = HPP.
+const ppnRateFor = (taxType) => (taxType === "nota" ? 0 : PPN_RATE);
+const displayUnitPrice = (item, taxType = "faktur") => {
   const hna = parseNum(item.hna);
-  return item.price_basis === "hpp_inc" ? hna * (1 + PPN_RATE) : hna;
+  return item.price_basis === "hpp_inc"
+    ? hna * (1 + ppnRateFor(taxType))
+    : hna;
 };
-const toRawHna = (value, priceBasis) => {
+const toRawHna = (value, priceBasis, taxType = "faktur") => {
   const n = parseNum(value);
-  return priceBasis === "hpp_inc" ? n / (1 + PPN_RATE) : n;
+  return priceBasis === "hpp_inc" ? n / (1 + ppnRateFor(taxType)) : n;
 };
 const blankForm = () => ({
   invoice_number: "",
   purchase_date: "",
   distributor_name: "",
+  tax_type: "faktur",
   disc_cod_ada: false,
   disc_cod_amount: "",
   disc_cod_percent: "",
@@ -188,7 +193,7 @@ const blankForm = () => ({
   payment_date: "",
   status: "Pending",
 });
-const calcItem = (item, disc_cod_per_item = 0) => {
+const calcItem = (item, disc_cod_per_item = 0, taxType = "faktur") => {
   item = normalizeItem(item);
   const qty = parseNum(item.quantity);
   const hna = parseNum(item.hna);
@@ -213,7 +218,8 @@ const calcItem = (item, disc_cod_per_item = 0) => {
   const hna_baru = hna_times_qty - disc_nominal;
   const hna_after_cod = hna_baru - disc_cod_per_item;
   const hna_per_item = qty > 0 ? hna_baru / qty : 0;
-  const hpp_inc_ppn = qty > 0 ? (hna_after_cod / qty) * (1 + PPN_RATE) : 0;
+  const hpp_inc_ppn =
+    qty > 0 ? (hna_after_cod / qty) * (1 + ppnRateFor(taxType)) : 0;
   return {
     ...item,
     hna_times_qty,
@@ -240,13 +246,14 @@ const calcTotals = (items, form) => {
     }
   }
   // Distribusikan disc COD ke tiap item proporsional berdasarkan hna_baru
+  const taxType = form.tax_type === "nota" ? "nota" : "faktur";
   const items_with_cod = items.map((i) => {
     const ratio = hna_baru_total > 0 ? i.hna_baru / hna_baru_total : 0;
     const disc_cod_per_item = disc_cod_amount * ratio;
-    return calcItem(i, disc_cod_per_item);
+    return calcItem(i, disc_cod_per_item, taxType);
   });
   const hna_final = hna_baru_total - disc_cod_amount;
-  const ppn_masukan = hna_final * PPN_RATE;
+  const ppn_masukan = hna_final * ppnRateFor(taxType);
   const ppn_pembulatan = Math.floor(ppn_masukan);
   const hna_plus_ppn = hna_final + ppn_masukan;
   const totalQty = items.reduce((s, i) => s + parseNum(i.quantity), 0);
@@ -572,29 +579,38 @@ export default function InvoiceList({
         // v1.16.2: jika PO item punya received_batches, buat satu baris faktur per batch penerimaan
         setItems(
           po.items.flatMap((it) => {
+            const poTaxType = form.tax_type === "nota" ? "nota" : "faktur";
             if (it.received_batches && it.received_batches.length > 0) {
               return it.received_batches.map((batch) =>
-                calcItem({
-                  ...blankItem(),
-                  product_name: it.product_name,
-                  product_id: it.product_id || null,
-                  batch_number: batch.batch_no || '',
-                  expired_date: batch.expired_date || '',
-                  quantity: batch.source_qty_value || batch.received_qty_base || it.qty || 1,
-                  unit: batch.source_qty_unit || it.unit || 'pcs',
-                  hna: batch.hna || '',
-                }),
+                calcItem(
+                  {
+                    ...blankItem(),
+                    product_name: it.product_name,
+                    product_id: it.product_id || null,
+                    batch_number: batch.batch_no || '',
+                    expired_date: batch.expired_date || '',
+                    quantity: batch.source_qty_value || batch.received_qty_base || it.qty || 1,
+                    unit: batch.source_qty_unit || it.unit || 'pcs',
+                    hna: batch.hna || '',
+                  },
+                  0,
+                  poTaxType,
+                ),
               );
             }
             // Current behavior: one row per PO item
             return [
-              calcItem({
-                ...blankItem(),
-                product_name: it.product_name,
-                product_id: it.product_id || null,
-                quantity: it.qty || 1,
-                unit: it.unit || "pcs",
-              }),
+              calcItem(
+                {
+                  ...blankItem(),
+                  product_name: it.product_name,
+                  product_id: it.product_id || null,
+                  quantity: it.qty || 1,
+                  unit: it.unit || "pcs",
+                },
+                0,
+                poTaxType,
+              ),
             ];
           }),
         );
@@ -871,23 +887,32 @@ export default function InvoiceList({
 
   // Item handlers
   const updateItem = (idx, field, val) => {
+    const taxType = form.tax_type === "nota" ? "nota" : "faktur";
     setItems((prev) => {
       const n = [...prev];
       const current = normalizeItem(n[idx]);
       if (field === "unit_price_input") {
-        n[idx] = calcItem({
-          ...current,
-          hna: toRawHna(val, current.price_basis),
-        });
+        n[idx] = calcItem(
+          {
+            ...current,
+            hna: toRawHna(val, current.price_basis, taxType),
+          },
+          0,
+          taxType,
+        );
       } else if (field === "price_basis") {
-        n[idx] = calcItem({ ...current, price_basis: val });
+        n[idx] = calcItem({ ...current, price_basis: val }, 0, taxType);
       } else if (field === "product_option") {
-        n[idx] = calcItem({
-          ...current,
-          product_name: val?.name || "",
-          product_id: val?.id || null,
-          unit: current.unit || val?.base_unit || val?.unit || "pcs",
-        });
+        n[idx] = calcItem(
+          {
+            ...current,
+            product_name: val?.name || "",
+            product_id: val?.id || null,
+            unit: current.unit || val?.base_unit || val?.unit || "pcs",
+          },
+          0,
+          taxType,
+        );
       } else {
         const updated = { ...current, [field]: val };
         if (field === "product_name") {
@@ -896,7 +921,7 @@ export default function InvoiceList({
           );
           updated.product_id = match?.id || null;
         }
-        n[idx] = calcItem(updated);
+        n[idx] = calcItem(updated, 0, taxType);
       }
       return n;
     });
@@ -904,8 +929,13 @@ export default function InvoiceList({
   const addItem = () => setItems((prev) => [...prev, blankItem()]);
   const removeItem = (idx) =>
     setItems((prev) => prev.filter((_, i) => i !== idx));
-  const handleFormChange = (field, value) =>
+  const handleFormChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+    if (field === "tax_type") {
+      const taxType = value === "nota" ? "nota" : "faktur";
+      setItems((prev) => prev.map((i) => calcItem(i, 0, taxType)));
+    }
+  };
 
   const handleAddDistributor = async (name) => {
     const res = await distributorsAPI.add(name);
@@ -965,13 +995,14 @@ export default function InvoiceList({
   };
 
   const buildPayload = () => {
+    const taxType = form.tax_type === "nota" ? "nota" : "faktur";
     const itemsWithCod =
       totals.items_with_cod ||
       items.map((i) => ({
         ...i,
         disc_cod_per_item: 0,
         hna_after_cod: i.hna_baru,
-        hpp_inc_ppn: i.hna_per_item * (1 + PPN_RATE),
+        hpp_inc_ppn: i.hna_per_item * (1 + ppnRateFor(taxType)),
       }));
     return {
       ...form,
@@ -999,7 +1030,8 @@ export default function InvoiceList({
             disc_cod_per_item: withCod.disc_cod_per_item || 0,
             hna_after_cod: withCod.hna_after_cod || i.hna_baru,
             hpp_inc_ppn:
-              withCod.hpp_inc_ppn || (i.hna_per_item || 0) * (1 + PPN_RATE),
+              withCod.hpp_inc_ppn ||
+              (i.hna_per_item || 0) * (1 + ppnRateFor(taxType)),
             unit: i.unit || "pcs", // v1.6.0: pass unit ke backend untuk konversi qty → base
             batch_number: i.batch_number || null,
           };
@@ -1105,10 +1137,12 @@ export default function InvoiceList({
     try {
       const res = await invoicesAPI.getById(existingId);
       const { invoice, items: invItems } = res.data;
+      const loadedTaxType = invoice.tax_type === "nota" ? "nota" : "faktur";
       setForm({
         invoice_number: invoice.invoice_number,
         purchase_date: invoice.purchase_date?.split("T")[0] || "",
         distributor_name: invoice.distributor_name,
+        tax_type: loadedTaxType,
         disc_cod_ada: invoice.disc_cod_ada || false,
         disc_cod_amount: invoice.disc_cod_amount || "",
         disc_cod_percent: "",
@@ -1119,24 +1153,28 @@ export default function InvoiceList({
       setItems(
         invItems.length > 0
           ? invItems.map((i) =>
-              calcItem({
-                _id: Math.random().toString(36).slice(2),
-                product_name: i.product_name || "",
-                product_id: i.product_id || null,
-                batch_number: i.batch_number || "",
-                expired_date: i.expired_date?.split("T")[0] || "",
-                quantity: i.quantity || "",
-                hna: i.hna || i.unit_price || "",
-                hna_times_qty: i.hna_times_qty || 0,
-                disc_percent: i.disc_percent || "",
-                disc_nominal: i.disc_nominal || 0,
-                disc_mode: "percent",
-                disc_input: i.disc_percent ? String(i.disc_percent) : "",
-                hna_baru: i.hna_baru || 0,
-                hna_per_item: i.hna_per_item || 0,
-                price_basis: "hna_exc",
-                unit: i.unit || "pcs",
-              }),
+              calcItem(
+                {
+                  _id: Math.random().toString(36).slice(2),
+                  product_name: i.product_name || "",
+                  product_id: i.product_id || null,
+                  batch_number: i.batch_number || "",
+                  expired_date: i.expired_date?.split("T")[0] || "",
+                  quantity: i.quantity || "",
+                  hna: i.hna || i.unit_price || "",
+                  hna_times_qty: i.hna_times_qty || 0,
+                  disc_percent: i.disc_percent || "",
+                  disc_nominal: i.disc_nominal || 0,
+                  disc_mode: "percent",
+                  disc_input: i.disc_percent ? String(i.disc_percent) : "",
+                  hna_baru: i.hna_baru || 0,
+                  hna_per_item: i.hna_per_item || 0,
+                  price_basis: "hna_exc",
+                  unit: i.unit || "pcs",
+                },
+                0,
+                loadedTaxType,
+              ),
             )
           : [blankItem()],
       );
@@ -1150,10 +1188,12 @@ export default function InvoiceList({
     try {
       const res = await invoicesAPI.getById(inv.id);
       const { invoice, items: invItems } = res.data;
+      const loadedTaxType = invoice.tax_type === "nota" ? "nota" : "faktur";
       setForm({
         invoice_number: invoice.invoice_number,
         purchase_date: invoice.purchase_date?.split("T")[0] || "",
         distributor_name: invoice.distributor_name,
+        tax_type: loadedTaxType,
         disc_cod_ada: invoice.disc_cod_ada || false,
         disc_cod_amount: invoice.disc_cod_amount || "",
         disc_cod_percent: "",
@@ -1164,24 +1204,28 @@ export default function InvoiceList({
       setItems(
         invItems.length > 0
           ? invItems.map((i) =>
-              calcItem({
-                _id: Math.random().toString(36).slice(2),
-                product_name: i.product_name || "",
-                product_id: i.product_id || null,
-                batch_number: i.batch_number || "",
-                expired_date: i.expired_date?.split("T")[0] || "",
-                quantity: i.quantity || "",
-                hna: i.hna || i.unit_price || "",
-                hna_times_qty: i.hna_times_qty || 0,
-                disc_percent: i.disc_percent || "",
-                disc_nominal: i.disc_nominal || 0,
-                disc_mode: "percent",
-                disc_input: i.disc_percent ? String(i.disc_percent) : "",
-                hna_baru: i.hna_baru || 0,
-                hna_per_item: i.hna_per_item || 0,
-                price_basis: "hna_exc",
-                unit: i.unit || "pcs",
-              }),
+              calcItem(
+                {
+                  _id: Math.random().toString(36).slice(2),
+                  product_name: i.product_name || "",
+                  product_id: i.product_id || null,
+                  batch_number: i.batch_number || "",
+                  expired_date: i.expired_date?.split("T")[0] || "",
+                  quantity: i.quantity || "",
+                  hna: i.hna || i.unit_price || "",
+                  hna_times_qty: i.hna_times_qty || 0,
+                  disc_percent: i.disc_percent || "",
+                  disc_nominal: i.disc_nominal || 0,
+                  disc_mode: "percent",
+                  disc_input: i.disc_percent ? String(i.disc_percent) : "",
+                  hna_baru: i.hna_baru || 0,
+                  hna_per_item: i.hna_per_item || 0,
+                  price_basis: "hna_exc",
+                  unit: i.unit || "pcs",
+                },
+                0,
+                loadedTaxType,
+              ),
             )
           : [blankItem()],
       );
@@ -1233,8 +1277,11 @@ export default function InvoiceList({
   }, []);
   const loadDraft = () => {
     if (!savedDraft) return;
-    if (savedDraft.form) setForm(savedDraft.form);
-    if (savedDraft.items) setItems(savedDraft.items.map((i) => calcItem(i)));
+    const draftTaxType =
+      savedDraft.form?.tax_type === "nota" ? "nota" : "faktur";
+    if (savedDraft.form) setForm({ ...blankForm(), ...savedDraft.form });
+    if (savedDraft.items)
+      setItems(savedDraft.items.map((i) => calcItem(i, 0, draftTaxType)));
     setDraftBanner(false);
     setShowModal(true);
   };
@@ -3897,7 +3944,7 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
                 : (item.hna_per_item > 0
                     ? item.hna_per_item
                     : parseNum(item.hna || item.unit_price)) *
-                    (1 + PPN_RATE),
+                    (1 + ppnRateFor(item.tax_type)),
             )}
           </div>
         </div>
@@ -4065,6 +4112,56 @@ function InvoiceModal({
           {/* Info Faktur */}
           <div style={sec}>
             <p style={secTitle}>📦 Informasi Faktur</p>
+            <div style={{ marginBottom: "14px" }}>
+              <label style={S.label}>Jenis Pembelian</label>
+              <div style={{ display: "flex", gap: "8px" }}>
+                {[
+                  { value: "faktur", label: "Faktur (ada PPN masukan)" },
+                  { value: "nota", label: "Nota (tanpa PPN)" },
+                ].map((opt) => {
+                  const active =
+                    (form.tax_type === "nota" ? "nota" : "faktur") ===
+                    opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className="ui-motion-button ui-focus-ring"
+                      onClick={() => onFormChange("tax_type", opt.value)}
+                      style={{
+                        flex: 1,
+                        padding: "9px 12px",
+                        borderRadius: "10px",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        border: `1.5px solid ${active ? "var(--color-primary)" : "var(--color-border)"}`,
+                        background: active
+                          ? "var(--color-primary-soft)"
+                          : "transparent",
+                        color: active
+                          ? "var(--color-primary)"
+                          : "var(--color-text-muted)",
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p
+                style={{
+                  margin: "5px 0 0",
+                  fontSize: "10px",
+                  color: "var(--color-text-subtle)",
+                  lineHeight: 1.35,
+                }}
+              >
+                {form.tax_type === "nota"
+                  ? "Nota: tidak ada PPN masukan. HPP = harga beli apa adanya (tanpa × 1,11)."
+                  : "Faktur: ada PPN masukan 11%. HPP = HNA exc PPN × 1,11."}
+              </p>
+            </div>
             <div style={{ marginBottom: "14px" }}>
               <label style={S.label}>Dari Surat Pesanan (opsional)</label>
               <select
@@ -4443,30 +4540,39 @@ function InvoiceModal({
                   <div>
                     <label
                       style={S.label}
-                      title="Pilih sesuai angka yang tertulis di faktur. Sistem tetap menyimpan raw HNA exc PPN."
+                      title={
+                        form.tax_type === "nota"
+                          ? "Nota tanpa PPN: harga beli langsung jadi HPP."
+                          : "Pilih sesuai angka yang tertulis di faktur. Sistem tetap menyimpan raw HNA exc PPN."
+                      }
                     >
-                      Harga unit dari faktur
+                      {form.tax_type === "nota"
+                        ? "Harga beli dari nota"
+                        : "Harga unit dari faktur"}
                     </label>
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "1fr 1.05fr",
+                        gridTemplateColumns:
+                          form.tax_type === "nota" ? "1fr" : "1fr 1.05fr",
                         gap: "8px",
                       }}
                     >
-                      <select
-                        style={S.input}
-                        value={item.price_basis || "hna_exc"}
-                        onChange={(e) =>
-                          updateItem(idx, "price_basis", e.target.value)
-                        }
-                      >
-                        <option value="hna_exc">HNA exc PPN</option>
-                        <option value="hpp_inc">HPP inc PPN</option>
-                      </select>
+                      {form.tax_type !== "nota" && (
+                        <select
+                          style={S.input}
+                          value={item.price_basis || "hna_exc"}
+                          onChange={(e) =>
+                            updateItem(idx, "price_basis", e.target.value)
+                          }
+                        >
+                          <option value="hna_exc">HNA exc PPN</option>
+                          <option value="hpp_inc">HPP inc PPN</option>
+                        </select>
+                      )}
                       <RupiahInput
                         style={S.input}
-                        value={displayUnitPrice(item)}
+                        value={displayUnitPrice(item, form.tax_type)}
                         decimals={2}
                         onChange={(v) => updateItem(idx, "unit_price_input", v)}
                         placeholder="Rp 0,00"
@@ -4480,9 +4586,11 @@ function InvoiceModal({
                         lineHeight: 1.35,
                       }}
                     >
-                      {item.price_basis === "hpp_inc"
-                        ? `Disimpan sebagai HNA exc PPN: ${formatRp(parseNum(item.hna), true)}`
-                        : `Estimasi HPP inc PPN: ${formatRp(parseNum(item.hna) * (1 + PPN_RATE), true)}`}
+                      {form.tax_type === "nota"
+                        ? `HPP per pcs = harga beli: ${formatRp(parseNum(item.hna), true)}`
+                        : item.price_basis === "hpp_inc"
+                          ? `Disimpan sebagai HNA exc PPN: ${formatRp(parseNum(item.hna), true)}`
+                          : `Estimasi HPP inc PPN: ${formatRp(parseNum(item.hna) * (1 + PPN_RATE), true)}`}
                     </p>
                   </div>
                   <div
@@ -4617,7 +4725,8 @@ function InvoiceModal({
                   const hppFinal =
                     withCod?.hpp_inc_ppn ||
                     item.hpp_inc_ppn ||
-                    (item.hna_per_item || 0) * (1 + PPN_RATE) ||
+                    (item.hna_per_item || 0) *
+                      (1 + ppnRateFor(form.tax_type)) ||
                     0;
                   const expanded = showDetailRows.has(item._id);
                   return (
@@ -4946,7 +5055,11 @@ function InvoiceModal({
                 />
               </div>
               <div>
-                <label style={S.label}>PPN Masukan (HNA Final × 11%)</label>
+                <label style={S.label}>
+                  {form.tax_type === "nota"
+                    ? "PPN Masukan (nota: tidak ada)"
+                    : "PPN Masukan (HNA Final × 11%)"}
+                </label>
                 <input
                   style={{
                     ...S.inputDis,
@@ -4976,7 +5089,9 @@ function InvoiceModal({
               </div>
               <div>
                 <label style={{ ...S.label, color: "var(--color-primary)" }}>
-                  HNA + PPN Masukan
+                  {form.tax_type === "nota"
+                    ? "Total Bayar (tanpa PPN)"
+                    : "HNA + PPN Masukan"}
                 </label>
                 <input
                   style={{
