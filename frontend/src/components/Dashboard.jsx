@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.22.0-stable",
+    version: "v1.22.1-stable",
     date: "11 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "stability",
+        text: "Surat Pesanan makin anti-salah: pilih produk di form SP sekarang menampilkan KODE — Nama dan tersimpan dengan identitas produk (bukan cuma teks nama). Pencocokan terima barang lewat faktur juga diperketat supaya qty SP produk lain yang kebetulan senama tidak ikut terpotong.",
+        dev: "PurchaseOrderList: MasterSelect +onSelect simpan product_id + label KODE — Nama. invoices.js pickPurchaseOrderItem: fallback by-name difilter — hanya PO item legacy tanpa product_id atau yang id-nya sama (cegah cross-product room deduction).",
+      },
+    ],
+  },
+  {
+    version: "v1.22.0-stable",
+    date: "11 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "new",
@@ -3000,7 +3012,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.22.0-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.22.1-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

@@ -341,11 +341,16 @@ const loadPurchaseOrderItemsForUpdate = async (client, purchaseOrderId) => {
 
 const pickPurchaseOrderItem = (poItemsIndex, item) => {
   if (!poItemsIndex) return null;
-  const byIdRows = item?.product_id
-    ? poItemsIndex.byId.get(String(item.product_id)) || []
-    : [];
-  const byNameRows = poItemsIndex.byName.get(normalizeProductName(item?.product_name)) || [];
-  const rows = byIdRows.length > 0 ? byIdRows : byNameRows;
+  const itemProductId = item?.product_id ? String(item.product_id) : null;
+  let rows = itemProductId ? poItemsIndex.byId.get(itemProductId) || [] : [];
+  if (rows.length === 0) {
+    const byNameRows = poItemsIndex.byName.get(normalizeProductName(item?.product_name)) || [];
+    // v1.22.1: fallback nama hanya untuk PO item legacy tanpa product_id (atau id sama) —
+    // cegah room produk lain yang kebetulan senama ikut terpotong.
+    rows = byNameRows.filter(
+      (row) => !row.product_id || !itemProductId || String(row.product_id) === itemProductId
+    );
+  }
   return rows.find((row) => row.qty - row.received_qty > 0) || rows[0] || null;
 };
 

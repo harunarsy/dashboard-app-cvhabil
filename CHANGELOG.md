@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.22.1-stable] - 2026-06-11
+
+### Changed
+- Surat Pesanan: picker produk di form SP menampilkan `KODE — Nama` dan menyimpan `product_id` saat dipilih dari master (konsisten dengan Faktur Pembelian).
+- Faktur linked SP: fallback pencocokan by-nama di `pickPurchaseOrderItem` difilter — hanya untuk PO item legacy tanpa `product_id` atau yang `product_id`-nya sama, mencegah qty SP produk lain yang kebetulan senama ikut terpotong.
+
 ## [v1.22.0-stable] - 2026-06-11
 
 ### Added

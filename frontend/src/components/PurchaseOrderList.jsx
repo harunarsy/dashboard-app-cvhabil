@@ -593,8 +593,16 @@ export default function PurchaseOrderList({
   const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx));
   const updateItem = (idx, f, v) => {
     const n = [...items];
-    const updated = { ...n[idx], [f]: v };
-    if (f === "product_name") {
+    let updated = { ...n[idx], [f]: v };
+    if (f === "product_option") {
+      // v1.22.1: pilih dari master → simpan product_id langsung (anti salah-cocok by-nama)
+      updated = {
+        ...n[idx],
+        product_name: v?.name || "",
+        product_id: v?.id || null,
+        unit: v?.base_unit || v?.unit || n[idx].unit || "pcs",
+      };
+    } else if (f === "product_name") {
       const match = products.find(
         (p) => p.name?.toLowerCase() === v?.toLowerCase(),
       );
@@ -1427,7 +1435,15 @@ export default function PurchaseOrderList({
                               onChange={(v) =>
                                 updateItem(idx, "product_name", v)
                               }
-                              options={products.map((p) => ({ name: p.name }))}
+                              onSelect={(option) =>
+                                updateItem(idx, "product_option", option)
+                              }
+                              options={products.map((p) => ({
+                                ...p,
+                                label: p.code
+                                  ? `${p.code} — ${p.name}`
+                                  : p.name,
+                              }))}
                               onAdd={handleAddProduct}
                               onRemove={handleRemoveProduct}
                               onRename={handleRenameProduct}
