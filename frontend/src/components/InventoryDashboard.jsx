@@ -114,6 +114,8 @@ export default function InventoryDashboard({
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState("all"); // all | low | expiring | expired
+  const [pageSize, setPageSize] = useState(10); // 10 | 20 | 50
+  const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(null); // null | 'product' | 'stockIn' | 'stockOut' | 'opname'
   const [editId, setEditId] = useState(null);
   const [toast, setToast] = useState({ msg: "", type: "success" });
@@ -275,6 +277,18 @@ export default function InventoryDashboard({
       return true;
     });
   }, [products, debouncedSearch, statusFilter]);
+
+  // Pagination: reset ke halaman 1 tiap filter/ukuran berubah
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paged = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, safePage, pageSize]);
 
   // v1.10.2: total nilai persediaan = Σ HPP(inc PPN) × stok (ikut filter aktif)
   const totalNilai = useMemo(
@@ -1028,7 +1042,7 @@ export default function InventoryDashboard({
                         </td>
                       </tr>
                     ))
-                  : filtered.map((p) => {
+                  : paged.map((p) => {
                       const sev = expirySeverity(p.nearest_expiry, isDarkMode);
                       const stock = parseInt(p.total_stock) || 0;
                       const minStockNum = parseInt(p.min_stock) || 0;
@@ -1443,6 +1457,99 @@ export default function InventoryDashboard({
               </tfoot>
             </table>
           </div>
+          {filtered.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "12px",
+                marginTop: "14px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  fontSize: "13px",
+                  color: sub,
+                }}
+              >
+                <span>Tampilkan</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="ui-focus-ring"
+                  style={{ ...inputStyle, padding: "6px 8px", cursor: "pointer" }}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+                <span>per halaman</span>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  fontSize: "13px",
+                  color: sub,
+                }}
+              >
+                <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {(safePage - 1) * pageSize + 1}–
+                  {Math.min(safePage * pageSize, filtered.length)} dari{" "}
+                  {filtered.length}
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={safePage <= 1}
+                    className="ui-focus-ring"
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: "8px",
+                      border: `1px solid ${border}`,
+                      background: "transparent",
+                      color: text,
+                      cursor: safePage <= 1 ? "not-allowed" : "pointer",
+                      opacity: safePage <= 1 ? 0.45 : 1,
+                      fontWeight: 600,
+                      fontSize: "13px",
+                    }}
+                  >
+                    Prev
+                  </button>
+                  <span style={{ color: text, fontWeight: 700 }}>
+                    {safePage}/{totalPages}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
+                    disabled={safePage >= totalPages}
+                    className="ui-focus-ring"
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: "8px",
+                      border: `1px solid ${border}`,
+                      background: "transparent",
+                      color: text,
+                      cursor: safePage >= totalPages ? "not-allowed" : "pointer",
+                      opacity: safePage >= totalPages ? 0.45 : 1,
+                      fontWeight: 600,
+                      fontSize: "13px",
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

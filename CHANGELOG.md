@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.17-stable] - 2026-06-11
+
+### Added
+- Inventory: **pagination** pada daftar produk. Pemilih ukuran halaman 10 / 20 / 50 (default 10) + kontrol Prev/Next dan info "X–Y dari Z" di bawah tabel. `InventoryDashboard`: state `pageSize`/`currentPage`, `paged = filtered.slice(...)`, `useEffect` reset ke halaman 1 saat `debouncedSearch`/`statusFilter`/`pageSize` berubah. "Pilih semua" tetap mengacu seluruh hasil filter.
+
+### Changed
+- Data (Fase 0 — fondasi identitas by-KODE): seluruh produk inventory dirapikan namanya + diberi **KODE unik** (skema `BRAND-VARIAN-UKURAN`, mis. `ENTMX-VAN-555G`). 50 produk di-rename + diberi kode (sinkron `product_master` + `product_catalog` + `invoice_items`), 1 produk (TS Strawberry Jam) diaktifkan kembali, dan 27 produk baru ditambahkan (stok 0, `sell_price` 0, satuan `pcs` — harga menyusul). Produk ONGKIR legacy tidak disentuh. Total 79 produk, semua aktif ber-KODE (kecuali ONGKIR). Menyiapkan fase berikutnya: matching by-KODE/ID, gate anti stok-hilang, toggle Faktur/Nota (PPN vs non-PPN), SP by-ID, dan alias nama distributor.
+
 ## [v1.21.16-stable] - 2026-06-10
 
 ### Fixed

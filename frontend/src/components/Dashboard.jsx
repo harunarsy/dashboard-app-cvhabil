@@ -33,9 +33,26 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.21.17-stable",
+    date: "11 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Halaman Inventory sekarang ada pagination — bisa pilih tampil 10 / 20 / 50 produk per halaman (default 10), biar nggak scroll panjang.",
+        dev: "InventoryDashboard: state pageSize/currentPage, paged = filtered.slice, useEffect reset page saat search/status/pageSize berubah, bar kontrol Prev/Next + selector di bawah tabel.",
+      },
+      {
+        type: "changed",
+        text: "Semua produk inventory dirapikan namanya + dikasih KODE unik (mis. ENTMX-VAN-555G), dan 27 produk baru ditambahkan (stok 0, harga menyusul).",
+        dev: "Fase 0: rename 50 + aktifkan 1 + insert 27 produk via product_master/product_catalog/invoice_items, semua ber-KODE. Fondasi identitas by-KODE untuk fase berikutnya (resolver/alias/gate anti stok hilang).",
+      },
+    ],
+  },
+  {
     version: "v1.21.16-stable",
     date: "10 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -2935,7 +2952,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.16-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.17-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
