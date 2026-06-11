@@ -4,6 +4,7 @@ const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const pricing = require('../utils/pricing');
 const tax = require('../utils/tax');
+const { seedProductAlias } = require('../utils/productAliases');
 
 // ─── Auto-create tables ─────────────────────────────────────────────────────
 const ensureSchema = async () => {
@@ -68,6 +69,20 @@ const ensureSchema = async () => {
 	      ADD COLUMN IF NOT EXISTS hna DECIMAL(15,2) DEFAULT 0,
 	      ADD COLUMN IF NOT EXISTS tax_type VARCHAR(20) DEFAULT 'faktur';
 	  `);
+  // v1.22.2: alias nama produk (invisible) — nama distributor lama tetap auto-match.
+  // Unique index normalized → 1 alias mustahil nyangkut ke 2 produk.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS product_aliases (
+      id SERIAL PRIMARY KEY,
+      product_id INTEGER NOT NULL REFERENCES product_master(id) ON DELETE CASCADE,
+      alias_name VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_product_aliases_norm
+      ON product_aliases ((LOWER(TRIM(alias_name))));
+    CREATE INDEX IF NOT EXISTS idx_product_aliases_product
+      ON product_aliases (product_id);
+  `);
   // Phase 1 additions: per-batch opname tracking + batch notes/soft-delete
   await pool.query(`
     ALTER TABLE inventory_batches ADD COLUMN IF NOT EXISTS notes TEXT;
@@ -204,6 +219,7 @@ router.put('/products/:id', auth, async (req, res) => {
   try {
     const dup = await pool.query('SELECT id, name FROM product_master WHERE UPPER(TRIM(code)) = $1 AND id <> $2 LIMIT 1', [normCode, req.params.id]);
     if (dup.rows.length) return res.status(409).json({ error: `KODE "${normCode}" sudah dipakai produk: ${dup.rows[0].name}` });
+    const { rows: [prevRow] } = await pool.query('SELECT name FROM product_master WHERE id = $1', [req.params.id]);
     const resolvedBaseUnit = base_unit || unit || 'pcs';
     const resolvedPackSize = parseInt(pack_size) || 1;
     const { rows } = await pool.query(
@@ -214,6 +230,10 @@ router.put('/products/:id', auth, async (req, res) => {
        resolvedBaseUnit, pack_unit || null, resolvedPackSize, sell_price_pack || 0, req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Product not found' });
+    // v1.22.2: rename → nama lama jadi alias (faktur pakai nama lama tetap auto-match)
+    if (prevRow?.name && prevRow.name.trim().toLowerCase() !== name.trim().toLowerCase()) {
+      await seedProductAlias(pool, rows[0].id, prevRow.name);
+    }
     res.json(rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

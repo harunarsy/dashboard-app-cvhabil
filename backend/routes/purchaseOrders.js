@@ -173,6 +173,19 @@ const resolveProductByIdOrName = async (client, { product_id, product_name }) =>
   if (rows.length > 1) {
     return { product: null, source: 'name', ambiguous: true };
   }
+
+  // v1.22.2: fallback alias — SP dengan nama produk lama tetap dapat product_id benar
+  const { rows: aliasRows } = await client.query(
+    `SELECT pm.id, pm.name, pm.unit, pm.base_unit, pm.pack_unit, pm.pack_size, pm.hna, pm.is_active
+     FROM product_aliases pa
+     JOIN product_master pm ON pm.id = pa.product_id AND pm.is_active = TRUE
+     WHERE LOWER(TRIM(pa.alias_name)) = $1
+     LIMIT 1`,
+    [normalizedName]
+  );
+  if (aliasRows.length === 1) {
+    return { product: aliasRows[0], source: 'alias' };
+  }
   return { product: null, source: null, ambiguous: false };
 };
 

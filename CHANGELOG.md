@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.22.2-stable] - 2026-06-11
+
+### Added
+- **Alias produk otomatis (invisible)**: tabel `product_aliases` dengan unique index pada nama ternormalisasi (1 alias = tepat 1 produk). Resolver faktur (lookup batch + by-id-or-name), nota penjualan, dan SP sekarang ikut mengecek alias setelah nama master.
+- **Auto-seed alias**: (a) rename produk di Inventory / katalog faktur → nama lama tersimpan sebagai alias; (b) faktur tersimpan dengan nama item ≠ nama master (match via id/alias) → nama versi distributor tersimpan sebagai alias (post-commit, gagal seed tidak mengganggu faktur). Guard: alias ditolak jika bentrok dengan nama master aktif.
+
 ## [v1.22.1-stable] - 2026-06-11
 
 ### Changed

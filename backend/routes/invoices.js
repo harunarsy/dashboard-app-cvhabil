@@ -4,6 +4,7 @@ const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const uom = require('../utils/uom');
 const tax = require('../utils/tax');
+const { seedProductAlias } = require('../utils/productAliases');
 
 // Auto-migrate schema
 const ensureSchema = async () => {
@@ -196,6 +197,19 @@ const resolveProductByIdOrName = async (client, item = {}) => {
   if (rows.length > 1) {
     return { product: null, source: 'name', ambiguous: true };
   }
+
+  // v1.22.2: fallback alias — nama distributor lama tetap ketemu produk yang benar
+  const { rows: aliasRows } = await client.query(
+    `SELECT pm.id, pm.name, pm.hna, pm.base_unit, pm.pack_unit, pm.pack_size, pm.is_active
+     FROM product_aliases pa
+     JOIN product_master pm ON pm.id = pa.product_id AND pm.is_active = TRUE
+     WHERE LOWER(TRIM(pa.alias_name)) = $1
+     LIMIT 1`,
+    [normalizedName]
+  );
+  if (aliasRows.length === 1) {
+    return { product: aliasRows[0], source: 'alias' };
+  }
   return { product: null, source: null, ambiguous: false };
 };
 
@@ -257,6 +271,22 @@ const loadProductLookupForItems = async (client, items = []) => {
       [normalizedNames]
     );
     uniqueRows.forEach((row) => lookup.byName.set(row.normalized_name, row));
+
+    // v1.22.2: nama yang belum ketemu di master dicoba via alias (nama distributor lama).
+    // Unique index normalized menjamin 1 alias → tepat 1 produk.
+    const unresolvedNames = normalizedNames.filter(
+      (n) => !lookup.byName.has(n) && !lookup.ambiguousNames.has(n)
+    );
+    if (unresolvedNames.length > 0) {
+      const { rows: aliasRows } = await client.query(
+        `SELECT pm.*, LOWER(TRIM(pa.alias_name)) AS normalized_name
+         FROM product_aliases pa
+         JOIN product_master pm ON pm.id = pa.product_id AND pm.is_active = TRUE
+         WHERE LOWER(TRIM(pa.alias_name)) = ANY($1::text[])`,
+        [unresolvedNames]
+      );
+      aliasRows.forEach((row) => lookup.byName.set(row.normalized_name, row));
+    }
   }
 
   return lookup;
@@ -819,6 +849,15 @@ router.post('/', auth, async (req, res) => {
 
     await client.query('COMMIT');
 
+    // v1.22.2: nama item ≠ nama master tapi tetap match (by-id/alias) → simpan jadi alias.
+    // Di luar transaksi: gagal seed tidak boleh menggagalkan faktur.
+    for (const item of invoiceItems) {
+      const matched = getProductFromLookup(productLookup, item);
+      if (matched && normalizeProductName(item.product_name) !== normalizeProductName(matched.name)) {
+        await seedProductAlias(pool, matched.id, item.product_name);
+      }
+    }
+
     const final = await pool.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
     if (global.io) global.io.emit('invoiceCreated', final.rows[0]);
     res.status(201).json({ invoice: final.rows[0], items: invoiceItems, unmatchedProducts: [] });
@@ -948,6 +987,17 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     await client.query('COMMIT');
+
+    // v1.22.2: auto-seed alias dari item yang match by-id/alias dgn nama berbeda
+    if (shouldRewriteItems) {
+      for (const item of invoiceItems) {
+        const matched = getProductFromLookup(productLookup, item);
+        if (matched && normalizeProductName(item.product_name) !== normalizeProductName(matched.name)) {
+          await seedProductAlias(pool, matched.id, item.product_name);
+        }
+      }
+    }
+
     if (global.io) global.io.emit('invoiceUpdated', result.rows[0]);
     res.json({ ...result.rows[0], unmatchedProducts: [] });
   } catch (err) {

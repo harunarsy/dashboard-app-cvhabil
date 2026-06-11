@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const { seedProductAlias } = require('../utils/productAliases');
 
 const ensureTable = async () => {
   await pool.query(`
@@ -77,6 +78,12 @@ router.patch('/', auth, async (req, res) => {
     await pool.query('UPDATE product_catalog SET name=$1 WHERE name=$2', [newName, oldName]);
     await pool.query('UPDATE product_master SET name=$1 WHERE name=$2', [newName, oldName]);
     await pool.query('UPDATE invoice_items SET product_name=$1 WHERE product_name=$2', [newName, oldName]);
+    // v1.22.2: nama lama jadi alias supaya faktur berikutnya tetap auto-match
+    const { rows: [renamed] } = await pool.query(
+      'SELECT id FROM product_master WHERE name = $1 AND is_active = TRUE ORDER BY id LIMIT 1',
+      [newName]
+    );
+    if (renamed) await seedProductAlias(pool, renamed.id, oldName);
     res.json({ success: true, oldName, newName });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

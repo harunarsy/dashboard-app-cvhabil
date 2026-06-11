@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.22.1-stable",
+    version: "v1.22.2-stable",
     date: "11 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Sistem sekarang otomatis mengingat nama lama produk. Habis rename produk, faktur dari distributor yang masih pakai nama lama tetap langsung dikenali — stok dan HPP masuk ke produk yang benar tanpa perlu pilih ulang. Berlaku juga kalau distributor menulis nama dengan gaya berbeda: sekali dipetakan, seterusnya hafal.",
+        dev: "Tabel product_aliases (FK product_master, UNIQUE LOWER(TRIM(alias_name))). Resolver alias di invoices (lookup+resolveProductByIdOrName), sales (productMap POST/PUT), purchaseOrders. Auto-seed: rename inventory PUT & products PATCH (nama lama), faktur POST/PUT post-commit (nama item ≠ nama master). Seed guard: skip kalau bentrok nama master aktif; ON CONFLICT DO NOTHING.",
+      },
+    ],
+  },
+  {
+    version: "v1.22.1-stable",
+    date: "11 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "stability",
@@ -3012,7 +3024,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.22.1-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.22.2-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

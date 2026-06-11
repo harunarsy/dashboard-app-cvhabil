@@ -294,10 +294,21 @@ router.post('/', auth, async (req, res) => {
     const productMap = new Map();
     for (const it of items) {
       if (productMap.has(it.product_name)) continue;
-      const { rows: [p] } = await client.query(
+      let { rows: [p] } = await client.query(
         'SELECT id, name, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE LIMIT 1',
         [it.product_name]
       );
+      if (!p) {
+        // v1.22.2: fallback alias — nota dengan nama produk lama tetap resolve
+        const { rows: [pa] } = await client.query(
+          `SELECT pm.id, pm.name, pm.base_unit, pm.pack_unit, pm.pack_size
+           FROM product_aliases a
+           JOIN product_master pm ON pm.id = a.product_id AND pm.is_active = TRUE
+           WHERE LOWER(TRIM(a.alias_name)) = LOWER(TRIM($1)) LIMIT 1`,
+          [it.product_name]
+        );
+        p = pa;
+      }
       if (!p) continue;
       productMap.set(it.product_name, { ...p });
     }
@@ -489,10 +500,21 @@ router.put('/:id', auth, async (req, res) => {
     const productMap = new Map();
     for (const it of items) {
       if (productMap.has(it.product_name)) continue;
-      const { rows: [p] } = await client.query(
+      let { rows: [p] } = await client.query(
         'SELECT id, name, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE LIMIT 1',
         [it.product_name]
       );
+      if (!p) {
+        // v1.22.2: fallback alias — nota dengan nama produk lama tetap resolve
+        const { rows: [pa] } = await client.query(
+          `SELECT pm.id, pm.name, pm.base_unit, pm.pack_unit, pm.pack_size
+           FROM product_aliases a
+           JOIN product_master pm ON pm.id = a.product_id AND pm.is_active = TRUE
+           WHERE LOWER(TRIM(a.alias_name)) = LOWER(TRIM($1)) LIMIT 1`,
+          [it.product_name]
+        );
+        p = pa;
+      }
       if (!p) continue;
       productMap.set(it.product_name, { ...p });
     }
