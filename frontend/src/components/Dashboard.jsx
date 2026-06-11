@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.21.18-stable",
+    version: "v1.21.19-stable",
     date: "11 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "changed",
+        text: "Picker produk di Faktur Pembelian sekarang memakai master produk ber-ID dan menampilkan KODE — Nama, supaya stok masuk ke produk yang tepat walau nama distributor berbeda.",
+        dev: "InvoiceList: produk dropdown pindah ke inventoryAPI.getProducts({ limit: 2000 }); MasterSelect.onSelect menyimpan product_id. Input nama bebas tetap boleh sementara dengan product_id null untuk fase gate berikutnya.",
+      },
+    ],
+  },
+  {
+    version: "v1.21.18-stable",
+    date: "11 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "changed",
@@ -2964,7 +2976,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.21.18-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.21.19-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

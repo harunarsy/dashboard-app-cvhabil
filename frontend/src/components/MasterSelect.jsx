@@ -20,6 +20,7 @@ export default function MasterSelect({
   isDarkMode = false,
   disabled = false,
   onRename,
+  allowCustomValue = true,
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -55,9 +56,10 @@ export default function MasterSelect({
     if (adding && newInputRef.current) newInputRef.current.focus();
   }, [adding]);
 
-  const filtered = options.filter(o =>
-    o.name.toLowerCase().includes(query.toLowerCase())
-  );
+  const filtered = options.filter(o => {
+    const haystack = `${o.name || ''} ${o.label || ''} ${o.code || ''}`.toLowerCase();
+    return haystack.includes(query.toLowerCase());
+  });
 
   const handleSelect = (name) => {
     onChange(name);
@@ -83,6 +85,15 @@ export default function MasterSelect({
       setErrMsg('Gagal menambahkan: ' + (err.response?.data?.error || err.message));
       setTimeout(() => setErrMsg(''), UI_MOTION.duration.toastError);
     }
+  };
+
+  const handleUseCustomValue = () => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    onChange(trimmed);
+    setOpen(false);
+    setQuery('');
+    setConfirmDelete(null);
   };
 
   const handleDelete = async (name, e) => {
@@ -241,7 +252,7 @@ export default function MasterSelect({
                   onClick={() => handleSelect(opt.name)}
                   style={{ flex: 1, fontSize: '14px', color: value === opt.name ? accent : txt, fontWeight: value === opt.name ? '600' : '400' }}
                 >
-                  {opt.name}
+                  {opt.label || opt.name}
                 </span>
 
                 {/* Rename inline */}
@@ -282,6 +293,7 @@ export default function MasterSelect({
                   </button>
                 )}
               {/* Delete button */}
+                {onRemove && (
                   <button
                     onClick={e => handleDelete(opt.name, e)}
                     title={confirmDelete === opt.name ? 'Klik lagi untuk konfirmasi hapus' : 'Hapus dari daftar'}
@@ -304,11 +316,13 @@ export default function MasterSelect({
                     <span style={{ fontSize: '11px', color: 'white', fontWeight: '600' }}>Konfirmasi</span>
                   )}
                 </button>
+                )}
               </div>
             ))}
           </div>
 
           {/* Add new section */}
+          {(onAdd || allowCustomValue) && (
           <div style={{
             borderTop: `1px solid ${border}`,
             padding: '10px',
@@ -316,6 +330,7 @@ export default function MasterSelect({
             backgroundColor: isDarkMode ? '#111' : '#FAFAFA',
           }}>
             {!adding ? (
+              onAdd ? (
                 <button
                   onClick={() => { setAdding(true); setNewName(query); }}
                   className="ui-motion-button ui-focus-ring"
@@ -341,6 +356,32 @@ export default function MasterSelect({
                 <Plus size={14} />
                 {query ? `Tambah "${query}"` : 'Tambah Baru...'}
               </button>
+              ) : (
+                <button
+                  onClick={handleUseCustomValue}
+                  disabled={!query.trim()}
+                  className="ui-motion-button ui-focus-ring"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    backgroundColor: 'transparent',
+                    border: `1.5px dashed ${border}`,
+                    borderRadius: '8px',
+                    cursor: query.trim() ? 'pointer' : 'not-allowed',
+                    color: query.trim() ? accent : muted,
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    transition: uiTransition('background', UI_MOTION.duration.fast),
+                  }}
+                >
+                  <Plus size={14} />
+                  {query ? `Gunakan "${query}"` : 'Ketik nama bebas'}
+                </button>
+              )
             ) : (
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
@@ -379,6 +420,7 @@ export default function MasterSelect({
               </div>
             )}
           </div>
+          )}
         </div>
       )}
     </div>

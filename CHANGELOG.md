@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.21.19-stable] - 2026-06-11
+
+### Changed
+- Faktur Pembelian: picker produk sekarang mengambil data dari master Inventory (`id`, `code`, `name`) dan menampilkan `KODE — Nama`. Saat operator memilih produk master, payload faktur mengirim `product_id` sehingga stok/HPP masuk ke produk yang benar. Input nama bebas tetap tersedia sementara untuk data distributor yang belum dipetakan.
+
 ## [v1.21.18-stable] - 2026-06-11
 
 ### Changed

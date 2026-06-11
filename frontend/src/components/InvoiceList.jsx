@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import {
   invoicesAPI,
   distributorsAPI,
-  productsAPI,
+  inventoryAPI,
   auditAPI,
   purchaseOrdersAPI,
 } from "../services/api";
@@ -125,6 +125,12 @@ const getDistColor = (name, allNames) => {
   const idx = allNames.indexOf(name);
   return DIST_COLORS[idx % DIST_COLORS.length];
 };
+
+const toProductOption = (product) => ({
+  ...product,
+  name: product.name || "",
+  label: product.code ? `${product.code} — ${product.name}` : product.name,
+});
 
 const daysDiff = (dateStr) => {
   if (!dateStr) return null;
@@ -532,8 +538,8 @@ export default function InvoiceList({
   };
   const fetchProducts = async () => {
     try {
-      const r = await productsAPI.getAll();
-      setProducts(r.data);
+      const r = await inventoryAPI.getProducts({ limit: 2000 });
+      setProducts((r.data || []).map(toProductOption));
     } catch (e) {
       console.error("Error loading products:", e);
     }
@@ -875,6 +881,13 @@ export default function InvoiceList({
         });
       } else if (field === "price_basis") {
         n[idx] = calcItem({ ...current, price_basis: val });
+      } else if (field === "product_option") {
+        n[idx] = calcItem({
+          ...current,
+          product_name: val?.name || "",
+          product_id: val?.id || null,
+          unit: current.unit || val?.base_unit || val?.unit || "pcs",
+        });
       } else {
         const updated = { ...current, [field]: val };
         if (field === "product_name") {
@@ -909,21 +922,6 @@ export default function InvoiceList({
     await distributorsAPI.remove(name);
     setDistributors((prev) => prev.filter((d) => d.name !== name));
   };
-  const handleAddProduct = async (name) => {
-    const res = await productsAPI.add(name);
-    const saved = res.data;
-    setProducts((prev) =>
-      prev.some((p) => p.name === saved.name)
-        ? prev
-        : [...prev, { name: saved.name, id: saved.id }].sort((a, b) =>
-            a.name.localeCompare(b.name),
-          ),
-    );
-  };
-  const handleRemoveProduct = async (name) => {
-    await productsAPI.remove(name);
-    setProducts((prev) => prev.filter((p) => p.name !== name));
-  };
   const handleRenameDistributor = async (oldName, newName) => {
     try {
       await distributorsAPI.rename(oldName, newName);
@@ -943,19 +941,6 @@ export default function InvoiceList({
       showToast("Gagal rename: " + (e.response?.data?.error || e.message));
     }
   };
-  const handleRenameProduct = async (oldName, newName) => {
-    try {
-      await productsAPI.rename(oldName, newName);
-      setProducts((prev) =>
-        prev
-          .map((p) => (p.name === oldName ? { ...p, name: newName } : p))
-          .sort((a, b) => a.name.localeCompare(b.name)),
-      );
-    } catch (e) {
-      showToast("Gagal rename: " + (e.response?.data?.error || e.message));
-    }
-  };
-
   // Validate
   const validateForm = () => {
     if (!form.invoice_number?.trim()) return "No Faktur wajib diisi";
@@ -3370,9 +3355,6 @@ export default function InvoiceList({
           onAddDistributor={handleAddDistributor}
           onRemoveDistributor={handleRemoveDistributor}
           onRenameDistributor={handleRenameDistributor}
-          onAddProduct={handleAddProduct}
-          onRemoveProduct={handleRemoveProduct}
-          onRenameProduct={handleRenameProduct}
           onFormChange={handleFormChange}
           updateItem={updateItem}
           addItem={addItem}
@@ -3936,9 +3918,6 @@ function InvoiceModal({
   onAddDistributor,
   onRemoveDistributor,
   onRenameDistributor,
-  onAddProduct,
-  onRemoveProduct,
-  onRenameProduct,
   onFormChange,
   updateItem,
   addItem,
@@ -4348,10 +4327,11 @@ function InvoiceModal({
                     <MasterSelect
                       value={item.product_name}
                       onChange={(v) => updateItem(idx, "product_name", v)}
+                      onSelect={(option) =>
+                        updateItem(idx, "product_option", option)
+                      }
                       options={products}
-                      onAdd={onAddProduct}
-                      onRemove={onRemoveProduct}
-                      onRename={onRenameProduct}
+                      allowCustomValue
                       placeholder="Pilih atau tambah produk..."
                       isDarkMode={isDarkMode}
                     />
