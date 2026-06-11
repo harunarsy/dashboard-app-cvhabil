@@ -553,7 +553,11 @@ export default function PurchaseOrderList({
       flash("Produk ditambahkan");
       fetchProducts();
     } catch (e) {
-      flash(e.response?.data?.error || e.message);
+      flash(
+        e.response?.status === 400
+          ? "Produk baru wajib punya KODE — buat dulu di halaman Inventory ya"
+          : e.response?.data?.error || e.message,
+      );
     }
   };
   const handleRemoveProduct = async (name) => {
