@@ -45,7 +45,8 @@ router.get('/stats', auth, async (req, res) => {
     const qTotalLaba = pool.query(`
       SELECT COALESCE(SUM(COALESCE(si.qty_in_unit, si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0)
         + COALESCE((
-            SELECT SUM(COALESCE(so2.ongkir, 0) - COALESCE(so2.ongkir_cost, 0))
+            SELECT SUM(COALESCE(so2.ongkir, 0) - COALESCE(so2.ongkir_cost, 0)
+              - CASE WHEN so2.payment_fee_mode = 'absorb' THEN COALESCE(so2.payment_fee, 0) ELSE 0 END)
             FROM sales_orders so2
             WHERE so2.is_deleted = false AND so2.payment_status = 'paid' AND so2.status = 'final'
               AND DATE_TRUNC('month', so2.sale_date) = DATE_TRUNC('month', CURRENT_DATE)
@@ -61,7 +62,8 @@ router.get('/stats', auth, async (req, res) => {
     const qPrevLaba = pool.query(`
       SELECT COALESCE(SUM(COALESCE(si.qty_in_unit, si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0)
         + COALESCE((
-            SELECT SUM(COALESCE(so2.ongkir, 0) - COALESCE(so2.ongkir_cost, 0))
+            SELECT SUM(COALESCE(so2.ongkir, 0) - COALESCE(so2.ongkir_cost, 0)
+              - CASE WHEN so2.payment_fee_mode = 'absorb' THEN COALESCE(so2.payment_fee, 0) ELSE 0 END)
             FROM sales_orders so2
             WHERE so2.is_deleted = false AND so2.payment_status = 'paid' AND so2.status = 'final'
               AND so2.sale_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')

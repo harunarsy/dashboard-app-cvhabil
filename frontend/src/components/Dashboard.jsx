@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.25.0-stable",
+    version: "v1.25.1-stable",
     date: "13 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Metode pembayaran 'Kartu Kredit' di nota, lengkap dengan biaya mesin EDC-nya. Kamu pilih siapa yang menanggung: 'Potong margin' (harga customer tetap, fee jadi beban internal — tidak tampil di nota) atau 'Bebankan ke customer' (tagihan otomatis di-gross-up supaya uang yang kamu terima tetap utuh — baris 'Biaya Kartu Kredit' ikut tercetak di nota). Persen fee terisi otomatis dari profil Biaya Admin (bisa diubah per nota), breakdown margin dan Dashboard ikut menghitung dengan benar. Preview nota juga kini menampilkan baris ongkir.",
+        dev: "sales_orders +payment_fee_rate/payment_fee_mode/payment_fee; pass_on fee = total×r/(1−r) (net tetap = total), absorb fee = total×r dipotong gross_profit (payload + snapshot AUDIT-LS-06); dashboard qTotalLaba/qPrevLaba minus fee absorb; computeNotaMargin + tfoot breakdown row; NotaPreview totals useMemo (ongkir + ccFee TANPA PPN); generateNotaPDF baris Biaya Kartu Kredit (productTotal = total − ongkir − ccFee); prefill rate dari fee profile offline/credit_card.",
+      },
+    ],
+  },
+  {
+    version: "v1.25.0-stable",
+    date: "13 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "new",
@@ -3123,7 +3135,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.25.0-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.25.1-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

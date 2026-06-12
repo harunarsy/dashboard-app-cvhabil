@@ -82,6 +82,11 @@ const ensureSchema = async () => {
     // v1.21.14: ongkir nota-level (ditagih ke customer) + ongkir_cost (biaya kurir asli, internal)
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS ongkir DECIMAL(15,2) DEFAULT 0`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS ongkir_cost DECIMAL(15,2) DEFAULT 0`);
+    // v1.25.1: fee metode bayar (kartu kredit dkk). mode 'absorb' = margin dipotong
+    // (harga customer tetap); 'pass_on' = tagihan di-gross-up supaya net tetap utuh.
+    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS payment_fee_rate NUMERIC(7,5) DEFAULT 0`);
+    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS payment_fee_mode VARCHAR(10) DEFAULT 'absorb'`);
+    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS payment_fee DECIMAL(15,2) DEFAULT 0`);
     // v1.16.2+: batch_id_snapshot for tracking selected batch in sales_items
     await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS batch_id_snapshot INT`);
 	    await pool.query(`CREATE INDEX IF NOT EXISTS idx_sales_items_batch_snapshot ON sales_items(batch_id_snapshot)`);
@@ -345,6 +350,20 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
+// v1.25.1: fee metode bayar (kartu kredit dkk) — rate desimal (2,5% = 0.025), clamp 0–0.5.
+// 'pass_on': customer bayar (total + fee), provider motong rate dari nominal tagihan
+// → fee = total × r/(1−r) supaya net yang diterima tetap = total (margin utuh).
+// 'absorb': harga customer tetap, fee = total × r dipotong dari margin.
+const parsePaymentFee = (body) => {
+  const rate = Math.min(0.5, Math.max(0, parseFloat(body.payment_fee_rate) || 0));
+  const mode = body.payment_fee_mode === 'pass_on' ? 'pass_on' : 'absorb';
+  return { rate, mode };
+};
+const computePaymentFee = (baseTotal, rate, mode) =>
+  rate > 0 && baseTotal > 0
+    ? (mode === 'pass_on' ? (baseTotal * rate) / (1 - rate) : baseTotal * rate)
+    : 0;
+
 // POST create
 router.post('/', auth, async (req, res) => {
   const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, payment_method, payment_details, order_number: manualOrderNumber, channel: rawChannel, due_date, payment_terms, ongkir: rawOngkir, ongkir_cost: rawOngkirCost } = req.body;
@@ -386,11 +405,17 @@ router.post('/', auth, async (req, res) => {
     // v1.21.14: ongkir ditagih masuk total; untung ongkir = ditagih - biaya asli.
     total += ongkir;
     gross_profit += (ongkir - ongkirCost);
+    // v1.25.1: fee kartu kredit — pass_on nambah tagihan (margin utuh),
+    // absorb motong margin (harga customer tetap).
+    const { rate: pfRate, mode: pfMode } = parsePaymentFee(req.body);
+    const paymentFee = computePaymentFee(total, pfRate, pfMode);
+    if (pfMode === 'pass_on') total += paymentFee;
+    else gross_profit -= paymentFee;
 
     const { rows } = await client.query(
-      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms, ongkir, ongkir_cost, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'final') RETURNING *`,
-      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null, ongkir, ongkirCost]
+      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms, ongkir, ongkir_cost, payment_fee_rate, payment_fee_mode, payment_fee, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,'final') RETURNING *`,
+      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee]
     );
     const order = rows[0];
 
@@ -475,9 +500,10 @@ router.post('/', auth, async (req, res) => {
     }
 
     // AUDIT-LS-06: simpan gross_profit versi snapshot (konsisten dgn recompute Dashboard)
+    // v1.25.1: fee absorb ikut motong snapshot (pass_on netral — fee dibayar customer)
     await client.query(
       'UPDATE sales_orders SET gross_profit = $1 WHERE id = $2',
-      [actualItemGross + (ongkir - ongkirCost), order.id]
+      [actualItemGross + (ongkir - ongkirCost) - (pfMode === 'absorb' ? paymentFee : 0), order.id]
     );
 
     // ─── Auto Stock-Out (FEFO or Selected Batch): Nota Penjualan → Inventory ───
@@ -593,11 +619,16 @@ router.put('/:id', auth, async (req, res) => {
     // v1.21.14: ongkir ditagih masuk total; untung ongkir = ditagih - biaya asli.
     total += ongkir;
     gross_profit += (ongkir - ongkirCost);
+    // v1.25.1: fee kartu kredit (lihat POST)
+    const { rate: pfRate, mode: pfMode } = parsePaymentFee(req.body);
+    const paymentFee = computePaymentFee(total, pfRate, pfMode);
+    if (pfMode === 'pass_on') total += paymentFee;
+    else gross_profit -= paymentFee;
 
     const { rowCount } = await client.query(
-      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, channel=$12, due_date=$13, payment_terms=$14, ongkir=$15, ongkir_cost=$16, updated_at=NOW()
-       WHERE id=$17 AND is_deleted=FALSE`,
-      [customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'final', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, ongkir, ongkirCost, req.params.id]
+      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, channel=$12, due_date=$13, payment_terms=$14, ongkir=$15, ongkir_cost=$16, payment_fee_rate=$17, payment_fee_mode=$18, payment_fee=$19, updated_at=NOW()
+       WHERE id=$20 AND is_deleted=FALSE`,
+      [customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'final', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, req.params.id]
     );
     if (!rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
 
@@ -708,9 +739,10 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     // AUDIT-LS-06: simpan gross_profit versi snapshot (konsisten dgn recompute Dashboard)
+    // v1.25.1: fee absorb ikut motong snapshot (pass_on netral — fee dibayar customer)
     await client.query(
       'UPDATE sales_orders SET gross_profit = $1 WHERE id = $2',
-      [actualItemGross + (ongkir - ongkirCost), req.params.id]
+      [actualItemGross + (ongkir - ongkirCost) - (pfMode === 'absorb' ? paymentFee : 0), req.params.id]
     );
 
     // 3) Apply-new stock-out: selected batch or FEFO deduct + INSERT mutations

@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.25.1-stable] - 2026-06-13
+
+### Added
+- **Metode pembayaran "Kartu Kredit" + fee EDC di nota**: kolom baru `sales_orders.payment_fee_rate/payment_fee_mode/payment_fee`. Dua mode: **absorb** (harga customer tetap; `fee = total × r` dipotong dari `gross_profit` payload + snapshot AUDIT-LS-06; TIDAK tampil di nota) dan **pass_on** (tagihan di-gross-up `fee = total × r/(1−r)` supaya net yang diterima tetap = total — margin utuh; baris "Biaya Kartu Kredit" tercetak di PDF & preview, TANPA PPN, `productTotal = total − ongkir − ccFee`).
+- Form nota: opsi "Kartu Kredit" → panel fee (persen prefill dari fee profile `offline/credit_card` di Biaya Admin, bisa diubah per nota) + toggle "Potong margin"/"Bebankan ke customer" + kalkulasi live "customer bayar X / margin terpotong Y".
+- Breakdown margin expand & `computeNotaMargin` ikut motong fee absorb (pass_on netral); Dashboard `qTotalLaba`/`qPrevLaba` minus fee absorb (konsisten snapshot).
+- NotaPreview: blok total kini menampilkan baris **Ongkir** (dulu preview hanya total produk) + baris Biaya Kartu Kredit saat pass_on; terbilang pakai total bayar penuh.
+
 ## [v1.25.0-stable] - 2026-06-13
 
 ### Added

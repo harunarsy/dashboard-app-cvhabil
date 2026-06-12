@@ -16,6 +16,7 @@ import {
   printSettingsAPI,
   countersAPI,
   settingsAPI,
+  priceListAPI,
 } from "../services/api";
 import {
   getProductUnits,
@@ -124,8 +125,12 @@ const computeNotaMargin = (order) => {
   // v1.21.14: ongkir ikut revenue & margin (untung ongkir = ditagih - biaya asli)
   const ongkir = parseFloat(order.ongkir) || 0;
   const ongkirCost = parseFloat(order.ongkir_cost) || 0;
+  // v1.25.1: fee kartu kredit mode absorb motong margin; pass_on netral
+  // (fee dibayar customer lalu dipotong provider — tidak menyentuh margin)
+  const paymentFee =
+    order.payment_fee_mode === "absorb" ? parseFloat(order.payment_fee) || 0 : 0;
   const revenue = itemRevenue + ongkir;
-  const margin = itemMargin + (ongkir - ongkirCost);
+  const margin = itemMargin + (ongkir - ongkirCost) - paymentFee;
   const pct = revenue > 0 ? (margin / revenue) * 100 : 0;
   return { revenue, margin, pct };
 };
@@ -220,9 +225,26 @@ export default function SalesOrderList({
     payment_terms: null,
     ongkir: "",
     ongkir_cost: "",
+    // v1.25.1: fee kartu kredit — rate dalam %, mode absorb (potong margin) / pass_on (bebankan customer)
+    payment_fee_rate: "",
+    payment_fee_mode: "absorb",
   });
   const [items, setItems] = useState([blankItem()]);
   const [itemBatches, setItemBatches] = useState([]);
+  // v1.25.1: default fee kartu kredit dari profil Biaya Admin (offline/credit_card)
+  const [ccDefaultRatePct, setCcDefaultRatePct] = useState(2.5);
+  useEffect(() => {
+    priceListAPI
+      .getFeeProfiles()
+      .then((r) => {
+        const cc = (r.data || []).find(
+          (p) => p.platform === "offline" && p.category_key === "credit_card",
+        );
+        const ratePct = cc ? parseFloat(cc.safe_effective_fee_rate) * 100 : 0;
+        if (ratePct > 0) setCcDefaultRatePct(+ratePct.toFixed(3));
+      })
+      .catch(() => {});
+  }, []);
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const toastTimerRef = useRef(null);
@@ -650,6 +672,8 @@ export default function SalesOrderList({
       payment_terms: null,
       ongkir: "",
       ongkir_cost: "",
+      payment_fee_rate: "",
+      payment_fee_mode: "absorb",
     });
     setItems([blankItem()]);
     setItemBatches([]);
@@ -672,6 +696,11 @@ export default function SalesOrderList({
       payment_terms: order.payment_terms || null,
       ongkir: parseFloat(order.ongkir) > 0 ? String(parseFloat(order.ongkir)) : "",
       ongkir_cost: parseFloat(order.ongkir_cost) > 0 ? String(parseFloat(order.ongkir_cost)) : "",
+      payment_fee_rate:
+        parseFloat(order.payment_fee_rate) > 0
+          ? String(+(parseFloat(order.payment_fee_rate) * 100).toFixed(3))
+          : "",
+      payment_fee_mode: order.payment_fee_mode === "pass_on" ? "pass_on" : "absorb",
     });
     // v1.8.1: include batch snapshot fields supaya batch picker bisa pre-fill
     // v1.16.2: tambah _selected_batch_id untuk lookup berbasis id
@@ -819,6 +848,13 @@ export default function SalesOrderList({
     setSaving(true);
     try {
       const payload = { ...form, items: validItems };
+      // v1.25.1: rate fee di form dalam % → backend pakai desimal; hanya kirim
+      // kalau metode Kartu Kredit (metode lain tanpa fee)
+      payload.payment_fee_rate =
+        form.payment_method === "Kartu Kredit"
+          ? (parseFloat(form.payment_fee_rate) || 0) / 100
+          : 0;
+      payload.payment_fee_mode = form.payment_fee_mode || "absorb";
       // v1.16.2: map batch fields ke payload (selected_batch_id, batch_id_snapshot, dll)
       payload.items = payload.items.map((i) => ({
         ...i,
@@ -2058,7 +2094,12 @@ export default function SalesOrderList({
                                 const ongkirVal = parseFloat(o.ongkir) || 0;
                                 const ongkirCostVal = parseFloat(o.ongkir_cost) || 0;
                                 const ongkirMargin = ongkirVal - ongkirCostVal;
-                                const totalMargin = itemMargin + ongkirMargin;
+                                // v1.25.1: fee kartu absorb motong margin; pass_on netral
+                                const ccFee = parseFloat(o.payment_fee) || 0;
+                                const ccAbsorb =
+                                  o.payment_fee_mode === "absorb" && ccFee > 0;
+                                const totalMargin =
+                                  itemMargin + ongkirMargin - (ccAbsorb ? ccFee : 0);
                                 return (
                                   <>
                                   {(ongkirVal > 0 || ongkirCostVal > 0) && (
@@ -2089,6 +2130,38 @@ export default function SalesOrderList({
                                         }}
                                       >
                                         {fmtRp(ongkirMargin)}
+                                      </td>
+                                    </tr>
+                                  )}
+                                  {ccFee > 0 && (
+                                    <tr style={{ borderTop: `1px dashed ${border}` }}>
+                                      <td
+                                        colSpan={6}
+                                        style={{
+                                          padding: "6px 10px",
+                                          textAlign: "right",
+                                          fontWeight: "600",
+                                          fontSize: "12px",
+                                          color: sub,
+                                        }}
+                                      >
+                                        Biaya kartu kredit{" "}
+                                        {ccAbsorb
+                                          ? "(dipotong dari margin)"
+                                          : `(dibebankan ke customer ${fmtRp(ccFee)} — margin utuh)`}
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: "6px 10px",
+                                          textAlign: "right",
+                                          fontWeight: "600",
+                                          fontSize: "12px",
+                                          color: ccAbsorb
+                                            ? "var(--color-danger)"
+                                            : sub,
+                                        }}
+                                      >
+                                        {ccAbsorb ? fmtRp(-ccFee) : "±0"}
                                       </td>
                                     </tr>
                                   )}
@@ -2589,6 +2662,13 @@ export default function SalesOrderList({
                             ...(v === "Tunai"
                               ? { due_date: "", payment_terms: null }
                               : {}),
+                            // v1.25.1: pindah ke Kartu Kredit → prefill fee default;
+                            // metode lain → fee dinolkan
+                            ...(v === "Kartu Kredit"
+                              ? p.payment_fee_rate
+                                ? {}
+                                : { payment_fee_rate: String(ccDefaultRatePct) }
+                              : { payment_fee_rate: "" }),
                           }));
                         }}
                         style={inputStyle}
@@ -2596,9 +2676,97 @@ export default function SalesOrderList({
                         <option value="Tunai">Tunai</option>
                         <option value="Transfer">Transfer</option>
                         <option value="QRIS">QRIS</option>
+                        <option value="Kartu Kredit">Kartu Kredit</option>
                       </select>
                     </div>
                   </div>
+
+                  {/* v1.25.1: fee kartu kredit — potong margin vs bebankan ke customer */}
+                  {form.payment_method === "Kartu Kredit" && (
+                    <div
+                      style={{
+                        padding: "12px",
+                        borderRadius: "10px",
+                        border: `1px solid ${border}`,
+                        backgroundColor: "var(--color-bg-subtle)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "10px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "120px 1fr",
+                          gap: "10px",
+                          alignItems: "end",
+                        }}
+                      >
+                        <div>
+                          <label style={labelStyle}>Fee Kartu (%)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="50"
+                            step="0.1"
+                            value={form.payment_fee_rate}
+                            placeholder={String(ccDefaultRatePct)}
+                            onChange={(e) =>
+                              setForm((p) => ({
+                                ...p,
+                                payment_fee_rate: e.target.value,
+                              }))
+                            }
+                            style={inputStyle}
+                          />
+                        </div>
+                        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                          {[
+                            ["absorb", "Potong margin"],
+                            ["pass_on", "Bebankan ke customer"],
+                          ].map(([k, label]) => {
+                            const active = form.payment_fee_mode === k;
+                            return (
+                              <button
+                                key={k}
+                                type="button"
+                                onClick={() =>
+                                  setForm((p) => ({ ...p, payment_fee_mode: k }))
+                                }
+                                style={{
+                                  padding: "8px 12px",
+                                  fontSize: "12px",
+                                  fontWeight: "700",
+                                  borderRadius: "8px",
+                                  border: `1px solid ${active ? "var(--color-primary)" : border}`,
+                                  backgroundColor: active
+                                    ? "var(--color-primary)"
+                                    : "transparent",
+                                  color: active ? "#FFF" : sub,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: "11px", color: sub, lineHeight: 1.5 }}>
+                        {(() => {
+                          const r = (parseFloat(form.payment_fee_rate) || 0) / 100;
+                          if (!(r > 0) || !(grandTotal > 0))
+                            return "Isi % fee mesin EDC — biasanya 2–3%. Pilih siapa yang menanggung.";
+                          if (form.payment_fee_mode === "pass_on") {
+                            const fee = (grandTotal * r) / (1 - r);
+                            return `Customer bayar ${fmtRp(grandTotal + fee)} (termasuk biaya kartu ${fmtRp(fee)}) — margin kamu UTUH. Baris biaya kartu ikut tampil di nota.`;
+                          }
+                          const fee = grandTotal * r;
+                          return `Harga customer tetap ${fmtRp(grandTotal)}; margin terpotong fee ${fmtRp(fee)}. Tidak tampil di nota (internal).`;
+                        })()}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Tempo Pembayaran — v1.8.1: hide kalau Tunai (cash gak ada tempo) */}
                   {form.payment_method !== "Tunai" ? (

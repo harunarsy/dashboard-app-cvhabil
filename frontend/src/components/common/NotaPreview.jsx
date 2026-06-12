@@ -22,17 +22,28 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
 
   const isCash = payment_method === 'Tunai' || payment_method === 'Cash';
 
-  const { total, dpp, ppn, terbilang } = useMemo(() => {
+  const { dpp, ppn, ongkir, ccFee, totalBayar, terbilang } = useMemo(() => {
     const t = items.reduce((s, i) => {
       const qty = parseFloat(i.qty_in_unit ?? i.qty) || 0;
       const price = parseFloat(i.unit_price) || 0;
       return s + qty * price;
     }, 0);
+    // DPP/PPN hanya dari nilai produk; ongkir & biaya kartu TANPA PPN (konsisten PDF)
     const d = t / 1.11;
     const p = t - d;
-    const words = t > 0 ? (angkaKeTerbilang(Math.round(t)) + ' Rupiah').trim() : '';
-    return { total: t, dpp: d, ppn: p, terbilang: words };
-  }, [items]);
+    const o = Math.max(0, parseFloat(form.ongkir) || 0);
+    // v1.25.1: fee kartu kredit pass_on tampil di nota (gross-up, margin utuh);
+    // absorb = internal, tidak ditampilkan ke customer
+    const rate = (parseFloat(form.payment_fee_rate) || 0) / 100;
+    const passOn =
+      form.payment_method === 'Kartu Kredit' &&
+      form.payment_fee_mode === 'pass_on' &&
+      rate > 0 && rate < 1;
+    const fee = passOn ? ((t + o) * rate) / (1 - rate) : 0;
+    const grand = t + o + fee;
+    const words = grand > 0 ? (angkaKeTerbilang(Math.round(grand)) + ' Rupiah').trim() : '';
+    return { total: t, dpp: d, ppn: p, ongkir: o, ccFee: fee, totalBayar: grand, terbilang: words };
+  }, [items, form.ongkir, form.payment_method, form.payment_fee_rate, form.payment_fee_mode]);
 
   const ketentuanLines = ketentuan.split('\n').filter(l => l.trim()).slice(0, 3);
   const ketentuanMore = ketentuan.split('\n').filter(l => l.trim()).length > 3;
@@ -126,11 +137,17 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
         </table>
       </div>
 
-      {/* Breakdown */}
+      {/* Breakdown — ongkir & biaya kartu (pass_on) baris terpisah TANPA PPN */}
       <div style={{ textAlign: 'right', marginBottom: '8px' }}>
         <div style={{ fontSize: '11px', color: subText }}>Subtotal (DPP): {fmtRp(dpp)}</div>
         <div style={{ fontSize: '11px', color: subText }}>PPN 11%: {fmtRp(ppn)}</div>
-        <div style={{ fontSize: '12px', fontWeight: '800', color: bodyText, marginTop: '2px' }}>GRAND TOTAL: {fmtRp(total)}</div>
+        {ongkir > 0 && (
+          <div style={{ fontSize: '11px', color: subText }}>Ongkir: {fmtRp(ongkir)}</div>
+        )}
+        {ccFee > 0 && (
+          <div style={{ fontSize: '11px', color: subText }}>Biaya Kartu Kredit: {fmtRp(ccFee)}</div>
+        )}
+        <div style={{ fontSize: '12px', fontWeight: '800', color: bodyText, marginTop: '2px' }}>GRAND TOTAL: {fmtRp(totalBayar)}</div>
       </div>
 
       {terbilang && (

@@ -232,9 +232,13 @@ export function generateNotaPDF(order, options = {}) {
     // v1.8.1: tax-friendly breakdown — DPP (subtotal exc PPN) + PPN 11% + Grand Total
     // Indo practice: harga jual customer = gross (inc PPN). Decompose: GT = DPP + PPN.
     // v1.21.14: ongkir baris terpisah, TIDAK kena PPN. DPP/PPN dihitung dari nilai produk saja.
+    // v1.25.1: biaya kartu kredit pass_on = baris terpisah TANPA PPN (sudah masuk order.total);
+    // mode absorb tidak tampil di nota (internal, motong margin).
     const grandTotal = parseFloat(order.total) || 0;
     const ongkir = parseFloat(order.ongkir) || 0;
-    const productTotal = grandTotal - ongkir;
+    const ccFee =
+      order.payment_fee_mode === 'pass_on' ? parseFloat(order.payment_fee) || 0 : 0;
+    const productTotal = grandTotal - ongkir - ccFee;
     const PPN_RATE = 0.11;
     const dpp = productTotal / (1 + PPN_RATE);
     const ppn = productTotal - dpp;
@@ -249,6 +253,10 @@ export function generateNotaPDF(order, options = {}) {
     finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
     if (ongkir > 0) {
       doc.text(`Ongkir: ${fmtRp(ongkir)}`, rightX, finalY, { align: 'right' });
+      finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
+    }
+    if (ccFee > 0) {
+      doc.text(`Biaya Kartu Kredit: ${fmtRp(ccFee)}`, rightX, finalY, { align: 'right' });
       finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
     }
 
