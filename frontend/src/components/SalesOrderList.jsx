@@ -231,6 +231,25 @@ export default function SalesOrderList({
   });
   const [items, setItems] = useState([blankItem()]);
   const [itemBatches, setItemBatches] = useState([]);
+  // v1.26.0: ✨ Harga Pintar — peta harga Daftar Harga per saluran; saat produk
+  // dipilih di form, harga jual auto-isi sesuai saluran nota (offline/online)
+  const [priceMap, setPriceMap] = useState({});
+  useEffect(() => {
+    priceListAPI
+      .getAll()
+      .then((r) => {
+        const m = {};
+        (r.data || []).forEach((p) => {
+          m[p.id] = {
+            offline: parseFloat(p.list_price) > 0 ? parseFloat(p.list_price) : null,
+            shopee: parseFloat(p.shopee_price) > 0 ? parseFloat(p.shopee_price) : null,
+            tokopedia_tiktok: parseFloat(p.tokopedia_price) > 0 ? parseFloat(p.tokopedia_price) : null,
+          };
+        });
+        setPriceMap(m);
+      })
+      .catch(() => {});
+  }, []);
   // v1.25.1: default fee kartu kredit dari profil Biaya Admin (offline/credit_card)
   const [ccDefaultRatePct, setCcDefaultRatePct] = useState(2.5);
   useEffect(() => {
@@ -1012,6 +1031,25 @@ export default function SalesOrderList({
       );
       if (match) {
         updated.unit_price = parseFloat(match.sell_price) || 0;
+        // v1.26.0: ✨ Harga Pintar — pakai harga Daftar Harga sesuai saluran nota
+        // (offline → harga offline; online → Shopee, fallback TikTok/Tokped)
+        const pl = priceMap[match.id];
+        const smart =
+          form.channel === "online"
+            ? pl?.shopee ?? pl?.tokopedia_tiktok ?? null
+            : pl?.offline ?? null;
+        if (smart > 0) {
+          updated.unit_price = smart;
+          flash(
+            `✨ Harga ${match.name} diisi dari Daftar Harga (${
+              form.channel === "online"
+                ? pl?.shopee
+                  ? "Shopee"
+                  : "TikTok/Tokped"
+                : "Offline"
+            })`,
+          );
+        }
         updated.unit = match.base_unit || match.unit || "pcs";
         updated._product_id = match.id;
         updated._product = match; // v1.6.0: cache product (pack info) untuk dropdown unit + konversi

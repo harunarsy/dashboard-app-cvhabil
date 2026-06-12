@@ -16,6 +16,13 @@ const fmtRp = (n) =>
     maximumFractionDigits: 0,
   }).format(n || 0);
 
+const fmtRpShort = (n) => {
+  const v = Math.round(n || 0);
+  if (Math.abs(v) >= 1000000) return `Rp${(v / 1000000).toFixed(1).replace(".", ",")}jt`;
+  if (Math.abs(v) >= 1000) return `Rp${Math.round(v / 1000)}rb`;
+  return `Rp${v}`;
+};
+
 const fmtDate = (d) =>
   d
     ? new Date(d).toLocaleDateString("id-ID", {
@@ -35,6 +42,14 @@ const lastHppFor = (row) => {
   return hppFromHna(parseFloat(row.master_hna) || 0);
 };
 
+// Tiga saluran jual — field mengikuti respons GET /api/price-list
+const CHANNELS = [
+  { key: "offline", label: "Offline", icon: "🏪", field: "list_price", dateField: "effective_date", platform: "offline", category: "default" },
+  { key: "shopee", label: "Shopee", icon: "🟠", field: "shopee_price", dateField: "shopee_date", platform: "shopee", category: "default" },
+  { key: "tokopedia_tiktok", label: "TikTok/Tokped", icon: "🟢", field: "tokopedia_price", dateField: "tokopedia_date", platform: "tokopedia_tiktok", category: "default" },
+];
+const CHANNEL_LABEL = Object.fromEntries(CHANNELS.map((c) => [c.key, `${c.icon} ${c.label}`]));
+
 const TARGET_MODES = [
   { key: "healthy", label: "Laba Sehat" },
   { key: "thin", label: "Laba Tipis" },
@@ -43,8 +58,8 @@ const TARGET_MODES = [
 ];
 
 // ─── Drawer Saran Harga (pricing engine per marketplace) ───────────────────
-function SuggestDrawer({ row, hpp, feeProfiles, isMobile, onClose, onApply }) {
-  const [profileKey, setProfileKey] = useState("shopee|food_beverage");
+function SuggestDrawer({ row, hpp, feeProfiles, isMobile, initialKey, onClose, onApply }) {
+  const [profileKey, setProfileKey] = useState(initialKey || "shopee|default");
   const [mode, setMode] = useState("healthy");
   const [qtyBundle, setQtyBundle] = useState("1");
   const [packingFee, setPackingFee] = useState("0");
@@ -140,15 +155,9 @@ function SuggestDrawer({ row, hpp, feeProfiles, isMobile, onClose, onApply }) {
 
   return (
     <>
-      {/* overlay */}
       <div
         onClick={onClose}
-        style={{
-          position: "fixed",
-          inset: 0,
-          backgroundColor: "rgba(0,0,0,0.35)",
-          zIndex: 90,
-        }}
+        style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.35)", zIndex: 90 }}
       />
       <aside
         className="ui-panel ui-motion-modal"
@@ -183,15 +192,7 @@ function SuggestDrawer({ row, hpp, feeProfiles, isMobile, onClose, onApply }) {
             onClick={onClose}
             aria-label="Tutup saran harga"
             className="ui-motion-button"
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "20px",
-              color: sub,
-              lineHeight: 1,
-              padding: "4px",
-            }}
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: "20px", color: sub, lineHeight: 1, padding: "4px" }}
           >
             ×
           </button>
@@ -246,16 +247,7 @@ function SuggestDrawer({ row, hpp, feeProfiles, isMobile, onClose, onApply }) {
 
         <button
           onClick={() => setShowPromo((v) => !v)}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "var(--color-primary)",
-            fontSize: "12px",
-            fontWeight: 700,
-            textAlign: "left",
-            padding: 0,
-          }}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-primary)", fontSize: "12px", fontWeight: 700, textAlign: "left", padding: 0 }}
         >
           {showPromo ? "▾" : "▸"} Biaya promo tambahan (diskon toko / affiliate / campaign)
         </button>
@@ -282,9 +274,7 @@ function SuggestDrawer({ row, hpp, feeProfiles, isMobile, onClose, onApply }) {
           </div>
         )}
 
-        {err && (
-          <div style={{ fontSize: "12px", color: "var(--color-danger)", fontWeight: 600 }}>{err}</div>
-        )}
+        {err && <div style={{ fontSize: "12px", color: "var(--color-danger)", fontWeight: 600 }}>{err}</div>}
 
         {result && (
           <>
@@ -330,9 +320,10 @@ function SuggestDrawer({ row, hpp, feeProfiles, isMobile, onClose, onApply }) {
                   borderRadius: "10px",
                   fontSize: "12px",
                   fontWeight: 600,
-                  backgroundColor: w.includes("RUGI") || w.includes("NEGATIF")
-                    ? "color-mix(in srgb, var(--color-danger) 12%, transparent)"
-                    : "color-mix(in srgb, var(--color-warning, #f59e0b) 14%, transparent)",
+                  backgroundColor:
+                    w.includes("RUGI") || w.includes("NEGATIF")
+                      ? "color-mix(in srgb, var(--color-danger) 12%, transparent)"
+                      : "color-mix(in srgb, var(--color-warning, #f59e0b) 14%, transparent)",
                   color: w.includes("RUGI") || w.includes("NEGATIF") ? "var(--color-danger)" : text,
                 }}
               >
@@ -342,7 +333,7 @@ function SuggestDrawer({ row, hpp, feeProfiles, isMobile, onClose, onApply }) {
 
             {result.harga_rekomendasi_psikologis != null && (
               <button
-                onClick={() => onApply(result.harga_rekomendasi_psikologis)}
+                onClick={() => onApply(result.harga_rekomendasi_psikologis, platform)}
                 className="btn-primary ui-motion-button"
                 style={{
                   padding: "12px",
@@ -528,6 +519,89 @@ function FeeProfilesModal({ feeProfiles, isMobile, onClose, onSaved, flash }) {
   );
 }
 
+// ─── Modal riwayat harga per produk ─────────────────────────────────────────
+function HistoryModal({ row, isMobile, onClose }) {
+  const [entries, setEntries] = useState(null);
+  const text = "var(--color-text)";
+  const sub = "var(--color-text-muted)";
+  const border = "var(--color-border)";
+
+  useEffect(() => {
+    priceListAPI
+      .getHistory(row.id)
+      .then((r) => setEntries(r.data || []))
+      .catch(() => setEntries([]));
+  }, [row.id]);
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.35)", zIndex: 90 }} />
+      <div
+        className="ui-panel ui-dialog-shell ui-motion-modal"
+        role="dialog"
+        aria-label={`Riwayat harga ${row.name}`}
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: isMobile ? "94vw" : "480px",
+          maxHeight: "80vh",
+          overflowY: "auto",
+          zIndex: 100,
+          backgroundColor: "var(--color-surface)",
+          border: `1px solid ${border}`,
+          borderRadius: "16px",
+          boxShadow: "var(--shadow-floating)",
+          padding: "20px",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+          <div style={{ fontSize: "15px", fontWeight: 800, color: text }}>🕘 Riwayat Harga</div>
+          <button onClick={onClose} aria-label="Tutup riwayat" style={{ background: "none", border: "none", cursor: "pointer", fontSize: "20px", color: sub }}>
+            ×
+          </button>
+        </div>
+        <div style={{ fontSize: "12px", color: sub, marginBottom: "12px" }}>{row.name}</div>
+        {entries === null && <Skeleton width="100%" height="60px" />}
+        {entries !== null && !entries.length && (
+          <div style={{ fontSize: "13px", color: sub, padding: "12px 0" }}>Belum ada riwayat — set harga pertama lewat kolom saluran.</div>
+        )}
+        {entries !== null &&
+          entries.map((e) => (
+            <div
+              key={e.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "9px 0",
+                borderBottom: `1px solid ${border}`,
+                gap: "8px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  padding: "2px 8px",
+                  borderRadius: "999px",
+                  backgroundColor: "var(--color-bg-subtle)",
+                  color: sub,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {CHANNEL_LABEL[e.channel] || e.channel}
+              </span>
+              <span style={{ fontSize: "12px", color: sub, flex: 1 }}>berlaku {fmtDate(e.effective_date)}</span>
+              <strong style={{ fontSize: "13px", color: text }}>{fmtRp(e.price)}</strong>
+            </div>
+          ))}
+      </div>
+    </>
+  );
+}
+
 export default function PriceListPage({ isDarkMode, isMobile }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -536,11 +610,12 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
   const [toastType, setToastType] = useState("success");
   const toastTimerRef = useRef(null);
   const [settings, setSettings] = useState({});
-  // edit state per product: { [id]: { price, effective_date } }
-  const [edits, setEdits] = useState({});
-  const [savingId, setSavingId] = useState(null);
+  // nilai input per produk per saluran: { [id]: { offline: "1000", shopee: "", ... } }
+  const [vals, setVals] = useState({});
+  const [savingKey, setSavingKey] = useState(null); // `${id}|${channel}`
   const [exporting, setExporting] = useState(false);
-  const [suggestFor, setSuggestFor] = useState(null);
+  const [suggestFor, setSuggestFor] = useState(null); // { row, channelKey }
+  const [historyFor, setHistoryFor] = useState(null);
   const [feeProfiles, setFeeProfiles] = useState([]);
   const [showFees, setShowFees] = useState(false);
   const [onlyUnset, setOnlyUnset] = useState(false);
@@ -555,21 +630,29 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
     setToastType(type);
     toastTimerRef.current = setTimeout(
       () => setToast(""),
-      type === "error"
-        ? UI_MOTION.duration.toastError
-        : UI_MOTION.duration.toastSuccess,
+      type === "error" ? UI_MOTION.duration.toastError : UI_MOTION.duration.toastSuccess,
     );
+  };
+
+  const seedVals = (data) => {
+    const m = {};
+    (data || []).forEach((r) => {
+      m[r.id] = {};
+      CHANNELS.forEach((c) => {
+        const v = r[c.field];
+        m[r.id][c.key] = v != null ? String(Math.round(parseFloat(v))) : "";
+      });
+    });
+    setVals(m);
   };
 
   const fetchRows = async () => {
     try {
       const { data } = await priceListAPI.getAll();
       setRows(data || []);
+      seedVals(data);
     } catch (e) {
-      flash(
-        "Gagal memuat daftar harga — cek koneksi lalu muat ulang halaman",
-        "error",
-      );
+      flash("Gagal memuat daftar harga — cek koneksi lalu muat ulang halaman", "error");
     } finally {
       setLoading(false);
     }
@@ -594,11 +677,19 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Harga efektif baris: list_price (kalau pernah di-set) → sell_price master.
+  // fee efektif per platform (kategori default) — buat hint "bersih ≈"
+  const feeRateFor = useMemo(() => {
+    const m = { offline: 0 };
+    ["shopee", "tokopedia_tiktok"].forEach((pf) => {
+      const p = feeProfiles.find((x) => x.platform === pf && x.category_key === "default");
+      m[pf] = p ? parseFloat(p.safe_effective_fee_rate) || 0 : 0;
+    });
+    return m;
+  }, [feeProfiles]);
+
+  // Harga offline efektif (buat PDF & stats): entri offline → sell_price master.
   const effectivePrice = (r) =>
-    r.list_price != null
-      ? parseFloat(r.list_price)
-      : parseFloat(r.sell_price) || 0;
+    r.list_price != null ? parseFloat(r.list_price) : parseFloat(r.sell_price) || 0;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -615,7 +706,6 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
     return out;
   }, [rows, search, onlyUnset]);
 
-  // Grouping per kategori — backend sudah sort kategori lalu nama.
   const grouped = useMemo(() => {
     const map = new Map();
     filtered.forEach((r) => {
@@ -632,54 +722,37 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
   }, [rows]);
 
   const latestEffectiveDate = useMemo(() => {
-    const dates = rows
-      .map((r) => r.effective_date)
-      .filter(Boolean)
-      .sort();
+    const dates = rows.map((r) => r.effective_date).filter(Boolean).sort();
     return dates.length ? dates[dates.length - 1] : null;
   }, [rows]);
 
-  const startEdit = (r, presetPrice) => {
-    setEdits((p) => ({
-      ...p,
-      [r.id]: {
-        price: String(
-          presetPrice != null ? presetPrice : Math.round(effectivePrice(r)) || "",
-        ),
-        effective_date: todayStr(),
-      },
-    }));
-  };
-
-  const cancelEdit = (id) => {
-    setEdits((p) => {
-      const n = { ...p };
-      delete n[id];
-      return n;
-    });
-  };
-
-  const saveEdit = async (r) => {
-    const edit = edits[r.id];
-    if (!edit) return;
-    const price = parseFloat(edit.price);
+  // ── simpan harga satu saluran (Enter / apply saran) ──
+  const saveChannel = async (r, channelKey, rawValue) => {
+    const price = parseFloat(rawValue);
     if (!Number.isFinite(price) || price < 0) {
       flash("Harga harus angka dan tidak boleh minus", "error");
       return;
     }
-    setSavingId(r.id);
+    const ch = CHANNELS.find((c) => c.key === channelKey);
+    const key = `${r.id}|${channelKey}`;
+    setSavingKey(key);
     try {
-      await priceListAPI.setPrice(r.id, {
-        price,
-        effective_date: edit.effective_date || todayStr(),
-      });
-      cancelEdit(r.id);
-      flash(`Harga ${r.name} disimpan`);
-      fetchRows();
+      await priceListAPI.setPrice(r.id, { price, channel: channelKey });
+      // update lokal tanpa refetch penuh (cepat) — efektif sejak otomatis hari ini
+      setRows((prev) =>
+        prev.map((x) =>
+          x.id === r.id ? { ...x, [ch.field]: price, [ch.dateField]: todayStr() } : x,
+        ),
+      );
+      setVals((prev) => ({
+        ...prev,
+        [r.id]: { ...prev[r.id], [channelKey]: String(Math.round(price)) },
+      }));
+      flash(`${ch.icon} ${ch.label} · ${r.name} → ${fmtRp(price)} (berlaku hari ini)`);
     } catch (e) {
       flash(e.response?.data?.error || e.message, "error");
     } finally {
-      setSavingId(null);
+      setSavingKey(null);
     }
   };
 
@@ -702,14 +775,12 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
         flash("Tidak ada produk dengan harga untuk dicetak", "error");
         return;
       }
-      // dynamic import: jsPDF tidak ikut bundle awal halaman
       const { generatePriceListPDF } = await import("../utils/generatePriceListPDF");
       const doc = generatePriceListPDF(printable, {
         settings,
         effectiveDate: latestEffectiveDate || todayStr(),
       });
-      const tgl = (latestEffectiveDate || todayStr()).slice(0, 10);
-      doc.save(`Daftar-Harga-HABIL-${tgl}.pdf`);
+      doc.save(`Daftar-Harga-HABIL-${(latestEffectiveDate || todayStr()).slice(0, 10)}.pdf`);
       flash("PDF daftar harga dibuat — siap dicetak A4");
     } catch (e) {
       flash("Gagal membuat PDF: " + e.message, "error");
@@ -718,116 +789,114 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
     }
   };
 
-  const inputStyle = {
-    width: "100%",
-    padding: "8px 10px",
-    borderRadius: "8px",
-    border: `1px solid ${border}`,
-    backgroundColor: "var(--color-surface-elevated)",
-    color: text,
-    fontSize: "13px",
-  };
+  const pillStyle = (bg, fg) => ({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    padding: "3px 10px",
+    borderRadius: "999px",
+    fontSize: "12px",
+    fontWeight: 700,
+    backgroundColor: bg,
+    color: fg,
+    border: "none",
+    cursor: "pointer",
+  });
 
-  const actionBtn = (label, onClick, variant = "soft", disabled = false) => (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="ui-motion-button ui-focus-ring"
-      style={{
-        padding: "7px 12px",
-        backgroundColor:
-          variant === "primary"
-            ? "var(--color-success)"
-            : variant === "ghost"
-              ? "transparent"
-              : "var(--color-primary-soft)",
-        color:
-          variant === "primary"
-            ? "#FFF"
-            : variant === "ghost"
-              ? sub
-              : "var(--color-primary)",
-        border: variant === "ghost" ? `1px solid ${border}` : "none",
-        borderRadius: "8px",
-        cursor: disabled ? "wait" : "pointer",
-        fontWeight: 700,
-        fontSize: "12px",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {label}
-    </button>
-  );
+  // ── sel harga satu saluran: input + ✨ + hint margin/bersih + tanggal ──
+  const priceCell = (r, ch) => {
+    const hpp = lastHppFor(r);
+    const cur = r[ch.field] != null ? parseFloat(r[ch.field]) : null;
+    const val = vals[r.id]?.[ch.key] ?? "";
+    const dirty = val !== (cur != null ? String(Math.round(cur)) : "");
+    const key = `${r.id}|${ch.key}`;
+    const saving = savingKey === key;
+    const rate = feeRateFor[ch.platform] || 0;
+    const priceNum = parseFloat(val) || 0;
+    const net = priceNum > 0 ? priceNum * (1 - rate) : 0;
+    const margin = priceNum > 0 && hpp > 0 ? net - hpp : null;
 
-  // ── render satu baris produk (desktop table row / mobile card) ──
-  const renderEditFields = (r) => (
-    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-      <input
-        type="number"
-        min="0"
-        value={edits[r.id].price}
-        autoFocus
-        onChange={(e) =>
-          setEdits((p) => ({ ...p, [r.id]: { ...p[r.id], price: e.target.value } }))
-        }
-        onKeyDown={(e) => {
-          if (e.key === "Enter") saveEdit(r);
-          if (e.key === "Escape") cancelEdit(r.id);
-        }}
-        style={{ ...inputStyle, width: "110px" }}
-        aria-label={`Harga baru ${r.name}`}
-      />
-      <input
-        type="date"
-        value={edits[r.id].effective_date}
-        onChange={(e) =>
-          setEdits((p) => ({
-            ...p,
-            [r.id]: { ...p[r.id], effective_date: e.target.value },
-          }))
-        }
-        style={{ ...inputStyle, width: "140px" }}
-        aria-label={`Tanggal berlaku ${r.name}`}
-      />
-      {actionBtn(savingId === r.id ? "..." : "Simpan", () => saveEdit(r), "primary", savingId === r.id)}
-      {actionBtn("Batal", () => cancelEdit(r.id), "ghost")}
-    </div>
-  );
-
-  const marginBadge = (price, hpp) => {
-    if (!(price > 0) || !(hpp > 0)) return null;
-    const margin = price - hpp;
-    const marginPct = price > 0 ? ((margin / price) * 100).toFixed(1) : 0;
-    const ok = margin >= 0;
     return (
-      <span
-        style={{
-          display: "inline-block",
-          padding: "2px 8px",
-          borderRadius: "999px",
-          fontSize: "11px",
-          fontWeight: 700,
-          color: ok ? "var(--color-success)" : "var(--color-danger)",
-          backgroundColor: ok
-            ? "color-mix(in srgb, var(--color-success) 12%, transparent)"
-            : "color-mix(in srgb, var(--color-danger) 12%, transparent)",
-        }}
-      >
-        {ok ? "+" : ""}
-        {fmtRp(margin)} · {marginPct}%
-      </span>
+      <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: "150px" }}>
+        <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+          <input
+            type="number"
+            min="0"
+            value={val}
+            placeholder="—"
+            disabled={saving}
+            aria-label={`Harga ${ch.label} ${r.name}`}
+            onChange={(e) =>
+              setVals((p) => ({ ...p, [r.id]: { ...p[r.id], [ch.key]: e.target.value } }))
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && dirty) saveChannel(r, ch.key, val);
+              if (e.key === "Escape")
+                setVals((p) => ({
+                  ...p,
+                  [r.id]: { ...p[r.id], [ch.key]: cur != null ? String(Math.round(cur)) : "" },
+                }));
+            }}
+            style={{
+              width: "104px",
+              padding: "7px 9px",
+              borderRadius: "8px",
+              border: `1.5px solid ${dirty ? "var(--color-primary)" : border}`,
+              backgroundColor: "var(--color-surface-elevated)",
+              color: text,
+              fontSize: "13px",
+              fontWeight: 600,
+              opacity: saving ? 0.5 : 1,
+            }}
+          />
+          {hpp > 0 && (
+            <button
+              onClick={() => setSuggestFor({ row: r, channel: ch })}
+              title={`Saran harga ${ch.label}`}
+              aria-label={`Saran harga ${ch.label} untuk ${r.name}`}
+              className="ui-motion-button"
+              style={{
+                padding: "6px 8px",
+                borderRadius: "8px",
+                border: "none",
+                backgroundColor: "var(--color-primary-soft)",
+                color: "var(--color-primary)",
+                cursor: "pointer",
+                fontSize: "12px",
+                lineHeight: 1,
+              }}
+            >
+              ✨
+            </button>
+          )}
+        </div>
+        <div style={{ fontSize: "10px", color: sub, lineHeight: 1.4 }}>
+          {dirty ? (
+            <span style={{ color: "var(--color-primary)", fontWeight: 700 }}>Enter = simpan ↵</span>
+          ) : margin != null ? (
+            <span style={{ color: margin >= 0 ? "var(--color-success)" : "var(--color-danger)", fontWeight: 700 }}>
+              {rate > 0 ? `bersih ${fmtRpShort(net)} · ` : ""}
+              {margin >= 0 ? "+" : ""}
+              {fmtRpShort(margin)}
+            </span>
+          ) : cur != null && r[ch.dateField] ? (
+            <span>sejak {fmtDate(r[ch.dateField])}</span>
+          ) : (
+            <span> </span>
+          )}
+          {!dirty && margin != null && r[ch.dateField] && (
+            <span> · {fmtDate(r[ch.dateField])}</span>
+          )}
+        </div>
+      </div>
     );
   };
 
   return (
     <div className="ui-page ui-motion-page" style={{ color: text }}>
-      <Breadcrumb
-        title="Daftar Harga"
-        isMobile={isMobile}
-        isDarkMode={isDarkMode}
-      />
+      <Breadcrumb title="Daftar Harga" isMobile={isMobile} isDarkMode={isDarkMode} />
 
-      {/* Header */}
+      {/* Header — gaya kartu seperti Nota Penjualan */}
       <div
         className="ui-readable-surface"
         style={{
@@ -845,31 +914,34 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
           <h1 style={{ fontSize: isMobile ? "1.5rem" : "2rem", fontWeight: "700", margin: 0, color: text }}>
             🏷️ Daftar Harga
           </h1>
-          <div style={{ margin: "4px 0 0", fontSize: "13px", color: sub }}>
+          <div style={{ margin: "8px 0 0", display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
             {loading ? (
-              <Skeleton width="200px" height="14px" />
+              <Skeleton width="220px" height="20px" />
             ) : (
               <>
-                {rows.length} produk · <strong style={{ color: "var(--color-success)" }}>{stats.set} sudah di-set</strong>
+                <span style={{ fontSize: "13px", color: sub }}>{rows.length} produk</span>
+                <span
+                  style={pillStyle(
+                    "color-mix(in srgb, var(--color-success) 14%, transparent)",
+                    "var(--color-success)",
+                  )}
+                >
+                  ✓ {stats.set} sudah di-set
+                </span>
                 {stats.unset > 0 && (
-                  <>
-                    {" · "}
-                    <button
-                      onClick={() => setOnlyUnset((v) => !v)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        padding: 0,
-                        cursor: "pointer",
-                        fontSize: "13px",
-                        fontWeight: 700,
-                        color: onlyUnset ? "var(--color-primary)" : sub,
-                        textDecoration: "underline",
-                      }}
-                    >
-                      {stats.unset} belum di-set{onlyUnset ? " ✕" : ""}
-                    </button>
-                  </>
+                  <button
+                    onClick={() => setOnlyUnset((v) => !v)}
+                    style={{
+                      ...pillStyle(
+                        onlyUnset
+                          ? "var(--color-primary)"
+                          : "color-mix(in srgb, var(--color-warning, #f59e0b) 16%, transparent)",
+                        onlyUnset ? "#FFF" : "var(--color-warning, #b45309)",
+                      ),
+                    }}
+                  >
+                    ⏳ {stats.unset} belum di-set{onlyUnset ? " ✕" : ""}
+                  </button>
                 )}
               </>
             )}
@@ -884,7 +956,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
               backgroundColor: "transparent",
               color: sub,
               border: `1px solid ${border}`,
-              borderRadius: "10px",
+              borderRadius: "12px",
               cursor: "pointer",
               fontWeight: 700,
               fontSize: "13px",
@@ -895,7 +967,8 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
           <button
             onClick={handleExportPDF}
             disabled={exporting}
-            className="ui-motion-button ui-focus-ring"
+            className="btn-primary ui-motion-button ui-focus-ring"
+            data-magnetic="true"
             style={{
               display: "flex",
               alignItems: "center",
@@ -904,11 +977,12 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
               backgroundColor: "var(--color-primary)",
               color: "#FFF",
               border: "none",
-              borderRadius: "10px",
+              borderRadius: "12px",
               cursor: exporting ? "wait" : "pointer",
               fontWeight: "700",
               fontSize: "13px",
               opacity: exporting ? 0.7 : 1,
+              boxShadow: "var(--shadow-card)",
             }}
           >
             🖨️ {exporting ? "Membuat PDF..." : "Cetak A4"}
@@ -916,11 +990,8 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
         </div>
       </div>
 
-      {/* Search */}
-      <div
-        className="ui-toolbar"
-        style={{ display: "flex", gap: "12px", marginBottom: "1.25rem", padding: "14px" }}
-      >
+      {/* Toolbar */}
+      <div className="ui-toolbar" style={{ display: "flex", gap: "12px", marginBottom: "1.25rem", padding: "14px", flexWrap: "wrap", alignItems: "center" }}>
         <SearchBox
           value={search}
           onChange={setSearch}
@@ -929,6 +1000,9 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
           style={{ flex: 1, minWidth: isMobile ? "100%" : "300px" }}
           inputStyle={{ borderColor: border, color: text }}
         />
+        <span style={{ fontSize: "11px", color: sub }}>
+          Ketik harga di kolom saluran lalu tekan <strong>Enter</strong> — tanggal berlaku otomatis hari ini.
+        </span>
       </div>
 
       {/* ── MOBILE: kartu per produk ── */}
@@ -957,59 +1031,63 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                 </div>
                 {items.map((r) => {
                   const hpp = lastHppFor(r);
-                  const price = effectivePrice(r);
                   return (
                     <div key={r.id} className="ui-panel" style={{ borderRadius: "14px", padding: "14px" }}>
-                      <div style={{ fontWeight: 700, fontSize: "14px", color: text }}>{r.name}</div>
-                      <div style={{ fontSize: "11px", color: sub, fontFamily: "monospace", margin: "2px 0 8px" }}>
-                        {r.code}
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "6px", fontSize: "12px", color: sub }}>
-                        <span>
-                          HPP{" "}
-                          {hpp > 0 ? (
-                            <strong style={{ color: text }}>{fmtRp(hpp)}</strong>
-                          ) : (
-                            <em>belum ada pembelian</em>
-                          )}
-                        </span>
-                        <span>
-                          Jual{" "}
-                          <strong style={{ color: text }}>{price > 0 ? fmtRp(price) : "belum di-set"}</strong>
-                        </span>
-                      </div>
-                      <div style={{ margin: "8px 0" }}>{marginBadge(price, hpp)}</div>
-                      {edits[r.id] ? (
-                        renderEditFields(r)
-                      ) : (
-                        <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
-                          {actionBtn("Set Harga", () => startEdit(r))}
-                          {hpp > 0 && actionBtn("✨ Saran", () => setSuggestFor(r), "ghost")}
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: "14px", color: text }}>{r.name}</div>
+                          <div style={{ fontSize: "11px", color: "var(--color-primary)", fontFamily: "monospace", margin: "2px 0 4px" }}>
+                            {r.code}
+                          </div>
+                          <div style={{ fontSize: "11px", color: sub }}>
+                            HPP {hpp > 0 ? <strong style={{ color: text }}>{fmtRp(hpp)}</strong> : <em>belum ada pembelian</em>}
+                          </div>
                         </div>
-                      )}
+                        <button
+                          onClick={() => setHistoryFor(r)}
+                          aria-label={`Riwayat harga ${r.name}`}
+                          style={{
+                            alignSelf: "flex-start",
+                            padding: "6px 10px",
+                            borderRadius: "8px",
+                            border: `1px solid ${border}`,
+                            backgroundColor: "transparent",
+                            color: sub,
+                            cursor: "pointer",
+                            fontSize: "12px",
+                          }}
+                        >
+                          🕘
+                        </button>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
+                        {CHANNELS.map((ch) => (
+                          <div key={ch.key} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: sub, width: "92px", flexShrink: 0 }}>
+                              {ch.icon} {ch.label}
+                            </span>
+                            {priceCell(r, ch)}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   );
                 })}
               </React.Fragment>
             ))}
           {!loading && !filtered.length && (
-            <EmptyState
-              compact
-              icon={EmptyStateIcons.box}
-              title="Tidak ada produk cocok"
-              description="Coba kata kunci lain."
-            />
+            <EmptyState compact icon={EmptyStateIcons.box} title="Tidak ada produk cocok" description="Coba kata kunci lain." />
           )}
         </div>
       ) : (
         /* ── DESKTOP: tabel grouped + sticky header ── */
-        <div className="ui-panel" style={{ borderRadius: "16px", overflow: "auto", maxHeight: "calc(100vh - 290px)" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", minWidth: "880px" }}>
-            <thead style={{ position: "sticky", top: 0, zIndex: 5, backgroundColor: "var(--color-surface)" }}>
+        <div className="ui-panel" style={{ borderRadius: "16px", overflow: "auto", maxHeight: "calc(100vh - 280px)" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", minWidth: "980px" }}>
+            <thead style={{ position: "sticky", top: 0, zIndex: 5 }}>
               <tr>
-                {["Produk", "HPP Terakhir (inc PPN)", "Harga Jual", "Margin", "Efektif Sejak", "Aksi"].map((h) => (
+                {["Produk", "HPP Terakhir", "🏪 Offline", "🟠 Shopee", "🟢 TikTok/Tokped", ""].map((h, i) => (
                   <th
-                    key={h}
+                    key={i}
                     style={{
                       padding: "12px 14px",
                       textAlign: "left",
@@ -1044,13 +1122,13 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                       <td
                         colSpan={6}
                         style={{
-                          padding: "10px 14px",
+                          padding: "9px 14px",
                           fontSize: "11px",
                           fontWeight: 800,
                           textTransform: "uppercase",
                           letterSpacing: "0.06em",
                           color: "var(--color-primary)",
-                          backgroundColor: "var(--color-bg-subtle)",
+                          backgroundColor: "var(--color-primary-soft)",
                           borderBottom: `1px solid ${border}`,
                         }}
                       >
@@ -1059,69 +1137,49 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                     </tr>
                     {items.map((r) => {
                       const hpp = lastHppFor(r);
-                      const price = effectivePrice(r);
-                      const edit = edits[r.id];
-                      const changedRecently =
-                        r.prev_price != null &&
-                        parseFloat(r.prev_price) !== parseFloat(r.list_price);
                       return (
                         <tr key={r.id} style={{ borderBottom: `1px solid ${border}` }}>
-                          <td style={{ padding: "10px 14px", color: text }}>
+                          <td style={{ padding: "10px 14px", color: text, minWidth: "220px" }}>
                             <div style={{ fontWeight: "600" }}>{r.name}</div>
-                            <div style={{ fontSize: "11px", color: sub, fontFamily: "monospace" }}>
-                              {r.code}
-                            </div>
+                            <div style={{ fontSize: "11px", color: "var(--color-primary)", fontFamily: "monospace" }}>{r.code}</div>
                           </td>
                           <td style={{ padding: "10px 14px", color: sub, whiteSpace: "nowrap" }}>
                             {hpp > 0 ? (
                               <>
-                                <span style={{ color: text }}>{fmtRp(hpp)}</span>
-                                <span style={{ fontSize: "11px" }}> / {r.base_unit || "pcs"}</span>
-                                {r.last_purchase_at && (
-                                  <div style={{ fontSize: "10px", color: sub }}>
-                                    beli terakhir {fmtDate(r.last_purchase_at)}
-                                  </div>
-                                )}
+                                <span style={{ color: text, fontWeight: 600 }}>{fmtRp(hpp)}</span>
+                                <div style={{ fontSize: "10px", color: sub }}>
+                                  /{r.base_unit || "pcs"}
+                                  {r.last_purchase_at ? ` · beli ${fmtDate(r.last_purchase_at)}` : ""}
+                                </div>
                               </>
                             ) : (
                               <em style={{ fontSize: "12px" }}>belum ada pembelian</em>
                             )}
                           </td>
-                          <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }} colSpan={edit ? 3 : 1}>
-                            {edit ? (
-                              renderEditFields(r)
-                            ) : (
-                              <div>
-                                <span style={{ fontWeight: "700", color: price > 0 ? text : sub }}>
-                                  {price > 0 ? fmtRp(price) : "belum di-set"}
-                                </span>
-                                {changedRecently && (
-                                  <div style={{ fontSize: "10px", color: sub }}>
-                                    sebelumnya {fmtRp(r.prev_price)}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                          {!edit && (
-                            <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                              {marginBadge(price, hpp) || <span style={{ color: sub }}>—</span>}
+                          {CHANNELS.map((ch) => (
+                            <td key={ch.key} style={{ padding: "10px 10px" }}>
+                              {priceCell(r, ch)}
                             </td>
-                          )}
-                          {!edit && (
-                            <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                              <span style={{ color: sub, fontSize: "12px" }}>
-                                {r.effective_date ? fmtDate(r.effective_date) : "—"}
-                              </span>
-                            </td>
-                          )}
-                          <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                            {!edit && (
-                              <div style={{ display: "flex", gap: "6px" }}>
-                                {actionBtn("Set Harga", () => startEdit(r))}
-                                {hpp > 0 && actionBtn("✨ Saran", () => setSuggestFor(r), "ghost")}
-                              </div>
-                            )}
+                          ))}
+                          <td style={{ padding: "10px 12px" }}>
+                            <button
+                              onClick={() => setHistoryFor(r)}
+                              title="Riwayat harga"
+                              aria-label={`Riwayat harga ${r.name}`}
+                              className="ui-motion-button"
+                              style={{
+                                padding: "7px 9px",
+                                borderRadius: "8px",
+                                border: `1px solid ${border}`,
+                                backgroundColor: "transparent",
+                                color: sub,
+                                cursor: "pointer",
+                                fontSize: "13px",
+                                lineHeight: 1,
+                              }}
+                            >
+                              🕘
+                            </button>
                           </td>
                         </tr>
                       );
@@ -1131,12 +1189,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
               {!loading && !filtered.length && (
                 <tr>
                   <td colSpan={6} style={{ padding: "2rem 1rem" }}>
-                    <EmptyState
-                      compact
-                      icon={EmptyStateIcons.box}
-                      title="Tidak ada produk cocok"
-                      description="Coba kata kunci lain."
-                    />
+                    <EmptyState compact icon={EmptyStateIcons.box} title="Tidak ada produk cocok" description="Coba kata kunci lain." />
                   </td>
                 </tr>
               )}
@@ -1147,18 +1200,21 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
 
       {suggestFor && (
         <SuggestDrawer
-          row={suggestFor}
-          hpp={lastHppFor(suggestFor)}
-          feeProfiles={feeProfiles.length ? feeProfiles : []}
+          row={suggestFor.row}
+          hpp={lastHppFor(suggestFor.row)}
+          feeProfiles={feeProfiles}
           isMobile={isMobile}
+          initialKey={`${suggestFor.channel.platform}|${suggestFor.channel.category}`}
           onClose={() => setSuggestFor(null)}
           onApply={(price) => {
-            startEdit(suggestFor, price);
+            // simpan langsung ke saluran tempat tombol ✨ diklik
+            saveChannel(suggestFor.row, suggestFor.channel.key, String(price));
             setSuggestFor(null);
-            flash("Saran harga dimasukkan — tinggal klik Simpan");
           }}
         />
       )}
+
+      {historyFor && <HistoryModal row={historyFor} isMobile={isMobile} onClose={() => setHistoryFor(null)} />}
 
       {showFees && (
         <FeeProfilesModal

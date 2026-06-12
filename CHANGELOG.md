@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.26.0-stable] - 2026-06-13
+
+### Added
+- **Harga per saluran di Daftar Harga**: `price_list_entries` +kolom `channel` (offline/shopee/tokopedia_tiktok, default offline — data lama otomatis jadi offline) + index `(product_id, channel, effective_date DESC, id DESC)`. GET `/api/price-list` mengembalikan harga terkini per 3 saluran (window function rn=1 per channel); PUT menerima `channel` dan idempoten per saluran; history menyertakan channel.
+- **UI 3 kolom harga inline**: tiap saluran = kotak isian langsung di tabel (Enter = simpan, efektif otomatis hari ini; Escape = batal; border biru = belum disimpan). Hint di bawah harga online: perkiraan **bersih setelah fee efektif** marketplace + margin vs HPP (hijau/merah). Tombol ✨ per saluran membuka SuggestDrawer dengan platform preset, "Pakai harga" langsung tersimpan ke saluran itu. Tombol 🕘 per produk = modal riwayat harga semua saluran.
+- **✨ Harga Pintar (form nota)**: pilih produk → harga jual auto-isi dari Daftar Harga sesuai saluran nota (offline→offline; online→shopee, fallback tokopedia_tiktok) + toast sumber harga; fallback tetap `sell_price` master.
+
+### Changed
+- Daftar Harga dirapikan mengikuti design language halaman Nota/Faktur: pill status berwarna di header (✓ hijau sudah di-set, ⏳ amber belum), kode produk monospace biru, header kategori pakai `--color-primary-soft`, tombol Cetak A4 bergaya pill + shadow, toolbar hint "Enter untuk simpan". Update harga tanpa refetch penuh (state lokal).
+
 ## [v1.25.1-stable] - 2026-06-13
 
 ### Added

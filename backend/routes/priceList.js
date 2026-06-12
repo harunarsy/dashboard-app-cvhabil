@@ -25,6 +25,14 @@ const ensureSchema = async () => {
     CREATE INDEX IF NOT EXISTS idx_price_list_product
       ON price_list_entries(product_id, effective_date DESC, id DESC)
   `);
+  // v1.26.0: harga per saluran jual — offline | shopee | tokopedia_tiktok
+  await pool.query(`
+    ALTER TABLE price_list_entries ADD COLUMN IF NOT EXISTS channel TEXT NOT NULL DEFAULT 'offline'
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_price_list_product_channel
+      ON price_list_entries(product_id, channel, effective_date DESC, id DESC)
+  `);
   // Fee marketplace bisa berubah sewaktu-waktu → disimpan di DB, editable dari dashboard.
   // source: official (rate resmi) | historical_order (dari transaksi nyata) | manual_override.
   await pool.query(`
@@ -68,19 +76,21 @@ router.get('/', auth, async (req, res) => {
         ORDER BY product_id, created_at DESC NULLS LAST, id DESC
       ),
       ranked_entries AS (
-        SELECT product_id, price, effective_date,
-               ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY effective_date DESC, id DESC) AS rn
+        SELECT product_id, channel, price, effective_date,
+               ROW_NUMBER() OVER (PARTITION BY product_id, channel ORDER BY effective_date DESC, id DESC) AS rn
         FROM price_list_entries
       )
       SELECT p.id, p.code, p.name, p.category, p.base_unit, p.pack_unit, p.pack_size,
              p.sell_price, p.sell_price_pack, p.hna AS master_hna,
              lb.hna AS last_hna, lb.tax_type AS last_tax_type, lb.created_at AS last_purchase_at,
-             cur.price AS list_price, cur.effective_date,
-             prev.price AS prev_price, prev.effective_date AS prev_effective_date
+             off.price AS list_price, off.effective_date,
+             shp.price AS shopee_price, shp.effective_date AS shopee_date,
+             tok.price AS tokopedia_price, tok.effective_date AS tokopedia_date
       FROM product_master p
       LEFT JOIN last_batch lb ON lb.product_id = p.id
-      LEFT JOIN ranked_entries cur ON cur.product_id = p.id AND cur.rn = 1
-      LEFT JOIN ranked_entries prev ON prev.product_id = p.id AND prev.rn = 2
+      LEFT JOIN ranked_entries off ON off.product_id = p.id AND off.channel = 'offline' AND off.rn = 1
+      LEFT JOIN ranked_entries shp ON shp.product_id = p.id AND shp.channel = 'shopee' AND shp.rn = 1
+      LEFT JOIN ranked_entries tok ON tok.product_id = p.id AND tok.channel = 'tokopedia_tiktok' AND tok.rn = 1
       WHERE p.is_active = TRUE
       ORDER BY p.category ASC NULLS LAST, p.name ASC
     `);
@@ -161,12 +171,12 @@ router.post('/recommend', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GET /:productId/history — riwayat perubahan harga (terbaru dulu)
+// GET /:productId/history — riwayat perubahan harga semua saluran (terbaru dulu)
 router.get('/:productId/history', auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, price, effective_date, created_at FROM price_list_entries
-       WHERE product_id = $1 ORDER BY effective_date DESC, id DESC LIMIT 50`,
+      `SELECT id, channel, price, effective_date, created_at FROM price_list_entries
+       WHERE product_id = $1 ORDER BY effective_date DESC, id DESC LIMIT 60`,
       [req.params.productId]
     );
     res.json(rows);
@@ -183,6 +193,9 @@ router.put('/:productId', auth, async (req, res) => {
       return res.status(400).json({ error: 'Harga harus angka dan tidak boleh minus' });
     }
     const effectiveDate = req.body?.effective_date || new Date().toISOString().slice(0, 10);
+    // v1.26.0: harga per saluran jual
+    const channel = ['offline', 'shopee', 'tokopedia_tiktok'].includes(req.body?.channel)
+      ? req.body.channel : 'offline';
 
     const { rows: [product] } = await pool.query(
       'SELECT id FROM product_master WHERE id = $1 AND is_active = TRUE', [productId]
@@ -191,19 +204,19 @@ router.put('/:productId', auth, async (req, res) => {
 
     const { rows: [current] } = await pool.query(
       `SELECT price, effective_date FROM price_list_entries
-       WHERE product_id = $1 ORDER BY effective_date DESC, id DESC LIMIT 1`,
-      [productId]
+       WHERE product_id = $1 AND channel = $2 ORDER BY effective_date DESC, id DESC LIMIT 1`,
+      [productId, channel]
     );
     // Idempotent: harga & tanggal sama persis dengan entry terakhir → tidak nambah baris
     if (current && Number.parseFloat(current.price) === price
         && String(current.effective_date).slice(0, 10) === String(effectiveDate).slice(0, 10)) {
-      return res.json({ unchanged: true, price, effective_date: effectiveDate });
+      return res.json({ unchanged: true, price, effective_date: effectiveDate, channel });
     }
 
     const { rows: [entry] } = await pool.query(
-      `INSERT INTO price_list_entries (product_id, price, effective_date, created_by)
-       VALUES ($1, $2, $3, $4) RETURNING id, price, effective_date`,
-      [productId, price, effectiveDate, req.user?.id || null]
+      `INSERT INTO price_list_entries (product_id, channel, price, effective_date, created_by)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id, channel, price, effective_date`,
+      [productId, channel, price, effectiveDate, req.user?.id || null]
     );
     res.status(201).json(entry);
   } catch (err) { res.status(500).json({ error: err.message }); }

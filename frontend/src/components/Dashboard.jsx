@@ -33,9 +33,26 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.25.1-stable",
+    version: "v1.26.0-stable",
     date: "13 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Daftar Harga dirombak total mengikuti gaya halaman lain: harga jual kini 3 kolom per saluran — Offline, Shopee, dan TikTok/Tokopedia — masing-masing berupa kotak isian langsung. Ketik harga lalu tekan Enter → tersimpan dan tanggal berlaku otomatis hari ini. Di bawah harga online langsung kelihatan perkiraan uang bersih setelah potongan marketplace dan untungnya (hijau/merah). Tombol ✨ di samping tiap kolom membuka saran harga khusus saluran itu, dan tombol 🕘 menampilkan riwayat perubahan harga per produk.",
+        dev: "price_list_entries +channel (offline/shopee/tokopedia_tiktok) + index komposit; GET / join rn=1 per channel; PUT terima channel + idempotent per channel; history return channel. PriceListPage rewrite: vals map per produk×saluran, Enter=save Escape=revert, update lokal tanpa refetch, hint net = harga×(1−safe_effective_fee_rate default per platform), SuggestDrawer initialKey per saluran + onApply simpan langsung, HistoryModal.",
+      },
+      {
+        type: "new",
+        text: "✨ Harga Pintar di form nota: saat kamu pilih produk, harga jual otomatis terisi dari Daftar Harga sesuai saluran nota — nota Offline pakai harga offline, nota Online pakai harga Shopee (atau TikTok/Tokped kalau Shopee belum di-set). Muncul notifikasi kecil supaya kamu tahu harga itu datang dari mana.",
+        dev: "priceMap (productId → harga per channel) di-fetch sekali saat mount; updateItem product_name override sell_price master bila ada entri Daftar Harga; fallback berjenjang shopee→tokopedia utk channel online.",
+      },
+    ],
+  },
+  {
+    version: "v1.25.1-stable",
+    date: "13 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "new",
@@ -3135,7 +3152,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.25.1-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.26.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
