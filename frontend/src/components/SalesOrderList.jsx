@@ -104,17 +104,21 @@ const hppIncFor = (it) =>
   it?.unit_hpp_tax_type === "nota"
     ? parseFloat(it?.unit_hpp) || 0
     : hppFromHna(parseFloat(it?.unit_hpp) || 0);
+// v1.23.2: sales_items.qty = base unit/pcs, qty_in_unit = qty yang user input
+// di nota. Form/list money harus pakai qty_in_unit supaya 3 karton tidak mental
+// jadi 36 karton ketika nota dibuka ulang.
+const saleItemDisplayQty = (it) => parseFloat(it?.qty_in_unit ?? it?.qty) || 0;
 const computeNotaMargin = (order) => {
   const items = order.items || [];
   const itemRevenue = items.reduce(
-    (s, it) => s + (parseFloat(it.unit_price) || 0) * (parseFloat(it.qty) || 0),
+    (s, it) => s + (parseFloat(it.unit_price) || 0) * saleItemDisplayQty(it),
     0,
   );
   const itemMargin = items.reduce(
     (s, it) =>
       s +
       ((parseFloat(it.unit_price) || 0) - hppIncFor(it)) *
-        (parseFloat(it.qty) || 0),
+        saleItemDisplayQty(it),
     0,
   );
   // v1.21.14: ongkir ikut revenue & margin (untung ongkir = ditagih - biaya asli)
@@ -668,7 +672,7 @@ export default function SalesOrderList({
     const editItems = order.items?.length
       ? order.items.map((i) => ({
           product_name: i.product_name,
-          qty: i.qty,
+          qty: saleItemDisplayQty(i),
           unit: i.unit || "pcs",
           unit_price: parseFloat(i.unit_price) || 0,
           unit_hpp: parseFloat(i.unit_hpp) || 0,
@@ -1920,9 +1924,7 @@ export default function SalesOrderList({
                                 // itu juga (qty_in_unit), BUKAN qty basis pcs.
                                 // Dulu nota karton: margin dikali 36 pcs
                                 // padahal harga per karton (overstate 12×).
-                                const qtyUnit = parseFloat(
-                                  it.qty_in_unit ?? it.qty,
-                                ) || 0;
+                                const qtyUnit = saleItemDisplayQty(it);
                                 const margin =
                                   (parseFloat(it.unit_price) - hppInc) *
                                   qtyUnit;
@@ -1999,8 +2001,8 @@ export default function SalesOrderList({
                                 const itemMargin = o.items.reduce(
                                   (s, it) =>
                                     s +
-                                    (parseFloat(it.unit_price) - hppIncFor(it)) *
-                                      (parseFloat(it.qty_in_unit ?? it.qty) || 0),
+                                      (parseFloat(it.unit_price) - hppIncFor(it)) *
+                                      saleItemDisplayQty(it),
                                   0,
                                 );
                                 // v1.21.14: ongkir ikut total margin (untung = ditagih - biaya asli)

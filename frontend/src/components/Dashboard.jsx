@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.23.1-stable",
+    version: "v1.23.2-stable",
     date: "12 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Edit Nota untuk produk karton sekarang membuka jumlah sesuai yang diketik operator. Contoh: 3 karton tetap 3 karton saat nota dibuka ulang, bukan berubah menjadi 36 karton. Hitungan margin di daftar nota juga ikut memakai jumlah satuan jual yang benar.",
+        dev: "SalesOrderList openEdit pakai qty_in_unit sebagai form qty; fallback qty hanya untuk data lama. computeNotaMargin dan detail expand distandardkan via saleItemDisplayQty() supaya sales_items.qty (base pcs) tidak lagi dipakai sebagai qty display/money untuk unit pack.",
+      },
+    ],
+  },
+  {
+    version: "v1.23.1-stable",
+    date: "12 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -3077,7 +3089,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.23.1-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.23.2-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

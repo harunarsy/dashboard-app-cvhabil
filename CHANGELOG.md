@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.23.2-stable] - 2026-06-12
+
+### Fixed
+- **Edit Nota karton mental jadi pcs**: form Edit Nota sekarang memuat jumlah dari `qty_in_unit` (qty yang user input), bukan `qty` basis pcs. Contoh Omela: 3 karton tersimpan sebagai 36 pcs di stok, tapi saat edit ulang tetap tampil 3 karton — bukan 36 karton. Helper margin list juga distandardkan agar uang dihitung dengan qty satuan jual.
+
 ## [v1.23.1-stable] - 2026-06-12
 
 ### Fixed
