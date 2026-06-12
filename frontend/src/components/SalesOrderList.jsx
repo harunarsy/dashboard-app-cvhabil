@@ -2436,7 +2436,8 @@ export default function SalesOrderList({
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "2fr 60px 45px 80px 100px 30px",
+                        gridTemplateColumns:
+                          "minmax(0, 2fr) 60px 70px 80px 100px 30px",
                         gap: "6px",
                         marginBottom: "8px",
                         alignItems: "center",
@@ -2512,7 +2513,7 @@ export default function SalesOrderList({
                             style={{
                               display: "grid",
                               gridTemplateColumns:
-                                "2fr 60px 70px 80px 100px 30px",
+                                "minmax(0, 2fr) 60px 70px 80px 100px 30px",
                               gap: "6px",
                               alignItems: "center",
                             }}

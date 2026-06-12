@@ -1443,7 +1443,8 @@ export default function PurchaseOrderList({
                           <div
                             style={{
                               display: "grid",
-                              gridTemplateColumns: "2fr 70px 110px 30px",
+                              gridTemplateColumns:
+                                "minmax(0, 2fr) 70px 110px 30px",
                               gap: "6px",
                               alignItems: "center",
                             }}

@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.22.3-stable",
+    version: "v1.22.4-stable",
     date: "12 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Form Buat Nota: kolom Harga jual tidak lagi ketutupan panel preview saat nama produk panjang. Nama produk yang kepanjangan sekarang dipotong rapi dengan titik-titik (…), semua kolom input tetap kelihatan. Berlaku juga di form Surat Pesanan dan Faktur.",
+        dev: "MasterSelect wrapper minWidth:0 (root fix semua call site); grid baris produk nota & SP pakai minmax(0,2fr) supaya kolom nama bisa menyusut; header grid nota disinkronkan 45px→70px (kolom Unit sempat misaligned vs baris).",
+      },
+    ],
+  },
+  {
+    version: "v1.22.3-stable",
+    date: "12 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -3036,7 +3048,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.22.3-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.22.4-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

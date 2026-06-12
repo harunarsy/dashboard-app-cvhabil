@@ -155,7 +155,9 @@ export default function MasterSelect({
   };
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', width: '100%' }}>
+    // minWidth 0: tanpa ini, value panjang (nowrap) memaksa kolom grid induk melar
+    // dan mendorong kolom lain keluar layar (bug Harga ketutupan preview nota)
+    <div ref={wrapRef} style={{ position: 'relative', width: '100%', minWidth: 0 }}>
       {/* Trigger — AUDIT-UX-04: focusable + Enter/Space buka, Escape tutup (sebelumnya
           div polos: Tab melewati komponen & ui-focus-ring tidak pernah aktif) */}
       <div

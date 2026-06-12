@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.22.4-stable] - 2026-06-12
+
+### Fixed
+- **Form Buat Nota — kolom Harga ketutupan preview**: nama produk panjang (nowrap di MasterSelect) memaksa kolom Nama melar melebihi pane form, mendorong kolom Harga ke bawah panel Preview Live. Root fix: wrapper MasterSelect `minWidth: 0` (berlaku semua call site: nota, SP, faktur, dashboard, inventory) + grid baris produk Nota & SP pakai `minmax(0, 2fr)` supaya kolom nama menyusut dan teks terpotong ellipsis.
+- **Header kolom form Nota misaligned**: header pakai lebar Unit 45px sementara baris input 70px — disinkronkan 70px.
+
 ## [v1.22.3-stable] - 2026-06-12
 
 ### Fixed (audit menyeluruh — 3 auditor paralel: Code/Arch, Logic/Security, UI/UX)
