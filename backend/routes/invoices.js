@@ -75,6 +75,10 @@ const ensureSchema = async () => {
     CREATE INDEX IF NOT EXISTS idx_invoice_items_product_id
       ON invoice_items(product_id)
   `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id
+      ON invoice_items(invoice_id)
+  `);
 
   // Draft form WIP pindah ke tabel form_drafts (single owner tabel: invoices.js;
   // sales.js memakai tabel yang sama tanpa CREATE supaya tidak berebut lock).

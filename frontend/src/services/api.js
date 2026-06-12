@@ -202,6 +202,9 @@ export const priceListAPI = {
   getAll: () => api.get('/price-list'),
   setPrice: (productId, data) => api.put(`/price-list/${productId}`, data),
   getHistory: (productId) => api.get(`/price-list/${productId}/history`),
+  getFeeProfiles: () => api.get('/price-list/fee-profiles'),
+  updateFeeProfile: (id, data) => api.put(`/price-list/fee-profiles/${id}`, data),
+  recommend: (data) => api.post('/price-list/recommend', data),
 };
 
 export const salesAPI = {

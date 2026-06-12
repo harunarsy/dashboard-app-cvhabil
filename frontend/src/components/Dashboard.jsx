@@ -33,9 +33,31 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.25.0-stable",
+    date: "13 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Daftar Harga naik kelas: produk dikelompokkan per kategori, dan ada tombol '✨ Saran' yang menghitung rekomendasi harga jual per marketplace (Shopee, Tokopedia/TikTok, offline tunai/QRIS/kartu kredit) — lengkap dengan harga BEP, laba tipis, laba sehat, harga aman saat promo, pembulatan psikologis (49.900, 54.900, dst), estimasi uang yang diterima bersih, dan peringatan kalau harga bakal rugi saat campaign/voucher boost aktif. Biaya admin tiap marketplace bisa diubah sendiri lewat tombol '⚙️ Biaya Admin' kapan pun fee berubah.",
+        dev: "utils/pricingEngine.js (pure, 36 unit test): recommended = (hpp_total+packing+target_profit+fixed_fee)/(1−total_variable_rate); fee_mode effective (safe_effective_fee_rate, fixed=0 anti double-count) vs official (admin+service+fixed); tabel marketplace_fee_profiles (source: official/historical_order/manual_override, prioritas historical) + seed 8 profil; endpoint /api/price-list/recommend & /fee-profiles; drawer SuggestDrawer debounce 350ms; psychologicalRound selalu ke atas.",
+      },
+      {
+        type: "ui",
+        text: "Tampilan HP dibenahi: di form Buat Nota, Form dan Preview sekarang jadi 2 tab terpisah (preview tidak lagi menutupi kolom isian saat mengetik), dan deretan filter di daftar nota dilipat ke satu tombol 'Filter' supaya layar tidak penuh dropdown. Daftar Harga di HP tampil sebagai kartu yang enak dibaca, bukan tabel yang digeser-geser.",
+        dev: "SalesOrderList: formTab form/preview (grid 1fr di mobile, sticky off), filter wrapper display:contents desktop vs grid 2 kolom mobile + badge jumlah filter aktif; PriceListPage mobile card layout + sticky thead desktop + grouping kategori.",
+      },
+      {
+        type: "perf",
+        text: "Aplikasi lebih ringan dan responsif: scroll/zoom di iPhone tidak lagi memicu render ulang seluruh aplikasi, animasi pesan error form lebih mulus, query Daftar Harga di server dipangkas dari ratusan sub-query jadi satu kali jalan, koneksi database di server dibatasi supaya tidak mentok limit, dan beberapa index database ditambah supaya buka daftar nota/faktur/riwayat stok lebih cepat.",
+        dev: "useIsMobile debounce 150ms; @keyframes ui-field-error-in clip-path (drop max-height layout thrash); priceList GET pakai CTE window function (ganti 3 LATERAL/row); pool max 5 saat VERCEL; index baru: sales_orders(is_deleted,status,sale_date), invoice_items(invoice_id), inventory_mutations(product_id,created_at); generatePriceListPDF jadi dynamic import.",
+      },
+    ],
+  },
+  {
     version: "v1.24.0-stable",
     date: "12 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "new",
@@ -3101,7 +3123,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.24.0-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.25.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

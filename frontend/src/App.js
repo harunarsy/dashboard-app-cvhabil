@@ -34,9 +34,21 @@ const PrintSettings = lazy(() => import("./components/PrintSettings"));
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint);
   useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < breakpoint);
+    // debounce: iOS Safari nge-fire resize puluhan kali saat scroll/zoom →
+    // tiap fire setState = re-render seluruh app
+    let timeoutId = null;
+    const onResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(
+        () => setIsMobile(window.innerWidth < breakpoint),
+        150,
+      );
+    };
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("resize", onResize);
+    };
   }, [breakpoint]);
   return isMobile;
 }

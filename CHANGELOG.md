@@ -2,6 +2,27 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.25.0-stable] - 2026-06-13
+
+### Added
+- **Pricing engine — Saran Harga per marketplace** (`backend/utils/pricingEngine.js`, pure + 36 unit test `scripts/test-pricing-engine.js`): rumus `recommended = (hpp_total + packing_fee + target_profit + fixed_order_fee) / (1 − total_variable_fee_rate)`; mode fee **effective** (pakai `safe_effective_fee_rate` dari riwayat, `fixed_order_fee` dipaksa 0 — anti double-count) vs **official** (admin_rate + service_rate + fixed); output: harga BEP / laba tipis (+5%) / laba sehat (+15%) / aman promo, pembulatan psikologis selalu ke atas (…900: 49.900, 54.900, 129.900), estimasi penghasilan bersih + laba + margin %, warning laba negatif & warning rugi saat campaign/voucher boost (Tokopedia/TikTok dihitung pakai rate boost 32%).
+- **Tabel `marketplace_fee_profiles`** (seed 8 profil: Shopee F&B 18,5% / Shopee Kesehatan 19,5% / Shopee umum 20% / Tokopedia-TikTok 19% / voucher boost 32% / offline tunai 0% / QRIS 0,7% / kartu kredit EDC 2,5%): fee bisa diedit dari dashboard (tombol **⚙️ Biaya Admin** di Daftar Harga), kolom `source` menyimpan asal angka (official / historical_order / manual_override) dengan prioritas resolve historical > manual > official; seed `ON CONFLICT DO NOTHING` supaya edit admin tidak ketimpa cold start.
+- **Drawer "✨ Saran"** di Daftar Harga: pilih marketplace, isi bundle + biaya packing + biaya promo opsional (diskon toko/affiliate/campaign %), hasil real-time (debounce 350ms), tombol "Pakai harga" langsung mengisi form Set Harga. Endpoint `POST /api/price-list/recommend` + `GET/PUT /api/price-list/fee-profiles`.
+- `utils/pricingEngine.applyPaymentFee()`: helper fee metode bayar (kartu kredit dkk) mode `absorb` (margin dipotong) vs `pass_on` (tagihan di-gross-up supaya net utuh) — disiapkan untuk integrasi pembayaran berikutnya.
+
+### Changed
+- **Daftar Harga revamp**: produk dikelompokkan per kategori (header section + jumlah), header tabel sticky, kolom kosong tidak lagi penuh "—" ("belum ada pembelian"/"belum di-set"), badge margin Rp + %, filter cepat "X belum di-set", tombol aksi per baris dirapikan (Set Harga + ✨ Saran). Mobile: tampil sebagai kartu per produk, drawer full-screen.
+- **Mobile Buat Nota**: Form dan Preview jadi 2 tab di layar < 768px — preview tidak lagi menutupi/menggencet kolom isian saat keyboard muncul; preview non-sticky di mobile.
+- **Mobile daftar nota**: 5 dropdown filter dilipat ke tombol "⚙ Filter" (badge jumlah filter aktif) → grid 2 kolom full-width; desktop tidak berubah (`display: contents`).
+
+### Performance
+- `useIsMobile` debounce 150ms (iOS Safari fire `resize` puluhan kali saat scroll/zoom → re-render seluruh app per fire).
+- `@keyframes ui-field-error-in` ganti `max-height` → `clip-path` (animasi GPU-only, hilangkan layout thrash).
+- `GET /api/price-list` ditulis ulang: 3 LATERAL subquery per produk → CTE `DISTINCT ON` + window function `ROW_NUMBER()` (satu pass).
+- Pool PG `max: 5` saat berjalan di Vercel (per-instance; cegah total koneksi semua instance warm melewati limit Neon); lokal tetap 20.
+- Index baru: `sales_orders(is_deleted, status, sale_date DESC)`, `invoice_items(invoice_id)`, `inventory_mutations(product_id, created_at DESC)`.
+- `generatePriceListPDF` jadi dynamic import — jsPDF tidak ikut bundle awal halaman Daftar Harga.
+
 ## [v1.24.0-stable] - 2026-06-12
 
 ### Added

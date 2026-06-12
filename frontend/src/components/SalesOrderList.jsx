@@ -165,6 +165,12 @@ export default function SalesOrderList({
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const [showModal, setShowModal] = useState(false);
+  // Mobile: form & preview tidak muat berdampingan → tab; filter dilipat default
+  const [formTab, setFormTab] = useState("form"); // 'form' | 'preview'
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  useEffect(() => {
+    if (showModal) setFormTab("form");
+  }, [showModal]);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [printOrder, setPrintOrder] = useState(null);
@@ -1275,13 +1281,54 @@ export default function SalesOrderList({
           }}
         />
 
+        {isMobile && (
+          <button
+            onClick={() => setShowMobileFilters((v) => !v)}
+            className="ui-motion-button ui-focus-ring"
+            aria-expanded={showMobileFilters}
+            style={{
+              padding: "10px 14px",
+              backgroundColor: showMobileFilters
+                ? "var(--color-primary-soft)"
+                : "transparent",
+              color: showMobileFilters ? "var(--color-primary)" : sub,
+              border: `1px solid ${showMobileFilters ? "var(--color-primary)" : border}`,
+              borderRadius: "10px",
+              cursor: "pointer",
+              fontWeight: 700,
+              fontSize: "13px",
+              whiteSpace: "nowrap",
+              flex: "0 0 auto",
+            }}
+          >
+            {(() => {
+              const n = [filterMonth, filterYear, filterStatus, filterChannel, filterProfit]
+                .filter((f) => f !== "all").length;
+              return `${showMobileFilters ? "✕ Tutup" : "⚙ Filter"}${n ? ` (${n})` : ""}`;
+            })()}
+          </button>
+        )}
+
+        {/* Mobile: filter dilipat ke grid 2 kolom; desktop: display contents = flow toolbar biasa */}
+        <div
+          style={
+            isMobile
+              ? {
+                  display: showMobileFilters ? "grid" : "none",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "8px",
+                  width: "100%",
+                }
+              : { display: "contents" }
+          }
+        >
         {/* v1.7.1 filter selects: fixed width override inputStyle's width:100% (sebelumnya stack vertical) + ellipsis */}
         <select
           value={filterMonth}
           onChange={(e) => setFilterMonth(e.target.value)}
           style={{
             ...inputStyle,
-            width: "170px",
+            width: isMobile ? "100%" : "170px",
             flex: "0 0 auto",
             paddingRight: "32px",
             textOverflow: "ellipsis",
@@ -1315,7 +1362,7 @@ export default function SalesOrderList({
           onChange={(e) => setFilterYear(e.target.value)}
           style={{
             ...inputStyle,
-            width: "130px",
+            width: isMobile ? "100%" : "130px",
             flex: "0 0 auto",
             paddingRight: "32px",
             textOverflow: "ellipsis",
@@ -1339,7 +1386,7 @@ export default function SalesOrderList({
           onChange={(e) => setFilterStatus(e.target.value)}
           style={{
             ...inputStyle,
-            width: "170px",
+            width: isMobile ? "100%" : "170px",
             flex: "0 0 auto",
             paddingRight: "32px",
             textOverflow: "ellipsis",
@@ -1357,7 +1404,7 @@ export default function SalesOrderList({
           onChange={(e) => setFilterChannel(e.target.value)}
           style={{
             ...inputStyle,
-            width: "170px",
+            width: isMobile ? "100%" : "170px",
             flex: "0 0 auto",
             paddingRight: "32px",
             textOverflow: "ellipsis",
@@ -1375,7 +1422,7 @@ export default function SalesOrderList({
           onChange={(e) => setFilterProfit(e.target.value)}
           style={{
             ...inputStyle,
-            width: "190px",
+            width: isMobile ? "100%" : "190px",
             flex: "0 0 auto",
             paddingRight: "32px",
             textOverflow: "ellipsis",
@@ -1402,6 +1449,7 @@ export default function SalesOrderList({
         <div
           style={{
             width: "100%",
+            gridColumn: "1 / -1",
             fontSize: "11px",
             color: sub,
             marginTop: "-4px",
@@ -1415,6 +1463,7 @@ export default function SalesOrderList({
           {formatProfitPct(activeProfitThresholds.thin)}–
           {formatProfitPct(activeProfitThresholds.normal)} · rugi &lt;{" "}
           {formatProfitPct(activeProfitThresholds.thin)}
+        </div>
         </div>
       </div>
 
@@ -2213,18 +2262,60 @@ export default function SalesOrderList({
                   </button>
                   </div>
 
+                  {/* Mobile: form & preview jadi tab — preview tidak lagi menutupi form */}
+                  {isMobile && (
+                    <div
+                      role="tablist"
+                      style={{
+                        display: "flex",
+                        gap: "4px",
+                        padding: "10px 22px 0",
+                        borderBottom: `1px solid ${border}`,
+                      }}
+                    >
+                      {[
+                        ["form", "📝 Form"],
+                        ["preview", "📄 Preview"],
+                      ].map(([key, label]) => (
+                        <button
+                          key={key}
+                          role="tab"
+                          aria-selected={formTab === key}
+                          onClick={() => setFormTab(key)}
+                          className="ui-motion-button"
+                          style={{
+                            padding: "10px 16px",
+                            background: "none",
+                            border: "none",
+                            borderBottom:
+                              formTab === key
+                                ? "2px solid var(--color-primary)"
+                                : "2px solid transparent",
+                            color:
+                              formTab === key ? "var(--color-primary)" : sub,
+                            fontWeight: 700,
+                            fontSize: "13px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div
                     style={{
                       padding: "20px 22px",
                       display: "grid",
-                      gridTemplateColumns: "1.1fr 1fr",
+                      gridTemplateColumns: isMobile ? "1fr" : "1.1fr 1fr",
                   gap: "24px",
                   alignItems: "start",
                 }}
               >
                 <div
                   style={{
-                    display: "flex",
+                    display:
+                      isMobile && formTab !== "form" ? "none" : "flex",
                     flexDirection: "column",
                     gap: "14px",
                     minWidth: 0,
@@ -3114,7 +3205,14 @@ export default function SalesOrderList({
                   </div>
                 </div>
                 <div
-                  style={{ position: "sticky", top: "0", alignSelf: "start" }}
+                  style={{
+                    position: isMobile ? "static" : "sticky",
+                    top: "0",
+                    alignSelf: "start",
+                    display:
+                      isMobile && formTab !== "preview" ? "none" : "block",
+                    minWidth: 0,
+                  }}
                 >
                   <div
                     style={{

@@ -24,7 +24,10 @@ const poolConfig = process.env.DATABASE_URL
       database: process.env.DB_NAME,
     };
 
-poolConfig.max = 20;
+// Serverless (Vercel): tiap instance warm bikin pool sendiri dan hanya melayani
+// 1 request pada satu waktu — max kecil supaya total koneksi seluruh instance
+// tidak melewati limit Neon. Lokal/dev: satu proses, max besar aman.
+poolConfig.max = process.env.VERCEL ? 5 : 20;
 poolConfig.idleTimeoutMillis = 30000;
 poolConfig.connectionTimeoutMillis = 5000;
 

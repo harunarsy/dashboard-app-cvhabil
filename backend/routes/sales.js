@@ -41,6 +41,8 @@ const ensureSchema = async () => {
     CREATE INDEX IF NOT EXISTS idx_sales_orders_date ON sales_orders(sale_date DESC);
     CREATE INDEX IF NOT EXISTS idx_sales_orders_customer ON sales_orders(customer_name);
     CREATE INDEX IF NOT EXISTS idx_sales_items_order ON sales_items(sales_order_id);
+    CREATE INDEX IF NOT EXISTS idx_sales_orders_active_status_date
+      ON sales_orders(is_deleted, status, sale_date DESC);
   `);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(30)`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS channel VARCHAR(10) DEFAULT 'offline'`);

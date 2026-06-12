@@ -1113,14 +1113,15 @@ tr.ui-row.ui-hover-delight:focus-within {
   }
 }
 
+/* clip-path + opacity/transform saja (GPU) — max-height memicu layout tiap frame */
 @keyframes ui-field-error-in {
   from {
-    max-height: 0;
+    clip-path: inset(0 0 100% 0);
     opacity: 0;
     transform: translateY(-4px);
   }
   to {
-    max-height: 80px;
+    clip-path: inset(0);
     opacity: 1;
     transform: translateY(0);
   }
