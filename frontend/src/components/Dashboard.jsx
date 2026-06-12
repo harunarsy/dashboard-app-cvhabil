@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.23.0-stable",
+    version: "v1.23.1-stable",
     date: "12 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Perbaikan hitungan nota satuan karton: HPP tidak lagi tertukar antara per-pcs dan per-karton saat nota diedit, dan angka omzet/laba di Dashboard kini menghitung pakai jumlah karton (bukan jumlah pcs dikali harga karton — dulu bisa melenceng 12 kali lipat). Margin di daftar nota juga sudah benar. 4 nota Omela lama yang HPP-nya keselip ikut dibetulkan datanya.",
+        dev: "Edit Nota re-match batch: unit_hpp = batch.hna × pack_size kalau unit pack (dulu ketimpa per-pcs); synthetic legacy batch hna dibagi pack_size (anti double-scale); tabel margin expand pakai qty_in_unit; dashboard.js semua revenue/margin SUM pakai COALESCE(qty_in_unit, qty); repair SQL 4 sales_items FRISIAN OMELA (185832 inc → 167416.20 hna) + recompute gross_profit order aktif.",
+      },
+    ],
+  },
+  {
+    version: "v1.23.0-stable",
+    date: "12 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "new",
@@ -3065,7 +3077,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.23.0-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.23.1-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

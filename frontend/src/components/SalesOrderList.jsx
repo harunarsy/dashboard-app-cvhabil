@@ -721,7 +721,12 @@ export default function SalesOrderList({
             );
           }
           if (matchedBatch) {
-            // Update item fields from matched batch
+            // Update item fields from matched batch.
+            // v1.23.1: batch.hna = per pcs — kalau unit nota karton/pack, HPP
+            // WAJIB dikali pack_size (dulu ketimpa per-pcs → margin overstate
+            // gila-gilaan tiap nota karton dibuka di Edit lalu disimpan).
+            const editIsPack = isPackUnit(item.unit, prod);
+            const editPackSize = parseInt(prod.pack_size) || 1;
             setItems((prev) => {
               const n = [...prev];
               if (n[idx]) {
@@ -731,7 +736,9 @@ export default function SalesOrderList({
                   _selected_batch: matchedBatch.batch_no,
                   batch_no_snapshot: matchedBatch.batch_no,
                   expired_date_snapshot: matchedBatch.expired_date,
-                  unit_hpp: parseFloat(matchedBatch.hna) || 0,
+                  unit_hpp:
+                    (parseFloat(matchedBatch.hna) || 0) *
+                    (editIsPack ? editPackSize : 1),
                   unit_hpp_tax_type:
                     matchedBatch.tax_type === "nota" ? "nota" : "faktur",
                 };
@@ -739,7 +746,11 @@ export default function SalesOrderList({
               return n;
             });
           } else if (item.batch_no_snapshot) {
-            // Tidak ada match — buat synthetic entry
+            // Tidak ada match — buat synthetic entry.
+            // hna batch = per pcs: unit_hpp per-karton harus dibagi pack_size
+            // (kalau tidak, re-pilih batch ini dari dropdown bikin double-scale).
+            const legacyIsPack = isPackUnit(item.unit, prod);
+            const legacyPackSize = parseInt(prod.pack_size) || 1;
             batches = [
               ...batches,
               {
@@ -747,7 +758,9 @@ export default function SalesOrderList({
                 batch_no: item.batch_no_snapshot,
                 expired_date: item.expired_date_snapshot,
                 qty_current: 0,
-                hna: item.unit_hpp || 0,
+                hna:
+                  (parseFloat(item.unit_hpp) || 0) /
+                  (legacyIsPack ? legacyPackSize : 1),
               },
             ];
             setItems((prev) => {
@@ -1902,9 +1915,17 @@ export default function SalesOrderList({
                             <tbody>
                               {o.items.map((it, idx) => {
                                 const hppInc = hppIncFor(it);
+                                // v1.23.1: unit_price & unit_hpp = per satuan
+                                // jual (karton/pcs) → kalikan qty di satuan
+                                // itu juga (qty_in_unit), BUKAN qty basis pcs.
+                                // Dulu nota karton: margin dikali 36 pcs
+                                // padahal harga per karton (overstate 12×).
+                                const qtyUnit = parseFloat(
+                                  it.qty_in_unit ?? it.qty,
+                                ) || 0;
                                 const margin =
                                   (parseFloat(it.unit_price) - hppInc) *
-                                  parseFloat(it.qty || 0);
+                                  qtyUnit;
                                 return (
                                   <tr key={idx}>
                                     <td
@@ -1921,7 +1942,7 @@ export default function SalesOrderList({
                                         color: text,
                                       }}
                                     >
-                                      {it.qty}
+                                      {qtyUnit}
                                     </td>
                                     <td
                                       style={{
@@ -1979,7 +2000,7 @@ export default function SalesOrderList({
                                   (s, it) =>
                                     s +
                                     (parseFloat(it.unit_price) - hppIncFor(it)) *
-                                      parseFloat(it.qty || 0),
+                                      (parseFloat(it.qty_in_unit ?? it.qty) || 0),
                                   0,
                                 );
                                 // v1.21.14: ongkir ikut total margin (untung = ditagih - biaya asli)

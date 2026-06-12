@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.23.1-stable] - 2026-06-12
+
+### Fixed
+- **HPP karton ketimpa per-pcs saat Edit Nota**: re-match batch di `openEdit` menimpa `unit_hpp` dengan `batch.hna` (per pcs) tanpa mengalikan `pack_size` saat unit nota karton → HPP Omela 1 L tampil 15.486 padahal per karton 185.832; kalau disimpan, gross_profit ikut korup. Sekarang dikali `pack_size`; synthetic legacy batch disimpan per-pcs (dibagi `pack_size`) supaya re-pilih dari dropdown tidak double-scale.
+- **Dashboard omzet/margin item karton melenceng 12×**: semua query revenue/margin di `dashboard.js` mengalikan `si.qty` (basis pcs) × `si.unit_price` (per satuan jual). Sekarang `COALESCE(si.qty_in_unit, si.qty)`. Berlaku ke Laba Kotor bln ini, Margin per Channel, Top Kategori.
+- **Margin di daftar nota (expand)**: per-item & total pakai `qty_in_unit` (dulu qty basis pcs × harga per karton).
+- **Data repair**: 4 sales_items FRISIAN FLAG OMELA karton lama menyimpan `unit_hpp` = 185.832 (nilai inc-PPN) → dibetulkan ke HNA 167.416,20 (batch.hna × 12) + `gross_profit` nota terkait dihitung ulang (2605026: 26.168; 2606005: 181.680; 2606006: 14.168; 2606018: 52.336).
+
 ## [v1.23.0-stable] - 2026-06-12
 
 ### Added

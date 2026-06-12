@@ -2,7 +2,10 @@ import React from 'react';
 // Mock before other imports
 jest.mock('../services/api', () => ({
   salesAPI: {
-    getAll: jest.fn()
+    getAll: jest.fn(),
+    getDraft: jest.fn(),
+    saveDraft: jest.fn(),
+    clearDraft: jest.fn()
   },
   customersAPI: {
     getAll: jest.fn()
@@ -62,6 +65,9 @@ describe('SalesOrderList Component - Loading State', () => {
     printSettingsAPI.get.mockResolvedValue({ data: { nota_layout: {} } });
     countersAPI.getAll.mockResolvedValue({ data: [] });
     settingsAPI.getProfitThresholds.mockResolvedValue({ data: { profit_thresholds: { high: 20, normal: 5, thin: 0 } } });
+    salesAPI.getDraft.mockResolvedValue({ data: { draft_data: null } });
+    salesAPI.saveDraft.mockResolvedValue({ data: {} });
+    salesAPI.clearDraft.mockResolvedValue({ data: {} });
   });
 
   test('renders table row skeletons while loading', async () => {

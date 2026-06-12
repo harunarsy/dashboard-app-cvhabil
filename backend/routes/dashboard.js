@@ -43,7 +43,7 @@ router.get('/stats', auth, async (req, res) => {
     // biar konsisten dgn total_penjualan yg sudah termasuk ongkir. Subquery ongkir
     // di-scope independen (per-order, bukan per item-row) supaya tidak terkali jumlah item.
     const qTotalLaba = pool.query(`
-      SELECT COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0)
+      SELECT COALESCE(SUM(COALESCE(si.qty_in_unit, si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0)
         + COALESCE((
             SELECT SUM(COALESCE(so2.ongkir, 0) - COALESCE(so2.ongkir_cost, 0))
             FROM sales_orders so2
@@ -59,7 +59,7 @@ router.get('/stats', auth, async (req, res) => {
     `, [hppMultiplier]);
 
     const qPrevLaba = pool.query(`
-      SELECT COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0)
+      SELECT COALESCE(SUM(COALESCE(si.qty_in_unit, si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0)
         + COALESCE((
             SELECT SUM(COALESCE(so2.ongkir, 0) - COALESCE(so2.ongkir_cost, 0))
             FROM sales_orders so2
@@ -86,7 +86,7 @@ router.get('/stats', auth, async (req, res) => {
             ELSE LOWER(TRIM(so.channel))
           END AS channel,
           so.id AS order_id,
-          COALESCE(si.qty, 0) AS qty,
+          COALESCE(si.qty_in_unit, si.qty, 0) AS qty,
           COALESCE(si.unit_price, 0) AS unit_price,
 	          COALESCE(si.unit_hpp, 0) AS unit_hpp,
 	          ${unitHppCostSql} AS unit_hpp_cost
@@ -118,12 +118,12 @@ router.get('/stats', auth, async (req, res) => {
         COALESCE(NULLIF(TRIM(pm.category), ''), '(tanpa kategori)') AS category,
         COUNT(DISTINCT so.id) AS order_count,
         COALESCE(SUM(si.qty), 0) AS qty,
-        COALESCE(SUM(COALESCE(si.qty, 0) * COALESCE(si.unit_price, 0)), 0) AS revenue,
-	        COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0) AS margin,
+        COALESCE(SUM(COALESCE(si.qty_in_unit, si.qty, 0) * COALESCE(si.unit_price, 0)), 0) AS revenue,
+	        COALESCE(SUM(COALESCE(si.qty_in_unit, si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0) AS margin,
         CASE
-          WHEN COALESCE(SUM(COALESCE(si.qty, 0) * COALESCE(si.unit_price, 0)), 0) > 0
-	          THEN COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0)
-            / SUM(COALESCE(si.qty, 0) * COALESCE(si.unit_price, 0)) * 100
+          WHEN COALESCE(SUM(COALESCE(si.qty_in_unit, si.qty, 0) * COALESCE(si.unit_price, 0)), 0) > 0
+	          THEN COALESCE(SUM(COALESCE(si.qty_in_unit, si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0)
+            / SUM(COALESCE(si.qty_in_unit, si.qty, 0) * COALESCE(si.unit_price, 0)) * 100
           ELSE 0
         END AS margin_pct
       FROM sales_orders so
