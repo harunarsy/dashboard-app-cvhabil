@@ -28,6 +28,7 @@ const OnlineStoreDashboard = lazy(
   () => import("./components/OnlineStoreDashboard"),
 );
 const LedgerPage = lazy(() => import("./components/LedgerPage"));
+const PriceListPage = lazy(() => import("./components/PriceListPage"));
 const PrintSettings = lazy(() => import("./components/PrintSettings"));
 
 function useIsMobile(breakpoint = 768) {
@@ -161,6 +162,10 @@ function AppRoutes({
           element={wrap(OnlineStoreDashboard, "Toko Online")}
         />
         <Route path="/ledger" element={wrap(LedgerPage, "Buku Besar")} />
+        <Route
+          path="/price-list"
+          element={wrap(PriceListPage, "Daftar Harga")}
+        />
         <Route
           path="/print-settings"
           element={wrap(PrintSettings, "Settings")}

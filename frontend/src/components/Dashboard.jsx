@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.23.2-stable",
+    version: "v1.24.0-stable",
     date: "12 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Menu baru 'Daftar Harga' di sidebar: semua produk aktif dari Inventory tampil dengan HPP pembelian terakhir sebagai acuan, harga jual bisa di-set langsung per produk lengkap dengan tanggal berlaku, dan riwayat perubahan harga tersimpan (harga lama tetap kelihatan). Tombol Cetak A4 menghasilkan PDF daftar harga siap print — header CV + NPWP + 'Berlaku per tanggal'.",
+        dev: "Tabel price_list_entries (riwayat append-only, effective_date); route /api/price-list (GET join LATERAL batch terbaru + entry terbaru + entry sebelumnya, PUT insert idempotent); PriceListPage (inline edit + margin live vs HPP batch terakhir via hppForBatch); generatePriceListPDF A4 portrait autoTable (eceran + harga karton dari sell_price_pack), tanpa HPP di printout (customer-facing).",
+      },
+    ],
+  },
+  {
+    version: "v1.23.2-stable",
+    date: "12 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -3089,7 +3101,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.23.2-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.24.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

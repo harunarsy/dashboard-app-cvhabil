@@ -93,6 +93,7 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/ledger', require('./routes/ledger'));
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/print-settings', require('./routes/printSettings'));
+app.use('/api/price-list', require('./routes/priceList'));
 
 // Error handler
 app.use((err, req, res, next) => {

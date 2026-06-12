@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.24.0-stable] - 2026-06-12
+
+### Added
+- **Menu "Daftar Harga"** (sidebar, ikon Tags, route `/price-list`): semua produk aktif dari Inventory dengan **HPP pembelian terakhir** (batch terbaru by `created_at`, tax-aware via `hppForBatch`) sebagai acuan, **harga jual bisa di-set inline** per produk + **tanggal berlaku** (`effective_date`), margin live (harga − HPP). Riwayat perubahan harga tersimpan append-only di tabel baru `price_list_entries` — harga sebelumnya tampil di bawah harga aktif; endpoint `GET /api/price-list/:id/history` tersedia.
+- **Cetak A4**: tombol "Cetak A4" → PDF portrait (`generatePriceListPDF`) siap print: header CV + NPWP + alamat + "Berlaku per <tanggal efektif terbaru>", kolom No/Kode/Nama/Harga Eceran/Harga Karton (dari `sell_price_pack`). **Tanpa HPP/margin** — dokumen customer-facing. Produk tanpa harga otomatis dilewati; mengikuti filter pencarian aktif.
+- Backend: route baru `/api/price-list` (`backend/routes/priceList.js`), PUT idempotent (harga+tanggal sama → tidak menambah baris riwayat).
+
 ## [v1.23.2-stable] - 2026-06-12
 
 ### Fixed

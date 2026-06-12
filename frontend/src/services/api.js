@@ -198,6 +198,12 @@ export const customersAPI = {
   remove: (id) => { cacheInvalidate('/customers'); return api.delete(`/customers/${id}`); },
 };
 
+export const priceListAPI = {
+  getAll: () => api.get('/price-list'),
+  setPrice: (productId, data) => api.put(`/price-list/${productId}`, data),
+  getHistory: (productId) => api.get(`/price-list/${productId}/history`),
+};
+
 export const salesAPI = {
   getAll: () => api.get('/sales'),
   getById: (id) => api.get(`/sales/${id}`),

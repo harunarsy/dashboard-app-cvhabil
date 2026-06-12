@@ -26,6 +26,7 @@ const {
   ReceiptText,
   ClipboardList,
   Boxes,
+  Tags,
 } = Icons;
 
 export default function Sidebar({
@@ -112,6 +113,7 @@ export default function Sidebar({
       active: true,
     },
     { icon: Boxes, label: "Inventory", path: "/inventory", active: true },
+    { icon: Tags, label: "Daftar Harga", path: "/price-list", active: true },
     {
       icon: ShoppingCart,
       label: "Toko Online",
@@ -191,7 +193,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.23.2-stable";
+  const appVersion = "v1.24.0-stable";
   const TooltipButton = ({
     label,
     children,
