@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.26.1-stable] - 2026-06-13
+
+### Changed
+- **Daftar Harga UI recovery**: tabel desktop dibuat lebih lega dan scannable, input harga per saluran minimal 44px, tombol ✨ saran harga dan 🕘 riwayat lebih konsisten, header/toolbar dibuat surface solid agar light/dark tetap terbaca.
+- **Modal Biaya Admin lebih usable**: modal sekarang centered, tinggi dibatasi `calc(100dvh - 32px)`, isi scroll sendiri, profil fee tampil sebagai kartu 2 kolom di desktop / 1 kolom di mobile, field fee lebih besar, dan status "belum disimpan" terlihat jelas per profil.
+
 ## [v1.26.0-stable] - 2026-06-13
 
 ### Added

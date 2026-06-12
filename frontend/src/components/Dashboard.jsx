@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.26.0-stable",
+    version: "v1.26.1-stable",
     date: "13 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Daftar Harga dirapikan lagi supaya lebih enak dipakai: tabel desktop lebih lega, kolom harga Offline/Shopee/TikTok tidak saling tabrakan, tombol saran harga dan riwayat lebih mudah diklik, dan modal Biaya Admin sekarang tampil di tengah dengan layout kartu yang lebih jelas.",
+        dev: "PriceListPage UI recovery: table minWidth/colgroup, input channel min-height 44px, channel cell minWidth 196px desktop, solid ui-panel header/toolbar, fee profile modal max-height calc(100dvh - 32px), scrollable body, sticky header/footer semantics, per-profile dirty state.",
+      },
+    ],
+  },
+  {
+    version: "v1.26.0-stable",
+    date: "13 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -3152,7 +3164,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.26.0-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.26.1-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

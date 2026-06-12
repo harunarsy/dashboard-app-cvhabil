@@ -363,6 +363,7 @@ function FeeProfilesModal({ feeProfiles, isMobile, onClose, onSaved, flash }) {
   const text = "var(--color-text)";
   const sub = "var(--color-text-muted)";
   const border = "var(--color-border)";
+  const dirtyCount = Object.keys(drafts).length;
 
   const valOf = (p, field) => {
     const d = drafts[p.id];
@@ -400,7 +401,7 @@ function FeeProfilesModal({ feeProfiles, isMobile, onClose, onSaved, flash }) {
   };
 
   const cellInput = (p, field, suffix) => (
-    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
       <input
         type="number"
         min="0"
@@ -408,22 +409,34 @@ function FeeProfilesModal({ feeProfiles, isMobile, onClose, onSaved, flash }) {
         value={valOf(p, field)}
         onChange={(e) => setVal(p.id, field, e.target.value)}
         style={{
-          width: field === "fixed_order_fee" ? "84px" : "64px",
-          padding: "6px 8px",
-          borderRadius: "8px",
+          width: "100%",
+          minWidth: field === "fixed_order_fee" ? "92px" : "76px",
+          minHeight: "40px",
+          padding: "8px 10px",
+          borderRadius: "10px",
           border: `1px solid ${border}`,
           backgroundColor: "var(--color-surface-elevated)",
           color: text,
-          fontSize: "12px",
+          fontSize: "13px",
+          fontWeight: 650,
         }}
       />
-      <span style={{ fontSize: "11px", color: sub }}>{suffix}</span>
+      <span style={{ fontSize: "11px", color: sub, whiteSpace: "nowrap" }}>{suffix}</span>
     </div>
   );
 
   return (
     <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.35)", zIndex: 90 }} />
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          backgroundColor: "rgba(0,0,0,0.48)",
+          backdropFilter: "blur(2px)",
+          zIndex: 90,
+        }}
+      />
       <div
         className="ui-panel ui-dialog-shell ui-motion-modal"
         role="dialog"
@@ -433,86 +446,192 @@ function FeeProfilesModal({ feeProfiles, isMobile, onClose, onSaved, flash }) {
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: isMobile ? "94vw" : "720px",
-          maxHeight: "84vh",
-          overflowY: "auto",
+          width: isMobile ? "calc(100vw - 24px)" : "min(960px, calc(100vw - 48px))",
+          maxHeight: "calc(100dvh - 32px)",
+          overflow: "hidden",
           zIndex: 100,
           backgroundColor: "var(--color-surface)",
           border: `1px solid ${border}`,
-          borderRadius: "16px",
+          borderRadius: "18px",
           boxShadow: "var(--shadow-floating)",
-          padding: "20px",
+          padding: 0,
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-          <div style={{ fontSize: "15px", fontWeight: 800, color: text }}>⚙️ Biaya Admin Marketplace</div>
-          <button onClick={onClose} aria-label="Tutup" style={{ background: "none", border: "none", cursor: "pointer", fontSize: "20px", color: sub }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: "16px",
+            padding: isMobile ? "16px" : "18px 22px",
+            borderBottom: `1px solid ${border}`,
+            backgroundColor: "var(--color-surface)",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: "18px", fontWeight: 850, color: text }}>⚙️ Biaya Admin Marketplace</div>
+            <div style={{ fontSize: "12px", color: sub, marginTop: "4px", lineHeight: 1.5 }}>
+              Fee efektif dipakai untuk semua saran harga. Edit angka, lalu simpan per metode.
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Tutup"
+            className="ui-motion-button ui-focus-ring"
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "12px",
+              border: `1px solid ${border}`,
+              backgroundColor: "var(--color-surface-elevated)",
+              cursor: "pointer",
+              fontSize: "20px",
+              color: sub,
+              flexShrink: 0,
+            }}
+          >
             ×
           </button>
         </div>
-        <div style={{ fontSize: "12px", color: sub, marginBottom: "14px", lineHeight: 1.6 }}>
-          Fee marketplace bisa berubah — update di sini, semua saran harga langsung ikut.
-          <strong> Fee efektif</strong> = total potongan nyata per order (sudah termasuk fee tetap); dipakai sebagai dasar saran harga.
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          {feeProfiles.map((p) => (
-            <div
-              key={p.id}
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: "10px",
-                padding: "10px 12px",
-                borderRadius: "12px",
-                border: `1px solid ${border}`,
-              }}
-            >
-              <div style={{ flex: "1 1 180px", minWidth: 0 }}>
-                <div style={{ fontSize: "13px", fontWeight: 700, color: text }}>{p.label || `${p.platform} · ${p.category_key}`}</div>
-                <div style={{ fontSize: "10px", color: sub }}>
-                  sumber: {p.source}
-                  {p.updated_at ? ` · diubah ${fmtDate(p.updated_at)}` : ""}
+        <div
+          style={{
+            padding: isMobile ? "14px" : "18px 22px",
+            overflowY: "auto",
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+            gap: "12px",
+            backgroundColor: "var(--color-bg-subtle)",
+          }}
+        >
+          {feeProfiles.map((p) => {
+            const dirty = Boolean(drafts[p.id]);
+            return (
+              <div
+                key={p.id}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                  padding: "14px",
+                  borderRadius: "14px",
+                  border: `1px solid ${dirty ? "var(--color-primary)" : border}`,
+                  backgroundColor: "var(--color-surface)",
+                  boxShadow: dirty ? "0 0 0 3px var(--color-primary-soft)" : "none",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start" }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: "14px", fontWeight: 800, color: text, lineHeight: 1.25 }}>
+                      {p.label || `${p.platform} · ${p.category_key}`}
+                    </div>
+                    <div style={{ fontSize: "11px", color: sub, marginTop: "3px" }}>
+                      sumber: {p.source}
+                      {p.updated_at ? ` · diubah ${fmtDate(p.updated_at)}` : ""}
+                    </div>
+                  </div>
+                  {dirty && (
+                    <span
+                      style={{
+                        padding: "3px 8px",
+                        borderRadius: "999px",
+                        fontSize: "10px",
+                        fontWeight: 800,
+                        color: "var(--color-primary)",
+                        backgroundColor: "var(--color-primary-soft)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Belum disimpan
+                    </span>
+                  )}
                 </div>
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontSize: "10px", color: sub, marginBottom: "2px" }}>Fee efektif</div>
-                  {cellInput(p, "safe_effective_fee_rate", "%")}
-                </div>
-                <div>
-                  <div style={{ fontSize: "10px", color: sub, marginBottom: "2px" }}>Admin</div>
-                  {cellInput(p, "admin_rate", "%")}
-                </div>
-                <div>
-                  <div style={{ fontSize: "10px", color: sub, marginBottom: "2px" }}>Layanan</div>
-                  {cellInput(p, "service_rate", "%")}
-                </div>
-                <div>
-                  <div style={{ fontSize: "10px", color: sub, marginBottom: "2px" }}>Fee tetap</div>
-                  {cellInput(p, "fixed_order_fee", "Rp/order")}
-                </div>
-                <button
-                  onClick={() => save(p)}
-                  disabled={!drafts[p.id] || savingId === p.id}
-                  className="ui-motion-button"
+
+                <div
                   style={{
-                    padding: "7px 14px",
-                    backgroundColor: drafts[p.id] ? "var(--color-primary)" : "var(--color-bg-subtle)",
-                    color: drafts[p.id] ? "#FFF" : sub,
-                    border: "none",
-                    borderRadius: "8px",
-                    cursor: drafts[p.id] ? "pointer" : "default",
-                    fontWeight: 700,
-                    fontSize: "12px",
-                    alignSelf: "flex-end",
+                    display: "grid",
+                    gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, minmax(0, 1fr))",
+                    gap: "10px",
                   }}
                 >
-                  {savingId === p.id ? "..." : "Simpan"}
+                  {[
+                    ["safe_effective_fee_rate", "Fee efektif", "%"],
+                    ["admin_rate", "Admin", "%"],
+                    ["service_rate", "Layanan", "%"],
+                    ["fixed_order_fee", "Fee tetap", "Rp/order"],
+                  ].map(([field, label, suffix]) => (
+                    <label key={field} style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: "10px",
+                          color: sub,
+                          marginBottom: "4px",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.04em",
+                          fontWeight: 800,
+                        }}
+                      >
+                        {label}
+                      </div>
+                      {cellInput(p, field, suffix)}
+                    </label>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => save(p)}
+                  disabled={!dirty || savingId === p.id}
+                  className="ui-motion-button ui-focus-ring"
+                  style={{
+                    minHeight: "42px",
+                    padding: "9px 14px",
+                    backgroundColor: dirty ? "var(--color-primary)" : "var(--color-bg-subtle)",
+                    color: dirty ? "#FFF" : sub,
+                    border: dirty ? "1px solid var(--color-primary)" : `1px solid ${border}`,
+                    borderRadius: "10px",
+                    cursor: dirty ? "pointer" : "default",
+                    fontWeight: 800,
+                    fontSize: "13px",
+                    alignSelf: "stretch",
+                  }}
+                >
+                  {savingId === p.id ? "Menyimpan..." : "Simpan profil ini"}
                 </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+        <div
+          style={{
+            padding: isMobile ? "12px 16px" : "14px 22px",
+            borderTop: `1px solid ${border}`,
+            backgroundColor: "var(--color-surface)",
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "12px",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ fontSize: "12px", color: sub }}>
+            {dirtyCount ? `${dirtyCount} profil belum disimpan` : "Semua perubahan tersimpan per profil."}
+          </span>
+          <button
+            onClick={onClose}
+            className="ui-motion-button ui-focus-ring"
+            style={{
+              minHeight: "40px",
+              padding: "9px 16px",
+              borderRadius: "10px",
+              border: `1px solid ${border}`,
+              backgroundColor: "var(--color-surface-elevated)",
+              color: text,
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            Tutup
+          </button>
         </div>
       </div>
     </>
@@ -817,8 +936,16 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
     const margin = priceNum > 0 && hpp > 0 ? net - hpp : null;
 
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: "150px" }}>
-        <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "6px",
+          minWidth: isMobile ? 0 : "196px",
+          width: "100%",
+        }}
+      >
+        <div style={{ display: "grid", gridTemplateColumns: hpp > 0 ? "minmax(0, 1fr) 40px" : "minmax(0, 1fr)", gap: "6px", alignItems: "center" }}>
           <input
             type="number"
             min="0"
@@ -838,15 +965,17 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                 }));
             }}
             style={{
-              width: "104px",
-              padding: "7px 9px",
-              borderRadius: "8px",
+              width: "100%",
+              minHeight: "44px",
+              padding: "9px 11px",
+              borderRadius: "10px",
               border: `1.5px solid ${dirty ? "var(--color-primary)" : border}`,
               backgroundColor: "var(--color-surface-elevated)",
               color: text,
-              fontSize: "13px",
-              fontWeight: 600,
+              fontSize: "14px",
+              fontWeight: 750,
               opacity: saving ? 0.5 : 1,
+              fontVariantNumeric: "tabular-nums",
             }}
           />
           {hpp > 0 && (
@@ -856,13 +985,14 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
               aria-label={`Saran harga ${ch.label} untuk ${r.name}`}
               className="ui-motion-button"
               style={{
-                padding: "6px 8px",
-                borderRadius: "8px",
-                border: "none",
+                width: "40px",
+                height: "40px",
+                borderRadius: "10px",
+                border: `1px solid ${dirty ? "var(--color-primary)" : "transparent"}`,
                 backgroundColor: "var(--color-primary-soft)",
                 color: "var(--color-primary)",
                 cursor: "pointer",
-                fontSize: "12px",
+                fontSize: "14px",
                 lineHeight: 1,
               }}
             >
@@ -870,9 +1000,11 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
             </button>
           )}
         </div>
-        <div style={{ fontSize: "10px", color: sub, lineHeight: 1.4 }}>
+        <div style={{ fontSize: "11px", color: sub, lineHeight: 1.35, minHeight: "30px" }}>
           {dirty ? (
-            <span style={{ color: "var(--color-primary)", fontWeight: 700 }}>Enter = simpan ↵</span>
+            <span style={{ color: "var(--color-primary)", fontWeight: 800 }}>
+              {saving ? "Menyimpan..." : "Enter = simpan ↵"}
+            </span>
           ) : margin != null ? (
             <span style={{ color: margin >= 0 ? "var(--color-success)" : "var(--color-danger)", fontWeight: 700 }}>
               {rate > 0 ? `bersih ${fmtRpShort(net)} · ` : ""}
@@ -898,7 +1030,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
 
       {/* Header — gaya kartu seperti Nota Penjualan */}
       <div
-        className="ui-readable-surface"
+        className="ui-panel ui-motion-card"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -906,8 +1038,11 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
           marginBottom: "1.25rem",
           flexWrap: "wrap",
           gap: "12px",
-          padding: "18px 20px",
+          padding: isMobile ? "16px" : "20px 22px",
           borderRadius: "18px",
+          backgroundColor: "var(--color-surface)",
+          border: `1px solid ${border}`,
+          boxShadow: "var(--shadow-card)",
         }}
       >
         <div>
@@ -947,14 +1082,15 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
             )}
           </div>
         </div>
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
           <button
             onClick={() => setShowFees(true)}
             className="ui-motion-button ui-focus-ring"
             style={{
+              minHeight: "44px",
               padding: "10px 14px",
-              backgroundColor: "transparent",
-              color: sub,
+              backgroundColor: "var(--color-surface-elevated)",
+              color: text,
               border: `1px solid ${border}`,
               borderRadius: "12px",
               cursor: "pointer",
@@ -973,6 +1109,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
               display: "flex",
               alignItems: "center",
               gap: "6px",
+              minHeight: "44px",
               padding: "10px 18px",
               backgroundColor: "var(--color-primary)",
               color: "#FFF",
@@ -991,16 +1128,39 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
       </div>
 
       {/* Toolbar */}
-      <div className="ui-toolbar" style={{ display: "flex", gap: "12px", marginBottom: "1.25rem", padding: "14px", flexWrap: "wrap", alignItems: "center" }}>
+      <div
+        className="ui-toolbar"
+        style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "minmax(320px, 1fr) auto",
+          gap: "12px",
+          marginBottom: "1.25rem",
+          padding: "14px",
+          alignItems: "center",
+          backgroundColor: "var(--color-surface)",
+          border: `1px solid ${border}`,
+          borderRadius: "16px",
+        }}
+      >
         <SearchBox
           value={search}
           onChange={setSearch}
           placeholder="Cari kode, nama produk, atau kategori..."
           ariaLabel="Cari produk di daftar harga"
-          style={{ flex: 1, minWidth: isMobile ? "100%" : "300px" }}
+          style={{ width: "100%" }}
           inputStyle={{ borderColor: border, color: text }}
         />
-        <span style={{ fontSize: "11px", color: sub }}>
+        <span
+          style={{
+            fontSize: "12px",
+            color: sub,
+            backgroundColor: "var(--color-bg-subtle)",
+            border: `1px solid ${border}`,
+            borderRadius: "999px",
+            padding: "8px 12px",
+            whiteSpace: isMobile ? "normal" : "nowrap",
+          }}
+        >
           Ketik harga di kolom saluran lalu tekan <strong>Enter</strong> — tanggal berlaku otomatis hari ini.
         </span>
       </div>
@@ -1081,8 +1241,26 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
         </div>
       ) : (
         /* ── DESKTOP: tabel grouped + sticky header ── */
-        <div className="ui-panel" style={{ borderRadius: "16px", overflow: "auto", maxHeight: "calc(100vh - 280px)" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", minWidth: "980px" }}>
+        <div
+          className="ui-panel"
+          style={{
+            borderRadius: "18px",
+            overflow: "auto",
+            maxHeight: "calc(100dvh - 300px)",
+            backgroundColor: "var(--color-surface)",
+            border: `1px solid ${border}`,
+            boxShadow: "var(--shadow-card)",
+          }}
+        >
+          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: "13px", minWidth: "1240px" }}>
+            <colgroup>
+              <col style={{ width: "29%" }} />
+              <col style={{ width: "17%" }} />
+              <col style={{ width: "17%" }} />
+              <col style={{ width: "17%" }} />
+              <col style={{ width: "17%" }} />
+              <col style={{ width: "3%" }} />
+            </colgroup>
             <thead style={{ position: "sticky", top: 0, zIndex: 5 }}>
               <tr>
                 {["Produk", "HPP Terakhir", "🏪 Offline", "🟠 Shopee", "🟢 TikTok/Tokped", ""].map((h, i) => (
@@ -1098,7 +1276,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                       color: sub,
                       borderBottom: `1px solid ${border}`,
                       whiteSpace: "nowrap",
-                      backgroundColor: "var(--color-surface)",
+                      backgroundColor: "var(--color-surface-elevated)",
                     }}
                   >
                     {h}
@@ -1130,6 +1308,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                           color: "var(--color-primary)",
                           backgroundColor: "var(--color-primary-soft)",
                           borderBottom: `1px solid ${border}`,
+                          borderTop: `1px solid ${border}`,
                         }}
                       >
                         {cat} <span style={{ color: sub, fontWeight: 600 }}>({items.length} produk)</span>
@@ -1138,12 +1317,12 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                     {items.map((r) => {
                       const hpp = lastHppFor(r);
                       return (
-                        <tr key={r.id} style={{ borderBottom: `1px solid ${border}` }}>
-                          <td style={{ padding: "10px 14px", color: text, minWidth: "220px" }}>
-                            <div style={{ fontWeight: "600" }}>{r.name}</div>
-                            <div style={{ fontSize: "11px", color: "var(--color-primary)", fontFamily: "monospace" }}>{r.code}</div>
+                        <tr key={r.id} className="ui-row">
+                          <td style={{ padding: "12px 14px", color: text, minWidth: "260px", borderBottom: `1px solid ${border}`, verticalAlign: "middle" }}>
+                            <div style={{ fontWeight: "750", lineHeight: 1.35 }}>{r.name}</div>
+                            <div style={{ fontSize: "11px", color: "var(--color-primary)", fontFamily: "monospace", marginTop: "3px" }}>{r.code || "tanpa kode"}</div>
                           </td>
-                          <td style={{ padding: "10px 14px", color: sub, whiteSpace: "nowrap" }}>
+                          <td style={{ padding: "12px 14px", color: sub, whiteSpace: "nowrap", borderBottom: `1px solid ${border}`, verticalAlign: "middle" }}>
                             {hpp > 0 ? (
                               <>
                                 <span style={{ color: text, fontWeight: 600 }}>{fmtRp(hpp)}</span>
@@ -1157,21 +1336,22 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                             )}
                           </td>
                           {CHANNELS.map((ch) => (
-                            <td key={ch.key} style={{ padding: "10px 10px" }}>
+                            <td key={ch.key} style={{ padding: "12px 10px", borderBottom: `1px solid ${border}`, verticalAlign: "middle" }}>
                               {priceCell(r, ch)}
                             </td>
                           ))}
-                          <td style={{ padding: "10px 12px" }}>
+                          <td style={{ padding: "12px 12px", borderBottom: `1px solid ${border}`, verticalAlign: "middle" }}>
                             <button
                               onClick={() => setHistoryFor(r)}
                               title="Riwayat harga"
                               aria-label={`Riwayat harga ${r.name}`}
                               className="ui-motion-button"
                               style={{
-                                padding: "7px 9px",
-                                borderRadius: "8px",
+                                width: "40px",
+                                height: "40px",
+                                borderRadius: "10px",
                                 border: `1px solid ${border}`,
-                                backgroundColor: "transparent",
+                                backgroundColor: "var(--color-surface-elevated)",
                                 color: sub,
                                 cursor: "pointer",
                                 fontSize: "13px",

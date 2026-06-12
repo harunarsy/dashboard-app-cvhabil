@@ -13,6 +13,10 @@ jest.mock('../services/api', () => ({
   productsAPI: {
     getAll: jest.fn()
   },
+  priceListAPI: {
+    getAll: jest.fn(),
+    getFeeProfiles: jest.fn()
+  },
   inventoryAPI: {
     getProducts: jest.fn()
   },
@@ -34,7 +38,7 @@ jest.mock('react-router-dom', () => ({
 import { render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import SalesOrderList from './SalesOrderList';
-import { salesAPI, customersAPI, productsAPI, inventoryAPI, printSettingsAPI, countersAPI, settingsAPI } from '../services/api';
+import { salesAPI, customersAPI, productsAPI, priceListAPI, inventoryAPI, printSettingsAPI, countersAPI, settingsAPI } from '../services/api';
 
 // Mock lucide-react
 jest.mock('lucide-react', () => ({
@@ -61,6 +65,8 @@ describe('SalesOrderList Component - Loading State', () => {
     // Default resolves for other APIs
     customersAPI.getAll.mockResolvedValue({ data: [] });
     productsAPI.getAll.mockResolvedValue({ data: [] });
+    priceListAPI.getAll.mockResolvedValue({ data: [] });
+    priceListAPI.getFeeProfiles.mockResolvedValue({ data: [] });
     inventoryAPI.getProducts.mockResolvedValue({ data: [] });
     printSettingsAPI.get.mockResolvedValue({ data: { nota_layout: {} } });
     countersAPI.getAll.mockResolvedValue({ data: [] });
