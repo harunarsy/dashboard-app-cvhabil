@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.26.2-stable] - 2026-06-13
+
+### Changed
+- **Upcoming Features audit**: item roadmap di popup Changelog & Roadmap dibuat lebih spesifik. Export PDF/Excel tidak lagi ditulis generik karena sebagian export sudah ada; gap yang tersisa sekarang disebut sebagai **Export Excel laporan bulanan profesional**.
+- **Roadmap rules untuk agent berikutnya**: tambah `docs/UPCOMING_FEATURES_RULES.md` agar setiap AI yang bump versi wajib mengecek `upcoming`, memindahkan fitur shipped ke `RELEASES`, dan tidak meninggalkan roadmap yang misleading.
+
 ## [v1.26.1-stable] - 2026-06-13
 
 ### Changed

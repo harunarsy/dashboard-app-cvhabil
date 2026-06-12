@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.26.1-stable",
+    version: "v1.26.2-stable",
     date: "13 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Roadmap di popup Apa yang Baru dirapikan: fitur yang sudah sebagian jadi kenyataan tidak lagi ditulis terlalu umum. Upcoming sekarang lebih spesifik supaya operator dan AI berikutnya tahu mana yang benar-benar belum dikerjakan.",
+        dev: "Dashboard upcoming audit: Export PDF/Excel narrowed to professional monthly Excel/PDF reporting; Predictive Restocking marked as Mini AI velocity work; added docs/UPCOMING_FEATURES_RULES.md as release-bump companion rule.",
+      },
+    ],
+  },
+  {
+    version: "v1.26.1-stable",
+    date: "13 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -3126,8 +3138,8 @@ const RELEASES = [
 const upcoming = [
   {
     priority: "high",
-    title: "Export PDF / Excel",
-    desc: "Export faktur individual atau rekap bulanan ke PDF & Excel untuk laporan dan arsip",
+    title: "Export Excel laporan bulanan profesional",
+    desc: "Rekap bulanan terpadu untuk Nota, Faktur, PPN, margin, dan inventory dalam format Excel/PDF siap arsip",
   },
   {
     priority: "high",
@@ -3136,8 +3148,8 @@ const upcoming = [
   },
   {
     priority: "medium",
-    title: "Predictive Restocking",
-    desc: "Alert otomatis kapan harus restock berdasarkan velocity penjualan + lead time supplier",
+    title: "Predictive Restocking (Mini AI)",
+    desc: "Saran restock berbasis velocity penjualan 60 hari, stok aktif, dan rata-rata pembelian terakhir",
   },
   {
     priority: "low",
@@ -3164,7 +3176,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.26.1-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.26.2-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
