@@ -2,6 +2,22 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.23.0-stable] - 2026-06-12
+
+### Added
+- **Draft otomatis form Buat Nota** (mirror draft faktur): autosave debounced ke tabel baru `form_drafts` (UNIQUE `doc_type+owner_id`, upsert tunggal), banner "Pulihkan Draft / Hapus Draft" di halaman Nota. Draft = form WIP murni — tanpa nomor nota, tanpa potong stok, tak tampil di list/Dashboard.
+- **No. HP customer di nota**: field baru di form (atas Alamat, prefill dari master), tampil berlabel `No. HP:` + `Alamat:` di preview & PDF nota. Nomor/alamat yang diisi di nota **auto-sync balik ke master Customer** (`syncCustomerContact` post-COMMIT; field kosong tidak menimpa data lama).
+- **NPWP CV (93.813.949.0-609.000)** di bawah nama perusahaan pada semua dokumen keluar: preview nota, PDF nota/tanda terima, preview SP, PDF SP. Bisa dioverride via `settings.npwp`.
+
+### Fixed
+- **Nota LUNAS hilang dari Dashboard**: status dokumen 'draft' lama bersifat accidental (default DB; 'final' cuma ke-set saat nota diedit) sementara Dashboard memfilter `paid AND final`. Sekarang nota tersimpan = dokumen sah: POST INSERT `status='final'` eksplisit, PUT default `'final'`, kolom default diganti, backfill one-time `sales_orders_status_final_v1`. Kolom "Status Doc" dihapus dari list (selalu Final = noise).
+- **Selisih misterius Total Margin Nota**: baris ongkir di breakdown margin dulu hanya muncul kalau ongkir ditagih > 0 — padahal biaya kurir tanpa ongkir ditagih tetap memotong margin. Sekarang muncul kalau salah satunya > 0, format "Ongkir (ditagih X − biaya Y)".
+- **PDF nota — alamat panjang**: alamat di-wrap (`splitTextToSize`) dan `tableStartY` dinamis mengikuti tinggi blok customer, tidak lagi berisiko ketumpuk tabel.
+
+### Changed
+- **Optimasi draft faktur**: penyimpanan pindah dari baris palsu `is_draft=TRUE` di tabel `invoices` (transaksi FOR UPDATE tiap save) ke `form_drafts` upsert tunggal; draft lama dimigrasi + dibersihkan (runOnce `form_drafts_migrate_v1`). Autosave kini skip mode edit (dulu Edit Faktur ikut menimpa draft form baru!), skip form kosong, dan skip kalau isi tidak berubah.
+- Label Dashboard "paid/final" → "nota lunas"; hint kartu Customer kondisional ("Lengkapi no. HP" / "Lengkapi alamat" / keduanya); icon sidebar: Faktur Pembelian = ReceiptText, Surat Pesanan = ClipboardList, Inventory = Boxes, Pengaturan = Settings (gear).
+
 ## [v1.22.4-stable] - 2026-06-12
 
 ### Fixed

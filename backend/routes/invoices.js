@@ -6,6 +6,7 @@ const uom = require('../utils/uom');
 const tax = require('../utils/tax');
 const { seedProductAlias } = require('../utils/productAliases');
 const { runOnce } = require('../utils/migrationOnce');
+const formDrafts = require('../utils/formDrafts');
 
 // Auto-migrate schema
 const ensureSchema = async () => {
@@ -75,6 +76,29 @@ const ensureSchema = async () => {
       ON invoice_items(product_id)
   `);
 
+  // Draft form WIP pindah ke tabel form_drafts (single owner tabel: invoices.js;
+  // sales.js memakai tabel yang sama tanpa CREATE supaya tidak berebut lock).
+  await formDrafts.ensureTable(pool);
+  await runOnce(pool, 'form_drafts_migrate_v1', async () => {
+    // Pindahkan draft faktur lama (baris palsu is_draft=TRUE) ke form_drafts,
+    // ambil yang terbaru per owner, lalu bersihkan baris palsunya.
+    await pool.query(`
+      INSERT INTO form_drafts (doc_type, owner_id, draft_data, updated_at)
+      SELECT 'faktur', COALESCE(latest.draft_data->'__meta'->>'owner_id', ''),
+             latest.draft_data, COALESCE(latest.updated_at, NOW())
+      FROM (
+        SELECT DISTINCT ON (COALESCE(draft_data->'__meta'->>'owner_id', ''))
+          draft_data, updated_at
+        FROM invoices
+        WHERE is_draft = TRUE AND deleted_at IS NULL AND draft_data IS NOT NULL
+        ORDER BY COALESCE(draft_data->'__meta'->>'owner_id', ''), updated_at DESC NULLS LAST
+      ) latest
+      ON CONFLICT (doc_type, owner_id) DO NOTHING
+    `);
+    // Draft palsu tidak pernah punya items/stok — aman dihapus permanen.
+    await pool.query(`DELETE FROM invoices WHERE is_draft = TRUE`);
+  });
+
   // Data Migration one-time (AUDIT-CA-03): dulunya full-scan UPDATE tiap cold start.
   await runOnce(pool, 'invoice_items_backfill_v1', async () => {
     // Populate missing hpp_inc_ppn and hna_per_item for old records
@@ -121,20 +145,7 @@ const logAudit = async (invoiceId, invoiceNumber, action, snapshot, note = '') =
   } catch (e) { console.error('Audit log error:', e.message); }
 };
 
-const DRAFT_OWNER_META_KEY = '__meta';
 const getDraftOwnerId = (req) => String(req.user?.id || '');
-const buildOwnedDraftData = (draftData, ownerId) => {
-  const payload = draftData && typeof draftData === 'object' && !Array.isArray(draftData)
-    ? { ...draftData }
-    : {};
-  const existingMeta = payload[DRAFT_OWNER_META_KEY];
-  payload[DRAFT_OWNER_META_KEY] = {
-    ...(existingMeta && typeof existingMeta === 'object' ? existingMeta : {}),
-    owner_id: ownerId,
-    saved_at: new Date().toISOString(),
-  };
-  return payload;
-};
 
 const normalizeProductName = (name = '') => String(name).trim().toLowerCase();
 const toNumber = (value) => {
@@ -548,29 +559,8 @@ router.get('/trash', auth, async (req, res) => {
 // GET draft
 router.get('/draft', auth, async (req, res) => {
   try {
-    const ownerId = getDraftOwnerId(req);
-    const { rows: ownedRows } = await pool.query(
-      `SELECT * FROM invoices
-       WHERE is_draft = TRUE
-         AND deleted_at IS NULL
-         AND COALESCE(draft_data->'__meta'->>'owner_id', '') = $1
-       ORDER BY updated_at DESC
-       LIMIT 1`,
-      [ownerId]
-    );
-    if (ownedRows[0]) {
-      return res.json(ownedRows[0]);
-    }
-
-    const result = await pool.query(
-      `SELECT * FROM invoices
-       WHERE is_draft = TRUE
-         AND deleted_at IS NULL
-         AND COALESCE(draft_data->'__meta'->>'owner_id', '') = ''
-       ORDER BY updated_at DESC
-       LIMIT 1`
-    );
-    res.json(result.rows[0] || null);
+    const draft = await formDrafts.getDraft(pool, 'faktur', getDraftOwnerId(req));
+    res.json(draft);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -595,83 +585,18 @@ router.get('/:id', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// SAVE DRAFT
+// SAVE DRAFT — single upsert, tanpa transaksi/FOR UPDATE seperti pola lama
 router.post('/draft', auth, async (req, res) => {
-  const { draft_data } = req.body;
-  const ownerId = getDraftOwnerId(req);
-  const ownedDraftData = buildOwnedDraftData(draft_data, ownerId);
-  const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-    const existing = await client.query(
-      `SELECT id FROM invoices
-       WHERE is_draft = TRUE
-         AND deleted_at IS NULL
-         AND COALESCE(draft_data->'__meta'->>'owner_id', '') = $1
-       ORDER BY updated_at DESC
-       LIMIT 1
-       FOR UPDATE`,
-      [ownerId]
-    );
-    if (existing.rows.length > 0) {
-      await client.query(
-        `UPDATE invoices SET draft_data = $1, updated_at = NOW() WHERE id = $2`,
-        [JSON.stringify(ownedDraftData), existing.rows[0].id]
-      );
-      await client.query('COMMIT');
-      return res.json({ id: existing.rows[0].id, saved: true });
-    }
-
-    const legacyDraft = await client.query(
-      `SELECT id FROM invoices
-       WHERE is_draft = TRUE
-         AND deleted_at IS NULL
-         AND COALESCE(draft_data->'__meta'->>'owner_id', '') = ''
-       ORDER BY updated_at DESC
-       LIMIT 1
-       FOR UPDATE SKIP LOCKED`
-    );
-    if (legacyDraft.rows.length > 0) {
-      await client.query(
-        `UPDATE invoices SET draft_data = $1, updated_at = NOW() WHERE id = $2`,
-        [JSON.stringify(ownedDraftData), legacyDraft.rows[0].id]
-      );
-      await client.query('COMMIT');
-      return res.json({ id: legacyDraft.rows[0].id, saved: true });
-    }
-
-    const r = await client.query(
-      `INSERT INTO invoices (invoice_number, purchase_date, distributor_name, status, is_draft, draft_data)
-       VALUES ('DRAFT-' || extract(epoch from now())::bigint, NOW(), 'DRAFT', 'Pending', TRUE, $1) RETURNING id`,
-      [JSON.stringify(ownedDraftData)]
-    );
-    await client.query('COMMIT');
-    res.json({ id: r.rows[0].id, saved: true });
-  } catch (err) {
-    try {
-      await client.query('ROLLBACK');
-    } catch (rollbackErr) {
-      console.error('[invoices] draft save rollback failed:', rollbackErr);
-    }
-    res.status(500).json({ error: err.message });
-  }
-  finally { client.release(); }
+    await formDrafts.saveDraft(pool, 'faktur', getDraftOwnerId(req), req.body?.draft_data);
+    res.json({ saved: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // DELETE DRAFT
 router.delete('/draft/clear', auth, async (req, res) => {
   try {
-    const ownerId = getDraftOwnerId(req);
-    await pool.query(
-      `DELETE FROM invoices
-       WHERE is_draft = TRUE
-         AND deleted_at IS NULL
-         AND (
-           COALESCE(draft_data->'__meta'->>'owner_id', '') = $1
-           OR COALESCE(draft_data->'__meta'->>'owner_id', '') = ''
-         )`,
-      [ownerId]
-    );
+    await formDrafts.clearDraft(pool, 'faktur', getDraftOwnerId(req));
     res.json({ cleared: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

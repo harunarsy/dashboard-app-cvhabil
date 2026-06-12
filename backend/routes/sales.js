@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const tax = require('../utils/tax');
 const uom = require('../utils/uom');
 const { runOnce } = require('../utils/migrationOnce');
+const formDrafts = require('../utils/formDrafts');
 
 // ─── Auto-create tables ─────────────────────────────────────────────────────
 const ensureSchema = async () => {
@@ -82,6 +83,14 @@ const ensureSchema = async () => {
     // v1.16.2+: batch_id_snapshot for tracking selected batch in sales_items
     await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS batch_id_snapshot INT`);
 	    await pool.query(`CREATE INDEX IF NOT EXISTS idx_sales_items_batch_snapshot ON sales_items(batch_id_snapshot)`);
+    // v1.23.0: nota tersimpan = dokumen sah. Status 'draft' lama itu accidental
+    // (default DB; 'final' cuma ke-set kalau nota pernah diedit) → nota LUNAS yang
+    // tak pernah diedit hilang dari Dashboard (filter paid AND final). Backfill +
+    // ganti default. Draft beneran sekarang hidup di form_drafts (bukan dokumen).
+    await pool.query(`ALTER TABLE sales_orders ALTER COLUMN status SET DEFAULT 'final'`);
+    await runOnce(pool, 'sales_orders_status_final_v1', async () => {
+      await pool.query(`UPDATE sales_orders SET status = 'final' WHERE status = 'draft'`);
+    });
     // Data Migration one-time (AUDIT-CA-03): backfill berat — jangan rerun tiap cold start.
     await runOnce(pool, 'sales_items_backfill_v1', async () => {
       // Safe backfill: only where unique match exists (batch_no + expired_date + product_name)
@@ -239,6 +248,34 @@ const getItemUnitCost = (item = {}) => (
   tax.hppFromHnaByTaxType(item.unit_hpp || 0, item.unit_hpp_tax_type)
 );
 
+// v1.23.0: form nota = sumber kontak terbaru → sync balik ke master customer.
+// Kunci: customer_id, fallback nama (case-insensitive). Field kosong TIDAK
+// menimpa data master. Dipanggil POST-COMMIT via pool: gagal sync ≠ gagal nota.
+const syncCustomerContact = async ({ customerId, customerName, phone, address }) => {
+  try {
+    const phoneVal = String(phone || '').trim();
+    const addrVal = String(address || '').trim();
+    if (!phoneVal && !addrVal) return;
+    if (customerId) {
+      await pool.query(
+        `UPDATE customers SET phone = COALESCE(NULLIF($1,''), phone),
+           address = COALESCE(NULLIF($2,''), address), updated_at = NOW()
+         WHERE id = $3`,
+        [phoneVal, addrVal, customerId]
+      );
+    } else if (String(customerName || '').trim()) {
+      await pool.query(
+        `UPDATE customers SET phone = COALESCE(NULLIF($1,''), phone),
+           address = COALESCE(NULLIF($2,''), address), updated_at = NOW()
+         WHERE id = (SELECT id FROM customers
+                     WHERE LOWER(TRIM(name)) = LOWER(TRIM($3))
+                     ORDER BY id ASC LIMIT 1)`,
+        [phoneVal, addrVal, customerName]
+      );
+    }
+  } catch (e) { console.error('[sales] syncCustomerContact:', e.message); }
+};
+
 // GET all (excluding soft-deleted)
 router.get('/', auth, async (req, res) => {
   try {
@@ -262,6 +299,32 @@ router.get('/', auth, async (req, res) => {
 });
 
 // GET single
+// ─── Draft form WIP (v1.23.0) — autosave form Buat Nota, mirror draft faktur.
+// BUKAN dokumen: tanpa nomor nota, tanpa potong stok, tak tampil di list/Dashboard.
+// Wajib di atas '/:id' supaya path '/draft' tidak ketangkap sebagai id.
+const getDraftOwnerId = (req) => String(req.user?.id || '');
+
+router.get('/draft', auth, async (req, res) => {
+  try {
+    const draft = await formDrafts.getDraft(pool, 'nota', getDraftOwnerId(req));
+    res.json(draft);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/draft', auth, async (req, res) => {
+  try {
+    await formDrafts.saveDraft(pool, 'nota', getDraftOwnerId(req), req.body?.draft_data);
+    res.json({ saved: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/draft/clear', auth, async (req, res) => {
+  try {
+    await formDrafts.clearDraft(pool, 'nota', getDraftOwnerId(req));
+    res.json({ cleared: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/:id', auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -323,8 +386,8 @@ router.post('/', auth, async (req, res) => {
     gross_profit += (ongkir - ongkirCost);
 
     const { rows } = await client.query(
-      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms, ongkir, ongkir_cost)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms, ongkir, ongkir_cost, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'final') RETURNING *`,
       [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null, ongkir, ongkirCost]
     );
     const order = rows[0];
@@ -464,6 +527,15 @@ router.post('/', auth, async (req, res) => {
 
     await client.query('COMMIT');
 
+    // v1.23.0: kontak dari form nota nge-sync balik ke master customer.
+    // POST-COMMIT via pool: gagal sync tidak boleh membatalkan nota.
+    await syncCustomerContact({
+      customerId: customer_id,
+      customerName: customer_name,
+      phone: customer_phone,
+      address: customer_address,
+    });
+
     // Return the full order with items
     const result = await pool.query(
       `SELECT s.*, COALESCE(s.customer_phone, MAX(c.phone)) AS customer_phone,
@@ -523,7 +595,7 @@ router.put('/:id', auth, async (req, res) => {
     const { rowCount } = await client.query(
       `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, channel=$12, due_date=$13, payment_terms=$14, ongkir=$15, ongkir_cost=$16, updated_at=NOW()
        WHERE id=$17 AND is_deleted=FALSE`,
-      [customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'draft', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, ongkir, ongkirCost, req.params.id]
+      [customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'final', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, ongkir, ongkirCost, req.params.id]
     );
     if (!rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
 
@@ -687,6 +759,15 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     await client.query('COMMIT');
+
+    // v1.23.0: mirror POST — kontak form Edit Nota nge-sync balik ke master customer.
+    await syncCustomerContact({
+      customerId: customer_id,
+      customerName: customer_name,
+      phone: customer_phone,
+      address: customer_address,
+    });
+
     const result = await pool.query(
       `SELECT s.*, COALESCE(s.customer_phone, MAX(c.phone)) AS customer_phone,
         COALESCE(json_agg(i ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items

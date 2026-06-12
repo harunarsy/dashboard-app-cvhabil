@@ -389,7 +389,10 @@ export default function CustomerList({
         ) : (
           <>
             {filtered.map((c) => {
-              const incomplete = !c.phone && !c.address;
+              // v1.23.0: hint spesifik — tunjukkan field yang kosong saja
+              const missingPhone = !String(c.phone || "").trim();
+              const missingAddress = !String(c.address || "").trim();
+              const incomplete = missingPhone || missingAddress;
               const totalOrders = parseInt(c.total_orders) || 0;
               const totalSpent = parseFloat(c.total_spent) || 0;
               const hasActivity = totalOrders > 0;
@@ -577,7 +580,13 @@ export default function CustomerList({
                       }}
                     >
                       <AlertCircle size={14} />
-                      <span>Lengkapi telepon & alamat →</span>
+                      <span>
+                        {missingPhone && missingAddress
+                          ? "Lengkapi telepon & alamat →"
+                          : missingPhone
+                            ? "Lengkapi no. HP →"
+                            : "Lengkapi alamat →"}
+                      </span>
                     </button>
                   )}
 

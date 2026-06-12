@@ -465,6 +465,7 @@ export default function InvoiceList({
   const [isSaving, setIsSaving] = useState(false);
 
   const draftDebounceRef = useRef(null);
+  const lastDraftSnapRef = useRef("");
   const toastTimerRef = useRef(null);
 
   // Sort
@@ -502,16 +503,27 @@ export default function InvoiceList({
     checkDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // v1.23.0 optimasi: (1) mode edit TIDAK autosave — sebelumnya buka Edit Faktur
+  // ikut menimpa draft form baru; (2) skip form kosong; (3) skip kalau isi tidak
+  // berubah sejak save terakhir (hemat request serverless).
   useEffect(() => {
-    if (!showModal) return;
+    if (!showModal || editingId) return;
+    const hasContent =
+      form.invoice_number?.trim() ||
+      form.distributor_name?.trim() ||
+      items.some((i) => i.product_name?.trim());
+    if (!hasContent) return;
+    const snap = JSON.stringify({ form, items });
+    if (snap === lastDraftSnapRef.current) return;
     if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
     draftDebounceRef.current = setTimeout(() => {
+      lastDraftSnapRef.current = snap;
       invoicesAPI.saveDraft({ form, items }).catch((err) => {
         console.error("Error autosaving invoice draft:", err);
       });
     }, UI_MOTION.duration.draftDebounce);
     return () => clearTimeout(draftDebounceRef.current);
-  }, [form, items, showModal]);
+  }, [form, items, showModal, editingId]);
   useEffect(
     () => () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -1090,6 +1102,7 @@ export default function InvoiceList({
       setSavedDraft(null);
       setSavedDraftUpdatedAt(null);
       setDraftBanner(false);
+      lastDraftSnapRef.current = "";
       fetchInvoices();
       fetchDistributors();
       fetchProducts();
@@ -1131,6 +1144,7 @@ export default function InvoiceList({
       setSavedDraft(null);
       setSavedDraftUpdatedAt(null);
       setDraftBanner(false);
+      lastDraftSnapRef.current = "";
       fetchInvoices();
       resetForm();
       setShowModal(false);
@@ -1312,6 +1326,7 @@ export default function InvoiceList({
     setSavedDraft(null);
     setSavedDraftUpdatedAt(null);
     setDraftBanner(false);
+    lastDraftSnapRef.current = "";
   };
 
   const openAuditLog = async (inv) => {

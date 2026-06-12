@@ -49,10 +49,16 @@ export function generateNotaPDF(order, options = {}) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize - 1);
   doc.setTextColor(40, 40, 40);
-  doc.text(String(settings.address || '-'), margin, margin + 11);
-
-  // Phone number (if available)
-  doc.text(String(settings.phone || '-'), margin, margin + 15);
+  // v1.23.0: NPWP di bawah nama CV — step rapat supaya muat di atas divider
+  // (A6 divider margin+18, A4/A5 margin+24)
+  const npwp = settings.npwp || '93.813.949.0-609.000';
+  const headStep = isA6 ? 3.4 : 4.2;
+  let headY = margin + (isA6 ? 8.5 : 9.5);
+  doc.text(`NPWP: ${npwp}`, margin, headY);
+  headY += headStep;
+  doc.text(String(settings.address || '-'), margin, headY);
+  headY += headStep;
+  doc.text(String(settings.phone || '-'), margin, headY);
 
   // Doc Info (Top Right)
   const infoX = pageWidth - margin;
@@ -97,20 +103,25 @@ export function generateNotaPDF(order, options = {}) {
   doc.setFont('helvetica', 'bold');
   doc.text(String(order.customer_name || '-'), margin + (isA6 ? 16 : 22), customerY);
 
-  // Customer address (if available)
+  // v1.23.0: No. HP lalu Alamat (berlabel) di bawah nama; alamat panjang di-wrap
+  // supaya tidak nabrak kolom Metode kanan / ketutupan tabel.
   let addressY = customerY;
-  if (order.customer_address) {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(baseFontSize - 2);
-    doc.setTextColor(40, 40, 40);
-    const addrOffset = isA6 ? 4 : 5;
-    addressY += addrOffset;
-    doc.text(String(order.customer_address), margin + (isA6 ? 18 : 22), addressY);
-  }
+  const contactX = margin + (isA6 ? 18 : 22);
+  const contactStep = isA6 ? 3.4 : 4.2;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(baseFontSize - 2);
+  doc.setTextColor(40, 40, 40);
   if (order.customer_phone) {
-    doc.setFontSize(baseFontSize - 2);
-    addressY += isA6 ? 4 : 5;
-    doc.text(`Telp: ${String(order.customer_phone)}`, margin + (isA6 ? 18 : 22), addressY);
+    addressY += contactStep;
+    doc.text(`No. HP: ${String(order.customer_phone)}`, contactX, addressY);
+  }
+  if (order.customer_address) {
+    const maxAddrW = pageWidth - contactX - margin - (isA6 ? 26 : 40);
+    const addrLines = doc.splitTextToSize(`Alamat: ${String(order.customer_address)}`, maxAddrW);
+    addrLines.forEach((ln) => {
+      addressY += contactStep;
+      doc.text(ln, contactX, addressY);
+    });
   }
 
   // Payment Method info — pindah ke bawah divider (clear dari JT row)
@@ -167,7 +178,11 @@ export function generateNotaPDF(order, options = {}) {
     : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']];
 
   // v1.8.5.8: tableStartY pushed below customerY (margin+23 A6, margin+30 A4/A5) +3mm
-  const tableStartY = margin + (isA6 ? 24 : (isA5 ? 31 : 33));
+  // v1.23.0: alamat panjang (multi-baris) mendorong tabel ke bawah, bukan ketumpuk
+  const tableStartY = Math.max(
+    margin + (isA6 ? 24 : (isA5 ? 31 : 33)),
+    addressY + (isA6 ? 3 : 4)
+  );
   autoTable(doc, {
     startY: tableStartY,
     head: tableHead,

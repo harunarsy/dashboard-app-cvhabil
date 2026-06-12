@@ -41,6 +41,19 @@ import useDebouncedValue from "../hooks/useDebouncedValue";
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
 
+const formatRelativeTime = (dateStr) => {
+  if (!dateStr) return "baru saja";
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  if (!Number.isFinite(diffMs)) return "baru saja";
+  const minutes = Math.round(diffMs / 60000);
+  if (minutes < 1) return "baru saja";
+  if (minutes < 60) return `${minutes} menit lalu`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} jam lalu`;
+  const days = Math.round(hours / 24);
+  return `${days} hari lalu`;
+};
+
 if (
   typeof document !== "undefined" &&
   !document.getElementById("habil-pulse-style")
@@ -186,6 +199,7 @@ export default function SalesOrderList({
   const [form, setForm] = useState({
     order_number: "",
     customer_name: "",
+    customer_phone: "",
     customer_address: "",
     sale_date: new Date().toISOString().split("T")[0],
     notes: "",
@@ -202,6 +216,13 @@ export default function SalesOrderList({
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const toastTimerRef = useRef(null);
+
+  // v1.23.0: draft form nota — autosave WIP form Buat Nota (mirror draft faktur).
+  const [draftBanner, setDraftBanner] = useState(false);
+  const [savedDraft, setSavedDraft] = useState(null);
+  const [savedDraftUpdatedAt, setSavedDraftUpdatedAt] = useState(null);
+  const draftDebounceRef = useRef(null);
+  const lastDraftSnapRef = useRef("");
 
   const bg = "var(--color-bg)";
   const cardBg = "var(--color-surface)";
@@ -465,8 +486,73 @@ export default function SalesOrderList({
     fetchSettings();
     fetchProfitThresholds();
     fetchCounters();
+    checkDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const checkDraft = async () => {
+    try {
+      const r = await salesAPI.getDraft();
+      if (r.data?.draft_data?.form) {
+        setSavedDraft(r.data.draft_data);
+        setSavedDraftUpdatedAt(r.data.updated_at || null);
+        setDraftBanner(true);
+      }
+    } catch (e) {
+      console.error("Error checking nota draft:", e);
+    }
+  };
+
+  // Autosave draft — HANYA form Buat baru (mode edit tidak boleh menimpa draft).
+  // Optimasi vs draft faktur lama: skip form kosong + skip kalau isi tidak
+  // berubah sejak save terakhir (hemat request, serverless tidak dibangunin).
+  useEffect(() => {
+    if (!showModal || editId) return;
+    const hasContent =
+      form.customer_name?.trim() ||
+      form.notes?.trim() ||
+      items.some((i) => i.product_name?.trim());
+    if (!hasContent) return;
+    const snap = JSON.stringify({ form, items });
+    if (snap === lastDraftSnapRef.current) return;
+    if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
+    draftDebounceRef.current = setTimeout(() => {
+      lastDraftSnapRef.current = snap;
+      salesAPI.saveDraft({ form, items }).catch((err) => {
+        console.error("Error autosaving nota draft:", err);
+      });
+    }, UI_MOTION.duration.draftDebounce);
+    return () => clearTimeout(draftDebounceRef.current);
+  }, [form, items, showModal, editId]);
+
+  const loadDraft = () => {
+    if (!savedDraft?.form) return;
+    fetchCounters();
+    setIsAutoNota(true);
+    setManualNumber("");
+    setEditId(null);
+    setForm((prev) => ({ ...prev, ...savedDraft.form, order_number: "" }));
+    const draftItems = savedDraft.items?.length
+      ? savedDraft.items
+      : [blankItem()];
+    setItems(draftItems);
+    setItemBatches(draftItems.map(() => []));
+    setDraftBanner(false);
+    lastDraftSnapRef.current = "";
+    setShowModal(true);
+  };
+
+  const dismissDraft = async () => {
+    try {
+      await salesAPI.clearDraft();
+    } catch (e) {
+      console.error("Error clearing nota draft on dismiss:", e);
+    }
+    setSavedDraft(null);
+    setSavedDraftUpdatedAt(null);
+    setDraftBanner(false);
+    lastDraftSnapRef.current = "";
+  };
 
   // Filters
   const [filterStatus, setFilterStatus] = useState("all");
@@ -543,6 +629,7 @@ export default function SalesOrderList({
     setForm({
       order_number: "",
       customer_name: "",
+      customer_phone: "",
       customer_address: "",
       sale_date: new Date().toISOString().split("T")[0],
       notes: "",
@@ -564,6 +651,7 @@ export default function SalesOrderList({
     setForm({
       order_number: order.order_number,
       customer_name: order.customer_name,
+      customer_phone: order.customer_phone || "",
       customer_address: order.customer_address || "",
       sale_date: order.sale_date ? order.sale_date.split("T")[0] : "",
       notes: order.notes || "",
@@ -728,6 +816,15 @@ export default function SalesOrderList({
         flash("Nota diperbarui");
       } else {
         await salesAPI.create(payload);
+        try {
+          await salesAPI.clearDraft();
+        } catch (e) {
+          console.error("Error clearing nota draft after save:", e);
+        }
+        setSavedDraft(null);
+        setSavedDraftUpdatedAt(null);
+        setDraftBanner(false);
+        lastDraftSnapRef.current = "";
         flash("Nota berhasil dibuat");
         fetchCounters();
       }
@@ -1070,6 +1167,72 @@ export default function SalesOrderList({
         </button>
       </div>
 
+      {/* v1.23.0: banner draft nota tersimpan (mirror draft faktur) */}
+      {draftBanner && savedDraft && (
+        <div
+          className="ui-motion-card ui-readable-surface"
+          style={{
+            padding: "14px 18px",
+            marginBottom: "1.25rem",
+            backgroundColor: isDarkMode
+              ? "var(--color-surface-elevated)"
+              : "var(--color-warning-soft)",
+            border: "1px solid var(--color-warning)",
+            borderRadius: "14px",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            flexWrap: "wrap",
+          }}
+        >
+          <FileText size={18} color="var(--color-warning)" />
+          <div style={{ flex: 1, minWidth: "220px" }}>
+            <span
+              style={{ fontWeight: "700", fontSize: "14px", color: text }}
+            >
+              Ada draft nota tersimpan
+            </span>
+            <span
+              style={{ fontSize: "13px", color: sub, marginLeft: "8px" }}
+            >
+              {savedDraftUpdatedAt
+                ? `disimpan ${formatRelativeTime(savedDraftUpdatedAt)} · `
+                : "disimpan otomatis · "}
+              lanjutkan atau hapus supaya formulir tetap bersih.
+            </span>
+          </div>
+          <button
+            onClick={loadDraft}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "var(--color-warning)",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontWeight: "700",
+              fontSize: "13px",
+            }}
+          >
+            Pulihkan Draft
+          </button>
+          <button
+            onClick={dismissDraft}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "transparent",
+              color: sub,
+              border: `1px solid ${border}`,
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "13px",
+            }}
+          >
+            Hapus Draft
+          </button>
+        </div>
+      )}
+
       {/* Search & Filters */}
       <div
         className="ui-toolbar"
@@ -1349,7 +1512,6 @@ export default function SalesOrderList({
                 { label: "Customer", key: null, sortable: false },
                 { label: "Total", key: "total", sortable: true },
                 { label: "Bayar", key: null, sortable: false },
-                { label: "Status Doc", key: null, sortable: false },
                 { label: "Aksi", key: null, sortable: false },
               ].map(({ label, key, sortable }) => {
                 const isActive = sortable && sortKey === key;
@@ -1607,28 +1769,8 @@ export default function SalesOrderList({
                             );
                           })()}
                       </td>
-                      <td style={{ padding: "12px 14px" }}>
-                        <span
-                          style={{
-                            fontSize: "10px",
-                            fontWeight: "700",
-                            padding: "2px 8px",
-                            borderRadius: "4px",
-                            whiteSpace: "nowrap",
-                            display: "inline-block",
-                            backgroundColor:
-                              o.status === "final"
-                                ? "var(--color-primary-soft)"
-                                : "var(--color-text-subtle)18",
-                            color:
-                              o.status === "final"
-                                ? "var(--color-primary)"
-                                : "var(--color-text-subtle)",
-                          }}
-                        >
-                          {o.status === "final" ? "Final" : "Draft"}
-                        </span>
-                      </td>
+                      {/* v1.23.0: kolom "Status Doc" dihapus — nota tersimpan
+                          selalu dokumen sah (final); draft hidup di banner draft */}
                       <td style={{ padding: "12px 14px" }}>
                         <div
                           className="ui-row-action"
@@ -1716,7 +1858,7 @@ export default function SalesOrderList({
                     {expandedId === o.id && o.items?.length > 0 && (
                       <tr>
                         <td
-                          colSpan={8}
+                          colSpan={7}
                           style={{
                             padding: "0 14px 14px",
                             backgroundColor: isDarkMode ? "#0A0A0A" : "#FAFAFA",
@@ -1847,7 +1989,7 @@ export default function SalesOrderList({
                                 const totalMargin = itemMargin + ongkirMargin;
                                 return (
                                   <>
-                                  {ongkirVal > 0 && (
+                                  {(ongkirVal > 0 || ongkirCostVal > 0) && (
                                     <tr style={{ borderTop: `1px dashed ${border}` }}>
                                       <td
                                         colSpan={6}
@@ -1859,11 +2001,8 @@ export default function SalesOrderList({
                                           color: sub,
                                         }}
                                       >
-                                        Ongkir (untung {fmtRp(ongkirVal)}
-                                        {ongkirCostVal > 0
-                                          ? ` − biaya ${fmtRp(ongkirCostVal)}`
-                                          : ""}
-                                        )
+                                        Ongkir (ditagih {fmtRp(ongkirVal)} − biaya{" "}
+                                        {fmtRp(ongkirCostVal)})
                                       </td>
                                       <td
                                         style={{
@@ -1946,7 +2085,7 @@ export default function SalesOrderList({
                 ))}
             {!loading && !filtered.length && (
               <tr>
-                <td colSpan={8} style={{ padding: "2rem 1rem" }}>
+                <td colSpan={7} style={{ padding: "2rem 1rem" }}>
                   <EmptyState
                     compact
                     icon={EmptyStateIcons.receipt}
@@ -2231,6 +2370,7 @@ export default function SalesOrderList({
                           if (match)
                             setForm((p) => ({
                               ...p,
+                              customer_phone: match.phone || "",
                               customer_address: match.address || "",
                             }));
                         }}
@@ -2245,6 +2385,34 @@ export default function SalesOrderList({
                     <FieldError
                       message={formErrors.customer_name}
                       visible={!!formErrors.customer_name}
+                    />
+                  </div>
+
+                  {/* Phone — v1.23.0: ikut tampil di nota + sync balik ke master customer */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        color: sub,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      No. HP
+                    </label>
+                    <input
+                      value={form.customer_phone}
+                      onChange={(e) =>
+                        setForm((p) => ({
+                          ...p,
+                          customer_phone: e.target.value,
+                        }))
+                      }
+                      placeholder="08xx-xxxx-xxxx"
+                      style={inputStyle}
                     />
                   </div>
 

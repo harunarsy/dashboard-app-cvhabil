@@ -33,9 +33,26 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.22.4-stable",
+    version: "v1.23.0-stable",
     date: "12 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Form Buat Nota sekarang punya draft otomatis seperti Faktur — ketikan tersimpan sendiri, kalau ketutup/kepencet keluar tinggal klik 'Pulihkan Draft'. Nota juga mencantumkan No. HP & Alamat customer (ikut tercetak di PDF), NPWP CV tampil di semua dokumen, dan nomor HP yang diisi di nota otomatis tersimpan ke data Customer.",
+        dev: "form_drafts table (UNIQUE doc_type+owner) + endpoint sales/invoices draft upsert tunggal (ganti baris palsu is_draft di invoices, migrasi runOnce); autosave skip edit-mode/empty/dirty-check; syncCustomerContact post-COMMIT (COALESCE NULLIF, no-wipe); NPWP di NotaPreview/SPPreview/generateNotaPDF/generateSPPDF; PDF alamat splitTextToSize + tableStartY dinamis.",
+      },
+      {
+        type: "fix",
+        text: "Nota LUNAS yang tidak pernah diedit dulu tidak ikut kehitung di Dashboard (status dokumen nyangkut 'Draft'). Sekarang semua nota tersimpan otomatis sah/final dan langsung masuk hitungan — kolom 'Status Doc' yang membingungkan dihapus. Breakdown margin juga selalu menampilkan baris ongkir (plus/minus), jadi Total Margin Nota tidak ada selisih misterius.",
+        dev: "sales POST INSERT status='final' eksplisit + PUT default final + ALTER DEFAULT + backfill runOnce sales_orders_status_final_v1; baris ongkir tampil saat ongkir>0 ATAU ongkir_cost>0; label Dashboard 'paid/final'→'lunas'; hint Customer kondisional per field kosong; icon sidebar ReceiptText/ClipboardList/Boxes/Settings.",
+      },
+    ],
+  },
+  {
+    version: "v1.22.4-stable",
+    date: "12 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -3048,7 +3065,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.22.4-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.23.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
@@ -3379,7 +3396,7 @@ export default function Dashboard({
             type: "currency",
             tint: "green",
             icon: <Activity size={24} className="text-green-500" />,
-            emptyHint: "Belum ada nota paid/final bulan ini.",
+            emptyHint: "Belum ada nota lunas bulan ini.",
           },
           {
             label: "Laba Kotor bln ini",
@@ -3388,7 +3405,7 @@ export default function Dashboard({
             type: "currency",
             tint: "blue",
             icon: <Activity size={24} className="text-blue-500" />,
-            emptyHint: "Belum ada nota paid/final bulan ini.",
+            emptyHint: "Belum ada nota lunas bulan ini.",
           },
           {
             label: "Surat Pesanan Aktif",
@@ -3475,7 +3492,7 @@ export default function Dashboard({
               Aktivitas Nota Harian
             </h2>
             <p className="text-xs font-medium mt-1" style={{ color: sub }}>
-              30 hari terakhir · paid/final
+              30 hari terakhir · nota lunas
             </p>
           </div>
           <div
@@ -3584,7 +3601,7 @@ export default function Dashboard({
                 Margin per Channel
               </h2>
               <p className="text-xs font-medium mt-1" style={{ color: sub }}>
-                Nota paid/final bulan ini
+                Nota lunas bulan ini
               </p>
             </div>
             <div
@@ -3675,7 +3692,7 @@ export default function Dashboard({
             <EmptyState
               compact
               icon={EmptyStateIcons.chart}
-              title="Belum ada nota paid/final bulan ini."
+              title="Belum ada nota lunas bulan ini."
               description="Ringkasan performa akan muncul begitu ada transaksi final yang masuk ke bulan ini."
             />
           )}
@@ -3785,7 +3802,7 @@ export default function Dashboard({
                 Top 5 Customer Bulan Ini
               </h2>
               <p className="text-xs font-medium mt-1" style={{ color: sub }}>
-                Berdasarkan total pembelian nota paid/final
+                Berdasarkan total pembelian nota lunas
               </p>
             </div>
             <div

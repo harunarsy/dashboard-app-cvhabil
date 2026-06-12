@@ -11,6 +11,7 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
   } = form;
 
   const companyName = settings.company_name || settings.shop_name || 'CV HABIL SEJAHTERA BERSAMA';
+  const npwp = settings.npwp || '93.813.949.0-609.000';
   const address = settings.address || '';
   const phone = settings.phone || '';
   const footerText = settings.footer_text || settings.footer || '';
@@ -53,6 +54,7 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--color-primary)', marginBottom: '3px' }}>{companyName}</div>
+          {npwp && <div style={{ fontSize: '11px', color: subText }}>NPWP: {npwp}</div>}
           {address && <div style={{ fontSize: '11px', color: subText, lineHeight: '1.45' }}>{address}</div>}
           {phone && <div style={{ fontSize: '11px', color: subText }}>{phone}</div>}
         </div>
@@ -71,12 +73,12 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
 
       <div style={{ height: '1.5px', backgroundColor: 'var(--color-primary)', marginBottom: '8px', borderRadius: '2px' }} />
 
-      {/* Customer */}
+      {/* Customer — v1.23.0: No. HP & Alamat berlabel di bawah nama */}
       <div style={{ marginBottom: '8px' }}>
         <span style={{ fontSize: '11px', color: subText }}>Kepada Yth: </span>
         <span style={{ fontSize: '11px', fontWeight: '700', color: bodyText }}>{customer_name || '—'}</span>
-        {customer_address && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px' }}>{customer_address}</div>}
-        {customer_phone && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px' }}>Telp: {customer_phone}</div>}
+        {customer_phone && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px' }}>No. HP: {customer_phone}</div>}
+        {customer_address && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px', lineHeight: '1.45' }}>Alamat: {customer_address}</div>}
       </div>
 
       {/* Items table */}

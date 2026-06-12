@@ -41,18 +41,20 @@ export function generateSPPDF(order, options = {}) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize - 1);
   doc.setTextColor(30);
-  doc.text(companyAddress, pageWidth / 2, margin + 9, { align: 'center' });
-  doc.text(companyPhone, pageWidth / 2, margin + 13, { align: 'center' });
+  // v1.23.0: NPWP di bawah nama CV (semua dokumen keluar)
+  doc.text(`NPWP: ${settings.npwp || '93.813.949.0-609.000'}`, pageWidth / 2, margin + 9, { align: 'center' });
+  doc.text(companyAddress, pageWidth / 2, margin + 12.8, { align: 'center' });
+  doc.text(companyPhone, pageWidth / 2, margin + 16.6, { align: 'center' });
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(baseFontSize + 2);
   doc.setTextColor(0);
-  doc.text('SURAT PESANAN', pageWidth / 2, margin + 19, { align: 'center' });
+  doc.text('SURAT PESANAN', pageWidth / 2, margin + 22, { align: 'center' });
 
   // Blue Line Divider
   doc.setDrawColor(...accentColor);
   doc.setLineWidth(0.5);
-  doc.line(margin, margin + 22, pageWidth - margin, margin + 22);
+  doc.line(margin, margin + 25, pageWidth - margin, margin + 25);
 
   // ─── Metadata & Info ──────────────────────────────────────────────────
   doc.setFont('helvetica', 'normal');
@@ -60,7 +62,7 @@ export function generateSPPDF(order, options = {}) {
   doc.setTextColor(30);
 
   // Kiri: Distributor Info
-  const startYInfo = margin + 26;
+  const startYInfo = margin + 29;
   doc.text('Kepada Yth:', margin, startYInfo);
   doc.setFont('helvetica', 'bold');
   doc.text(String(order.distributor_name || '-'), margin, startYInfo + 5);

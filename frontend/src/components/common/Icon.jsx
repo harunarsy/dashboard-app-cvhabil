@@ -30,6 +30,10 @@ import {
   ArrowUpRight as ArrowUpRightIcon,
   ArrowDownRight as ArrowDownRightIcon,
   TrendingUp as TrendingUpIcon,
+  Settings as SettingsIcon,
+  ReceiptText as ReceiptTextIcon,
+  ClipboardList as ClipboardListIcon,
+  Boxes as BoxesIcon,
 } from "lucide-react";
 
 export const UI_ICON_DEFAULTS = {
@@ -90,6 +94,10 @@ const Icons = {
   ArrowUpRight: wrapIcon(ArrowUpRightIcon),
   ArrowDownRight: wrapIcon(ArrowDownRightIcon),
   TrendingUp: wrapIcon(TrendingUpIcon),
+  Settings: wrapIcon(SettingsIcon),
+  ReceiptText: wrapIcon(ReceiptTextIcon),
+  ClipboardList: wrapIcon(ClipboardListIcon),
+  Boxes: wrapIcon(BoxesIcon),
 };
 
 export default Icons;

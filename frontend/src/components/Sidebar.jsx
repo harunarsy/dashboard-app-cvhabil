@@ -9,7 +9,6 @@ import Tooltip from "./common/Tooltip";
 const {
   Home,
   ShoppingCart,
-  Package,
   DollarSign,
   Users,
   ChevronLeft,
@@ -22,8 +21,11 @@ const {
   FileText,
   BarChart3,
   Briefcase,
-  Printer,
   Menu,
+  Settings,
+  ReceiptText,
+  ClipboardList,
+  Boxes,
 } = Icons;
 
 export default function Sidebar({
@@ -98,18 +100,18 @@ export default function Sidebar({
     { icon: FileText, label: "Nota Penjualan", path: "/sales", active: true },
     { icon: Users, label: "Customer", path: "/customers", active: true },
     {
-      icon: Package,
+      icon: ReceiptText,
       label: "Faktur Pembelian",
       path: "/invoices",
       active: true,
     },
     {
-      icon: ShoppingCart,
+      icon: ClipboardList,
       label: "Surat Pesanan",
       path: "/orders",
       active: true,
     },
-    { icon: Package, label: "Inventory", path: "/inventory", active: true },
+    { icon: Boxes, label: "Inventory", path: "/inventory", active: true },
     {
       icon: ShoppingCart,
       label: "Toko Online",
@@ -117,7 +119,7 @@ export default function Sidebar({
       active: true,
     },
     {
-      icon: Printer,
+      icon: Settings,
       label: "Pengaturan",
       path: "/print-settings",
       active: true,
@@ -189,7 +191,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.22.4-stable";
+  const appVersion = "v1.23.0-stable";
   const TooltipButton = ({
     label,
     children,

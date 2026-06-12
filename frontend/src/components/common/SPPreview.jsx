@@ -27,6 +27,7 @@ export default function SPPreview({ form = {}, items = [], settings = {} }) {
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '8px' }}>
         <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--color-primary)', marginBottom: '3px' }}>{companyName}</div>
+        <div style={{ fontSize: '9px', color: '#555' }}>NPWP: {settings.npwp || '93.813.949.0-609.000'}</div>
         {address && <div style={{ fontSize: '9px', color: '#555', lineHeight: '1.4' }}>{address}</div>}
         {phone && <div style={{ fontSize: '9px', color: '#555' }}>{phone}</div>}
         <div style={{ fontSize: '12px', fontWeight: '800', color: '#000', marginTop: '6px', letterSpacing: '0.05em' }}>SURAT PESANAN</div>
