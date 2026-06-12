@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.22.3-stable] - 2026-06-12
+
+### Fixed (audit menyeluruh — 3 auditor paralel: Code/Arch, Logic/Security, UI/UX)
+- **🔴 LS-01**: overwrite faktur via POST (re-submit/double-click) tidak lagi memposting stok dobel — guard `alreadyPosted` mirror PUT; item berubah pada faktur posted → 400.
+- **🔴 LS-02**: HNA batch tidak lagi menggelembung saat qty faktur di-clamp room SP — pembagi `effectiveHna` selalu qty penuh baris.
+- **🔴 UX-01**: HPP batch asal pembelian Nota di Inventory/ProductDrawer tampil tanpa ×1,11 (`hppForBatch` tax-aware) + label dinamis.
+- **🟠**: tax_type menjalar ke `invoice_items` + `inventory_batches` saat diubah di edit faktur (LS-03); faktur Nota linked SP backfill harga beli + tax_type ke batch purchase (LS-04); permanent delete faktur mengembalikan room SP & ditolak bila batch sudah dipakai nota (LS-05); `gross_profit` nota dihitung dari tax_type batch aktual (LS-06); validasi sales/PUT pindah sebelum BEGIN — tidak ada lagi koneksi idle-in-transaction (CA-01); Dashboard `/stats` 13 query paralel `Promise.all` (CA-02); backfill ensureSchema jadi one-time via `schema_meta` (CA-03); stock-out manual FEFO pakai `FOR UPDATE` (CA-04); toast error kini merah + `role=alert` di semua halaman (UX-02/09); hapus permanen faktur & hapus batch ber-stok pakai ConfirmModal (UX-03); MasterSelect bisa keyboard (UX-04); label HPP form faktur mode Nota + badge NOTA di list (UX-05); fetch gagal menampilkan error, bukan empty-state palsu (UX-06).
+- **🟡**: validasi qty/harga backend semua jalur tulis (LS-09); nama produk kembar diblokir 409 (LS-10); `trust proxy` Vercel (LS-11); fefo-hna & selected-batch filter `is_active` + tax_type (LS-07/08); JWT default 15m (LS-13); `received_qty` SP carry-over server-side saat edit (CA-09); limit produk 2000 & LIMIT GET SP (CA-10/12); dedup ALTER tax_type + CREATE document_counters (CA-08); dedup blok stock-in identik (CA-06); input uang `min=0` (UX-08); toast PO clearTimeout (UX-13).
+
 ## [v1.22.2-stable] - 2026-06-11
 
 ### Added

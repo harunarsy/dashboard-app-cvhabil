@@ -113,6 +113,8 @@ export default function PurchaseOrderList({
   const [editId, setEditId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState("");
+  const [toastType, setToastType] = useState("success");
+  const toastTimerRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [saveError, setSaveError] = useState("");
@@ -282,9 +284,18 @@ export default function PurchaseOrderList({
       })
     : filtered;
 
-  const flash = (msg) => {
+  // AUDIT-UX-02 + UX-13: bedakan error vs sukses + clearTimeout biar toast
+  // beruntun tidak kepotong timer lama.
+  const flash = (msg, type = "success") => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast(msg);
-    setTimeout(() => setToast(""), UI_MOTION.duration.toastSuccess);
+    setToastType(type);
+    toastTimerRef.current = setTimeout(
+      () => setToast(""),
+      type === "error"
+        ? UI_MOTION.duration.toastError
+        : UI_MOTION.duration.toastSuccess,
+    );
   };
   const inputStyle = {
     width: "100%",
@@ -430,9 +441,9 @@ export default function PurchaseOrderList({
 
   const handleSave = async () => {
     setSaveError("");
-    if (!form.distributor_name.trim()) return flash("Nama distributor wajib");
+    if (!form.distributor_name.trim()) return flash("Nama distributor wajib", "error");
     const validItems = items.filter((i) => i.product_name.trim());
-    if (!validItems.length) return flash("Min 1 produk");
+    if (!validItems.length) return flash("Min 1 produk", "error");
     setIsSaving(true);
     try {
       const payload = { ...form, items: validItems };
@@ -440,6 +451,7 @@ export default function PurchaseOrderList({
         setIsSaving(false);
         return flash(
           "Nomor SP wajib diisi secara manual (Sistem sedang dalam mode Manual)",
+          "error",
         );
       }
       if (!isAutoSP && !editId) {
@@ -466,7 +478,7 @@ export default function PurchaseOrderList({
   };
 
   const handleSaveDistributor = async () => {
-    if (!distForm.name.trim()) return flash("Nama distributor wajib");
+    if (!distForm.name.trim()) return flash("Nama distributor wajib", "error");
     setDistributorSaving(true);
     try {
       const res = await distributorsAPI.add(distForm); // Backend handles UPSERT using name
@@ -475,7 +487,7 @@ export default function PurchaseOrderList({
       fetchDistributors();
       setShowModal("create");
     } catch (e) {
-      flash(e.response?.data?.error || e.message);
+      flash(e.response?.data?.error || e.message, "error");
     } finally {
       setDistributorSaving(false);
     }
@@ -485,7 +497,7 @@ export default function PurchaseOrderList({
     const toReceive = receiveItems.filter(
       (i) => (parseInt(i.received_qty) || 0) > 0,
     );
-    if (!toReceive.length) return flash("Masukkan qty yang diterima");
+    if (!toReceive.length) return flash("Masukkan qty yang diterima", "error");
     const overReceivedItem = receiveItems.find((item) => {
       const total = getReceiveTotal(item.po_item_id);
       const remaining = item.ordered_qty - item.already_received;
@@ -494,6 +506,7 @@ export default function PurchaseOrderList({
     if (overReceivedItem) {
       return flash(
         `${overReceivedItem.product_name}: total batch melebihi sisa pesanan`,
+        "error",
       );
     }
     setIsReceiving(true);
@@ -503,7 +516,7 @@ export default function PurchaseOrderList({
       setShowModal(null);
       fetchOrders();
     } catch (e) {
-      flash(e.response?.data?.error || e.message);
+      flash(e.response?.data?.error || e.message, "error");
     } finally {
       setIsReceiving(false);
     }
@@ -517,7 +530,7 @@ export default function PurchaseOrderList({
       flash("SP dihapus");
       fetchOrders();
     } catch (e) {
-      flash(e.response?.data?.error || e.message);
+      flash(e.response?.data?.error || e.message, "error");
     } finally {
       setDeleteConfirmId(null);
     }
@@ -557,6 +570,7 @@ export default function PurchaseOrderList({
         e.response?.status === 400
           ? "Produk baru wajib punya KODE — buat dulu di halaman Inventory ya"
           : e.response?.data?.error || e.message,
+        "error",
       );
     }
   };
@@ -569,7 +583,7 @@ export default function PurchaseOrderList({
         fetchProducts();
       }
     } catch (e) {
-      flash(e.response?.data?.error || e.message);
+      flash(e.response?.data?.error || e.message, "error");
     }
   };
   const handleRenameProduct = async (oldName, newName) => {
@@ -589,7 +603,7 @@ export default function PurchaseOrderList({
         fetchProducts();
       }
     } catch (e) {
-      flash(e.response?.data?.error || e.message);
+      flash(e.response?.data?.error || e.message, "error");
     }
   };
 
@@ -643,7 +657,7 @@ export default function PurchaseOrderList({
       await purchaseOrdersAPI.update(o.id, { status: "sent" });
       fetchOrders();
     } catch (e) {
-      flash("Gagal buat PDF: " + e.message);
+      flash("Gagal buat PDF: " + e.message, "error");
     } finally {
       setPdfLoading(null);
     }
@@ -2135,7 +2149,7 @@ export default function PurchaseOrderList({
         isDarkMode={isDarkMode}
       />
 
-      <ToastNotice message={toast} type="success" isMobile={isMobile} />
+      <ToastNotice message={toast} type={toastType} isMobile={isMobile} />
     </div>
   );
 }

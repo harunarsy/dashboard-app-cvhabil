@@ -44,6 +44,9 @@ const corsOptions = {
   credentials: true,
 };
 
+// AUDIT-LS-11: di belakang Vercel LB, tanpa trust proxy rate-limiter mengunci key ke
+// IP load balancer (semua user kebagian satu bucket) / ERL v8 komplain X-Forwarded-For.
+app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(bodyParser.json({ limit: '1mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '1mb' }));

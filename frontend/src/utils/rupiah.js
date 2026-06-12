@@ -42,3 +42,10 @@ export const hnaFromHpp = (hpp) => {
   if (isNaN(n)) return 0;
   return n / (1 + PPN_RATE);
 };
+
+// v1.22.3: HPP per batch sadar tax_type — batch nota = harga beli riil (TANPA ×1,11).
+// Pakai ini (bukan hppFromHna langsung) di mana pun yang dihitung adalah batch.
+export const hppForBatch = (batch) =>
+  batch?.tax_type === 'nota'
+    ? parseFloat(batch?.hna) || 0
+    : hppFromHna(batch?.hna);

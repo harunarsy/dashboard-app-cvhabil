@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const pricing = require('../utils/pricing');
 const tax = require('../utils/tax');
 const { seedProductAlias } = require('../utils/productAliases');
+const { runOnce } = require('../utils/migrationOnce');
 
 // ─── Auto-create tables ─────────────────────────────────────────────────────
 const ensureSchema = async () => {
@@ -115,14 +116,18 @@ const ensureSchema = async () => {
     );
     CREATE INDEX IF NOT EXISTS idx_price_tiers_product_unit ON product_price_tiers(product_id, unit, min_qty);
   `);
-  await pool.query(`SELECT setval('product_price_tiers_id_seq', COALESCE((SELECT MAX(id) FROM product_price_tiers), 0) + 1, false)`);
-  // Backfill base_unit dari kolom existing `unit` (existing rows compat) — hanya kalau base_unit masih default
-  await pool.query(`UPDATE product_master SET base_unit = unit WHERE (base_unit IS NULL OR base_unit = 'pcs') AND unit IS NOT NULL AND unit != ''`);
-  // Resync SERIAL sequences supaya tidak tabrakan dengan data hasil migration/import (fix duplicate key constraint violation)
-  await pool.query(`SELECT setval('product_master_id_seq', COALESCE((SELECT MAX(id) FROM product_master), 0) + 1, false)`);
-  await pool.query(`SELECT setval('inventory_batches_id_seq', COALESCE((SELECT MAX(id) FROM inventory_batches), 0) + 1, false)`);
-  await pool.query(`SELECT setval('inventory_mutations_id_seq', COALESCE((SELECT MAX(id) FROM inventory_mutations), 0) + 1, false)`);
-  await pool.query(`SELECT setval('stock_opname_id_seq', COALESCE((SELECT MAX(id) FROM stock_opname), 0) + 1, false)`);
+  // Data Migration one-time (AUDIT-CA-03): backfill + resync sequence cukup sekali —
+  // dulunya jalan ulang di tiap cold start serverless.
+  await runOnce(pool, 'inventory_backfill_v1', async () => {
+    await pool.query(`SELECT setval('product_price_tiers_id_seq', COALESCE((SELECT MAX(id) FROM product_price_tiers), 0) + 1, false)`);
+    // Backfill base_unit dari kolom existing `unit` (existing rows compat) — hanya kalau base_unit masih default
+    await pool.query(`UPDATE product_master SET base_unit = unit WHERE (base_unit IS NULL OR base_unit = 'pcs') AND unit IS NOT NULL AND unit != ''`);
+    // Resync SERIAL sequences supaya tidak tabrakan dengan data hasil migration/import (fix duplicate key constraint violation)
+    await pool.query(`SELECT setval('product_master_id_seq', COALESCE((SELECT MAX(id) FROM product_master), 0) + 1, false)`);
+    await pool.query(`SELECT setval('inventory_batches_id_seq', COALESCE((SELECT MAX(id) FROM inventory_batches), 0) + 1, false)`);
+    await pool.query(`SELECT setval('inventory_mutations_id_seq', COALESCE((SELECT MAX(id) FROM inventory_mutations), 0) + 1, false)`);
+    await pool.query(`SELECT setval('stock_opname_id_seq', COALESCE((SELECT MAX(id) FROM stock_opname), 0) + 1, false)`);
+  });
 };
 if (process.env.NODE_ENV !== 'test') ensureSchema().catch(e => console.error('inventory ensureSchema:', e));
 
@@ -133,7 +138,9 @@ if (process.env.NODE_ENV !== 'test') ensureSchema().catch(e => console.error('in
 // GET all products with stock summary (+ limit + q search)
 router.get('/products', auth, async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 500, 1000);
+    // Cap 2000 menyamai request picker faktur (limit 2000) — cap lebih kecil bikin
+    // produk huruf belakang hilang senyap dari dropdown begitu master > cap.
+    const limit = Math.min(parseInt(req.query.limit) || 500, 2000);
     const q = req.query.q?.trim();
     let whereClause = 'WHERE p.is_active = TRUE';
     const params = [];
@@ -198,6 +205,12 @@ router.post('/products', auth, async (req, res) => {
   try {
     const dup = await pool.query('SELECT id, name FROM product_master WHERE UPPER(TRIM(code)) = $1 LIMIT 1', [normCode]);
     if (dup.rows.length) return res.status(409).json({ error: `KODE "${normCode}" sudah dipakai produk: ${dup.rows[0].name}` });
+    // AUDIT-LS-10: nama kembar bikin pencocokan by-nama (faktur/nota/SP) ambigu → blokir
+    const dupName = await pool.query(
+      'SELECT id, code FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE LIMIT 1',
+      [name.trim()]
+    );
+    if (dupName.rows.length) return res.status(409).json({ error: `Nama "${name.trim()}" sudah dipakai produk ber-KODE ${dupName.rows[0].code || dupName.rows[0].id}` });
     const resolvedBaseUnit = base_unit || unit || 'pcs';
     const resolvedPackSize = parseInt(pack_size) || 1;
     const { rows } = await pool.query(
@@ -219,6 +232,12 @@ router.put('/products/:id', auth, async (req, res) => {
   try {
     const dup = await pool.query('SELECT id, name FROM product_master WHERE UPPER(TRIM(code)) = $1 AND id <> $2 LIMIT 1', [normCode, req.params.id]);
     if (dup.rows.length) return res.status(409).json({ error: `KODE "${normCode}" sudah dipakai produk: ${dup.rows[0].name}` });
+    // AUDIT-LS-10: nama kembar bikin pencocokan by-nama ambigu → blokir (exclude diri sendiri)
+    const dupName = await pool.query(
+      'SELECT id, code FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE AND id <> $2 LIMIT 1',
+      [name.trim(), req.params.id]
+    );
+    if (dupName.rows.length) return res.status(409).json({ error: `Nama "${name.trim()}" sudah dipakai produk ber-KODE ${dupName.rows[0].code || dupName.rows[0].id}` });
     const { rows: [prevRow] } = await pool.query('SELECT name FROM product_master WHERE id = $1', [req.params.id]);
     const resolvedBaseUnit = base_unit || unit || 'pcs';
     const resolvedPackSize = parseInt(pack_size) || 1;
@@ -311,11 +330,15 @@ router.post('/stock-out', auth, async (req, res) => {
       await client.query('COMMIT');
       return res.json({ message: `Stok keluar ${qty} dari batch ${batch.batch_no || batch.id}` });
     }
-    // Default: FEFO multi-batch deduction
+    // Default: FEFO multi-batch deduction.
+    // FOR UPDATE: kunci batch supaya stock-out bersamaan (atau barengan nota) tidak
+    // baca qty_current yang sama → stok minus. Batch expired SENGAJA ikut (jalur ini
+    // juga dipakai buang stok ED) — beda dengan FEFO nota yang filter expired.
     const { rows: batches } = await client.query(
       `SELECT * FROM inventory_batches WHERE product_id = $1 AND qty_current > 0
        AND COALESCE(is_active, TRUE) = TRUE
-       ORDER BY expired_date ASC NULLS LAST`, [product_id]
+       ORDER BY expired_date ASC NULLS LAST
+       FOR UPDATE`, [product_id]
     );
     let remaining = qty;
     const totalAvailable = batches.reduce((s, b) => s + b.qty_current, 0);
@@ -672,11 +695,15 @@ router.get('/mutations', auth, async (req, res) => {
 // GET FEFO batch HNA for a product (for auto-fill in sales order)
 router.get('/fefo-hna/:productId', auth, async (req, res) => {
   try {
-    // 1. Try to get HNA from the FEFO batch (earliest expiry with stock)
+    // 1. Try to get HNA from the FEFO batch (earliest expiry with stock).
+    // AUDIT-LS-07: filter samakan dgn FEFO deduct di sales.js — batch nonaktif/expired
+    // tidak akan dipakai keluar stok, jadi jangan dipakai sumber harga juga.
     const { rows: [batch] } = await pool.query(`
-      SELECT hna
+      SELECT hna, COALESCE(tax_type, 'faktur') AS tax_type
       FROM inventory_batches
       WHERE product_id = $1 AND qty_current > 0
+        AND COALESCE(is_active, TRUE) = TRUE
+        AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
       ORDER BY expired_date ASC NULLS LAST
       LIMIT 1
     `, [req.params.productId]);
@@ -695,7 +722,8 @@ router.get('/fefo-hna/:productId', auth, async (req, res) => {
     // Priority: batch FEFO HNA → product master HNA → product sell_price → 0
     const finalHna = batchHna || masterHna || sellPrice || 0;
 
-    res.json({ hna: finalHna, sell_price: sellPrice });
+    // tax_type ikut: batch nota = harga beli (HPP tanpa ×1,11); fallback master = faktur.
+    res.json({ hna: finalHna, sell_price: sellPrice, tax_type: batchHna ? batch.tax_type : 'faktur' });
   } catch (err) {
     console.error('[Inventory FEFO-HNA] Error:', err.message);
     res.status(500).json({ error: err.message });

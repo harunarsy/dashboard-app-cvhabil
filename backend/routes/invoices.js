@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const uom = require('../utils/uom');
 const tax = require('../utils/tax');
 const { seedProductAlias } = require('../utils/productAliases');
+const { runOnce } = require('../utils/migrationOnce');
 
 // Auto-migrate schema
 const ensureSchema = async () => {
@@ -67,44 +68,45 @@ const ensureSchema = async () => {
       ADD COLUMN IF NOT EXISTS qty_in_unit DECIMAL(15,4),
       ADD COLUMN IF NOT EXISTS pack_size_at_invoice INT
   `);
-  await pool.query(`
-    ALTER TABLE inventory_batches
-      ADD COLUMN IF NOT EXISTS tax_type VARCHAR(20) DEFAULT 'faktur'
-  `);
+  // inventory_batches.tax_type dimiliki inventory.js ensureSchema (single owner,
+  // hindari dua ALTER tabel sama berebut lock saat cold start paralel).
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_invoice_items_product_id
       ON invoice_items(product_id)
   `);
 
-  // Data Migration: Populate missing hpp_inc_ppn and hna_per_item for old records
-  // PPN_RATE constant via tax.js (sengaja inline literal di SQL karena query-side)
-  await pool.query(`
-    UPDATE invoice_items
-    SET
-      hna_per_item = CASE WHEN quantity > 0 AND hna_baru > 0 THEN hna_baru / quantity ELSE hna_per_item END,
-      hpp_inc_ppn = CASE WHEN quantity > 0 AND hna_baru > 0 THEN (hna_baru / quantity) * ${1 + tax.PPN_RATE} ELSE hpp_inc_ppn END
-    WHERE (hpp_inc_ppn = 0 OR hna_per_item = 0) AND quantity > 0 AND hna_baru > 0
-  `);
-
-  const { rows: [productMasterExists] } = await pool.query(`
-    SELECT to_regclass('public.product_master') AS exists
-  `);
-  if (productMasterExists?.exists) {
+  // Data Migration one-time (AUDIT-CA-03): dulunya full-scan UPDATE tiap cold start.
+  await runOnce(pool, 'invoice_items_backfill_v1', async () => {
+    // Populate missing hpp_inc_ppn and hna_per_item for old records
+    // PPN_RATE constant via tax.js (sengaja inline literal di SQL karena query-side)
     await pool.query(`
-      WITH unique_products AS (
-        SELECT LOWER(TRIM(name)) AS normalized_name, MIN(id) AS product_id
-        FROM product_master
-        WHERE is_active = TRUE
-        GROUP BY 1
-        HAVING COUNT(*) = 1
-      )
-      UPDATE invoice_items ii
-      SET product_id = up.product_id
-      FROM unique_products up
-      WHERE ii.product_id IS NULL
-        AND LOWER(TRIM(ii.product_name)) = up.normalized_name
+      UPDATE invoice_items
+      SET
+        hna_per_item = CASE WHEN quantity > 0 AND hna_baru > 0 THEN hna_baru / quantity ELSE hna_per_item END,
+        hpp_inc_ppn = CASE WHEN quantity > 0 AND hna_baru > 0 THEN (hna_baru / quantity) * ${1 + tax.PPN_RATE} ELSE hpp_inc_ppn END
+      WHERE (hpp_inc_ppn = 0 OR hna_per_item = 0) AND quantity > 0 AND hna_baru > 0
     `);
-  }
+
+    const { rows: [productMasterExists] } = await pool.query(`
+      SELECT to_regclass('public.product_master') AS exists
+    `);
+    if (productMasterExists?.exists) {
+      await pool.query(`
+        WITH unique_products AS (
+          SELECT LOWER(TRIM(name)) AS normalized_name, MIN(id) AS product_id
+          FROM product_master
+          WHERE is_active = TRUE
+          GROUP BY 1
+          HAVING COUNT(*) = 1
+        )
+        UPDATE invoice_items ii
+        SET product_id = up.product_id
+        FROM unique_products up
+        WHERE ii.product_id IS NULL
+          AND LOWER(TRIM(ii.product_name)) = up.normalized_name
+      `);
+    }
+  });
 };
 if (process.env.NODE_ENV !== 'test') ensureSchema().catch(console.error);
 
@@ -428,6 +430,35 @@ const syncProductHna = async (client, productId, hna, purchaseOrderId = null, ba
   }
 };
 
+// AUDIT-LS-04: pembelian NOTA via SP — batch purchase (dibuat saat Terima Barang,
+// hna bisa 0/stale) tetap WAJIB di-backfill harga beli riil + tax_type 'nota'.
+// product_master.hna TIDAK disentuh (semantik master = HNA exc PPN, nota tidak punya).
+const syncPurchaseBatchForNota = async (client, productId, hargaBeli, purchaseOrderId, batchNo = null) => {
+  const nextHna = toNumber(hargaBeli);
+  if (!productId || !purchaseOrderId || nextHna <= 0) return;
+  const params = [nextHna, `PO-${purchaseOrderId}`, productId];
+  let sql = `UPDATE inventory_batches SET hna = $1, tax_type = 'nota'
+             WHERE source_type = 'purchase' AND source_ref = $2 AND product_id = $3`;
+  if (batchNo) {
+    sql += ' AND batch_no = $4';
+    params.push(batchNo);
+  }
+  await client.query(sql, params);
+};
+
+// AUDIT-LS-09: item faktur — qty wajib angka > 0, hna wajib angka >= 0 (baris kosong dilewati).
+const validateInvoiceItems = (items = []) => {
+  for (const item of items) {
+    const label = String(item.product_name || '').trim();
+    if (!label) continue;
+    const qty = parseFloat(item.quantity);
+    if (!Number.isFinite(qty) || qty <= 0) return `Qty produk "${label}" harus angka lebih dari 0`;
+    const hna = parseFloat(item.hna ?? 0);
+    if (!Number.isFinite(hna) || hna < 0) return `Harga produk "${label}" tidak boleh minus`;
+  }
+  return null;
+};
+
 const roundQty = (value) => Number(toNumber(value).toFixed(4));
 // Money columns are DECIMAL(15,2) — compare at 2 decimals so a recomputed value
 // like 314176.875 doesn't false-positive against the stored 314176.88.
@@ -661,6 +692,8 @@ router.post('/', auth, async (req, res) => {
   const resolvedPpn = taxType === tax.TAX_TYPE_NOTA ? 0 : (ppn_masukan ?? ppn_input ?? null);
   const purchase_order_id = req.body.purchase_order_id ?? null;
   const invoiceItems = items || [];
+  const itemError = validateInvoiceItems(invoiceItems);
+  if (itemError) return res.status(400).json({ error: itemError });
 
   const client = await pool.connect();
   try {
@@ -725,6 +758,24 @@ router.post('/', auth, async (req, res) => {
       await logAudit(invoiceId, invoice_number, 'CREATE', { invoice_number, distributor_name, status, hna_final: resolvedHnaFinal, hna_plus_ppn });
     }
 
+    // AUDIT-LS-01: faktur yang SUDAH posting stok tidak boleh stock-in lagi via
+    // overwrite-POST (double-click / retry / re-save = stok & room SP DOBEL).
+    // Mirror guard hasStockMutations di PUT: item berubah → tolak; sama → skip stock-in.
+    let alreadyPosted = false;
+    if (existing.rows.length > 0) {
+      const { rows: postedRows } = await client.query(
+        `SELECT 1 FROM inventory_mutations WHERE reference_type = 'faktur' AND reference_id = $1 LIMIT 1`,
+        [invoiceId]
+      );
+      alreadyPosted = postedRows.length > 0;
+      if (alreadyPosted && await invoiceItemsChanged(client, invoiceId, invoiceItems)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          error: 'Faktur ini sudah memposting stok. Ubah item lewat menu Edit Faktur, bukan simpan ulang dari form baru.',
+        });
+      }
+    }
+
     await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
     if (invoiceItems.length > 0) {
       for (const item of invoiceItems) {
@@ -755,10 +806,11 @@ router.post('/', auth, async (req, res) => {
     // ─── Auto Stock-In: Faktur → Inventory ──────────────────────────────
     // Faktur linked SP memakai purchase_order_items.received_qty sebagai SSOT:
     // tiap pintu hanya menambah sisa room, bukan boolean stock_received.
-    const poItemsByName = purchase_order_id
+    // AUDIT-LS-01: alreadyPosted → seluruh blok stock-in & HNA sync di-skip.
+    const poItemsByName = !alreadyPosted && purchase_order_id
       ? await loadPurchaseOrderItemsForUpdate(client, purchase_order_id)
       : null;
-    if (invoiceItems.length > 0) {
+    if (!alreadyPosted && invoiceItems.length > 0) {
       for (const item of invoiceItems) {
         const product = getProductFromLookup(productLookup, item);
         const qtyInUnit = parseFloat(item.quantity) || 0;
@@ -786,6 +838,24 @@ router.post('/', auth, async (req, res) => {
           } else {
             await syncProductHna(client, product.id, effectiveHna(item, qtyBase));
           }
+        } else if (product && taxType === tax.TAX_TYPE_NOTA && purchase_order_id) {
+          // AUDIT-LS-04: nota + SP — backfill batch purchase dgn harga beli riil.
+          // Mirror guard cabang faktur: tanpa batch_number & batch PO > 1 → jangan
+          // blanket-update (harga satu baris bisa menimpa batch lain).
+          let batchNo = item.batch_number || null;
+          if (!batchNo) {
+            const { rows: hnaBatchRows } = await client.query(
+              `SELECT id FROM inventory_batches WHERE source_type = 'purchase' AND source_ref = $1 AND product_id = $2`,
+              [`PO-${purchase_order_id}`, product.id]
+            );
+            if (hnaBatchRows.length > 1) {
+              console.warn(`[Invoice ${invoice_number}] Multiple PO batches for product #${product.id} without batch_number — nota batch HNA not blanket-updated`);
+            } else {
+              await syncPurchaseBatchForNota(client, product.id, effectiveHna(item, qtyBase), purchase_order_id, null);
+            }
+          } else {
+            await syncPurchaseBatchForNota(client, product.id, effectiveHna(item, qtyBase), purchase_order_id, batchNo);
+          }
         }
 
         let stockQtyBase = qtyBase;
@@ -810,37 +880,24 @@ router.post('/', auth, async (req, res) => {
         }
 
         if (product && stockQtyBase > 0) {
-          // ─── PO-linked: create ONE faktur batch for remaining room ──
-          if (purchase_order_id && poItem) {
-            const batchHna = effectiveHna(item, stockQtyBase || qtyBase);
-            const { rows: [batch] } = await client.query(
-	              `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size, tax_type)
-	               VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9, $10) RETURNING id`,
-	              [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize, taxType]
-            );
-            await client.query(
-              `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
-               VALUES ($1, $2, 'in', $3, 'faktur', $4, $5, $6, $7)`,
-              [product.id, batch.id, stockQtyBase, invoiceId,
-               `Stok masuk dari faktur ${invoice_number}${displayUnit !== product.base_unit ? ` (${sourceQtyValue} ${displayUnit})` : ''}`,
-               displayUnit, sourceQtyValue]
-            );
-          } else {
-            // No PO linked: create new batch
-            const batchHna = effectiveHna(item, stockQtyBase || qtyBase);
-            const { rows: [batch] } = await client.query(
-	              `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size, tax_type)
-	               VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9, $10) RETURNING id`,
-	              [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize, taxType]
-            );
-            await client.query(
-              `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
-               VALUES ($1, $2, 'in', $3, 'faktur', $4, $5, $6, $7)`,
-              [product.id, batch.id, stockQtyBase, invoiceId,
-               `Stok masuk dari faktur ${invoice_number}${displayUnit !== product.base_unit ? ` (${sourceQtyValue} ${displayUnit})` : ''}`,
-               displayUnit, sourceQtyValue]
-            );
-          }
+          // Satu jalur untuk PO-linked maupun beli langsung — qty yang masuk sudah
+          // dibatasi room SP di atas (stockQtyBase); isi batch & mutasi identik.
+          // AUDIT-LS-02: pembagi WAJIB qty penuh baris faktur. effectiveHna membagi
+          // nominal TOTAL baris; kalau dibagi stockQtyBase hasil clamp room SP,
+          // HNA per pcs menggelembung (1jt/40 = 25rb padahal benar 1jt/100 = 10rb).
+          const batchHna = effectiveHna(item, qtyBase);
+          const { rows: [batch] } = await client.query(
+            `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size, tax_type)
+             VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9, $10) RETURNING id`,
+            [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize, taxType]
+          );
+          await client.query(
+            `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
+             VALUES ($1, $2, 'in', $3, 'faktur', $4, $5, $6, $7)`,
+            [product.id, batch.id, stockQtyBase, invoiceId,
+             `Stok masuk dari faktur ${invoice_number}${displayUnit !== product.base_unit ? ` (${sourceQtyValue} ${displayUnit})` : ''}`,
+             displayUnit, sourceQtyValue]
+          );
         }
       }
     }
@@ -886,6 +943,8 @@ router.put('/:id', auth, async (req, res) => {
   const resolvedHnaFinal = hna_final ?? final_hna ?? null;
   const resolvedPpn = taxType === tax.TAX_TYPE_NOTA ? 0 : (ppn_masukan ?? ppn_input ?? null);
   const invoiceItems = items || [];
+  const itemError = items !== undefined ? validateInvoiceItems(invoiceItems) : null;
+  if (itemError) return res.status(400).json({ error: itemError });
 
   const client = await pool.connect();
   try {
@@ -951,6 +1010,17 @@ router.put('/:id', auth, async (req, res) => {
       const before = {}; const after = {};
       TRACK.forEach(k => { if (String(beforeSnap[k]||'') !== String(afterSnap[k]||'')) { before[k] = beforeSnap[k]; after[k] = afterSnap[k]; } });
       if (Object.keys(before).length > 0) await logAudit(id, afterSnap.invoice_number, 'UPDATE', { before, after }, 'Field(s) changed: ' + Object.keys(before).join(', '));
+    }
+
+    // AUDIT-LS-03: ganti tax_type wajib MENJALAR ke items & batch faktur ini.
+    // Kalau cuma header yang berubah, HPP batch tetap kebaca ×1,11 (atau sebaliknya)
+    // dan snapshot unit_hpp_tax_type nota berikutnya ikut salah ~11%.
+    if (tax.normalizeTaxType(beforeSnap?.tax_type) !== taxType) {
+      await client.query('UPDATE invoice_items SET tax_type = $1 WHERE invoice_id = $2', [taxType, id]);
+      await client.query(
+        `UPDATE inventory_batches SET tax_type = $1 WHERE source_type = 'faktur' AND source_ref = $2`,
+        [taxType, `invoice-${id}`]
+      );
     }
 
     if (shouldRewriteItems) {
@@ -1062,6 +1132,42 @@ router.delete('/:id/permanent', auth, async (req, res) => {
         [req.params.id, snap.rows[0].invoice_number, 'PERMANENT_DELETE', JSON.stringify(snap.rows[0]), '']
       );
     }
+    // AUDIT-LS-05a: tolak kalau batch faktur ini sudah dipakai keluar stok oleh nota —
+    // menghapusnya bikin reversal edit/hapus nota jadi no-op senyap (stok hilang tanpa jejak).
+    const { rows: usedByNota } = await client.query(
+      `SELECT 1 FROM inventory_mutations m
+       JOIN inventory_batches b ON b.id = m.batch_id
+       WHERE b.source_ref = $1 AND m.type = 'out'
+       LIMIT 1`,
+      [`invoice-${req.params.id}`]
+    );
+    if (usedByNota.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: 'Faktur tidak bisa dihapus permanen: stok dari faktur ini sudah terpakai di nota penjualan. Koreksi lewat Stok Opname.',
+      });
+    }
+
+    // AUDIT-LS-05b: kembalikan room SP — stok yang dihapus harus bisa diterima ulang.
+    const purchaseOrderId = snap.rows[0]?.purchase_order_id || null;
+    if (purchaseOrderId) {
+      const { rows: inMutations } = await client.query(
+        `SELECT product_id, COALESCE(SUM(qty), 0) AS qty_in
+         FROM inventory_mutations
+         WHERE reference_type = 'faktur' AND reference_id = $1 AND type = 'in'
+         GROUP BY product_id`,
+        [req.params.id]
+      );
+      for (const m of inMutations) {
+        await client.query(
+          `UPDATE purchase_order_items
+           SET received_qty = GREATEST(0, received_qty - $1)
+           WHERE po_id = $2 AND product_id = $3`,
+          [m.qty_in, purchaseOrderId, m.product_id]
+        );
+      }
+    }
+
     // Clean up inventory_batches and mutations created from this invoice
     await client.query(
       `DELETE FROM inventory_mutations WHERE reference_type = 'faktur' AND reference_id = $1`,
@@ -1073,6 +1179,7 @@ router.delete('/:id/permanent', auth, async (req, res) => {
     );
     await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [req.params.id]);
     await client.query('DELETE FROM invoices WHERE id = $1', [req.params.id]);
+    if (purchaseOrderId) await syncPurchaseOrderStatus(client, purchaseOrderId);
     await client.query('COMMIT');
     res.json({ message: 'Permanently deleted' });
   } catch (err) {

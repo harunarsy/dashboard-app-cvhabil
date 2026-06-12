@@ -761,6 +761,18 @@ body.dark .ui-over-media-copy {
   color: var(--color-success);
 }
 
+/* AUDIT-UX-09: error harus beda dari sukses dalam sekejap (bukan cuma ikon kecil) —
+   border + latar danger-soft, aman juga untuk buta warna merah-hijau. */
+.ui-toast-notice[data-type="success"] {
+  border-color: color-mix(in srgb, var(--color-success) 45%, transparent);
+}
+
+.ui-toast-notice[data-type="error"] {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft, color-mix(in srgb, var(--color-danger) 12%, var(--color-surface-elevated)));
+  font-weight: 600;
+}
+
 .ui-toast-notice[data-type="error"] svg {
   color: var(--color-danger);
 }

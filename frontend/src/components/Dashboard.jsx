@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.22.3-stable",
+    date: "12 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Hasil audit menyeluruh (3 auditor paralel): faktur yang disimpan ulang tidak bisa lagi bikin stok dobel, harga modal batch tidak lagi menggelembung saat faktur terhubung SP, dan HPP batch dari pembelian Nota kini tampil benar di Inventory (tanpa tambahan 11%). Notifikasi error sekarang merah (bukan hijau seperti sukses), dan Dashboard utama loading jauh lebih cepat.",
+        dev: "AUDIT v1.22.3: LS-01 guard alreadyPosted overwrite-POST; LS-02 batchHna pembagi qty penuh; LS-03 tax_type menjalar ke items+batches saat edit; LS-04 syncPurchaseBatchForNota; LS-05 permanent delete restore room SP + tolak batch terpakai nota; LS-06 gross_profit dari snapshot batch; LS-07/08 filter is_active fefo-hna & selected batch; LS-09 validasi qty/harga backend; LS-10 blokir nama produk kembar; LS-11 trust proxy; LS-13 JWT 15m; LS-14 constraint SP; CA-01 validasi sblm BEGIN; CA-02 dashboard Promise.all; CA-03 backfill one-time (schema_meta); CA-04 FOR UPDATE stock-out manual; CA-06 dedup stock-in; CA-08 dedup ALTER+CREATE document_counters; CA-09 received_qty carry-over server; CA-10/12 limit; UX-01 hppForBatch; UX-02/09/13 toast error; UX-03/07 ConfirmModal; UX-04 MasterSelect keyboard; UX-05 label+badge NOTA; UX-06 fetch error feedback; UX-08 input min 0.",
+      },
+    ],
+  },
+  {
     version: "v1.22.2-stable",
     date: "11 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "new",
@@ -3024,7 +3036,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.22.2-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.22.3-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

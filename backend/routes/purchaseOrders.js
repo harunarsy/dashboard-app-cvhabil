@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const uom = require('../utils/uom');
+const { runOnce } = require('../utils/migrationOnce');
 
 // ─── Auto-create tables ─────────────────────────────────────────────────────
 const ensureSchema = async () => {
@@ -59,25 +60,28 @@ const ensureSchema = async () => {
       ON purchase_order_items(product_id)
   `);
 
-  const { rows: [productMasterExists] } = await pool.query(`
-    SELECT to_regclass('public.product_master') AS exists
-  `);
-  if (productMasterExists?.exists) {
-    await pool.query(`
-      WITH unique_products AS (
-        SELECT LOWER(TRIM(name)) AS normalized_name, MIN(id) AS product_id
-        FROM product_master
-        WHERE is_active = TRUE
-        GROUP BY 1
-        HAVING COUNT(*) = 1
-      )
-      UPDATE purchase_order_items poi
-      SET product_id = up.product_id
-      FROM unique_products up
-      WHERE poi.product_id IS NULL
-        AND LOWER(TRIM(poi.product_name)) = up.normalized_name
+  // Data Migration one-time (AUDIT-CA-03): backfill product_id PO lama cukup sekali.
+  await runOnce(pool, 'po_items_backfill_v1', async () => {
+    const { rows: [productMasterExists] } = await pool.query(`
+      SELECT to_regclass('public.product_master') AS exists
     `);
-  }
+    if (productMasterExists?.exists) {
+      await pool.query(`
+        WITH unique_products AS (
+          SELECT LOWER(TRIM(name)) AS normalized_name, MIN(id) AS product_id
+          FROM product_master
+          WHERE is_active = TRUE
+          GROUP BY 1
+          HAVING COUNT(*) = 1
+        )
+        UPDATE purchase_order_items poi
+        SET product_id = up.product_id
+        FROM unique_products up
+        WHERE poi.product_id IS NULL
+          AND LOWER(TRIM(poi.product_name)) = up.normalized_name
+      `);
+    }
+  });
 };
 if (process.env.NODE_ENV !== 'test') ensureSchema().catch(e => console.error('purchase_orders ensureSchema:', e));
 
@@ -204,8 +208,11 @@ const prorateSourceQty = (sourceQty, fullBaseQty, stockedBaseQty) => {
 // GET all POs
 router.get('/', auth, async (req, res) => {
   try {
+    // v1.22.3 (AUDIT-CA-12): mirror pola invoices/sales — tanpa LIMIT payload membengkak
+    // seiring umur data. Default 100, max 500.
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 100, 1), 500);
     const { rows } = await pool.query(`
-      SELECT po.*, 
+      SELECT po.*,
         json_agg(json_build_object(
           'id', pi.id, 'product_name', pi.product_name, 'product_id', pi.product_id, 'qty', pi.qty,
           'unit', pi.unit, 'unit_price', pi.unit_price, 'subtotal', pi.subtotal,
@@ -216,7 +223,8 @@ router.get('/', auth, async (req, res) => {
       WHERE po.is_deleted = FALSE
       GROUP BY po.id
       ORDER BY po.created_at DESC
-    `);
+      LIMIT $1
+    `, [limit]);
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -265,6 +273,17 @@ router.post('/', auth, async (req, res) => {
   const { distributor_name, distributor_address, order_date, expected_date, notes, items, po_number: manualPoNumber } = req.body;
   if (!distributor_name?.trim()) return res.status(400).json({ error: 'Nama distributor wajib' });
   if (!items?.length) return res.status(400).json({ error: 'Min 1 item' });
+  // AUDIT-LS-09: qty minus/non-angka di SP merusak room received_qty (SSOT anti stok dobel)
+  for (const it of items) {
+    const qty = parseFloat(it.qty);
+    if (!Number.isFinite(qty) || qty <= 0) {
+      return res.status(400).json({ error: `Qty produk "${String(it.product_name || '').trim() || '(tanpa nama)'}" harus angka lebih dari 0` });
+    }
+    const price = parseFloat(it.unit_price ?? 0);
+    if (!Number.isFinite(price) || price < 0) {
+      return res.status(400).json({ error: `Harga produk "${String(it.product_name || '').trim() || '(tanpa nama)'}" tidak boleh minus` });
+    }
+  }
 
   const client = await pool.connect();
   try {
@@ -306,7 +325,8 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json(po);
   } catch (err) {
     await client.query('ROLLBACK');
-    if (err.code === '23505' && err.constraint === 'purchase_orders_po_number_key') {
+    // AUDIT-LS-14: constraint lama sudah di-DROP, sekarang partial index idx_po_number_active
+    if (err.code === '23505' && (err.constraint === 'idx_po_number_active' || err.constraint === 'purchase_orders_po_number_key' || String(err.message || '').includes('po_number'))) {
       return res.status(400).json({ error: 'Nomor SP sudah digunakan. Gunakan nomor lain.' });
     }
     res.status(500).json({ error: err.message });
@@ -328,19 +348,36 @@ router.put('/:id', auth, async (req, res) => {
       [distributor_name, distributor_address, req.body.pic_name, order_date || null, expected_date || null, notes, status, total, req.params.id]
     );
     if (items) {
+      // v1.22.3 (AUDIT-CA-09): received_qty = SSOT anti stok-dobel. JANGAN ambil dari
+      // payload client — tab stale bisa menimpa angka penerimaan → room kebuka lagi →
+      // faktur berikutnya stock-in dobel. Carry-over nilai existing dari DB (lock dulu).
+      const { rows: existingItems } = await client.query(
+        `SELECT product_id, product_name, received_qty, received_qty_in_unit
+         FROM purchase_order_items WHERE po_id = $1 FOR UPDATE`,
+        [req.params.id]
+      );
+      const receivedByKey = new Map();
+      for (const ex of existingItems) {
+        const key = ex.product_id ? `id:${ex.product_id}` : `nm:${normalizeProductName(ex.product_name)}`;
+        const cur = receivedByKey.get(key) || { base: 0, inUnit: 0 };
+        cur.base += toNumber(ex.received_qty);
+        cur.inUnit += toNumber(ex.received_qty_in_unit);
+        receivedByKey.set(key, cur);
+      }
       await client.query('DELETE FROM purchase_order_items WHERE po_id = $1', [req.params.id]);
       for (const item of items) {
         const { product } = await resolveProductByIdOrName(client, item);
         const qtyInUnit = parseFloat(item.qty) || 1;
         const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
-        const recvInUnit = parseFloat(item.received_qty_in_unit) || 0;
-        const recvBase = product ? uom.toBase(recvInUnit || (item.received_qty || 0), item.unit, product) : (item.received_qty || 0);
+        const key = product ? `id:${product.id}` : `nm:${normalizeProductName(item.product_name)}`;
+        const carried = receivedByKey.get(key) || { base: 0, inUnit: 0 };
+        receivedByKey.delete(key); // sekali pakai — baris duplikat tidak dobel carry
         const packSize = product?.pack_size || 1;
         const sub = qtyInUnit * (item.unit_price || 0);
         await client.query(
           `INSERT INTO purchase_order_items (po_id, product_name, product_id, qty, unit, unit_price, subtotal, received_qty, qty_in_unit, pack_size_at_po, received_qty_in_unit)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-          [req.params.id, item.product_name, product?.id || null, qtyBase, item.unit || 'pcs', item.unit_price || 0, sub, recvBase, qtyInUnit, packSize, recvInUnit]
+          [req.params.id, item.product_name, product?.id || null, qtyBase, item.unit || 'pcs', item.unit_price || 0, sub, carried.base, qtyInUnit, packSize, carried.inUnit]
         );
       }
     }

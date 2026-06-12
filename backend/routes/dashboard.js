@@ -13,16 +13,19 @@ router.get('/stats', auth, async (req, res) => {
       ELSE COALESCE(si.unit_hpp, 0) * $1
     END`;
 
+    // v1.22.3 (AUDIT-CA-02): semua query independen → jalan paralel via Promise.all.
+    // Serverless Vercel → Neon Singapore: 13 query serial = 13× RTT di endpoint
+    // pertama yang dibuka operator tiap login. SQL tidak berubah.
     // 1. Total Penjualan bln ini
-    const { rows: [{ total_penjualan }] } = await pool.query(`
-      SELECT COALESCE(SUM(total), 0) AS total_penjualan 
-      FROM sales_orders 
-      WHERE is_deleted = false 
-        AND status = 'final' 
+    const qTotalPenjualan = pool.query(`
+      SELECT COALESCE(SUM(total), 0) AS total_penjualan
+      FROM sales_orders
+      WHERE is_deleted = false
+        AND status = 'final'
         AND DATE_TRUNC('month', sale_date) = DATE_TRUNC('month', CURRENT_DATE)
     `);
 
-    const { rows: [{ prev_total_penjualan }] } = await pool.query(`
+    const qPrevPenjualan = pool.query(`
       SELECT COALESCE(SUM(total), 0) AS prev_total_penjualan
       FROM sales_orders
       WHERE is_deleted = false
@@ -39,7 +42,7 @@ router.get('/stats', auth, async (req, res) => {
     // v1.21.16: total_laba = margin produk + untung ongkir (ongkir - ongkir_cost),
     // biar konsisten dgn total_penjualan yg sudah termasuk ongkir. Subquery ongkir
     // di-scope independen (per-order, bukan per item-row) supaya tidak terkali jumlah item.
-    const { rows: [{ total_laba }] } = await pool.query(`
+    const qTotalLaba = pool.query(`
       SELECT COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0)
         + COALESCE((
             SELECT SUM(COALESCE(so2.ongkir, 0) - COALESCE(so2.ongkir_cost, 0))
@@ -55,7 +58,7 @@ router.get('/stats', auth, async (req, res) => {
         AND DATE_TRUNC('month', so.sale_date) = DATE_TRUNC('month', CURRENT_DATE)
     `, [hppMultiplier]);
 
-    const { rows: [{ prev_total_laba }] } = await pool.query(`
+    const qPrevLaba = pool.query(`
       SELECT COALESCE(SUM(COALESCE(si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0)
         + COALESCE((
             SELECT SUM(COALESCE(so2.ongkir, 0) - COALESCE(so2.ongkir_cost, 0))
@@ -74,7 +77,7 @@ router.get('/stats', auth, async (req, res) => {
     `, [hppMultiplier]);
 
     // 1c. Margin by channel bln ini (Paid + Final only) — same formula as total_laba.
-    const { rows: marginByChannelRows } = await pool.query(`
+    const qMarginChannel = pool.query(`
       WITH scoped_items AS (
         SELECT
           CASE
@@ -110,7 +113,7 @@ router.get('/stats', auth, async (req, res) => {
     `, [hppMultiplier]);
 
     // 1d. Top kategori by margin bln ini. Join by product name karena sales_items menyimpan snapshot nama.
-    const { rows: topCategoryRows } = await pool.query(`
+    const qTopCategory = pool.query(`
       SELECT
         COALESCE(NULLIF(TRIM(pm.category), ''), '(tanpa kategori)') AS category,
         COUNT(DISTINCT so.id) AS order_count,
@@ -142,7 +145,7 @@ router.get('/stats', auth, async (req, res) => {
     `, [hppMultiplier]);
 
     // 1e. Top customer bulan ini (Paid + Final only)
-    const { rows: topCustomerRows } = await pool.query(`
+    const qTopCustomer = pool.query(`
       SELECT
         COALESCE(NULLIF(TRIM(customer_name), ''), '(tanpa customer)') AS customer_name,
         COUNT(*) AS nota_count,
@@ -159,7 +162,7 @@ router.get('/stats', auth, async (req, res) => {
       LIMIT 5
     `);
 
-    const { rows: dailyNotaRows } = await pool.query(`
+    const qDailyNota = pool.query(`
       SELECT
         DATE(sale_date) AS day,
         COUNT(*) AS nota_count,
@@ -174,23 +177,23 @@ router.get('/stats', auth, async (req, res) => {
     `);
 
     // 2. Surat Pesanan Aktif
-    const { rows: [{ active_po }] } = await pool.query(`
-      SELECT COUNT(*) AS active_po 
-      FROM purchase_orders 
-      WHERE is_deleted = false 
+    const qActivePo = pool.query(`
+      SELECT COUNT(*) AS active_po
+      FROM purchase_orders
+      WHERE is_deleted = false
         AND status NOT IN ('completed', 'closed', 'cancelled')
     `);
 
-    // 3. Stok Low/Expired
-    const { rowCount: expiringCount } = await pool.query(`
-      SELECT b.id
+    // 3. Stok Low/Expired — COUNT(*) langsung, bukan fetch semua baris lalu rowCount
+    const qExpiring = pool.query(`
+      SELECT COUNT(*) AS expiring_count
       FROM inventory_batches b
       WHERE b.qty_current > 0 AND b.expired_date IS NOT NULL
         AND b.expired_date < CURRENT_DATE + INTERVAL '90 days'
     `);
-    
+
     // Using a subquery for low stock to get the count
-    const { rows: [{ low_stock_count }] } = await pool.query(`
+    const qLowStock = pool.query(`
       SELECT COUNT(*) as low_stock_count FROM (
         SELECT pm.id
         FROM product_master pm
@@ -200,10 +203,8 @@ router.get('/stats', auth, async (req, res) => {
         HAVING COALESCE(SUM(b.qty_current), 0) < pm.min_stock
       ) AS low_stock_items
     `);
-    const lowExpiredTotal = parseInt(expiringCount || 0) + parseInt(low_stock_count || 0);
-
     // 3b. Stock movement 30 hari terakhir
-    const { rows: stockMovementRows } = await pool.query(`
+    const qStockMove = pool.query(`
       SELECT
         DATE(created_at) AS day,
         COALESCE(SUM(CASE WHEN type = 'in' THEN qty ELSE 0 END), 0) AS in_qty,
@@ -215,10 +216,31 @@ router.get('/stats', auth, async (req, res) => {
     `);
 
     // 4. Total Customer
-    const { rows: [{ total_customer }] } = await pool.query(`
-      SELECT COUNT(*) AS total_customer 
+    const qTotalCustomer = pool.query(`
+      SELECT COUNT(*) AS total_customer
       FROM customers
     `);
+
+    const [
+      { rows: [{ total_penjualan }] },
+      { rows: [{ prev_total_penjualan }] },
+      { rows: [{ total_laba }] },
+      { rows: [{ prev_total_laba }] },
+      { rows: marginByChannelRows },
+      { rows: topCategoryRows },
+      { rows: topCustomerRows },
+      { rows: dailyNotaRows },
+      { rows: [{ active_po }] },
+      { rows: [{ expiring_count }] },
+      { rows: [{ low_stock_count }] },
+      { rows: stockMovementRows },
+      { rows: [{ total_customer }] },
+    ] = await Promise.all([
+      qTotalPenjualan, qPrevPenjualan, qTotalLaba, qPrevLaba,
+      qMarginChannel, qTopCategory, qTopCustomer, qDailyNota,
+      qActivePo, qExpiring, qLowStock, qStockMove, qTotalCustomer,
+    ]);
+    const lowExpiredTotal = parseInt(expiring_count || 0) + parseInt(low_stock_count || 0);
 
     res.json({
       totalPenjualan: parseFloat(total_penjualan),

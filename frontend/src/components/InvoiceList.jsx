@@ -27,6 +27,7 @@ import {
   History,
 } from "lucide-react";
 import MasterSelect from "./MasterSelect";
+import ConfirmModal from "./common/ConfirmModal";
 import Skeleton from "./common/Skeleton";
 import Breadcrumb from "./common/Breadcrumb";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
@@ -453,6 +454,7 @@ export default function InvoiceList({
   const [showTrash, setShowTrash] = useState(false);
   const [trashItems, setTrashItems] = useState([]);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [permanentDeleteId, setPermanentDeleteId] = useState(null);
   const [draftBanner, setDraftBanner] = useState(false);
   const [savedDraft, setSavedDraft] = useState(null);
   const [savedDraftUpdatedAt, setSavedDraftUpdatedAt] = useState(null);
@@ -498,6 +500,7 @@ export default function InvoiceList({
     fetchProducts();
     fetchPurchaseOrders();
     checkDraft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     if (!showModal) return;
@@ -519,9 +522,14 @@ export default function InvoiceList({
   const showToast = (msg, durationMs) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setSuccessToast(msg);
+    // AUDIT-UX-02: pesan error/gagal tahan lebih lama (operator sempat baca)
+    const isErrorish = /^(error|gagal|❌|⚠️)/i.test(String(msg));
     toastTimerRef.current = setTimeout(
       () => setSuccessToast(""),
-      durationMs || UI_MOTION.duration.toastSuccess,
+      durationMs ||
+        (isErrorish
+          ? UI_MOTION.duration.toastError
+          : UI_MOTION.duration.toastSuccess),
     );
   };
 
@@ -531,6 +539,9 @@ export default function InvoiceList({
       setInvoices(r.data);
     } catch (e) {
       console.error(e);
+      // AUDIT-UX-06: gagal fetch jangan diam — tanpa ini layar tampil "belum ada faktur"
+      // palsu dan operator bisa input ulang (dobel data).
+      showToast("Gagal memuat daftar faktur — cek koneksi lalu muat ulang halaman", 6000);
     } finally {
       setLoading(false);
     }
@@ -1260,12 +1271,19 @@ export default function InvoiceList({
       console.error("Error restoring invoice:", e);
     }
   };
-  const handlePermanentDelete = async (id) => {
-    if (!window.confirm("Hapus permanen? Tidak bisa di-undo.")) return;
+  // AUDIT-UX-03: hapus permanen lewat ConfirmModal, bukan window.confirm
+  const handlePermanentDelete = (id) => setPermanentDeleteId(id);
+  const executePermanentDelete = async () => {
+    const id = permanentDeleteId;
+    setPermanentDeleteId(null);
+    if (!id) return;
     try {
       await invoicesAPI.permanentDelete(id);
       fetchTrash();
+      showToast("🗑️ Faktur dihapus permanen");
     } catch (e) {
+      // AUDIT-UX-06: gagal hapus harus kelihatan (backend bisa menolak kalau stok sudah dipakai nota)
+      showToast("Gagal hapus permanen: " + (e.response?.data?.error || e.message), 8000);
       console.error("Error permanent deleting invoice:", e);
     }
   };
@@ -1545,7 +1563,9 @@ export default function InvoiceList({
             transform: "translateX(-50%)",
             backgroundColor: successToast.startsWith("⚠️")
               ? "var(--color-warning, #d97706)"
-              : "var(--color-success)",
+              : /^(error|gagal|❌)/i.test(successToast)
+                ? "var(--color-danger)"
+                : "var(--color-success)",
             color: "white",
             padding: "12px 28px",
             borderRadius: "12px",
@@ -2858,6 +2878,17 @@ export default function InvoiceList({
         </div>
       )}
 
+      {/* Permanent Delete Confirm (trash) — AUDIT-UX-03 */}
+      <ConfirmModal
+        isOpen={!!permanentDeleteId}
+        onClose={() => setPermanentDeleteId(null)}
+        onConfirm={executePermanentDelete}
+        title="Hapus Permanen"
+        message="Faktur akan dihapus PERMANEN beserta batch stok bawaannya. Tidak bisa di-undo. Lanjutkan?"
+        isDarkMode={isDarkMode}
+        confirmLabel="Hapus Permanen"
+      />
+
       {/* Delete Confirm */}
       {deleteConfirm && (
         <div
@@ -3519,6 +3550,25 @@ function InvoiceRow({
             }}
           >
             {inv.invoice_number}
+            {inv.tax_type === "nota" && (
+              <span
+                title="Pembelian Nota — tanpa PPN masukan, HPP = harga beli"
+                style={{
+                  marginLeft: "6px",
+                  padding: "1px 6px",
+                  borderRadius: "6px",
+                  fontSize: "9px",
+                  fontWeight: "700",
+                  letterSpacing: "0.04em",
+                  color: "var(--color-warning)",
+                  border: "1px solid color-mix(in srgb, var(--color-warning) 50%, transparent)",
+                  background: "color-mix(in srgb, var(--color-warning) 12%, transparent)",
+                  verticalAlign: "middle",
+                }}
+              >
+                NOTA
+              </span>
+            )}
           </div>
           <div
             style={{
@@ -4753,7 +4803,9 @@ function InvoiceModal({
                               letterSpacing: "0.05em",
                             }}
                           >
-                            HPP final per pcs (inc PPN 11%)
+                            {form.tax_type === "nota"
+                              ? "HPP final per pcs (nota, tanpa PPN)"
+                              : "HPP final per pcs (inc PPN 11%)"}
                           </span>
                           <div
                             style={{

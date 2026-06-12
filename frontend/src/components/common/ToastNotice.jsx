@@ -13,7 +13,7 @@ export default function ToastNotice({ message, type = "success", isMobile = fals
 
   return (
     <div
-      role="status"
+      role={type === "error" ? "alert" : "status"}
       className="ui-toast-notice ui-motion-toast"
       data-type={type}
       data-mobile={isMobile ? "true" : "false"}

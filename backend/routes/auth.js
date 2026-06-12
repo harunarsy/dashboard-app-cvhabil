@@ -116,7 +116,9 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
       jwtSecret,
-      { expiresIn: process.env.JWT_EXPIRE || '8h' }
+      // AUDIT-LS-13: default ikut kebijakan sesi 15 menit (akun shared 3 operator) —
+      // jangan diam-diam 8 jam kalau env JWT_EXPIRE hilang saat redeploy.
+      { expiresIn: process.env.JWT_EXPIRE || '15m' }
     );
 
     clearLoginFailure(loginKey);

@@ -159,6 +159,7 @@ export default function SalesOrderList({
   const [editId, setEditId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState("");
+  const [toastType, setToastType] = useState("success");
   const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [paymentModal, setPaymentModal] = useState({
@@ -249,6 +250,8 @@ export default function SalesOrderList({
       setOrders(data);
     } catch (e) {
       console.error(e);
+      // AUDIT-UX-06: tanpa ini layar tampil "belum ada nota" palsu saat backend down
+      flash("Gagal memuat daftar nota — cek koneksi lalu muat ulang halaman", "error");
     } finally {
       setTimeout(() => setLoading(false), UI_MOTION.duration.loading);
     }
@@ -337,7 +340,7 @@ export default function SalesOrderList({
       setPaymentModal({ open: false, order: null, date: "", mode: "pay" });
       fetchOrders();
     } catch (e) {
-      flash(e.response?.data?.error || e.message);
+      flash(e.response?.data?.error || e.message, "error");
     } finally {
       setPaymentSaving(false);
     }
@@ -352,7 +355,7 @@ export default function SalesOrderList({
       setPaymentModal({ open: false, order: null, date: "", mode: "pay" });
       fetchOrders();
     } catch (e) {
-      flash(e.response?.data?.error || e.message);
+      flash(e.response?.data?.error || e.message, "error");
     } finally {
       setPaymentSaving(false);
     }
@@ -365,7 +368,7 @@ export default function SalesOrderList({
       flash("Customer ditambahkan");
       fetchCustomers();
     } catch (e) {
-      flash(e.response?.data?.error || e.message);
+      flash(e.response?.data?.error || e.message, "error");
     }
   };
 
@@ -378,7 +381,7 @@ export default function SalesOrderList({
         fetchCustomers();
       }
     } catch (e) {
-      flash(e.response?.data?.error || e.message);
+      flash(e.response?.data?.error || e.message, "error");
     }
   };
 
@@ -394,7 +397,7 @@ export default function SalesOrderList({
         fetchCustomers();
       }
     } catch (e) {
-      flash(e.response?.data?.error || e.message);
+      flash(e.response?.data?.error || e.message, "error");
     }
   };
 
@@ -416,6 +419,7 @@ export default function SalesOrderList({
         e.response?.status === 400
           ? "Produk baru wajib punya KODE — buat dulu di halaman Inventory ya"
           : e.response?.data?.error || e.message,
+        "error",
       );
     }
   };
@@ -429,7 +433,7 @@ export default function SalesOrderList({
         fetchProducts();
       }
     } catch (e) {
-      flash(e.response?.data?.error || e.message);
+      flash(e.response?.data?.error || e.message, "error");
     }
   };
 
@@ -450,7 +454,7 @@ export default function SalesOrderList({
         fetchProducts();
       }
     } catch (e) {
-      flash(e.response?.data?.error || e.message);
+      flash(e.response?.data?.error || e.message, "error");
     }
   };
 
@@ -461,6 +465,7 @@ export default function SalesOrderList({
     fetchSettings();
     fetchProfitThresholds();
     fetchCounters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Filters
@@ -744,18 +749,22 @@ export default function SalesOrderList({
       fetchOrders();
       fetchCounters(); // v1.8.4: re-sync preview ke MAX setelah delete
     } catch (e) {
-      flash(e.response?.data?.error || e.message);
+      flash(e.response?.data?.error || e.message, "error");
     } finally {
       setDeleteConfirmId(null);
     }
   };
 
-  const flash = (msg) => {
+  // AUDIT-UX-02: error jangan tampil sebagai toast sukses — operator bisa mengira berhasil
+  const flash = (msg, type = "success") => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast(msg);
+    setToastType(type);
     toastTimerRef.current = setTimeout(
       () => setToast(""),
-      UI_MOTION.duration.toastSuccess,
+      type === "error"
+        ? UI_MOTION.duration.toastError
+        : UI_MOTION.duration.toastSuccess,
     );
   };
 
@@ -776,7 +785,7 @@ export default function SalesOrderList({
       setShowPrintModal(false);
       fetchOrders();
     } catch (e) {
-      flash("Gagal membuat PDF: " + e.message);
+      flash("Gagal membuat PDF: " + e.message, "error");
     } finally {
       setPdfLoading(false);
     }
@@ -3330,7 +3339,7 @@ export default function SalesOrderList({
         isDarkMode={isDarkMode}
       />
 
-      <ToastNotice message={toast} type="success" isMobile={isMobile} />
+      <ToastNotice message={toast} type={toastType} isMobile={isMobile} />
     </div>
   );
 }

@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { inventoryAPI } from "../../services/api";
 import BatchFormModal from "./BatchFormModal";
-import { hppFromHna } from "../../utils/rupiah";
+import { hppFromHna, hppForBatch } from "../../utils/rupiah";
 import { UI_MOTION, UI_SIZE, uiTransition } from "../../constants/ui";
 import Icons from "../common/Icon";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
@@ -187,7 +187,7 @@ export default function ProductDrawer({
   const totalStock = data?.total_stock || 0;
   const minStock = data?.min_stock || 0;
   const inventoryValue = (data?.batches || []).reduce(
-    (sum, b) => sum + (parseInt(b.qty_current) || 0) * hppFromHna(b.hna),
+    (sum, b) => sum + (parseInt(b.qty_current) || 0) * hppForBatch(b),
     0,
   );
   const stockPct =
@@ -625,15 +625,15 @@ export default function ProductDrawer({
                           </strong>
                         </span>
                         <span>
-                          HNA (exc PPN):{" "}
+                          {b.tax_type === "nota" ? "Harga beli (nota)" : "HNA (exc PPN)"}:{" "}
                           <strong style={{ color: text }}>
                             {fmtRp(b.hna, 2)}
                           </strong>
                         </span>
                         <span>
-                          HPP (inc PPN):{" "}
+                          {b.tax_type === "nota" ? "HPP (nota, tanpa PPN)" : "HPP (inc PPN)"}:{" "}
                           <strong style={{ color: text }}>
-                            {fmtRp(hppFromHna(b.hna), 2)}
+                            {fmtRp(hppForBatch(b), 2)}
                           </strong>
                         </span>
                       </div>

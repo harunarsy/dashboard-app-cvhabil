@@ -26,7 +26,7 @@ import Breadcrumb from "./common/Breadcrumb";
 import ProductDrawer from "./inventory/ProductDrawer";
 import OpnameModal from "./inventory/OpnameModal";
 import BatchFormModal from "./inventory/BatchFormModal";
-import { hppFromHna, formatRupiah } from "../utils/rupiah";
+import { hppFromHna, hppForBatch, formatRupiah } from "../utils/rupiah";
 import HnaHppInput from "./common/HnaHppInput";
 import BulkEditModal from "./inventory/BulkEditModal";
 import BarcodeScanner from "./common/BarcodeScanner";
@@ -137,6 +137,7 @@ export default function InventoryDashboard({
   const [adjustBatch, setAdjustBatch] = useState(null); // { ...batch, productName? }
   const [adjustForm, setAdjustForm] = useState({ new_qty: 0, reason: "" });
   const [batchActionError, setBatchActionError] = useState("");
+  const [deleteBatchConfirm, setDeleteBatchConfirm] = useState(null);
   const [batchActionSaving, setBatchActionSaving] = useState(false);
   const [scannerMode, setScannerMode] = useState(null); // stockIn | stockOut
   const [barcodePrintOpen, setBarcodePrintOpen] = useState(false);
@@ -528,11 +529,14 @@ export default function InventoryDashboard({
     await refreshAfterChange(productId);
     if (editId === productId) await fetchBatches(productId, true);
   };
-  const deleteBatch = async (batch, product) => {
-    const ok = window.confirm(
-      `Hapus batch "${batch.batch_no || "(tanpa no.)"}"?${batch.qty_current > 0 ? ` Stok ${batch.qty_current} akan di-nol-kan dulu dan dicatat di mutasi.` : ""}`,
-    );
-    if (!ok) return;
+  // AUDIT-UX-03: hapus batch (apalagi yang masih ber-stok = nol-kan uang) lewat
+  // ConfirmModal, bukan window.confirm yang gampang ke-Enter tanpa kebaca.
+  const deleteBatch = (batch, product) =>
+    setDeleteBatchConfirm({ batch, product });
+  const executeDeleteBatch = async () => {
+    if (!deleteBatchConfirm) return;
+    const { batch, product } = deleteBatchConfirm;
+    setDeleteBatchConfirm(null);
     setBatchActionError("");
     setBatchActionSaving(true);
     try {
@@ -2845,6 +2849,24 @@ export default function InventoryDashboard({
         title="Nonaktifkan Produk"
         message="Apakah Anda yakin ingin menonaktifkan produk ini? (data tetap tersimpan, hanya disembunyikan dari list)"
         isDarkMode={isDarkMode}
+        confirmLabel="Nonaktifkan"
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteBatchConfirm}
+        onClose={() => setDeleteBatchConfirm(null)}
+        onConfirm={executeDeleteBatch}
+        title="Hapus Batch"
+        message={
+          deleteBatchConfirm
+            ? `Hapus batch "${deleteBatchConfirm.batch.batch_no || "(tanpa no.)"}"?${
+                deleteBatchConfirm.batch.qty_current > 0
+                  ? ` Stok ${deleteBatchConfirm.batch.qty_current} akan di-NOL-kan dan dicatat di mutasi.`
+                  : ""
+              }`
+            : ""
+        }
+        isDarkMode={isDarkMode}
       />
 
       {batchModal && (
@@ -3287,7 +3309,7 @@ function ExpandedBatches({
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  {fmtRp(hppFromHna(b.hna), 2)}
+                  {fmtRp(hppForBatch(b), 2)}
                 </td>
                 <td style={{ padding: "8px 14px", textAlign: "right" }}>
                   <div
@@ -3525,7 +3547,7 @@ function ProductBatchPanel({
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        {fmtRp(hppFromHna(b.hna), 2)}
+                        {fmtRp(hppForBatch(b), 2)}
                       </td>
                       <td
                         style={{

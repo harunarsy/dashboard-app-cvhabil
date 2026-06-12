@@ -156,23 +156,36 @@ export default function MasterSelect({
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', width: '100%' }}>
-      {/* Trigger */}
+      {/* Trigger — AUDIT-UX-04: focusable + Enter/Space buka, Escape tutup (sebelumnya
+          div polos: Tab melewati komponen & ui-focus-ring tidak pernah aktif) */}
       <div
         style={triggerStyle}
         className="ui-motion-button ui-focus-ring"
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-haspopup="listbox"
+        aria-expanded={open}
         onClick={() => { if (!disabled) setOpen(o => !o); }}
+        onKeyDown={e => {
+          if (disabled) return;
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); }
+          if (e.key === 'Escape') setOpen(false);
+        }}
       >
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {value || placeholder}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '8px' }}>
           {value && (
-            <span
+            <button
+              type="button"
+              aria-label="Kosongkan pilihan"
+              className="ui-focus-ring"
               onClick={e => { e.stopPropagation(); onChange(''); }}
-              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: '4px', minWidth: '24px', minHeight: '24px', justifyContent: 'center' }}
             >
               <X size={14} color={muted} />
-            </span>
+            </button>
           )}
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path d={open ? 'M2 8L6 4L10 8' : 'M2 4L6 8L10 4'} stroke={muted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

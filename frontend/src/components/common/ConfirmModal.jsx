@@ -9,6 +9,8 @@ export default function ConfirmModal({
   title,
   message,
   isDarkMode,
+  // AUDIT-UX-07: label tombol harus sesuai aksi (mis. "Nonaktifkan"), jangan selalu "Hapus"
+  confirmLabel = "Hapus",
 }) {
   const bg = isDarkMode ? "var(--color-surface-elevated)" : "#FFF";
   const text = isDarkMode ? "#FFF" : "#000";
@@ -40,6 +42,9 @@ export default function ConfirmModal({
       <div
         onClick={(e) => e.stopPropagation()}
         className="ui-motion-modal ui-modal-shell"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-modal-title"
         style={{
           backgroundColor: bg,
           borderRadius: "16px",
@@ -68,6 +73,7 @@ export default function ConfirmModal({
           <AlertTriangle size={26} color="var(--color-danger)" />{" "}
         </div>{" "}
         <h3
+          id="confirm-modal-title"
           style={{
             margin: "0 0 8px",
             fontSize: "18px",
@@ -91,6 +97,7 @@ export default function ConfirmModal({
           {" "}
           <button
             onClick={onClose}
+            autoFocus
             className="ui-motion-button ui-focus-ring"
             style={{
               flex: 1,
@@ -126,7 +133,7 @@ export default function ConfirmModal({
               fontWeight: "700",
             }}
           >
-            Hapus
+            {confirmLabel}
           </button>{" "}
         </div>{" "}
       </div>{" "}
