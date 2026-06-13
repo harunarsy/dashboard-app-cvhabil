@@ -61,6 +61,12 @@ const fmtDate = (d) =>
 const daysUntil = (d) =>
   d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
 
+const getProductDisplayHna = (product) =>
+  parseFloat(product?.latest_hna ?? product?.hna) || 0;
+
+const getProductDisplayHpp = (product) =>
+  hppFromHna(getProductDisplayHna(product));
+
 function expirySeverity(date, isDarkMode) {
   if (!date)
     return {
@@ -275,10 +281,11 @@ export default function InventoryDashboard({
       await Promise.all([
         fetchProducts(),
         fetchAlerts(),
+        fetchInsights(),
         productId ? fetchBatches(productId, true) : Promise.resolve(),
       ]);
     },
-    [fetchProducts, fetchAlerts, fetchBatches],
+    [fetchProducts, fetchAlerts, fetchInsights, fetchBatches],
   );
 
   const filtered = useMemo(() => {
@@ -316,7 +323,8 @@ export default function InventoryDashboard({
   const totalNilai = useMemo(
     () =>
       filtered.reduce(
-        (s, p) => s + hppFromHna(p.hna) * (parseInt(p.total_stock) || 0),
+        (s, p) =>
+          s + getProductDisplayHpp(p) * (parseInt(p.total_stock) || 0),
         0,
       ),
     [filtered],
@@ -372,7 +380,7 @@ export default function InventoryDashboard({
       setSiForm((p) => ({
         ...p,
         product_name: product.name,
-        hna: parseFloat(product.hna) || 0,
+        hna: getProductDisplayHna(product),
       }));
       flashSuccess(`Produk discan: ${product.name}`);
     }
@@ -629,7 +637,7 @@ export default function InventoryDashboard({
       batch_no: "",
       expired_date: "",
       qty: 1,
-      hna: parseFloat(p?.hna) || 0,
+      hna: getProductDisplayHna(p),
     });
     setModalError("");
     setShowModal("stockIn");
@@ -1326,7 +1334,7 @@ export default function InventoryDashboard({
                                 fontVariantNumeric: "tabular-nums",
                               }}
                             >
-                              {fmtRp(p.hna)}
+                              {fmtRp(getProductDisplayHna(p), 2)}
                             </td>
                             <td
                               style={{
@@ -1336,7 +1344,7 @@ export default function InventoryDashboard({
                                 fontVariantNumeric: "tabular-nums",
                               }}
                             >
-                              {fmtRp(hppFromHna(p.hna))}
+                              {fmtRp(getProductDisplayHpp(p), 2)}
                             </td>
                             <td
                               style={{
@@ -1415,7 +1423,7 @@ export default function InventoryDashboard({
                                 fontWeight: "600",
                               }}
                             >
-                              {fmtRp(hppFromHna(p.hna) * stock)}
+                              {fmtRp(getProductDisplayHpp(p) * stock)}
                             </td>
                             <td style={{ ...tdStyle, verticalAlign: "middle" }}>
                               {p.nearest_expiry ? (
@@ -2975,10 +2983,7 @@ export default function InventoryDashboard({
             openStockOut(p);
           }}
           onChanged={() => {
-            fetchProducts();
-            fetchAlerts();
-            if (batchesCache[drawerProductId])
-              fetchBatches(drawerProductId, true);
+            void refreshAfterChange(drawerProductId);
           }}
         />
       )}

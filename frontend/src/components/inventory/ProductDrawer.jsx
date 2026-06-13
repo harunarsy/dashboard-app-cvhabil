@@ -46,6 +46,8 @@ const fmtDateTime = (d) =>
 const daysUntil = (d) =>
   d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
 
+const getDisplayHna = (data) => parseFloat(data?.latest_hna ?? data?.hna) || 0;
+
 function expiryBadge(date, sub) {
   if (!date) return { color: sub, bg: "transparent", text: "-" };
   const days = daysUntil(date);
@@ -97,6 +99,7 @@ export default function ProductDrawer({
   const surface = isDarkMode
     ? "var(--color-surface-raised)"
     : "var(--color-bg)";
+  const displayHna = getDisplayHna(data);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -434,13 +437,13 @@ export default function ProductDrawer({
                 />
                 <Field
                   label="HNA per pcs (exc PPN)"
-                  value={fmtRp(data.hna, 2)}
+                  value={fmtRp(displayHna, 2)}
                   sub={sub}
                   text={text}
                 />
                 <Field
                   label="HPP per pcs (inc PPN 11%)"
-                  value={fmtRp(hppFromHna(data.hna), 2)}
+                  value={fmtRp(hppFromHna(displayHna), 2)}
                   sub={sub}
                   text={text}
                 />

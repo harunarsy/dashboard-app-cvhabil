@@ -154,13 +154,37 @@ router.get('/products', auth, async (req, res) => {
     }
     const { rows } = await pool.query(`
       SELECT p.*,
-        COALESCE(SUM(b.qty_current), 0) AS total_stock,
-        MIN(b.expired_date) FILTER (WHERE b.qty_current > 0 AND b.expired_date IS NOT NULL) AS nearest_expiry,
-        COUNT(b.id) FILTER (WHERE b.qty_current > 0 AND b.expired_date IS NOT NULL AND b.expired_date >= CURRENT_DATE AND b.expired_date < CURRENT_DATE + INTERVAL '90 days') AS expiring_batches
+        COALESCE(stats.total_stock, 0) AS total_stock,
+        stats.nearest_expiry,
+        COALESCE(stats.expiring_batches, 0) AS expiring_batches,
+        latest.hna AS latest_hna,
+        latest.batch_no AS latest_batch_no,
+        latest.expired_date AS latest_batch_expired_date
       FROM product_master p
-      LEFT JOIN inventory_batches b ON b.product_id = p.id
+      LEFT JOIN LATERAL (
+        SELECT
+          COALESCE(SUM(b.qty_current), 0) AS total_stock,
+          MIN(b.expired_date) FILTER (
+            WHERE b.qty_current > 0 AND b.expired_date IS NOT NULL
+          ) AS nearest_expiry,
+          COUNT(b.id) FILTER (
+            WHERE b.qty_current > 0
+              AND b.expired_date IS NOT NULL
+              AND b.expired_date >= CURRENT_DATE
+              AND b.expired_date < CURRENT_DATE + INTERVAL '90 days'
+          ) AS expiring_batches
+        FROM inventory_batches b
+        WHERE b.product_id = p.id
+      ) stats ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT b.hna, b.batch_no, b.expired_date
+        FROM inventory_batches b
+        WHERE b.product_id = p.id
+          AND COALESCE(b.is_active, TRUE) = TRUE
+        ORDER BY b.created_at DESC, b.id DESC
+        LIMIT 1
+      ) latest ON TRUE
       ${whereClause}
-      GROUP BY p.id
       ORDER BY p.name ASC
       LIMIT $${idx}
     `, [...params, limit]);
@@ -186,7 +210,22 @@ router.get('/opname-template', auth, async (req, res) => {
 // GET single product with batches and mutations
 router.get('/products/:id', auth, async (req, res) => {
   try {
-    const { rows: [product] } = await pool.query('SELECT * FROM product_master WHERE id = $1', [req.params.id]);
+    const { rows: [product] } = await pool.query(`
+      SELECT p.*,
+        latest.hna AS latest_hna,
+        latest.batch_no AS latest_batch_no,
+        latest.expired_date AS latest_batch_expired_date
+      FROM product_master p
+      LEFT JOIN LATERAL (
+        SELECT b.hna, b.batch_no, b.expired_date
+        FROM inventory_batches b
+        WHERE b.product_id = p.id
+          AND COALESCE(b.is_active, TRUE) = TRUE
+        ORDER BY b.created_at DESC, b.id DESC
+        LIMIT 1
+      ) latest ON TRUE
+      WHERE p.id = $1
+    `, [req.params.id]);
     if (!product) return res.status(404).json({ error: 'Product not found' });
     const { rows: batches } = await pool.query(
       'SELECT * FROM inventory_batches WHERE product_id = $1 ORDER BY expired_date ASC NULLS LAST', [req.params.id]
@@ -387,7 +426,22 @@ router.get('/products/:id/batches', auth, async (req, res) => {
 // GET single product full payload (product + batches + last 20 mutations) — for drawer
 router.get('/products/:id/full', auth, async (req, res) => {
   try {
-    const { rows: [product] } = await pool.query('SELECT * FROM product_master WHERE id = $1', [req.params.id]);
+    const { rows: [product] } = await pool.query(`
+      SELECT p.*,
+        latest.hna AS latest_hna,
+        latest.batch_no AS latest_batch_no,
+        latest.expired_date AS latest_batch_expired_date
+      FROM product_master p
+      LEFT JOIN LATERAL (
+        SELECT b.hna, b.batch_no, b.expired_date
+        FROM inventory_batches b
+        WHERE b.product_id = p.id
+          AND COALESCE(b.is_active, TRUE) = TRUE
+        ORDER BY b.created_at DESC, b.id DESC
+        LIMIT 1
+      ) latest ON TRUE
+      WHERE p.id = $1
+    `, [req.params.id]);
     if (!product) return res.status(404).json({ error: 'Product not found' });
     const { rows: batches } = await pool.query(
       `SELECT * FROM inventory_batches

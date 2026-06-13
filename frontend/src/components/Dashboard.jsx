@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.28.2-stable",
+    version: "v1.28.3-stable",
     date: "13 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Inventory list dan detail drawer sekarang membaca HNA/HPP dari batch aktif terbaru, jadi batch baru langsung tercermin walau master product masih kosong. Saran Restock juga ikut refresh setelah mutasi batch.",
+        dev: "InventoryDashboard uses latest active batch HNA for list/detail display and refreshAfterChange now refetches insights; backend /inventory/products and /products/:id/full expose latest_hna/latest_batch_* without changing PDF or business flows.",
+      },
+    ],
+  },
+  {
+    version: "v1.28.2-stable",
+    date: "13 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -50,21 +62,9 @@ const RELEASES = [
     status: "stable",
     changes: [
       {
-        type: "ui",
+        type: "new",
         text: "Ringkasan Minggu Ini sekarang menyatu ke stack header Dashboard, jadi tidak tampil sebagai card terpisah di bawah board tugas.",
         dev: "Dashboard header now carries the weekly summary inline; layout stays read-only and keeps the dashboard stack visually unified.",
-      },
-    ],
-  },
-  {
-    version: "v1.28.0-stable",
-    date: "13 Juni 2026",
-    status: "stable",
-    changes: [
-      {
-        type: "new",
-        text: "Ringkasan Minggu Ini di Dashboard: omzet & margin 7 hari terakhir vs minggu lalu, plus produk yang lagi naik daun dan yang melambat — dirangkum dalam satu kalimat.",
-        dev: "GET /api/insights/weekly-summary (revenue/margin this-vs-prev 7d + top movers by Δrevenue), kartu template-string di Dashboard. Margin pakai unitHppCostSql konsisten dashboard.js.",
       },
       {
         type: "new",
@@ -3244,7 +3244,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.28.2-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.28.3-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

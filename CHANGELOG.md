@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.28.3-stable] - 2026-06-13
+
+### Changed
+- Row Inventory dan detail drawer sekarang baca HNA/HPP dari batch aktif terbaru, jadi batch baru langsung kelihatan di list walau `product_master.hna` masih kosong.
+- Refresh inventory setelah batch mutasi juga ikut narik insight stack, supaya Saran Restock tidak stale.
+
 ## [v1.28.2-stable] - 2026-06-13
 
 ### Changed
