@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.28.0-stable",
+    version: "v1.28.1-stable",
     date: "13 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Ringkasan Minggu Ini sekarang menyatu ke stack header Dashboard, jadi tidak tampil sebagai card terpisah di bawah board tugas.",
+        dev: "Dashboard header now carries the weekly summary inline; layout stays read-only and keeps the dashboard stack visually unified.",
+      },
+    ],
+  },
+  {
+    version: "v1.28.0-stable",
+    date: "13 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "new",
@@ -3220,7 +3232,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.28.0-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.28.1-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
@@ -3501,6 +3513,151 @@ export default function Dashboard({
     1,
     ...dailyHeatmapSeries.map((row) => row.notaCount || 0),
   );
+  const weeklySummary = weekly
+    ? (() => {
+        const revThis = Number(weekly?.revenue?.this_week) || 0;
+        const revPrev = Number(weekly?.revenue?.prev_week) || 0;
+        const revPct =
+          revPrev > 0 ? ((revThis - revPrev) / revPrev) * 100 : null;
+        const mThis = Number(weekly?.margin_pct?.this_week) || 0;
+        const mPrev = Number(weekly?.margin_pct?.prev_week) || 0;
+        const mDelta = Math.round((mThis - mPrev) * 10) / 10;
+        const topUp = Array.isArray(weekly?.top_up) ? weekly.top_up : [];
+        const topDown = Array.isArray(weekly?.top_down) ? weekly.top_down : [];
+        const revUp = revPct === null ? null : revPct >= 0;
+        const sentence =
+          revThis === 0 && revPrev === 0
+            ? "Belum ada penjualan tercatat dalam 14 hari terakhir."
+            : [
+                `Omzet minggu ini ${formatRupiah(revThis)}` +
+                  (revPct === null
+                    ? " (belum ada pembanding minggu lalu)."
+                    : ` (${revUp ? "naik" : "turun"} ${Math.abs(revPct).toFixed(0)}% vs minggu lalu).`),
+                `Margin produk ${mThis.toFixed(1)}%` +
+                  (mDelta === 0
+                    ? " (stabil)."
+                    : ` (${mDelta > 0 ? "naik" : "turun"} ${Math.abs(mDelta).toFixed(1)} poin).`),
+                topUp.length
+                  ? `Naik daun: ${topUp.map((p) => p.name).slice(0, 2).join(", ")}.`
+                  : "",
+                topDown.length
+                  ? `Melambat: ${topDown.map((p) => p.name).slice(0, 2).join(", ")}.`
+                  : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+        return (
+          <div
+            className="rounded-3xl border p-5 md:p-6"
+            style={{ backgroundColor: cardBg, borderColor: border }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles size={18} style={{ color: "var(--color-primary)" }} />
+              <h2 className="text-lg font-bold" style={{ color: text }}>
+                Ringkasan Minggu Ini
+              </h2>
+            </div>
+            <p
+              className="text-sm font-medium mb-5"
+              style={{ color: sub, lineHeight: 1.6 }}
+            >
+              {sentence}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div
+                className="rounded-2xl p-4"
+                style={{
+                  backgroundColor: "var(--color-bg)",
+                  border: `1px solid ${border}`,
+                }}
+              >
+                <p className="text-xs font-semibold mb-1" style={{ color: sub }}>
+                  Omzet 7 hari
+                </p>
+                <p className="text-xl font-bold" style={{ color: text }}>
+                  {formatRupiah(revThis)}
+                </p>
+                {revPct !== null && (
+                  <p
+                    className="text-xs font-semibold mt-1"
+                    style={{
+                      color: revUp
+                        ? "var(--color-success)"
+                        : "var(--color-danger)",
+                    }}
+                  >
+                    {revUp ? "▲" : "▼"} {Math.abs(revPct).toFixed(0)}% vs minggu lalu
+                  </p>
+                )}
+              </div>
+              <div
+                className="rounded-2xl p-4"
+                style={{
+                  backgroundColor: "var(--color-bg)",
+                  border: `1px solid ${border}`,
+                }}
+              >
+                <p className="text-xs font-semibold mb-1" style={{ color: sub }}>
+                  Margin produk
+                </p>
+                <p className="text-xl font-bold" style={{ color: text }}>
+                  {mThis.toFixed(1)}%
+                </p>
+                {mDelta !== 0 && (
+                  <p
+                    className="text-xs font-semibold mt-1"
+                    style={{
+                      color:
+                        mDelta > 0
+                          ? "var(--color-success)"
+                          : "var(--color-warning)",
+                    }}
+                  >
+                    {mDelta > 0 ? "▲" : "▼"} {Math.abs(mDelta).toFixed(1)} poin
+                  </p>
+                )}
+              </div>
+              <div
+                className="rounded-2xl p-4"
+                style={{
+                  backgroundColor: "var(--color-bg)",
+                  border: `1px solid ${border}`,
+                }}
+              >
+                <p className="text-xs font-semibold mb-1" style={{ color: sub }}>
+                  Produk bergerak
+                </p>
+                {topUp.slice(0, 2).map((p) => (
+                  <p
+                    key={`up-${p.name}`}
+                    className="text-xs font-medium truncate"
+                    style={{ color: text }}
+                  >
+                    <span style={{ color: "var(--color-success)" }}>▲</span>{" "}
+                    {p.name}
+                  </p>
+                ))}
+                {topDown.slice(0, 2).map((p) => (
+                  <p
+                    key={`dn-${p.name}`}
+                    className="text-xs font-medium truncate"
+                    style={{ color: text }}
+                  >
+                    <span style={{ color: "var(--color-warning)" }}>▼</span>{" "}
+                    {p.name}
+                  </p>
+                ))}
+                {!topUp.length && !topDown.length && (
+                  <p className="text-xs" style={{ color: sub }}>
+                    Belum ada data
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()
+    : null;
 
   return (
     <div
@@ -3514,34 +3671,38 @@ export default function Dashboard({
         overflowX: "hidden",
       }}
     >
-      {/* Header Section */}
-      <div className="ui-surface-panel ui-toolbar justify-between mb-10 gap-4 p-4 md:p-5">
-        <div>
-          <h1
-            className="text-3xl font-bold mb-2 tracking-tight"
-            style={{ color: text }}
+      {/* Header Stack */}
+      <div className="ui-surface-panel ui-toolbar mb-10 flex flex-col gap-5 p-4 md:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1
+              className="text-3xl font-bold mb-2 tracking-tight"
+              style={{ color: text }}
+            >
+              Dashboard
+            </h1>
+            <p className="text-sm font-medium" style={{ color: sub }}>
+              Welcome back to HABIL SUPERAPP.
+            </p>
+          </div>
+
+          {/* Version Badge & Changelog Trigger */}
+          <button
+            onClick={() => setShowModal(true)}
+            className="ui-motion-button ui-focus-ring flex min-h-10 items-center gap-2 px-4 py-2 rounded-full border transition-colors hover:shadow-sm"
+            style={{ borderColor: border, color: text }}
           >
-            Dashboard
-          </h1>
-          <p className="text-sm font-medium" style={{ color: sub }}>
-            Welcome back to HABIL SUPERAPP.
-          </p>
+            <Info size={16} className="text-blue-500" />
+            <span className="text-sm font-semibold">
+              Version {RELEASES[0]?.version}
+            </span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium ml-2">
+              Release Notes
+            </span>
+          </button>
         </div>
 
-        {/* Version Badge & Changelog Trigger */}
-        <button
-          onClick={() => setShowModal(true)}
-          className="ui-motion-button ui-focus-ring flex min-h-10 items-center gap-2 px-4 py-2 rounded-full border transition-colors hover:shadow-sm"
-          style={{ borderColor: border, color: text }}
-        >
-          <Info size={16} className="text-blue-500" />
-          <span className="text-sm font-semibold">
-            Version {RELEASES[0]?.version}
-          </span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium ml-2">
-            Release Notes
-          </span>
-        </button>
+        {weeklySummary}
       </div>
 
       {/* Kanban Tasks Section - MOVED TO TOP. v1.8.8: hapus inline bg supaya CSS token tint apply */}
@@ -3650,119 +3811,6 @@ export default function Dashboard({
           );
         })}
       </div>
-
-      {/* ✨ Ringkasan Minggu Ini (#7) */}
-      {weekly &&
-        (() => {
-          const revThis = Number(weekly?.revenue?.this_week) || 0;
-          const revPrev = Number(weekly?.revenue?.prev_week) || 0;
-          const revPct = revPrev > 0 ? ((revThis - revPrev) / revPrev) * 100 : null;
-          const mThis = Number(weekly?.margin_pct?.this_week) || 0;
-          const mPrev = Number(weekly?.margin_pct?.prev_week) || 0;
-          const mDelta = Math.round((mThis - mPrev) * 10) / 10;
-          const topUp = Array.isArray(weekly?.top_up) ? weekly.top_up : [];
-          const topDown = Array.isArray(weekly?.top_down) ? weekly.top_down : [];
-          const revUp = revPct === null ? null : revPct >= 0;
-          const sentence =
-            revThis === 0 && revPrev === 0
-              ? "Belum ada penjualan tercatat dalam 14 hari terakhir."
-              : [
-                  `Omzet minggu ini ${formatRupiah(revThis)}` +
-                    (revPct === null
-                      ? " (belum ada pembanding minggu lalu)."
-                      : ` (${revUp ? "naik" : "turun"} ${Math.abs(revPct).toFixed(0)}% vs minggu lalu).`),
-                  `Margin produk ${mThis.toFixed(1)}%` +
-                    (mDelta === 0
-                      ? " (stabil)."
-                      : ` (${mDelta > 0 ? "naik" : "turun"} ${Math.abs(mDelta).toFixed(1)} poin).`),
-                  topUp.length ? `Naik daun: ${topUp.map((p) => p.name).slice(0, 2).join(", ")}.` : "",
-                  topDown.length ? `Melambat: ${topDown.map((p) => p.name).slice(0, 2).join(", ")}.` : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ");
-          return (
-            <section
-              className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm mb-10"
-              style={{ backgroundColor: cardBg, borderColor: border }}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles size={18} style={{ color: "var(--color-primary)" }} />
-                <h2 className="text-lg font-bold" style={{ color: text }}>
-                  Ringkasan Minggu Ini
-                </h2>
-              </div>
-              <p
-                className="text-sm font-medium mb-5"
-                style={{ color: sub, lineHeight: 1.6 }}
-              >
-                {sentence}
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div
-                  className="rounded-2xl p-4"
-                  style={{ backgroundColor: "var(--color-bg)", border: `1px solid ${border}` }}
-                >
-                  <p className="text-xs font-semibold mb-1" style={{ color: sub }}>
-                    Omzet 7 hari
-                  </p>
-                  <p className="text-xl font-bold" style={{ color: text }}>
-                    {formatRupiah(revThis)}
-                  </p>
-                  {revPct !== null && (
-                    <p
-                      className="text-xs font-semibold mt-1"
-                      style={{ color: revUp ? "var(--color-success)" : "var(--color-danger)" }}
-                    >
-                      {revUp ? "▲" : "▼"} {Math.abs(revPct).toFixed(0)}% vs minggu lalu
-                    </p>
-                  )}
-                </div>
-                <div
-                  className="rounded-2xl p-4"
-                  style={{ backgroundColor: "var(--color-bg)", border: `1px solid ${border}` }}
-                >
-                  <p className="text-xs font-semibold mb-1" style={{ color: sub }}>
-                    Margin produk
-                  </p>
-                  <p className="text-xl font-bold" style={{ color: text }}>
-                    {mThis.toFixed(1)}%
-                  </p>
-                  {mDelta !== 0 && (
-                    <p
-                      className="text-xs font-semibold mt-1"
-                      style={{ color: mDelta > 0 ? "var(--color-success)" : "var(--color-warning)" }}
-                    >
-                      {mDelta > 0 ? "▲" : "▼"} {Math.abs(mDelta).toFixed(1)} poin
-                    </p>
-                  )}
-                </div>
-                <div
-                  className="rounded-2xl p-4"
-                  style={{ backgroundColor: "var(--color-bg)", border: `1px solid ${border}` }}
-                >
-                  <p className="text-xs font-semibold mb-1" style={{ color: sub }}>
-                    Produk bergerak
-                  </p>
-                  {topUp.slice(0, 2).map((p) => (
-                    <p key={`up-${p.name}`} className="text-xs font-medium truncate" style={{ color: text }}>
-                      <span style={{ color: "var(--color-success)" }}>▲</span> {p.name}
-                    </p>
-                  ))}
-                  {topDown.slice(0, 2).map((p) => (
-                    <p key={`dn-${p.name}`} className="text-xs font-medium truncate" style={{ color: text }}>
-                      <span style={{ color: "var(--color-warning)" }}>▼</span> {p.name}
-                    </p>
-                  ))}
-                  {!topUp.length && !topDown.length && (
-                    <p className="text-xs" style={{ color: sub }}>
-                      Belum ada data
-                    </p>
-                  )}
-                </div>
-              </div>
-            </section>
-          );
-        })()}
 
       {/* Activity Heatmap */}
       <section

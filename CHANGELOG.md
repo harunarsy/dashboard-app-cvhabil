@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.28.1-stable] - 2026-06-13
+
+### Changed
+- Ringkasan Minggu Ini sekarang menyatu ke stack header Dashboard, jadi bukan card terpisah lagi di bawah board tugas.
+
 ## [v1.28.0-stable] - 2026-06-13
 
 ### Added — Mini AI (rule-based, tanpa API eksternal)
