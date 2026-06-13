@@ -34,14 +34,15 @@ const num = (v, fallback = 0) => {
 };
 
 // Pembulatan psikologis KE ATAS (tidak pernah di bawah harga hitung → margin tidak tergerus).
-// ≤ 10rb: kelipatan 1.000 berakhiran 900 (8.900, 9.900) · ≤ 100rb: berakhiran 4.900/9.900
-// (49.900, 54.900, 59.900) · > 100rb: kelipatan 10.000 berakhiran 9.900 (129.900, 139.900).
+// ≤ 20rb: kelipatan 1.000 berakhiran 900 supaya harga kecil tetap kebaca beda.
+// > 20rb s/d 100rb: kelipatan 5.000 berakhiran 4.900/9.900
+// (24.900, 29.900, 49.900, 54.900, 59.900) · > 100rb: kelipatan 10.000 berakhiran 9.900.
 const psychologicalRound = (price) => {
   const p = Math.max(0, num(price));
   if (p <= 0) return 0;
   if (p <= 100) return Math.ceil(p / 100) * 100;
   let step, ending;
-  if (p <= 10000) { step = 1000; ending = 900; }
+  if (p <= 20000) { step = 1000; ending = 900; }
   else if (p <= 100000) { step = 5000; ending = 4900; }
   else { step = 10000; ending = 9900; }
   let candidate = Math.floor(p / step) * step + ending;

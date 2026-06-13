@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.28.3-stable",
+    version: "v1.28.4-stable",
     date: "13 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Saran Harga sekarang lebih halus untuk harga kecil, jadi BEP/Laba Tipis/Laba Sehat/Aman Promo tidak lagi mentok di angka yang sama. Setiap kartu saran juga bisa diklik langsung untuk memakai tier itu.",
+        dev: "backend/utils/pricingEngine.js: psychologicalRound dibuat lebih granular di rentang harga kecil; PriceListPage SuggestDrawer row cards now clickable to apply each tier directly. Tests updated to expect distinct low-price outputs.",
+      },
+    ],
+  },
+  {
+    version: "v1.28.3-stable",
+    date: "13 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -50,7 +62,7 @@ const RELEASES = [
     status: "stable",
     changes: [
       {
-        type: "ui",
+        type: "new",
         text: "Daftar Harga sekarang transparan saat backdrop Vanta aktif, jadi lapisan abu-abu di belakang UI tidak lagi menutup background.",
         dev: "PriceListPage root backgroundColor now respects isVantaMode and stays transparent over Vanta; no data, routing, or PDF logic changed.",
       },
@@ -65,26 +77,6 @@ const RELEASES = [
         type: "new",
         text: "Ringkasan Minggu Ini sekarang menyatu ke stack header Dashboard, jadi tidak tampil sebagai card terpisah di bawah board tugas.",
         dev: "Dashboard header now carries the weekly summary inline; layout stays read-only and keeps the dashboard stack visually unified.",
-      },
-      {
-        type: "new",
-        text: "Saran Restock & Skor Kesehatan produk di Stok: produk yang hampir habis muncul dengan perkiraan 'habis ±N hari', dan tiap produk dapat nilai A–E dari perputaran, margin, tren, & risiko expired.",
-        dev: "GET /api/insights/restock (velocity blend 30d/90d base-pcs + days_left + avg 3 pembelian terakhir) & /product-health (skor 30/30/20/20 → A-E). Badge + Tooltip di InventoryDashboard.",
-      },
-      {
-        type: "new",
-        text: "Radar Customer Lama Tak Order di menu Customer: pelanggan yang sudah lewat 2× interval order normal dimunculkan, lengkap tombol salin/buka pesan WhatsApp follow-up.",
-        dev: "GET /api/insights/churn (median interval antar order via LAG + PERCENTILE_CONT, flag days_silent > 2×median). Section kartu + waMessage util.",
-      },
-      {
-        type: "new",
-        text: "Nota makin pintar: muncul saran 'sering dibeli bareng', peringatan kalau jumlah pesanan tak biasa, dan konfirmasi sebelum simpan kalau ada item dijual di bawah modal.",
-        dev: "GET /api/insights/copurchase (market-basket self-join 180d) + /baselines/sales (z-score qty). #1 save-guard modal item rugi (skipLossGuard).",
-      },
-      {
-        type: "new",
-        text: "Faktur pembelian mendeteksi harga beli tak wajar: kalau HNA yang diketik jauh dari kebiasaan produk itu, muncul pengingat 'kurang/kelebihan nol?'.",
-        dev: "GET /api/insights/baselines/purchase (median HNA 365d, guard n≥5 & deviasi >40%), fetch sekali per product_id (cache ref) di InvoiceList.",
       },
     ],
   },
@@ -3244,7 +3236,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.28.3-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.28.4-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

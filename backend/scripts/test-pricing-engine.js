@@ -16,7 +16,9 @@ const near = (a, b, tol = 1) => Math.abs(a - b) <= tol;
 
 console.log('1) psychologicalRound');
 assert('9.400 → 9.900', psychologicalRound(9400) === 9900, psychologicalRound(9400));
-assert('10.100 → 14.900', psychologicalRound(10100) === 14900, psychologicalRound(10100));
+assert('10.100 → 10.900', psychologicalRound(10100) === 10900, psychologicalRound(10100));
+assert('11.628 → 11.900', psychologicalRound(11628) === 11900, psychologicalRound(11628));
+assert('13.372 → 13.900', psychologicalRound(13372) === 13900, psychologicalRound(13372));
 assert('47.000 → 49.900', psychologicalRound(47000) === 49900, psychologicalRound(47000));
 assert('50.000 → 54.900', psychologicalRound(50000) === 54900, psychologicalRound(50000));
 assert('49.900 tetap 49.900', psychologicalRound(49900) === 49900, psychologicalRound(49900));

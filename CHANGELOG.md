@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.28.4-stable] - 2026-06-13
+
+### Changed
+- Saran Harga sekarang pakai pembulatan psikologis yang lebih halus untuk rentang harga kecil, jadi BEP/Laba Tipis/Laba Sehat/Aman Promo tidak lagi jatuh ke angka yang sama terus.
+- Tiap kartu saran harga kini bisa diklik langsung untuk memakai tier itu, bukan cuma tombol bawah.
+
 ## [v1.28.3-stable] - 2026-06-13
 
 ### Changed

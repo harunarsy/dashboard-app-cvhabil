@@ -126,32 +126,47 @@ function SuggestDrawer({ row, hpp, feeProfiles, isMobile, initialKey, onClose, o
     marginBottom: "6px",
   };
 
-  const priceRow = (label, raw, rounded, highlight) => (
-    <div
-      key={label}
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "9px 12px",
-        borderRadius: "10px",
-        backgroundColor: highlight ? "var(--color-primary-soft)" : "transparent",
-        border: highlight ? "1px solid var(--color-primary)" : `1px solid ${border}`,
-      }}
-    >
-      <div>
-        <div style={{ fontSize: "12px", fontWeight: highlight ? 700 : 600, color: highlight ? "var(--color-primary)" : text }}>
-          {label}
+  const priceRow = (label, raw, rounded, highlight) => {
+    const price = rounded != null ? rounded : raw;
+    const disabled = price == null;
+
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          if (!disabled) onApply(price, platform);
+        }}
+        className="ui-motion-button ui-focus-ring"
+        title={price != null ? `Klik untuk pakai ${fmtRp(price)} sebagai harga jual` : undefined}
+        disabled={disabled}
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "9px 12px",
+          borderRadius: "10px",
+          backgroundColor: highlight ? "var(--color-primary-soft)" : "transparent",
+          border: highlight ? "1px solid var(--color-primary)" : `1px solid ${border}`,
+          width: "100%",
+          cursor: disabled ? "default" : "pointer",
+          opacity: disabled ? 0.6 : 1,
+          textAlign: "left",
+        }}
+      >
+        <div>
+          <div style={{ fontSize: "12px", fontWeight: highlight ? 700 : 600, color: highlight ? "var(--color-primary)" : text }}>
+            {label}
+          </div>
+          {raw != null && rounded != null && raw !== rounded && (
+            <div style={{ fontSize: "10px", color: sub }}>hitungan: {fmtRp(raw)}</div>
+          )}
         </div>
-        {raw != null && rounded != null && raw !== rounded && (
-          <div style={{ fontSize: "10px", color: sub }}>hitungan: {fmtRp(raw)}</div>
-        )}
-      </div>
-      <div style={{ fontSize: "14px", fontWeight: 700, color: highlight ? "var(--color-primary)" : text }}>
-        {rounded != null ? fmtRp(rounded) : "—"}
-      </div>
-    </div>
-  );
+        <div style={{ fontSize: "14px", fontWeight: 700, color: highlight ? "var(--color-primary)" : text }}>
+          {price != null ? fmtRp(price) : "—"}
+        </div>
+      </button>
+    );
+  };
 
   return (
     <>
