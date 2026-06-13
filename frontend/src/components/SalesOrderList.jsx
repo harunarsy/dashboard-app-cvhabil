@@ -17,6 +17,7 @@ import {
   countersAPI,
   settingsAPI,
   priceListAPI,
+  insightsAPI,
 } from "../services/api";
 import {
   getProductUnits,
@@ -38,6 +39,11 @@ import FieldError from "./common/FieldError";
 import SearchBox from "./common/SearchBox";
 import ToastNotice from "./common/ToastNotice";
 import useDebouncedValue from "../hooks/useDebouncedValue";
+import {
+  buildNotaWaMessage,
+  buildWaUrl,
+  copyTextToClipboard,
+} from "../utils/waMessage";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -231,6 +237,9 @@ export default function SalesOrderList({
   });
   const [items, setItems] = useState([blankItem()]);
   const [itemBatches, setItemBatches] = useState([]);
+  const [customerInsights, setCustomerInsights] = useState([]);
+  const [customerInsightsLoading, setCustomerInsightsLoading] = useState(false);
+  const [addingInsightProduct, setAddingInsightProduct] = useState("");
   // v1.26.0: ✨ Harga Pintar — peta harga Daftar Harga per saluran; saat produk
   // dipilih di form, harga jual auto-isi sesuai saluran nota (offline/online)
   const [priceMap, setPriceMap] = useState({});
@@ -280,7 +289,35 @@ export default function SalesOrderList({
   const border = "var(--color-border)";
   const text = "var(--color-text)";
   const sub = "var(--color-text-muted)";
+  const selectedCustomer = customers.find((c) => c.name === form.customer_name);
   useBodyScrollLock(showModal || showPrintModal || !!deleteConfirmId);
+  useEffect(() => {
+    if (!showModal || !selectedCustomer?.id) {
+      setCustomerInsights([]);
+      setCustomerInsightsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setCustomerInsightsLoading(true);
+    insightsAPI
+      .getCustomer(selectedCustomer.id, { limit: 6 })
+      .then((res) => {
+        if (cancelled) return;
+        setCustomerInsights(res.data?.usually_buys || []);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          console.error("Customer insight fetch failed:", e);
+          setCustomerInsights([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCustomerInsightsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showModal, selectedCustomer?.id]);
   useEffect(() => {
     if (!showModal && !showPrintModal && !paymentModal.open) return;
     const onKey = (e) => {
@@ -980,6 +1017,87 @@ export default function SalesOrderList({
     setItemBatches(itemBatches.filter((_, i) => i !== idx));
   };
 
+  const prepareProductItem = async (productName, fallback = {}) => {
+    const prepared = {
+      ...blankItem(),
+      product_name: productName,
+      unit: fallback.last_unit || "pcs",
+      unit_price: parseFloat(fallback.last_unit_price) || 0,
+    };
+    const match = products.find(
+      (p) => p.name?.toLowerCase() === productName?.toLowerCase(),
+    );
+    if (!match) return { item: prepared, batches: [] };
+
+    prepared.unit_price =
+      parseFloat(match.sell_price) || prepared.unit_price || 0;
+    const smartPrice = priceMap[match.id];
+    const channelPrice =
+      form.channel === "online"
+        ? smartPrice?.shopee ?? smartPrice?.tokopedia_tiktok ?? null
+        : smartPrice?.offline ?? null;
+    if (channelPrice > 0) prepared.unit_price = channelPrice;
+    prepared.unit = match.base_unit || match.unit || prepared.unit || "pcs";
+    prepared._product_id = match.id;
+
+    try {
+      const [batchesResp, tiersResp] = await Promise.all([
+        inventoryAPI.getAvailableBatches(match.id),
+        inventoryAPI.getProductTiers(match.id).catch(() => ({ data: [] })),
+      ]);
+      const batches = batchesResp.data || [];
+      const tiers = tiersResp.data || [];
+      prepared._product = { ...match, price_tiers: tiers };
+      if (batches.length > 0) {
+        prepared.unit_hpp = parseFloat(batches[0].hna) || 0;
+        prepared.unit_hpp_tax_type =
+          batches[0].tax_type === "nota" ? "nota" : "faktur";
+        prepared._selected_batch = batches[0].batch_no;
+        prepared._selected_batch_id = batches[0].id || null;
+        prepared.batch_no_snapshot = batches[0].batch_no;
+        prepared.expired_date_snapshot = batches[0].expired_date;
+      } else {
+        prepared.unit_hpp = parseFloat(match.hna) || 0;
+        prepared.unit_hpp_tax_type = "faktur";
+      }
+      return { item: prepared, batches };
+    } catch (e) {
+      console.error("Insight product prefill failed:", e);
+      prepared.unit_hpp = parseFloat(match.hna) || 0;
+      prepared.unit_hpp_tax_type = "faktur";
+      prepared._product = match;
+      return { item: prepared, batches: [] };
+    }
+  };
+
+  const addInsightProduct = async (suggestion) => {
+    if (!suggestion?.product_name || addingInsightProduct) return;
+    setAddingInsightProduct(suggestion.product_name);
+    try {
+      const { item, batches } = await prepareProductItem(
+        suggestion.product_name,
+        suggestion,
+      );
+      const blankIndex = items.findIndex((it) => !it.product_name?.trim());
+      if (blankIndex >= 0) {
+        setItems((prev) => prev.map((it, i) => (i === blankIndex ? item : it)));
+        setItemBatches((prev) => {
+          const next = [...prev];
+          next[blankIndex] = batches;
+          return next;
+        });
+      } else {
+        setItems((prev) => [...prev, item]);
+        setItemBatches((prev) => [...prev, batches]);
+      }
+      flash(`Produk ${suggestion.product_name} ditambahkan dari riwayat customer`);
+    } catch (e) {
+      flash(e.message || "Gagal menambahkan produk dari insight", "error");
+    } finally {
+      setAddingInsightProduct("");
+    }
+  };
+
   // v1.7.0 multi-select handlers
   const toggleNotaSelect = (id) => {
     setSelectedNotaIds((prev) => {
@@ -1177,6 +1295,49 @@ export default function SalesOrderList({
   // v1.21.14: ongkir (ditagih) masuk grand total nota.
   const ongkirAmount = Math.max(0, parseFloat(form.ongkir) || 0);
   const grandTotal = productSubtotal + ongkirAmount;
+  const getItemMarginWarning = (item) => {
+    const price = parseFloat(item.unit_price) || 0;
+    const hpp = hppIncFor(item);
+    if (!(price > 0) || !(hpp > 0)) return null;
+    const marginPct = ((price - hpp) / price) * 100;
+    if (price < hpp) {
+      return {
+        type: "danger",
+        title: "Harga di bawah HPP",
+        detail: `HPP ${fmtRp(hpp)} lebih tinggi dari harga jual ${fmtRp(price)}.`,
+      };
+    }
+    if (marginPct < activeProfitThresholds.normal) {
+      return {
+        type: "warning",
+        title: "Margin tipis",
+        detail: `Estimasi margin ${formatProfitPct(marginPct)} — cek lagi sebelum simpan.`,
+      };
+    }
+    return null;
+  };
+  const currentWaMessage = () =>
+    buildNotaWaMessage({
+      form,
+      items: items.filter((item) => item.product_name?.trim()),
+      total: grandTotal,
+    });
+  const handleCopyWaMessage = async () => {
+    try {
+      await copyTextToClipboard(currentWaMessage());
+      flash("Draft pesan WA disalin");
+    } catch (e) {
+      flash(e.message || "Gagal menyalin draft WA", "error");
+    }
+  };
+  const handleOpenWaMessage = () => {
+    const url = buildWaUrl(form.customer_phone, currentWaMessage());
+    if (!url) {
+      flash("No. HP customer belum diisi", "error");
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   const inputStyle = {
     width: "100%",
@@ -2669,6 +2830,93 @@ export default function SalesOrderList({
                     />
                   </div>
 
+                  {selectedCustomer && (
+                    <div
+                      style={{
+                        border: `1px solid ${border}`,
+                        borderRadius: "12px",
+                        padding: "12px",
+                        backgroundColor: "var(--color-bg-subtle)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "8px",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        <div>
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              fontWeight: "800",
+                              color: text,
+                            }}
+                          >
+                            Mini AI: Biasanya beli
+                          </div>
+                          <div style={{ fontSize: "11px", color: sub }}>
+                            Dari riwayat customer — klik chip untuk prefill baris
+                            produk.
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: "800",
+                            color: "var(--color-primary)",
+                            backgroundColor: "var(--color-primary-soft)",
+                            borderRadius: "999px",
+                            padding: "4px 8px",
+                          }}
+                        >
+                          non-blocking
+                        </span>
+                      </div>
+                      {customerInsightsLoading ? (
+                        <p style={{ margin: 0, fontSize: "11px", color: sub }}>
+                          Memuat riwayat...
+                        </p>
+                      ) : customerInsights.length > 0 ? (
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                          {customerInsights.map((item) => (
+                            <button
+                              key={`${item.product_name}-${item.product_id || "legacy"}`}
+                              type="button"
+                              onClick={() => addInsightProduct(item)}
+                              disabled={!!addingInsightProduct}
+                              style={{
+                                border: `1px solid ${border}`,
+                                borderRadius: "999px",
+                                padding: "7px 10px",
+                                backgroundColor: "var(--color-surface)",
+                                color: text,
+                                cursor: addingInsightProduct ? "wait" : "pointer",
+                                fontSize: "11px",
+                                fontWeight: "700",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                            >
+                              <span>{item.product_name}</span>
+                              <span style={{ color: sub }}>
+                                {item.order_count}x
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p style={{ margin: 0, fontSize: "11px", color: sub }}>
+                          Belum ada riwayat produk untuk customer ini.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <div
                     style={{
                       display: "grid",
@@ -2995,6 +3243,7 @@ export default function SalesOrderList({
                       const unitOptions = getProductUnits(product);
                       const showConversion =
                         product && isPackUnit(it.unit, product) && it.qty > 0;
+                      const marginWarning = getItemMarginWarning(it);
                       return (
                         <div key={idx} style={{ marginBottom: "10px" }}>
                           <div
@@ -3147,6 +3396,33 @@ export default function SalesOrderList({
                             >
                               🏷️ Harga grosir tier diaplikasikan
                             </p>
+                          )}
+                          {marginWarning && (
+                            <div
+                              style={{
+                                marginTop: "6px",
+                                padding: "8px 10px",
+                                borderRadius: "10px",
+                                border: `1px solid ${
+                                  marginWarning.type === "danger"
+                                    ? "var(--color-danger)"
+                                    : "var(--color-warning)"
+                                }`,
+                                backgroundColor:
+                                  marginWarning.type === "danger"
+                                    ? "var(--color-danger-soft)"
+                                    : "var(--color-warning-soft)",
+                                color:
+                                  marginWarning.type === "danger"
+                                    ? "var(--color-danger)"
+                                    : "var(--color-warning)",
+                                fontSize: "11px",
+                                lineHeight: 1.45,
+                              }}
+                            >
+                              <strong>{marginWarning.title}</strong> —{" "}
+                              {marginWarning.detail}
+                            </div>
                           )}
                           {batches.length > 0 && (
                             <div
@@ -3358,6 +3634,51 @@ export default function SalesOrderList({
                     >
                       {fmtRp(grandTotal)}
                     </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "8px",
+                      flexWrap: "wrap",
+                      padding: "10px 0",
+                      borderTop: `1px solid ${border}`,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={handleCopyWaMessage}
+                      style={{
+                        flex: "1 1 150px",
+                        padding: "10px 12px",
+                        border: `1px solid ${border}`,
+                        borderRadius: "10px",
+                        backgroundColor: "var(--color-surface-elevated)",
+                        color: text,
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                      }}
+                    >
+                      Salin Draft WA
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenWaMessage}
+                      style={{
+                        flex: "1 1 150px",
+                        padding: "10px 12px",
+                        border: `1px solid var(--color-success)`,
+                        borderRadius: "10px",
+                        backgroundColor: "var(--color-success-soft)",
+                        color: "var(--color-success)",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        fontWeight: "800",
+                      }}
+                    >
+                      Buka WhatsApp
+                    </button>
                   </div>
 
                   {/* Buttons */}

@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.26.2-stable",
+    version: "v1.27.0-stable",
     date: "13 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Mini AI awal hadir di form Nota: sistem memberi peringatan harga rugi atau margin tipis, menampilkan produk yang biasanya dibeli customer, dan menyediakan draft pesan WhatsApp yang bisa disalin atau dibuka langsung.",
+        dev: "Added auth-protected GET /api/insights/customer/:id, cached insightsAPI wrapper, WA draft utility, non-blocking Sales form margin guard, customer usual-buy chips, and WA draft actions. No stock/save payload/PDF formula changes.",
+      },
+    ],
+  },
+  {
+    version: "v1.26.2-stable",
+    date: "13 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -3176,7 +3188,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.26.2-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.27.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

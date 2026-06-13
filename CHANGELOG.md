@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.27.0-stable] - 2026-06-13
+
+### Added
+- **Mini AI awal di Nota Penjualan**: form Nota sekarang punya warning non-blocking kalau harga jual berada di bawah HPP atau margin terlalu tipis, sehingga operator bisa koreksi sebelum simpan tanpa mengubah flow lama.
+- **Insight customer “Biasanya Beli”**: ketika customer dipilih, form menampilkan produk yang sering dibeli berdasarkan riwayat penjualan. Chip bisa diklik untuk prefill baris produk lewat jalur batch/HPP existing.
+- **Draft pesan WhatsApp**: form Nota menyediakan tombol salin draft WA dan buka WhatsApp dari ringkasan nota saat ini.
+- **Endpoint insight read-only**: tambah `GET /api/insights/customer/:id` yang auth-protected dan parameterized untuk riwayat pembelian customer.
+
+### Safety
+- Semua fitur Mini AI v1.27.0 bersifat non-blocking dan tidak mengubah payload simpan Nota, stok, batch, FEFO, HNA/HPP/PPN, atau generator PDF.
+
 ## [v1.26.2-stable] - 2026-06-13
 
 ### Changed

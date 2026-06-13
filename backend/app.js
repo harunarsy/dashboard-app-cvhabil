@@ -94,6 +94,7 @@ app.use('/api/ledger', require('./routes/ledger'));
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/print-settings', require('./routes/printSettings'));
 app.use('/api/price-list', require('./routes/priceList'));
+app.use('/api/insights', require('./routes/insights'));
 
 // Error handler
 app.use((err, req, res, next) => {

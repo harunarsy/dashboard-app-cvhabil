@@ -207,6 +207,19 @@ export const priceListAPI = {
   recommend: (data) => api.post('/price-list/recommend', data),
 };
 
+export const insightsAPI = {
+  getCustomer: (id, params) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const url = `/insights/customer/${id}${qs}`;
+    const cached = cacheGet(url);
+    if (cached) return Promise.resolve({ data: cached });
+    return api.get(`/insights/customer/${id}`, { params }).then((res) => {
+      cacheSet(url, res.data);
+      return res;
+    });
+  },
+};
+
 export const salesAPI = {
   getAll: () => api.get('/sales'),
   getById: (id) => api.get(`/sales/${id}`),
