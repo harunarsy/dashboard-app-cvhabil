@@ -2,6 +2,24 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.28.0-stable] - 2026-06-13
+
+### Added — Mini AI (rule-based, tanpa API eksternal)
+- **#7 Ringkasan Minggu Ini (Dashboard)**: kartu omzet & margin 7 hari terakhir vs minggu sebelumnya + produk naik-daun/melambat, dirangkai jadi kalimat. Endpoint `GET /api/insights/weekly-summary`.
+- **#2 Saran Restock (Stok)**: prediksi habis stok dari kecepatan jual (blend 30d/90d base-pcs) → "habis ±N hari · biasa order M". Endpoint `GET /api/insights/restock`.
+- **#9 Skor Kesehatan Produk A–E (Stok)**: bobot perputaran 30 + margin 30 + tren 20 + risiko ED 20. Badge + tooltip rincian. Endpoint `GET /api/insights/product-health`.
+- **#5 Radar Customer Hilang (Customer)**: customer yang lewat 2× interval order normal (median interval via LAG + PERCENTILE_CONT) + tombol WA follow-up. Endpoint `GET /api/insights/churn`.
+- **#10 Sering Dibeli Bersama (Nota)**: market-basket self-join 180 hari → chip "+ produk (confidence%)" 1-klik tambah. Endpoint `GET /api/insights/copurchase`.
+- **#3 Deteksi Anomali Input**: qty nota tak biasa (z-score, `GET /api/insights/baselines/sales`) & HNA faktur menyimpang >40% dari median (`GET /api/insights/baselines/purchase`) — warning non-blocking.
+- **#1 Penjaga Harga Rugi (Nota)**: konfirmasi modal sebelum simpan kalau ada item dijual di bawah HPP.
+
+### Backend
+- Route baru `routes/insights.js` (auth, parameterized, satu query efisien/endpoint, formula HPP `unitHppCostSql` konsisten dashboard.js).
+- `sales_orders.settlement_amount` (idempotent ALTER) sebagai fondasi #6 Fee Marketplace Belajar — endpoint `GET /api/insights/effective-fees` siap; UI input settlement + saran fee ditunda (nota belum per-platform).
+
+### Safety
+- Semua fitur non-blocking, read-only kecuali kolom baru idempotent. Tidak menyentuh stok, batch, FEFO, HNA/HPP/PPN, payload simpan inti, atau generator PDF.
+
 ## [v1.27.0-stable] - 2026-06-13
 
 ### Added

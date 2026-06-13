@@ -33,9 +33,41 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.27.0-stable",
+    version: "v1.28.0-stable",
     date: "13 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Ringkasan Minggu Ini di Dashboard: omzet & margin 7 hari terakhir vs minggu lalu, plus produk yang lagi naik daun dan yang melambat — dirangkum dalam satu kalimat.",
+        dev: "GET /api/insights/weekly-summary (revenue/margin this-vs-prev 7d + top movers by Δrevenue), kartu template-string di Dashboard. Margin pakai unitHppCostSql konsisten dashboard.js.",
+      },
+      {
+        type: "new",
+        text: "Saran Restock & Skor Kesehatan produk di Stok: produk yang hampir habis muncul dengan perkiraan 'habis ±N hari', dan tiap produk dapat nilai A–E dari perputaran, margin, tren, & risiko expired.",
+        dev: "GET /api/insights/restock (velocity blend 30d/90d base-pcs + days_left + avg 3 pembelian terakhir) & /product-health (skor 30/30/20/20 → A-E). Badge + Tooltip di InventoryDashboard.",
+      },
+      {
+        type: "new",
+        text: "Radar Customer Lama Tak Order di menu Customer: pelanggan yang sudah lewat 2× interval order normal dimunculkan, lengkap tombol salin/buka pesan WhatsApp follow-up.",
+        dev: "GET /api/insights/churn (median interval antar order via LAG + PERCENTILE_CONT, flag days_silent > 2×median). Section kartu + waMessage util.",
+      },
+      {
+        type: "new",
+        text: "Nota makin pintar: muncul saran 'sering dibeli bareng', peringatan kalau jumlah pesanan tak biasa, dan konfirmasi sebelum simpan kalau ada item dijual di bawah modal.",
+        dev: "GET /api/insights/copurchase (market-basket self-join 180d) + /baselines/sales (z-score qty). #1 save-guard modal item rugi (skipLossGuard).",
+      },
+      {
+        type: "new",
+        text: "Faktur pembelian mendeteksi harga beli tak wajar: kalau HNA yang diketik jauh dari kebiasaan produk itu, muncul pengingat 'kurang/kelebihan nol?'.",
+        dev: "GET /api/insights/baselines/purchase (median HNA 365d, guard n≥5 & deviasi >40%), fetch sekali per product_id (cache ref) di InvoiceList.",
+      },
+    ],
+  },
+  {
+    version: "v1.27.0-stable",
+    date: "13 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "new",
@@ -3188,7 +3220,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.27.0-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.28.0-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 
@@ -3273,6 +3305,21 @@ export default function Dashboard({
     dailyNota30d: [],
     stockMovement30d: [],
   });
+
+  // v1.28.0 (#7): ringkasan bisnis mingguan — 7 hari terakhir vs sebelumnya.
+  const [weekly, setWeekly] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get("/insights/weekly-summary")
+      .then(({ data }) => {
+        if (!cancelled) setWeekly(data);
+      })
+      .catch((e) => console.error("Failed to fetch weekly summary", e));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -3603,6 +3650,119 @@ export default function Dashboard({
           );
         })}
       </div>
+
+      {/* ✨ Ringkasan Minggu Ini (#7) */}
+      {weekly &&
+        (() => {
+          const revThis = Number(weekly?.revenue?.this_week) || 0;
+          const revPrev = Number(weekly?.revenue?.prev_week) || 0;
+          const revPct = revPrev > 0 ? ((revThis - revPrev) / revPrev) * 100 : null;
+          const mThis = Number(weekly?.margin_pct?.this_week) || 0;
+          const mPrev = Number(weekly?.margin_pct?.prev_week) || 0;
+          const mDelta = Math.round((mThis - mPrev) * 10) / 10;
+          const topUp = Array.isArray(weekly?.top_up) ? weekly.top_up : [];
+          const topDown = Array.isArray(weekly?.top_down) ? weekly.top_down : [];
+          const revUp = revPct === null ? null : revPct >= 0;
+          const sentence =
+            revThis === 0 && revPrev === 0
+              ? "Belum ada penjualan tercatat dalam 14 hari terakhir."
+              : [
+                  `Omzet minggu ini ${formatRupiah(revThis)}` +
+                    (revPct === null
+                      ? " (belum ada pembanding minggu lalu)."
+                      : ` (${revUp ? "naik" : "turun"} ${Math.abs(revPct).toFixed(0)}% vs minggu lalu).`),
+                  `Margin produk ${mThis.toFixed(1)}%` +
+                    (mDelta === 0
+                      ? " (stabil)."
+                      : ` (${mDelta > 0 ? "naik" : "turun"} ${Math.abs(mDelta).toFixed(1)} poin).`),
+                  topUp.length ? `Naik daun: ${topUp.map((p) => p.name).slice(0, 2).join(", ")}.` : "",
+                  topDown.length ? `Melambat: ${topDown.map((p) => p.name).slice(0, 2).join(", ")}.` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+          return (
+            <section
+              className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm mb-10"
+              style={{ backgroundColor: cardBg, borderColor: border }}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles size={18} style={{ color: "var(--color-primary)" }} />
+                <h2 className="text-lg font-bold" style={{ color: text }}>
+                  Ringkasan Minggu Ini
+                </h2>
+              </div>
+              <p
+                className="text-sm font-medium mb-5"
+                style={{ color: sub, lineHeight: 1.6 }}
+              >
+                {sentence}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div
+                  className="rounded-2xl p-4"
+                  style={{ backgroundColor: "var(--color-bg)", border: `1px solid ${border}` }}
+                >
+                  <p className="text-xs font-semibold mb-1" style={{ color: sub }}>
+                    Omzet 7 hari
+                  </p>
+                  <p className="text-xl font-bold" style={{ color: text }}>
+                    {formatRupiah(revThis)}
+                  </p>
+                  {revPct !== null && (
+                    <p
+                      className="text-xs font-semibold mt-1"
+                      style={{ color: revUp ? "var(--color-success)" : "var(--color-danger)" }}
+                    >
+                      {revUp ? "▲" : "▼"} {Math.abs(revPct).toFixed(0)}% vs minggu lalu
+                    </p>
+                  )}
+                </div>
+                <div
+                  className="rounded-2xl p-4"
+                  style={{ backgroundColor: "var(--color-bg)", border: `1px solid ${border}` }}
+                >
+                  <p className="text-xs font-semibold mb-1" style={{ color: sub }}>
+                    Margin produk
+                  </p>
+                  <p className="text-xl font-bold" style={{ color: text }}>
+                    {mThis.toFixed(1)}%
+                  </p>
+                  {mDelta !== 0 && (
+                    <p
+                      className="text-xs font-semibold mt-1"
+                      style={{ color: mDelta > 0 ? "var(--color-success)" : "var(--color-warning)" }}
+                    >
+                      {mDelta > 0 ? "▲" : "▼"} {Math.abs(mDelta).toFixed(1)} poin
+                    </p>
+                  )}
+                </div>
+                <div
+                  className="rounded-2xl p-4"
+                  style={{ backgroundColor: "var(--color-bg)", border: `1px solid ${border}` }}
+                >
+                  <p className="text-xs font-semibold mb-1" style={{ color: sub }}>
+                    Produk bergerak
+                  </p>
+                  {topUp.slice(0, 2).map((p) => (
+                    <p key={`up-${p.name}`} className="text-xs font-medium truncate" style={{ color: text }}>
+                      <span style={{ color: "var(--color-success)" }}>▲</span> {p.name}
+                    </p>
+                  ))}
+                  {topDown.slice(0, 2).map((p) => (
+                    <p key={`dn-${p.name}`} className="text-xs font-medium truncate" style={{ color: text }}>
+                      <span style={{ color: "var(--color-warning)" }}>▼</span> {p.name}
+                    </p>
+                  ))}
+                  {!topUp.length && !topDown.length && (
+                    <p className="text-xs" style={{ color: sub }}>
+                      Belum ada data
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+          );
+        })()}
 
       {/* Activity Heatmap */}
       <section

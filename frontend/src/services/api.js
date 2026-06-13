@@ -218,6 +218,19 @@ export const insightsAPI = {
       return res;
     });
   },
+  getRestock: () => api.get('/insights/restock'),
+  getProductHealth: () => api.get('/insights/product-health'),
+  getWeeklySummary: () => api.get('/insights/weekly-summary'),
+  getCopurchase: (productName) =>
+    api.get('/insights/copurchase', { params: { product_name: productName } }),
+  getSalesBaseline: (productName, customerName) =>
+    api.get('/insights/baselines/sales', {
+      params: { product_name: productName, ...(customerName ? { customer_name: customerName } : {}) },
+    }),
+  getPurchaseBaseline: (productId) =>
+    api.get('/insights/baselines/purchase', { params: { product_id: productId } }),
+  getChurn: () => api.get('/insights/churn'),
+  getEffectiveFees: () => api.get('/insights/effective-fees'),
 };
 
 export const salesAPI = {

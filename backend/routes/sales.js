@@ -87,6 +87,9 @@ const ensureSchema = async () => {
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS payment_fee_rate NUMERIC(7,5) DEFAULT 0`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS payment_fee_mode VARCHAR(10) DEFAULT 'absorb'`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS payment_fee DECIMAL(15,2) DEFAULT 0`);
+    // v1.27.x (#6 fee belajar): uang yang BENAR-BENAR masuk dari marketplace (opsional,
+    // diisi operator) → fee efektif nyata = 1 - settlement/total.
+    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS settlement_amount DECIMAL(15,2)`);
     // v1.16.2+: batch_id_snapshot for tracking selected batch in sales_items
     await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS batch_id_snapshot INT`);
 	    await pool.query(`CREATE INDEX IF NOT EXISTS idx_sales_items_batch_snapshot ON sales_items(batch_id_snapshot)`);

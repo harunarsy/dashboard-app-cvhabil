@@ -17,7 +17,7 @@ import {
   Camera,
   Barcode,
 } from "lucide-react";
-import { inventoryAPI, printSettingsAPI } from "../services/api";
+import { inventoryAPI, printSettingsAPI, insightsAPI } from "../services/api";
 import { BASE_UNITS, PACK_UNITS } from "../constants/units";
 import MasterSelect from "./MasterSelect";
 import Skeleton from "./common/Skeleton";
@@ -141,6 +141,9 @@ export default function InventoryDashboard({
   const [batchActionSaving, setBatchActionSaving] = useState(false);
   const [scannerMode, setScannerMode] = useState(null); // stockIn | stockOut
   const [barcodePrintOpen, setBarcodePrintOpen] = useState(false);
+  // v1.28.0 mini-AI: #2 saran restock + #9 skor kesehatan produk
+  const [restockItems, setRestockItems] = useState([]);
+  const [healthScores, setHealthScores] = useState({}); // product_id -> {grade,score,metrics}
 
   // Product form (v1.6.0 multi-unit: base_unit + pack_unit + pack_size + sell_price_pack; v1.7.0 tiers)
   const [pForm, setPForm] = useState({
@@ -209,11 +212,29 @@ export default function InventoryDashboard({
       console.error(e);
     }
   }, []);
+  // v1.28.0 mini-AI: saran restock (#2) + skor kesehatan (#9), best-effort.
+  const fetchInsights = useCallback(async () => {
+    try {
+      const [restockRes, healthRes] = await Promise.all([
+        insightsAPI.getRestock(),
+        insightsAPI.getProductHealth(),
+      ]);
+      setRestockItems(restockRes.data?.items || []);
+      const map = {};
+      (healthRes.data?.items || []).forEach((it) => {
+        map[it.product_id] = it;
+      });
+      setHealthScores(map);
+    } catch (e) {
+      console.error("Failed to fetch inventory insights:", e);
+    }
+  }, []);
 
   useEffect(() => {
     fetchProducts();
     fetchAlerts();
-  }, [fetchProducts, fetchAlerts]);
+    fetchInsights();
+  }, [fetchProducts, fetchAlerts, fetchInsights]);
   useEffect(
     () => () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -897,6 +918,94 @@ export default function InventoryDashboard({
         </div>
       )}
 
+      {/* ✨ Saran Restock (#2) */}
+      {tab === "products" && restockItems.length > 0 && (
+        <div
+          className="ui-panel"
+          style={{
+            marginBottom: "1.25rem",
+            padding: "14px 16px",
+            borderRadius: "14px",
+            border: `1px solid ${border}`,
+            backgroundColor: cardBg,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: text }}>✨ Saran Restock</span>
+            <span style={{ fontSize: 11, color: sub }}>
+              {restockItems.length} produk hampir habis
+            </span>
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(260px, 1fr))",
+              gap: 8,
+            }}
+          >
+            {restockItems.slice(0, 12).map((item) => {
+              const tone = item.days_left < 7 ? "danger" : item.days_left < 14 ? "warning" : "primary";
+              return (
+                <button
+                  key={item.product_id}
+                  type="button"
+                  onClick={() => setDrawerProductId(item.product_id)}
+                  className="ui-focus-ring"
+                  style={{
+                    textAlign: "left",
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    background: surface,
+                    border: `1px solid ${border}`,
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <span style={{ minWidth: 0 }}>
+                    <span
+                      style={{
+                        display: "block",
+                        fontWeight: 700,
+                        color: text,
+                        fontSize: 12.5,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {item.name}
+                    </span>
+                    <span style={{ display: "block", marginTop: 3, fontSize: 11, color: sub }}>
+                      stok {item.stock} · laku ~{item.velocity_per_day}/hari
+                      {item.avg_order_qty
+                        ? ` · biasa order ${Math.round(item.avg_order_qty)} ${item.order_unit}`
+                        : ""}
+                    </span>
+                  </span>
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      padding: "3px 9px",
+                      borderRadius: 999,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      backgroundColor: `var(--color-${tone}-soft)`,
+                      color: `var(--color-${tone})`,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    ±{item.days_left} hari
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ─── Products Tab ───────────────────────────────────────────────── */}
       {tab === "products" && (
         <div
@@ -1163,6 +1272,39 @@ export default function InventoryDashboard({
                               >
                                 {p.name}
                               </button>
+                              {healthScores[p.id] &&
+                                (() => {
+                                  const h = healthScores[p.id];
+                                  const c =
+                                    h.grade === "A" || h.grade === "B"
+                                      ? "success"
+                                      : h.grade === "C"
+                                        ? "warning"
+                                        : "danger";
+                                  const m = h.metrics || {};
+                                  return (
+                                    <Tooltip
+                                      text={`Skor ${h.score}/100 · laku ${m.movement}% · margin ${m.margin_pct}% · tren ${m.trend}% · risiko ED ${m.ed_risk}%`}
+                                      position="top"
+                                    >
+                                      <span
+                                        style={{
+                                          display: "inline-block",
+                                          marginLeft: 8,
+                                          padding: "1px 7px",
+                                          borderRadius: 6,
+                                          fontSize: 11,
+                                          fontWeight: 800,
+                                          verticalAlign: "middle",
+                                          backgroundColor: `var(--color-${c}-soft)`,
+                                          color: `var(--color-${c})`,
+                                        }}
+                                      >
+                                        {h.grade}
+                                      </span>
+                                    </Tooltip>
+                                  );
+                                })()}
                               {p.category && (
                                 <p
                                   style={{

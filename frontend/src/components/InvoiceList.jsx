@@ -6,6 +6,7 @@ import {
   inventoryAPI,
   auditAPI,
   purchaseOrdersAPI,
+  insightsAPI,
 } from "../services/api";
 import {
   BASE_UNITS,
@@ -4064,6 +4065,26 @@ function InvoiceModal({
   const r2 = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" };
   // v1.8.0: collapsible "Detail kalkulasi" per row — default hidden (clean UX, on-demand transparency)
   const [showDetailRows, setShowDetailRows] = useState(new Set());
+  // v1.28.0 (#3): baseline HNA per produk untuk deteksi anomali harga beli (cache, fetch 1x/produk)
+  const hnaBaselineFetchingRef = useRef({});
+  const [hnaBaselines, setHnaBaselines] = useState({});
+  useEffect(() => {
+    const ids = [...new Set(items.map((i) => i.product_id).filter(Boolean))];
+    const missing = ids.filter(
+      (id) => !(id in hnaBaselines) && !hnaBaselineFetchingRef.current[id],
+    );
+    if (!missing.length) return;
+    missing.forEach((id) => {
+      hnaBaselineFetchingRef.current[id] = true;
+      insightsAPI
+        .getPurchaseBaseline(id)
+        .then(({ data }) => setHnaBaselines((prev) => ({ ...prev, [id]: data })))
+        .catch(() => {})
+        .finally(() => {
+          hnaBaselineFetchingRef.current[id] = false;
+        });
+    });
+  }, [items, hnaBaselines]);
   const toggleDetail = (id) =>
     setShowDetailRows((prev) => {
       const n = new Set(prev);
@@ -4657,6 +4678,35 @@ function InvoiceModal({
                           ? `Disimpan sebagai HNA exc PPN: ${formatRp(parseNum(item.hna), true)}`
                           : `Estimasi HPP inc PPN: ${formatRp(parseNum(item.hna) * (1 + PPN_RATE), true)}`}
                     </p>
+                    {(() => {
+                      const b = hnaBaselines[item.product_id];
+                      const hna = parseNum(item.hna);
+                      if (
+                        !b ||
+                        !b.n_samples ||
+                        b.n_samples < 5 ||
+                        !b.hna_median ||
+                        !(hna > 0)
+                      )
+                        return null;
+                      const dev = Math.abs(hna - b.hna_median) / b.hna_median;
+                      if (dev <= 0.4) return null;
+                      return (
+                        <p
+                          style={{
+                            margin: "5px 0 0",
+                            fontSize: "10.5px",
+                            fontWeight: 600,
+                            color: "var(--color-warning)",
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          ⚠️ Harga beli biasanya ±{formatRp(b.hna_median, true)}, ini{" "}
+                          {formatRp(hna, true)} —{" "}
+                          {hna < b.hna_median ? "kurang" : "kelebihan"} nol?
+                        </p>
+                      );
+                    })()}
                   </div>
                   <div
                     style={{

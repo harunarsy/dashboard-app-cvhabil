@@ -240,6 +240,12 @@ export default function SalesOrderList({
   const [customerInsights, setCustomerInsights] = useState([]);
   const [customerInsightsLoading, setCustomerInsightsLoading] = useState(false);
   const [addingInsightProduct, setAddingInsightProduct] = useState("");
+  // v1.28.0: #10 sering dibeli bersama + #3 anomali qty + #1 save-guard rugi
+  const [copurchaseMap, setCopurchaseMap] = useState({}); // lowername -> [{name,confidence}]
+  const [salesBaselines, setSalesBaselines] = useState({}); // name||cust -> {n_samples,qty_mean,qty_std}
+  const [lossConfirm, setLossConfirm] = useState(null); // array item rugi sebelum simpan
+  const copurFetchingRef = useRef({});
+  const baseFetchingRef = useRef({});
   // v1.26.0: ✨ Harga Pintar — peta harga Daftar Harga per saluran; saat produk
   // dipilih di form, harga jual auto-isi sesuai saluran nota (offline/online)
   const [priceMap, setPriceMap] = useState({});
@@ -318,6 +324,42 @@ export default function SalesOrderList({
       cancelled = true;
     };
   }, [showModal, selectedCustomer?.id]);
+
+  // v1.28.0: #10 co-purchase + #3 baseline qty per produk di form (fetch sekali/produk).
+  useEffect(() => {
+    if (!showModal) return;
+    const names = [
+      ...new Set(items.map((it) => it.product_name?.trim()).filter(Boolean)),
+    ];
+    if (!names.length) return;
+    const cust = (form.customer_name || "").trim();
+    names.forEach((nm) => {
+      const ck = nm.toLowerCase();
+      if (!(ck in copurchaseMap) && !copurFetchingRef.current[ck]) {
+        copurFetchingRef.current[ck] = true;
+        insightsAPI
+          .getCopurchase(nm)
+          .then(({ data }) =>
+            setCopurchaseMap((prev) => ({ ...prev, [ck]: data?.items || [] })),
+          )
+          .catch(() => {})
+          .finally(() => {
+            copurFetchingRef.current[ck] = false;
+          });
+      }
+      const bk = `${ck}||${cust.toLowerCase()}`;
+      if (!(bk in salesBaselines) && !baseFetchingRef.current[bk]) {
+        baseFetchingRef.current[bk] = true;
+        insightsAPI
+          .getSalesBaseline(nm, cust)
+          .then(({ data }) => setSalesBaselines((prev) => ({ ...prev, [bk]: data })))
+          .catch(() => {})
+          .finally(() => {
+            baseFetchingRef.current[bk] = false;
+          });
+      }
+    });
+  }, [items, showModal, form.customer_name, copurchaseMap, salesBaselines]);
   useEffect(() => {
     if (!showModal && !showPrintModal && !paymentModal.open) return;
     const onKey = (e) => {
@@ -889,7 +931,7 @@ export default function SalesOrderList({
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (skipLossGuard = false) => {
     setSaveError("");
     const errors = {};
     if (!form.customer_name.trim())
@@ -900,6 +942,19 @@ export default function SalesOrderList({
       errors.order_number = "Nomor Nota wajib diisi (mode Manual)";
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
+
+    // #1 Penjaga Harga Rugi: kalau ada item di bawah HPP, konfirmasi dulu (non-blocking).
+    if (!skipLossGuard) {
+      const lossItems = validItems.filter((it) => {
+        const price = parseFloat(it.unit_price) || 0;
+        const hpp = hppIncFor(it);
+        return price > 0 && hpp > 0 && price < hpp;
+      });
+      if (lossItems.length) {
+        setLossConfirm(lossItems);
+        return;
+      }
+    }
 
     setSaving(true);
     try {
@@ -3152,6 +3207,113 @@ export default function SalesOrderList({
                     </select>
                   </div>
 
+                  {/* #1 konfirmasi item rugi sebelum simpan */}
+                  {lossConfirm &&
+                    renderPortal(
+                      <div
+                        onClick={() => setLossConfirm(null)}
+                        style={{
+                          position: "fixed",
+                          inset: 0,
+                          zIndex: 1000,
+                          background: "rgba(0,0,0,0.5)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "16px",
+                        }}
+                      >
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            background: "var(--color-surface)",
+                            border: `1px solid ${border}`,
+                            borderRadius: "16px",
+                            maxWidth: "440px",
+                            width: "100%",
+                            padding: "20px",
+                          }}
+                        >
+                          <h3
+                            style={{
+                              margin: "0 0 8px",
+                              fontSize: "16px",
+                              fontWeight: 800,
+                              color: "var(--color-danger)",
+                            }}
+                          >
+                            ⚠️ Ada item di bawah modal
+                          </h3>
+                          <p
+                            style={{
+                              margin: "0 0 12px",
+                              fontSize: "13px",
+                              color: sub,
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            Item berikut dijual di bawah HPP (rugi). Lanjut simpan?
+                          </p>
+                          <ul
+                            style={{
+                              margin: "0 0 16px",
+                              paddingLeft: "18px",
+                              fontSize: "12.5px",
+                              color: text,
+                              lineHeight: 1.7,
+                            }}
+                          >
+                            {lossConfirm.map((it, i) => (
+                              <li key={i}>
+                                <strong>{it.product_name}</strong> — harga{" "}
+                                {fmtRp(parseFloat(it.unit_price) || 0)} &lt; HPP{" "}
+                                {fmtRp(hppIncFor(it))}
+                              </li>
+                            ))}
+                          </ul>
+                          <div
+                            style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setLossConfirm(null)}
+                              style={{
+                                padding: "9px 14px",
+                                borderRadius: "10px",
+                                border: `1px solid ${border}`,
+                                background: "var(--color-surface)",
+                                color: text,
+                                fontWeight: 700,
+                                fontSize: "13px",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Batal, cek lagi
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLossConfirm(null);
+                                handleSave(true);
+                              }}
+                              style={{
+                                padding: "9px 14px",
+                                borderRadius: "10px",
+                                border: "none",
+                                background: "var(--color-danger)",
+                                color: "#fff",
+                                fontWeight: 800,
+                                fontSize: "13px",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Lanjut simpan
+                            </button>
+                          </div>
+                        </div>
+                      </div>,
+                    )}
+
                   {/* Items */}
                   <div>
                     <label
@@ -3424,6 +3586,89 @@ export default function SalesOrderList({
                               {marginWarning.detail}
                             </div>
                           )}
+                          {/* #3 anomali qty */}
+                          {(() => {
+                            const cust = (form.customer_name || "").trim().toLowerCase();
+                            const key = `${(it.product_name || "").trim().toLowerCase()}||${cust}`;
+                            const b = salesBaselines[key];
+                            const qty = saleItemDisplayQty(it);
+                            if (
+                              !b ||
+                              !b.n_samples ||
+                              b.n_samples < 5 ||
+                              !b.qty_std ||
+                              b.qty_std <= 0 ||
+                              !(qty > 0)
+                            )
+                              return null;
+                            if (Math.abs(qty - b.qty_mean) <= 2 * b.qty_std) return null;
+                            return (
+                              <div
+                                style={{
+                                  marginTop: "6px",
+                                  padding: "7px 10px",
+                                  borderRadius: "9px",
+                                  border: `1px solid var(--color-warning)`,
+                                  backgroundColor: "var(--color-warning-soft)",
+                                  color: "var(--color-warning)",
+                                  fontSize: "11px",
+                                  lineHeight: 1.4,
+                                }}
+                              >
+                                Biasanya {Math.round(b.qty_mean)} {it.unit} (±
+                                {Math.round(b.qty_std)}), ini {qty} — yakin?
+                              </div>
+                            );
+                          })()}
+                          {/* #10 sering dibeli bersama */}
+                          {(() => {
+                            const sugg =
+                              copurchaseMap[(it.product_name || "").trim().toLowerCase()];
+                            if (!sugg || !sugg.length) return null;
+                            const cartNames = new Set(
+                              items.map((x) => (x.product_name || "").trim().toLowerCase()),
+                            );
+                            const fresh = sugg
+                              .filter((s) => !cartNames.has((s.name || "").toLowerCase()))
+                              .slice(0, 2);
+                            if (!fresh.length) return null;
+                            return (
+                              <div
+                                style={{
+                                  marginTop: "6px",
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: "6px",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <span style={{ fontSize: "11px", color: sub }}>
+                                  ✨ Sering dibeli bareng:
+                                </span>
+                                {fresh.map((s) => (
+                                  <button
+                                    key={s.name}
+                                    type="button"
+                                    disabled={!!addingInsightProduct}
+                                    onClick={() => addInsightProduct({ product_name: s.name })}
+                                    className="ui-focus-ring"
+                                    style={{
+                                      padding: "3px 9px",
+                                      borderRadius: "999px",
+                                      border: `1px solid var(--color-primary)`,
+                                      backgroundColor: "var(--color-primary-soft)",
+                                      color: "var(--color-primary)",
+                                      fontSize: "11px",
+                                      fontWeight: "700",
+                                      cursor: addingInsightProduct ? "wait" : "pointer",
+                                    }}
+                                  >
+                                    + {s.name} ({s.confidence}%)
+                                  </button>
+                                ))}
+                              </div>
+                            );
+                          })()}
                           {batches.length > 0 && (
                             <div
                               style={{ marginTop: "4px", paddingLeft: "2px" }}
@@ -3688,7 +3933,7 @@ export default function SalesOrderList({
                       visible={!!formErrors.items}
                     />
                     <button
-                      onClick={handleSave}
+                      onClick={() => handleSave()}
                       disabled={saving}
                       style={{
                         flex: 1,

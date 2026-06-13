@@ -7,7 +7,7 @@ import {
   FileText,
   AlertCircle,
 } from "lucide-react";
-import { customersAPI } from "../services/api";
+import { customersAPI, insightsAPI } from "../services/api";
 import Skeleton from "./common/Skeleton";
 import ConfirmModal from "./common/ConfirmModal";
 import Breadcrumb from "./common/Breadcrumb";
@@ -18,6 +18,7 @@ import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import SearchBox from "./common/SearchBox";
 import ToastNotice from "./common/ToastNotice";
 import useDebouncedValue from "../hooks/useDebouncedValue";
+import { normalizeIndonesianPhone, copyTextToClipboard } from "../utils/waMessage";
 
 const fmtRp = (n) =>
   new Intl.NumberFormat("id-ID", {
@@ -64,6 +65,8 @@ export default function CustomerList({
   const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  // v1.28.0 (#5): radar customer hilang / churn
+  const [churnList, setChurnList] = useState([]);
 
   const bg = "var(--color-bg)";
   const cardBg = "var(--color-surface)";
@@ -87,6 +90,10 @@ export default function CustomerList({
 
   useEffect(() => {
     fetchCustomers();
+    insightsAPI
+      .getChurn()
+      .then(({ data }) => setChurnList(data?.items || []))
+      .catch((e) => console.error("Failed to fetch churn radar:", e));
   }, []);
 
   const filtered = useMemo(() => {
@@ -338,6 +345,132 @@ export default function CustomerList({
           <option value="oldest">⏱ Terlama Bertransaksi</option>
         </select>
       </div>
+
+      {/* 📡 Customer Lama Tak Order (#5 churn radar) */}
+      {churnList.length > 0 && (
+        <div
+          className="ui-panel"
+          style={{
+            marginBottom: "1.5rem",
+            padding: "16px 18px",
+            borderRadius: "14px",
+            border: `1px solid ${border}`,
+            backgroundColor: cardBg,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: text }}>
+              📡 Customer Lama Tak Order
+            </span>
+            <span style={{ fontSize: 11, color: sub }}>
+              {churnList.length} perlu di-follow up
+            </span>
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {churnList.map((c) => {
+              const msg = `Halo ${c.name}, sudah ${c.days_silent} hari sejak order terakhir di CV Habil. Biasanya order tiap ${c.median_interval_days} hari sekali — ada yang bisa kami bantu untuk restok? Terima kasih 🙏`;
+              const phone = normalizeIndonesianPhone(c.phone);
+              return (
+                <div
+                  key={c.customer_id}
+                  className="ui-surface-panel"
+                  style={{
+                    backgroundColor: surface,
+                    border: `1px solid ${border}`,
+                    borderRadius: 12,
+                    padding: "14px 16px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: text }}>{c.name}</div>
+                    <div style={{ marginTop: 4 }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: "3px 8px",
+                          borderRadius: 999,
+                          backgroundColor: "var(--color-danger-soft)",
+                          color: "var(--color-danger)",
+                        }}
+                      >
+                        {c.days_silent} hari sepi
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: sub, lineHeight: 1.6 }}>
+                    Biasanya order tiap {c.median_interval_days} hari · {c.order_count}× total
+                    <br />
+                    Terakhir {fmtDate(c.last_order_date)} · rata-rata {fmtRp(c.avg_total)}
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await copyTextToClipboard(msg);
+                          flash("Pesan WA disalin");
+                        } catch {
+                          flash("Gagal menyalin pesan");
+                        }
+                      }}
+                      className="ui-motion-button ui-focus-ring"
+                      style={{
+                        flex: 1,
+                        padding: "8px 10px",
+                        borderRadius: 9,
+                        border: `1px solid ${border}`,
+                        backgroundColor: cardBg,
+                        color: text,
+                        cursor: "pointer",
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      📋 Salin WA
+                    </button>
+                    {phone && (
+                      <a
+                        href={`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ui-motion-button ui-focus-ring"
+                        style={{
+                          flex: 1,
+                          padding: "8px 10px",
+                          borderRadius: 9,
+                          border: `1px solid var(--color-success)`,
+                          backgroundColor: "var(--color-success-soft)",
+                          color: "var(--color-success)",
+                          cursor: "pointer",
+                          fontSize: 12,
+                          fontWeight: 800,
+                          textAlign: "center",
+                          textDecoration: "none",
+                        }}
+                      >
+                        Buka WA
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Grid */}
       <div
