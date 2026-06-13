@@ -146,7 +146,7 @@ router.get('/restock', async (req, res) => {
         LEFT JOIN LATERAL (
           SELECT AVG(t.q) AS avg_order_qty, (ARRAY_AGG(t.unit))[1] AS order_unit
           FROM (
-            SELECT COALESCE(ii.qty_in_unit, ii.qty, 0) AS q, ii.unit
+            SELECT COALESCE(ii.qty_in_unit, ii.quantity, 0) AS q, ii.unit
             FROM invoice_items ii
             JOIN invoices iv ON iv.id = ii.invoice_id
               AND iv.deleted_at IS NULL
