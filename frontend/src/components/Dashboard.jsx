@@ -33,9 +33,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.28.1-stable",
+    version: "v1.28.2-stable",
     date: "13 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Daftar Harga sekarang transparan saat backdrop Vanta aktif, jadi lapisan abu-abu di belakang UI tidak lagi menutup background.",
+        dev: "PriceListPage root backgroundColor now respects isVantaMode and stays transparent over Vanta; no data, routing, or PDF logic changed.",
+      },
+    ],
+  },
+  {
+    version: "v1.28.1-stable",
+    date: "13 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -3232,7 +3244,7 @@ export default function Dashboard({
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
   const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.28.1-stable";
+  const releaseVersion = RELEASES[0]?.version || "v1.28.2-stable";
   const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
   useBodyScrollLock(showModal || showReleaseModal);
 

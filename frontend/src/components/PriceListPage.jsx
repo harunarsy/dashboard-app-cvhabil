@@ -721,7 +721,7 @@ function HistoryModal({ row, isMobile, onClose }) {
   );
 }
 
-export default function PriceListPage({ isDarkMode, isMobile }) {
+export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -1025,7 +1025,13 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
   };
 
   return (
-    <div className="ui-page ui-motion-page" style={{ color: text }}>
+    <div
+      className="ui-page ui-motion-page"
+      style={{
+        color: text,
+        backgroundColor: isVantaMode ? "transparent" : "var(--color-bg)",
+      }}
+    >
       <Breadcrumb title="Daftar Harga" isMobile={isMobile} isDarkMode={isDarkMode} />
 
       {/* Header — gaya kartu seperti Nota Penjualan */}

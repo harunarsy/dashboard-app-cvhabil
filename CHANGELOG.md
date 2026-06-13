@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.28.2-stable] - 2026-06-13
+
+### Changed
+- Daftar Harga tidak lagi menutup backdrop Vanta dengan lapisan abu-abu; halaman jadi transparan saat mode backdrop aktif, jadi UI belakangnya lebih menyatu.
+
 ## [v1.28.1-stable] - 2026-06-13
 
 ### Changed
