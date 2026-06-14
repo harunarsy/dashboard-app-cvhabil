@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.29.0-stable] - 2026-06-14
+
+### Added
+- **Halaman Finance**: hutang ke distributor & piutang dari customer dalam satu tampilan. Faktur belum lunas bisa ditandai lunas langsung dari sini. Khusus role direktur.
+- **Export Excel laporan bulanan**: unduh Ringkasan + Nota Penjualan + Faktur Pembelian dalam satu file `.xlsx` langsung dari halaman Finance.
+- **Heatmap kalender bulan penuh**: Aktivitas Nota Harian sekarang tampil per bulan dengan navigasi prev/next. Klik tile untuk lihat daftar nota lengkap hari itu beserta customer dan status bayar.
+
+### Fixed
+- Grafik Pergerakan Stok 30 Hari tidak lagi meledak oleh data outlier ONGKIR (qty 999.999) — query sekarang hanya hitung produk yang punya KODE.
+
 ## [v1.28.4-stable] - 2026-06-13
 
 ### Changed

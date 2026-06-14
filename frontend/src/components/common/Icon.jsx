@@ -34,6 +34,10 @@ import {
   ReceiptText as ReceiptTextIcon,
   ClipboardList as ClipboardListIcon,
   Boxes as BoxesIcon,
+  CheckCircle as CheckCircleIcon,
+  AlertTriangle as AlertTriangleIcon,
+  Download as DownloadIcon,
+  RefreshCw as RefreshCwIcon,
 } from "lucide-react";
 
 export const UI_ICON_DEFAULTS = {
@@ -98,6 +102,10 @@ const Icons = {
   ReceiptText: wrapIcon(ReceiptTextIcon),
   ClipboardList: wrapIcon(ClipboardListIcon),
   Boxes: wrapIcon(BoxesIcon),
+  CheckCircle: wrapIcon(CheckCircleIcon),
+  AlertTriangle: wrapIcon(AlertTriangleIcon),
+  Download: wrapIcon(DownloadIcon),
+  RefreshCw: wrapIcon(RefreshCwIcon),
 };
 
 export default Icons;

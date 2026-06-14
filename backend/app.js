@@ -95,6 +95,8 @@ app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/print-settings', require('./routes/printSettings'));
 app.use('/api/price-list', require('./routes/priceList'));
 app.use('/api/insights', require('./routes/insights'));
+app.use('/api/reports', require('./routes/reports'));
+app.use('/api/finance', require('./routes/finance'));
 
 // Error handler
 app.use((err, req, res, next) => {

@@ -30,6 +30,7 @@ const OnlineStoreDashboard = lazy(
 const LedgerPage = lazy(() => import("./components/LedgerPage"));
 const PriceListPage = lazy(() => import("./components/PriceListPage"));
 const PrintSettings = lazy(() => import("./components/PrintSettings"));
+const FinancePage = lazy(() => import("./components/FinancePage"));
 
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint);
@@ -182,6 +183,7 @@ function AppRoutes({
           path="/print-settings"
           element={wrap(PrintSettings, "Settings")}
         />
+        <Route path="/finance" element={wrap(FinancePage, "Keuangan")} />
         <Route path="/bugs" element={wrap(BugReports, "Bug Reports")} />
         <Route
           path="/"

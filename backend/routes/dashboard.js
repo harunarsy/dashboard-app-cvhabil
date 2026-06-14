@@ -205,15 +205,17 @@ router.get('/stats', auth, async (req, res) => {
         HAVING COALESCE(SUM(b.qty_current), 0) < pm.min_stock
       ) AS low_stock_items
     `);
-    // 3b. Stock movement 30 hari terakhir
+    // 3b. Stock movement 30 hari terakhir — exclude produk tanpa KODE (e.g. ONGKIR test data)
     const qStockMove = pool.query(`
       SELECT
-        DATE(created_at) AS day,
-        COALESCE(SUM(CASE WHEN type = 'in' THEN qty ELSE 0 END), 0) AS in_qty,
-        COALESCE(SUM(CASE WHEN type = 'out' THEN ABS(qty) ELSE 0 END), 0) AS out_qty
-      FROM inventory_mutations
-      WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
-      GROUP BY DATE(created_at)
+        DATE(im.created_at) AS day,
+        COALESCE(SUM(CASE WHEN im.type = 'in' THEN im.qty ELSE 0 END), 0) AS in_qty,
+        COALESCE(SUM(CASE WHEN im.type = 'out' THEN ABS(im.qty) ELSE 0 END), 0) AS out_qty
+      FROM inventory_mutations im
+      JOIN product_master pm ON pm.id = im.product_id
+        AND pm.code IS NOT NULL AND pm.code != ''
+      WHERE im.created_at >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY DATE(im.created_at)
       ORDER BY day ASC
     `);
 
@@ -287,6 +289,72 @@ router.get('/stats', auth, async (req, res) => {
   } catch (err) { 
     console.error('Dashboard Stats Error:', err);
     res.status(500).json({ error: err.message }); 
+  }
+});
+
+// GET /heatmap?month=YYYY-MM — nota count per day for a full calendar month
+router.get('/heatmap', auth, async (req, res) => {
+  try {
+    const { month } = req.query; // e.g. "2026-06"
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+      return res.status(400).json({ error: 'month param required (YYYY-MM)' });
+    }
+    const { rows } = await pool.query(`
+      SELECT
+        DATE(sale_date) AS day,
+        COUNT(*) AS nota_count,
+        COALESCE(SUM(total), 0) AS total_sales
+      FROM sales_orders
+      WHERE is_deleted = false
+        AND payment_status = 'paid'
+        AND status = 'final'
+        AND DATE_TRUNC('month', sale_date) = DATE_TRUNC('month', $1::date)
+      GROUP BY DATE(sale_date)
+      ORDER BY day ASC
+    `, [month + '-01']);
+    res.json(rows.map(r => ({
+      day: r.day,
+      notaCount: parseInt(r.nota_count) || 0,
+      totalSales: parseFloat(r.total_sales) || 0
+    })));
+  } catch (err) {
+    console.error('Heatmap Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /daily-notas?date=YYYY-MM-DD — nota list for a specific day (for tile click detail)
+router.get('/daily-notas', auth, async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: 'date param required (YYYY-MM-DD)' });
+    }
+    const { rows } = await pool.query(`
+      SELECT
+        so.order_number,
+        so.sale_date,
+        COALESCE(NULLIF(TRIM(so.customer_name), ''), '(tanpa customer)') AS customer_name,
+        so.total,
+        so.payment_status,
+        so.channel
+      FROM sales_orders so
+      WHERE so.is_deleted = false
+        AND so.status = 'final'
+        AND DATE(so.sale_date) = $1::date
+      ORDER BY so.created_at ASC
+    `, [date]);
+    res.json(rows.map(r => ({
+      notaNumber: r.order_number,
+      saleDate: r.sale_date,
+      customerName: r.customer_name,
+      total: parseFloat(r.total) || 0,
+      paymentStatus: r.payment_status,
+      channel: r.channel
+    })));
+  } catch (err) {
+    console.error('Daily Notas Error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -323,3 +323,13 @@ export const countersAPI = {
   getAll: () => api.get('/settings/counters'),
   update: (doc_type, data) => api.put(`/settings/counters/${doc_type}`, data),
 };
+
+export const reportsAPI = {
+  downloadMonthly: (month) =>
+    api.get('/reports/monthly', { params: { month }, responseType: 'blob' }),
+};
+
+export const financeAPI = {
+  getSummary: () => api.get('/finance/summary'),
+  markHutangLunas: (invoiceNumber) => api.patch(`/finance/hutang/${invoiceNumber}/lunas`),
+};

@@ -29,13 +29,42 @@ const {
   ArrowDownRight,
   Users,
   TrendingUp,
+  ChevronLeft: ChevronLeftIcon,
+  ChevronRight: ChevronRightIcon,
 } = Icons;
 
 const RELEASES = [
   {
+    version: "v1.29.0-stable",
+    date: "14 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Halaman Finance baru: lihat hutang ke distributor & piutang dari customer dalam satu tampilan, lengkap dengan tombol tandai lunas untuk faktur pembelian.",
+        dev: "backend/routes/finance.js: GET /summary + PATCH /hutang/:invoiceNumber/lunas. frontend/src/components/FinancePage.jsx. Sidebar Finance active:true.",
+      },
+      {
+        type: "new",
+        text: "Export Excel laporan bulanan: Ringkasan + Nota Penjualan + Faktur Pembelian — unduh langsung dari halaman Finance.",
+        dev: "backend/routes/reports.js: GET /monthly?month=YYYY-MM → xlsx buffer. reportsAPI.downloadMonthly di api.js.",
+      },
+      {
+        type: "ui",
+        text: "Heatmap Aktivitas Nota berubah jadi kalender bulan penuh: navigasi bulan prev/next, klik tile untuk lihat detail nota & customer hari itu.",
+        dev: "Dashboard.jsx: buildMonthCalendarSeries + /dashboard/heatmap + /dashboard/daily-notas endpoints baru.",
+      },
+      {
+        type: "fix",
+        text: "Grafik Pergerakan Stok 30 Hari tidak lagi meledak oleh data test ONGKIR (qty 999,999) — hanya produk dengan KODE yang masuk hitungan.",
+        dev: "dashboard.js qStockMove: JOIN product_master WHERE code IS NOT NULL AND code != ''.",
+      },
+    ],
+  },
+  {
     version: "v1.28.4-stable",
     date: "13 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "ui",
@@ -3322,6 +3351,51 @@ export default function Dashboard({
     stockMovement30d: [],
   });
 
+  // Heatmap calendar state
+  const [heatmapMonth, setHeatmapMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [heatmapData, setHeatmapData] = useState([]);
+  const [heatmapLoading, setHeatmapLoading] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [dayNotas, setDayNotas] = useState([]);
+  const [dayNotasLoading, setDayNotasLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setHeatmapLoading(true);
+    api
+      .get(`/dashboard/heatmap?month=${heatmapMonth}`)
+      .then(({ data }) => {
+        if (!cancelled) setHeatmapData(Array.isArray(data) ? data : []);
+      })
+      .catch((e) => console.error("Failed to fetch heatmap", e))
+      .finally(() => { if (!cancelled) setHeatmapLoading(false); });
+    return () => { cancelled = true; };
+  }, [heatmapMonth]);
+
+  const handleDayClick = useCallback((day) => {
+    if (selectedDay === day) { setSelectedDay(null); setDayNotas([]); return; }
+    setSelectedDay(day);
+    setDayNotasLoading(true);
+    api
+      .get(`/dashboard/daily-notas?date=${day}`)
+      .then(({ data }) => setDayNotas(Array.isArray(data) ? data : []))
+      .catch((e) => console.error("Failed to fetch day notas", e))
+      .finally(() => setDayNotasLoading(false));
+  }, [selectedDay]);
+
+  const navigateHeatmapMonth = useCallback((delta) => {
+    setSelectedDay(null);
+    setDayNotas([]);
+    setHeatmapMonth((prev) => {
+      const [y, m] = prev.split("-").map(Number);
+      const d = new Date(y, m - 1 + delta, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    });
+  }, []);
+
   // v1.28.0 (#7): ringkasan bisnis mingguan — 7 hari terakhir vs sebelumnya.
   const [weekly, setWeekly] = useState(null);
   useEffect(() => {
@@ -3424,7 +3498,6 @@ export default function Dashboard({
   const channelMargins = stats.marginByChannel || [];
   const topCategoryMargins = stats.topCategoryMargins || [];
   const topCustomers = stats.topCustomers || [];
-  const dailyNotaRows = stats.dailyNota30d || [];
   const stockMovementRows = stats.stockMovement30d || [];
   const formatDeltaPct = (currentValue, previousValue) => {
     const current = parseFloat(currentValue) || 0;
@@ -3492,31 +3565,40 @@ export default function Dashboard({
       };
     });
   };
-  const buildDailyHeatmapSeries = (rows = []) => {
+  const buildMonthCalendarSeries = (rows = [], monthStr) => {
     const map = new Map(rows.map((row) => [String(row.day).slice(0, 10), row]));
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return Array.from({ length: 30 }, (_, index) => {
-      const date = new Date(today);
-      date.setDate(today.getDate() - (29 - index));
-      const key = toLocalYmd(date);
+    const [y, m] = monthStr.split("-").map(Number);
+    const firstDay = new Date(y, m - 1, 1);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    // Sunday=0 in JS; we want Mon=0
+    const offset = (firstDay.getDay() + 6) % 7;
+    const cells = [];
+    for (let i = 0; i < offset; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
       const row = map.get(key) || {};
-      const notaCount = parseFloat(row.notaCount ?? row.nota_count ?? 0) || 0;
-      return {
+      const notaCount = parseInt(row.notaCount ?? 0) || 0;
+      cells.push({
         day: key,
-        dayLabel: date.getDate().toString().padStart(2, "0"),
-        weekday: date.toLocaleDateString("id-ID", { weekday: "short" }),
+        dayLabel: String(d),
         notaCount,
-        totalSales: parseFloat(row.totalSales ?? row.total_sales ?? 0) || 0,
-      };
-    });
+        totalSales: parseFloat(row.totalSales ?? 0) || 0,
+      });
+    }
+    return cells;
   };
+  const monthCalendarSeries = buildMonthCalendarSeries(heatmapData, heatmapMonth);
+  const maxHeatmapCount = Math.max(1, ...monthCalendarSeries.filter(Boolean).map((c) => c.notaCount));
+  const heatmapMonthLabel = (() => {
+    const [y, m] = heatmapMonth.split("-").map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+  })();
+  const isCurrentMonth = (() => {
+    const now = new Date();
+    return heatmapMonth === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  })();
+
   const stockMovementSeries = buildStockMovementSeries(stockMovementRows);
-  const dailyHeatmapSeries = buildDailyHeatmapSeries(dailyNotaRows);
-  const maxHeatmapCount = Math.max(
-    1,
-    ...dailyHeatmapSeries.map((row) => row.notaCount || 0),
-  );
   const weeklySummary = weekly
     ? (() => {
         const revThis = Number(weekly?.revenue?.this_week) || 0;
@@ -3821,104 +3903,168 @@ export default function Dashboard({
         className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm mb-10"
         style={{ backgroundColor: cardBg, borderColor: border }}
       >
-        <div className="flex items-start justify-between gap-4 mb-5">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-4 mb-5">
           <div>
             <h2 className="text-lg font-bold" style={{ color: text }}>
               Aktivitas Nota Harian
             </h2>
             <p className="text-xs font-medium mt-1" style={{ color: sub }}>
-              30 hari terakhir · nota lunas
+              {heatmapMonthLabel} · nota final
             </p>
           </div>
-          <div
-            className="p-3 rounded-xl"
-            style={{
-              backgroundColor: "var(--color-primary-soft)",
-              color: "var(--color-primary)",
-            }}
-          >
-            <BarChart3 size={22} />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigateHeatmapMonth(-1)}
+              className="p-2 rounded-xl border transition-colors"
+              style={{ borderColor: border, color: sub, backgroundColor: "transparent" }}
+              title="Bulan sebelumnya"
+            >
+              <ChevronLeftIcon size={16} />
+            </button>
+            <button
+              onClick={() => navigateHeatmapMonth(1)}
+              disabled={isCurrentMonth}
+              className="p-2 rounded-xl border transition-colors"
+              style={{
+                borderColor: border,
+                color: isCurrentMonth ? "transparent" : sub,
+                backgroundColor: "transparent",
+                cursor: isCurrentMonth ? "default" : "pointer",
+              }}
+              title="Bulan berikutnya"
+            >
+              <ChevronRightIcon size={16} />
+            </button>
+            <div
+              className="p-3 rounded-xl ml-1"
+              style={{ backgroundColor: "var(--color-primary-soft)", color: "var(--color-primary)" }}
+            >
+              <BarChart3 size={22} />
+            </div>
           </div>
         </div>
 
-        <div
-          className="grid gap-2"
-          style={{ gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}
-        >
-          {dailyHeatmapSeries.map((cell) => {
-            const intensity = Math.max(
-              0,
-              Math.min(1, cell.notaCount / maxHeatmapCount),
-            );
-            const fill = cell.notaCount
-              ? `color-mix(in srgb, var(--color-primary) ${Math.round(18 + intensity * 52)}%, transparent)`
-              : isDarkMode
-                ? "var(--color-surface-raised)"
-                : "var(--color-bg-subtle)";
-            return (
-              <div
-                key={cell.day}
-                title={`${cell.weekday}, ${cell.dayLabel} · ${cell.notaCount} nota`}
-                className="aspect-square rounded-2xl border p-2 flex flex-col justify-between"
-                style={{
-                  backgroundColor: fill,
-                  borderColor: cell.notaCount
-                    ? "color-mix(in srgb, var(--color-primary) 26%, transparent)"
-                    : border,
-                }}
-              >
-                <span
-                  className="text-[10px] font-semibold"
-                  style={{ color: cell.notaCount ? text : sub }}
-                >
-                  {cell.dayLabel}
-                </span>
-                <span
-                  className="text-[11px] font-bold text-right"
-                  style={{
-                    color: cell.notaCount ? "var(--color-primary)" : sub,
-                  }}
-                >
-                  {cell.notaCount}
-                </span>
-              </div>
-            );
-          })}
+        {/* Day-of-week headers */}
+        <div className="grid gap-2 mb-1" style={{ gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}>
+          {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map((d) => (
+            <div key={d} className="text-center text-[10px] font-semibold" style={{ color: sub }}>
+              {d}
+            </div>
+          ))}
         </div>
 
-        <div
-          className="flex items-center justify-between gap-4 mt-4 text-xs font-medium flex-wrap"
-          style={{ color: sub }}
-        >
-          <span>0 = kosong, makin pekat = makin ramai</span>
+        {/* Calendar grid */}
+        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}>
+          {heatmapLoading
+            ? Array.from({ length: 35 }, (_, i) => (
+                <div
+                  key={i}
+                  className="aspect-square rounded-xl"
+                  style={{ backgroundColor: isDarkMode ? "var(--color-surface-raised)" : "var(--color-bg-subtle)" }}
+                />
+              ))
+            : monthCalendarSeries.map((cell, idx) => {
+                if (!cell) {
+                  return <div key={`pad-${idx}`} className="aspect-square" />;
+                }
+                const intensity = Math.max(0, Math.min(1, cell.notaCount / maxHeatmapCount));
+                const fill = cell.notaCount
+                  ? `color-mix(in srgb, var(--color-primary) ${Math.round(18 + intensity * 52)}%, transparent)`
+                  : isDarkMode
+                    ? "var(--color-surface-raised)"
+                    : "var(--color-bg-subtle)";
+                const isSelected = selectedDay === cell.day;
+                return (
+                  <button
+                    key={cell.day}
+                    onClick={() => handleDayClick(cell.day)}
+                    title={`${cell.day} · ${cell.notaCount} nota`}
+                    className="aspect-square rounded-xl border p-1 flex flex-col justify-between transition-all"
+                    style={{
+                      backgroundColor: fill,
+                      borderColor: isSelected
+                        ? "var(--color-primary)"
+                        : cell.notaCount
+                          ? "color-mix(in srgb, var(--color-primary) 26%, transparent)"
+                          : border,
+                      boxShadow: isSelected ? "0 0 0 2px var(--color-primary)" : undefined,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span className="text-[10px] font-semibold leading-none" style={{ color: cell.notaCount ? text : sub }}>
+                      {cell.dayLabel}
+                    </span>
+                    {cell.notaCount > 0 && (
+                      <span className="text-[11px] font-bold text-right leading-none" style={{ color: "var(--color-primary)" }}>
+                        {cell.notaCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+        </div>
+
+        {/* Day detail panel */}
+        {selectedDay && (
+          <div
+            className="mt-4 rounded-2xl border p-4"
+            style={{ borderColor: "var(--color-primary-soft)", backgroundColor: isDarkMode ? "color-mix(in srgb, var(--color-primary) 8%, transparent)" : "var(--color-primary-soft)" }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold" style={{ color: text }}>
+                {new Date(selectedDay + "T00:00:00").toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
+              </span>
+              <button onClick={() => { setSelectedDay(null); setDayNotas([]); }} style={{ color: sub }}>
+                <X size={14} />
+              </button>
+            </div>
+            {dayNotasLoading ? (
+              <p className="text-xs" style={{ color: sub }}>Memuat...</p>
+            ) : dayNotas.length === 0 ? (
+              <p className="text-xs" style={{ color: sub }}>Tidak ada nota pada tanggal ini.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {dayNotas.map((n) => (
+                  <div
+                    key={n.notaNumber}
+                    className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 border"
+                    style={{ borderColor: border, backgroundColor: cardBg }}
+                  >
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-semibold truncate" style={{ color: text }}>{n.notaNumber}</span>
+                      <span className="text-[11px] truncate" style={{ color: sub }}>{n.customerName}</span>
+                    </div>
+                    <div className="flex flex-col items-end shrink-0">
+                      <span className="text-xs font-semibold" style={{ color: text }}>{formatRupiah(n.total)}</span>
+                      <span
+                        className="text-[10px] font-semibold rounded px-1"
+                        style={{
+                          color: n.paymentStatus === "paid" ? "var(--color-success)" : "var(--color-warning)",
+                          backgroundColor: n.paymentStatus === "paid"
+                            ? "color-mix(in srgb, var(--color-success) 12%, transparent)"
+                            : "color-mix(in srgb, var(--color-warning) 12%, transparent)",
+                        }}
+                      >
+                        {n.paymentStatus === "paid" ? "Lunas" : "Belum"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                <p className="text-[11px] text-right mt-1" style={{ color: sub }}>
+                  Total {dayNotas.length} nota · {formatRupiah(dayNotas.reduce((s, n) => s + n.total, 0))}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-4 mt-4 text-xs font-medium flex-wrap" style={{ color: sub }}>
+          <span>Klik tile untuk lihat detail nota</span>
           <span className="inline-flex items-center gap-2">
-            <span
-              className="w-3 h-3 rounded-md border"
-              style={{
-                backgroundColor: isDarkMode
-                  ? "var(--color-surface-raised)"
-                  : "var(--color-bg-subtle)",
-                borderColor: border,
-              }}
-            />
-            <span
-              className="w-3 h-3 rounded-md border"
-              style={{
-                backgroundColor:
-                  "color-mix(in srgb, var(--color-primary) 42%, transparent)",
-                borderColor:
-                  "color-mix(in srgb, var(--color-primary) 30%, transparent)",
-              }}
-            />
-            <span
-              className="w-3 h-3 rounded-md border"
-              style={{
-                backgroundColor:
-                  "color-mix(in srgb, var(--color-primary) 72%, transparent)",
-                borderColor:
-                  "color-mix(in srgb, var(--color-primary) 48%, transparent)",
-              }}
-            />
+            <span className="w-3 h-3 rounded-md border" style={{ backgroundColor: isDarkMode ? "var(--color-surface-raised)" : "var(--color-bg-subtle)", borderColor: border }} />
+            <span className="w-3 h-3 rounded-md border" style={{ backgroundColor: "color-mix(in srgb, var(--color-primary) 42%, transparent)", borderColor: "color-mix(in srgb, var(--color-primary) 30%, transparent)" }} />
+            <span className="w-3 h-3 rounded-md border" style={{ backgroundColor: "color-mix(in srgb, var(--color-primary) 72%, transparent)", borderColor: "color-mix(in srgb, var(--color-primary) 48%, transparent)" }} />
           </span>
         </div>
       </section>

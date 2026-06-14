@@ -138,7 +138,7 @@ export default function Sidebar({
             icon: DollarSign,
             label: "Finance",
             path: "/finance",
-            active: false,
+            active: true,
           },
           {
             icon: Briefcase,
@@ -193,7 +193,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.28.4-stable";
+  const appVersion = "v1.29.0-stable";
   const TooltipButton = ({
     label,
     children,
