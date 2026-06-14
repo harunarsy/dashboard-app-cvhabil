@@ -300,13 +300,14 @@ router.get('/heatmap', auth, async (req, res) => {
       return res.status(400).json({ error: 'month param required (YYYY-MM)' });
     }
     const { rows } = await pool.query(`
+      -- Hitung SEMUA nota final (paid + unpaid) agar konsisten dgn panel detail
+      -- (/daily-notas juga pakai status='final' tanpa filter payment).
       SELECT
         DATE(sale_date) AS day,
         COUNT(*) AS nota_count,
         COALESCE(SUM(total), 0) AS total_sales
       FROM sales_orders
       WHERE is_deleted = false
-        AND payment_status = 'paid'
         AND status = 'final'
         AND DATE_TRUNC('month', sale_date) = DATE_TRUNC('month', $1::date)
       GROUP BY DATE(sale_date)

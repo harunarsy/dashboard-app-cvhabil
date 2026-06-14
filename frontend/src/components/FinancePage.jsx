@@ -17,7 +17,7 @@ const currentMonthStr = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 };
 
-export default function FinancePage({ isDarkMode }) {
+export default function FinancePage({ isDarkMode, isVantaMode }) {
   const [data, setData] = useState({ hutang: [], piutang: [], totalHutang: 0, totalPiutang: 0 });
   const [loading, setLoading] = useState(true);
   const [markingLunas, setMarkingLunas] = useState(null);
@@ -66,7 +66,8 @@ export default function FinancePage({ isDarkMode }) {
     }
   };
 
-  const bg = isDarkMode ? "var(--color-bg)" : "var(--color-bg)";
+  // Transparan saat backdrop Vanta aktif supaya tidak menutup background (pola PriceListPage v1.28.2)
+  const bg = isVantaMode ? "transparent" : "var(--color-bg)";
   const cardBg = isDarkMode ? "var(--color-surface)" : "#fff";
   const border = "var(--color-border)";
   const text = "var(--color-text)";
