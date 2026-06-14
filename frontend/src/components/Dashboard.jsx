@@ -3757,8 +3757,12 @@ export default function Dashboard({
         overflowX: "hidden",
       }}
     >
-      {/* Header Stack */}
-      <div className="ui-surface-panel ui-toolbar mb-10 flex flex-col gap-5 p-4 md:p-5">
+      {/* Header Stack — alignItems stretch override: .ui-toolbar set align-items:center
+          yg bikin anak ke-center saat flex-col; stretch = full-width → judul kiri, version kanan */}
+      <div
+        className="ui-surface-panel ui-toolbar mb-10 flex flex-col gap-5 p-4 md:p-5"
+        style={{ alignItems: "stretch" }}
+      >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1

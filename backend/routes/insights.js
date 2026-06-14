@@ -325,10 +325,13 @@ router.get('/weekly-summary', async (req, res) => {
       [PPN_MULT],
     );
 
+    // Resolusi nama canonical: produk yang pernah di-rename simpan nama lama di
+    // snapshot sales_items. Map ke nama master via (1) match nama langsung,
+    // (2) product_aliases. Tanpa ini, 1 produk bisa kebaca 2x (lama vs baru).
     const moversQ = pool.query(
       `
         SELECT
-          si.product_name AS name,
+          COALESCE(pm_direct.name, pm_alias.name, si.product_name) AS name,
           SUM(CASE WHEN so.sale_date >= CURRENT_DATE - INTERVAL '7 days'
               THEN COALESCE(si.qty_in_unit, si.qty, 0) * COALESCE(si.unit_price, 0) ELSE 0 END) AS rev_this,
           SUM(CASE WHEN so.sale_date < CURRENT_DATE - INTERVAL '7 days'
@@ -336,11 +339,16 @@ router.get('/weekly-summary', async (req, res) => {
               THEN COALESCE(si.qty_in_unit, si.qty, 0) * COALESCE(si.unit_price, 0) ELSE 0 END) AS rev_prev
         FROM sales_orders so
         JOIN sales_items si ON si.sales_order_id = so.id
+        LEFT JOIN product_master pm_direct
+          ON LOWER(TRIM(pm_direct.name)) = LOWER(TRIM(si.product_name))
+        LEFT JOIN product_aliases pa
+          ON LOWER(TRIM(pa.alias_name)) = LOWER(TRIM(si.product_name))
+        LEFT JOIN product_master pm_alias ON pm_alias.id = pa.product_id
         WHERE so.is_deleted = false
           AND so.status = 'final'
           AND so.sale_date >= CURRENT_DATE - INTERVAL '14 days'
           AND NULLIF(TRIM(COALESCE(si.product_name, '')), '') IS NOT NULL
-        GROUP BY si.product_name
+        GROUP BY COALESCE(pm_direct.name, pm_alias.name, si.product_name)
       `,
     );
 
