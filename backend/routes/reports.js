@@ -100,14 +100,15 @@ router.get('/monthly', auth, async (req, res) => {
     const notaSheetData = [notaHeader, ...notaRows.rows.map(r => {
       const total = parseFloat(r.total) || 0;
       const hpp = parseFloat(r.total_hpp) || 0;
+      const ongkir = parseFloat(r.ongkir) || 0;
       return [
-        r.nota_number,
+        r.order_number,
         r.tanggal instanceof Date ? r.tanggal.toISOString().slice(0, 10) : String(r.tanggal).slice(0, 10),
         r.customer,
         r.channel || 'offline',
         r.payment_status === 'paid' ? 'Lunas' : 'Belum Lunas',
-        parseFloat(r.subtotal) || 0,
-        parseFloat(r.ongkir) || 0,
+        total - ongkir,
+        ongkir,
         total,
         hpp,
         total - hpp,
