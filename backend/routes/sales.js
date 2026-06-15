@@ -90,6 +90,9 @@ const ensureSchema = async () => {
     // v1.27.x (#6 fee belajar): uang yang BENAR-BENAR masuk dari marketplace (opsional,
     // diisi operator) → fee efektif nyata = 1 - settlement/total.
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS settlement_amount DECIMAL(15,2)`);
+    // v1.31.0: snapshot estimasi berat paket nota (produk per base unit + kemasan manual).
+    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS package_weight_gram INT DEFAULT 0`);
+    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS est_weight_gram INT DEFAULT 0`);
     // v1.16.2+: batch_id_snapshot for tracking selected batch in sales_items
     await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS batch_id_snapshot INT`);
 	    await pool.query(`CREATE INDEX IF NOT EXISTS idx_sales_items_batch_snapshot ON sales_items(batch_id_snapshot)`);
@@ -369,12 +372,13 @@ const computePaymentFee = (baseTotal, rate, mode) =>
 
 // POST create
 router.post('/', auth, async (req, res) => {
-  const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, payment_method, payment_details, order_number: manualOrderNumber, channel: rawChannel, due_date, payment_terms, ongkir: rawOngkir, ongkir_cost: rawOngkirCost } = req.body;
+  const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, payment_method, payment_details, order_number: manualOrderNumber, channel: rawChannel, due_date, payment_terms, ongkir: rawOngkir, ongkir_cost: rawOngkirCost, package_weight_gram: rawPackageWeightGram } = req.body;
   const channel = ['offline', 'online'].includes(rawChannel) ? rawChannel : 'offline';
   // v1.21.14: ongkir = biaya yang DITAGIH ke customer (masuk total + nota PDF);
   // ongkir_cost = biaya kurir asli (internal, buat hitung untung; TIDAK di nota).
   const ongkir = Math.max(0, parseFloat(rawOngkir) || 0);
   const ongkirCost = Math.max(0, parseFloat(rawOngkirCost) || 0);
+  const packageWeightGram = Math.max(0, parseInt(rawPackageWeightGram) || 0);
   // Validasi SEBELUM BEGIN — return di dalam transaksi meninggalkan koneksi idle-in-transaction
   if (!customer_name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
   if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
@@ -416,9 +420,9 @@ router.post('/', auth, async (req, res) => {
     else gross_profit -= paymentFee;
 
     const { rows } = await client.query(
-      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms, ongkir, ongkir_cost, payment_fee_rate, payment_fee_mode, payment_fee, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,'final') RETURNING *`,
-      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee]
+      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms, ongkir, ongkir_cost, payment_fee_rate, payment_fee_mode, payment_fee, package_weight_gram, est_weight_gram, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,'final') RETURNING *`,
+      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, 0]
     );
     const order = rows[0];
 
@@ -427,13 +431,13 @@ router.post('/', auth, async (req, res) => {
     for (const it of items) {
       if (productMap.has(it.product_name)) continue;
       let { rows: [p] } = await client.query(
-        'SELECT id, name, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE ORDER BY id ASC LIMIT 1',
+        'SELECT id, name, base_unit, pack_unit, pack_size, weight_gram FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE ORDER BY id ASC LIMIT 1',
         [it.product_name]
       );
       if (!p) {
         // v1.22.2: fallback alias — nota dengan nama produk lama tetap resolve
         const { rows: [pa] } = await client.query(
-          `SELECT pm.id, pm.name, pm.base_unit, pm.pack_unit, pm.pack_size
+          `SELECT pm.id, pm.name, pm.base_unit, pm.pack_unit, pm.pack_size, pm.weight_gram
            FROM product_aliases a
            JOIN product_master pm ON pm.id = a.product_id AND pm.is_active = TRUE
            WHERE LOWER(TRIM(a.alias_name)) = LOWER(TRIM($1)) LIMIT 1`,
@@ -448,12 +452,14 @@ router.post('/', auth, async (req, res) => {
     // Insert items with batch snapshot (using resolveSelectedBatchForSale + FEFO fallback)
     const itemBatchInfo = []; // track for stock-out phase
     let actualItemGross = 0; // AUDIT-LS-06: gross dari tax_type batch AKTUAL, bukan payload
+    let estimatedWeightGram = packageWeightGram;
     for (const it of items) {
       const product = productMap.get(it.product_name);
       const qtyInUnit = parseFloat(it.qty) || 1;
       const qtyBase = product ? uom.toBase(qtyInUnit, it.unit, product) : qtyInUnit;
       const packSize = product?.pack_size || 1;
       const subtotal = qtyInUnit * (it.unit_price || 0);
+      if (product) estimatedWeightGram += qtyBase * (Math.max(0, parseInt(product.weight_gram) || 0));
 
       let snapshotBatchId = null;
       let snapshotBatchNo = null;
@@ -505,8 +511,8 @@ router.post('/', auth, async (req, res) => {
     // AUDIT-LS-06: simpan gross_profit versi snapshot (konsisten dgn recompute Dashboard)
     // v1.25.1: fee absorb ikut motong snapshot (pass_on netral — fee dibayar customer)
     await client.query(
-      'UPDATE sales_orders SET gross_profit = $1 WHERE id = $2',
-      [actualItemGross + (ongkir - ongkirCost) - (pfMode === 'absorb' ? paymentFee : 0), order.id]
+      'UPDATE sales_orders SET gross_profit = $1, est_weight_gram = $2 WHERE id = $3',
+      [actualItemGross + (ongkir - ongkirCost) - (pfMode === 'absorb' ? paymentFee : 0), Math.round(estimatedWeightGram), order.id]
     );
 
     // ─── Auto Stock-Out (FEFO or Selected Batch): Nota Penjualan → Inventory ───
@@ -598,10 +604,11 @@ router.post('/', auth, async (req, res) => {
 
 // PUT update
 router.put('/:id', auth, async (req, res) => {
-  const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, status, payment_method, payment_details, channel: rawChannel, due_date, payment_terms, ongkir: rawOngkir, ongkir_cost: rawOngkirCost } = req.body;
+  const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, status, payment_method, payment_details, channel: rawChannel, due_date, payment_terms, ongkir: rawOngkir, ongkir_cost: rawOngkirCost, package_weight_gram: rawPackageWeightGram } = req.body;
   const channel = ['offline', 'online'].includes(rawChannel) ? rawChannel : 'offline';
   const ongkir = Math.max(0, parseFloat(rawOngkir) || 0);
   const ongkirCost = Math.max(0, parseFloat(rawOngkirCost) || 0);
+  const packageWeightGram = Math.max(0, parseInt(rawPackageWeightGram) || 0);
   // Validasi SEBELUM BEGIN — return di dalam transaksi meninggalkan koneksi idle-in-transaction
   if (!customer_name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
   if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
@@ -629,9 +636,9 @@ router.put('/:id', auth, async (req, res) => {
     else gross_profit -= paymentFee;
 
     const { rowCount } = await client.query(
-      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, channel=$12, due_date=$13, payment_terms=$14, ongkir=$15, ongkir_cost=$16, payment_fee_rate=$17, payment_fee_mode=$18, payment_fee=$19, updated_at=NOW()
-       WHERE id=$20 AND is_deleted=FALSE`,
-      [customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'final', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, req.params.id]
+      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, channel=$12, due_date=$13, payment_terms=$14, ongkir=$15, ongkir_cost=$16, payment_fee_rate=$17, payment_fee_mode=$18, payment_fee=$19, package_weight_gram=$20, est_weight_gram=0, updated_at=NOW()
+       WHERE id=$21 AND is_deleted=FALSE`,
+      [customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'final', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, req.params.id]
     );
     if (!rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
 
@@ -662,13 +669,13 @@ router.put('/:id', auth, async (req, res) => {
     for (const it of items) {
       if (productMap.has(it.product_name)) continue;
       let { rows: [p] } = await client.query(
-        'SELECT id, name, base_unit, pack_unit, pack_size FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE ORDER BY id ASC LIMIT 1',
+        'SELECT id, name, base_unit, pack_unit, pack_size, weight_gram FROM product_master WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND is_active = TRUE ORDER BY id ASC LIMIT 1',
         [it.product_name]
       );
       if (!p) {
         // v1.22.2: fallback alias — nota dengan nama produk lama tetap resolve
         const { rows: [pa] } = await client.query(
-          `SELECT pm.id, pm.name, pm.base_unit, pm.pack_unit, pm.pack_size
+          `SELECT pm.id, pm.name, pm.base_unit, pm.pack_unit, pm.pack_size, pm.weight_gram
            FROM product_aliases a
            JOIN product_master pm ON pm.id = a.product_id AND pm.is_active = TRUE
            WHERE LOWER(TRIM(a.alias_name)) = LOWER(TRIM($1)) LIMIT 1`,
@@ -687,12 +694,14 @@ router.put('/:id', auth, async (req, res) => {
     // Insert items with batch snapshot (using resolveSelectedBatchForSale + FEFO fallback)
     const itemBatchInfo = []; // track for stock-out phase
     let actualItemGross = 0; // AUDIT-LS-06: gross dari tax_type batch AKTUAL, bukan payload
+    let estimatedWeightGram = packageWeightGram;
     for (const it of items) {
       const product = productMap.get(it.product_name);
       const qtyInUnit = parseFloat(it.qty) || 1;
       const qtyBase = product ? uom.toBase(qtyInUnit, it.unit, product) : qtyInUnit;
       const packSize = product?.pack_size || 1;
       const subtotal = qtyInUnit * (it.unit_price || 0);
+      if (product) estimatedWeightGram += qtyBase * (Math.max(0, parseInt(product.weight_gram) || 0));
 
       let snapshotBatchId = null;
       let snapshotBatchNo = null;
@@ -744,8 +753,8 @@ router.put('/:id', auth, async (req, res) => {
     // AUDIT-LS-06: simpan gross_profit versi snapshot (konsisten dgn recompute Dashboard)
     // v1.25.1: fee absorb ikut motong snapshot (pass_on netral — fee dibayar customer)
     await client.query(
-      'UPDATE sales_orders SET gross_profit = $1 WHERE id = $2',
-      [actualItemGross + (ongkir - ongkirCost) - (pfMode === 'absorb' ? paymentFee : 0), req.params.id]
+      'UPDATE sales_orders SET gross_profit = $1, est_weight_gram = $2 WHERE id = $3',
+      [actualItemGross + (ongkir - ongkirCost) - (pfMode === 'absorb' ? paymentFee : 0), Math.round(estimatedWeightGram), req.params.id]
     );
 
     // 3) Apply-new stock-out: selected batch or FEFO deduct + INSERT mutations

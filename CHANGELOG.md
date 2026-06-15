@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.31.0-stable] - 2026-06-15
+
+### Added
+- **Estimasi berat paket Nota Penjualan**: berat produk disimpan per satuan eceran di Inventory, berat kemasan bisa diisi per nota, total berat tersimpan sebagai snapshot, tampil live di form nota, dan ikut tercetak di PDF nota customer bila nilainya tersedia.
+
 ## [v1.30.0-stable] - 2026-06-15
 
 ### Added

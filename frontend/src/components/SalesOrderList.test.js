@@ -33,6 +33,7 @@ jest.mock('../services/api', () => ({
 
 jest.mock('react-router-dom', () => ({
   useNavigate: () => jest.fn(),
+  useLocation: () => ({ state: null }),
 }), { virtual: true });
 
 import { render, screen, waitFor, act } from '@testing-library/react';

@@ -272,6 +272,14 @@ export function generateNotaPDF(order, options = {}) {
     const words = (angkaKeTerbilang(grandTotal) + " Rupiah").trim();
     doc.text(`Terbilang: ${words}`, margin, finalY);
     finalY += (isA6 ? 2.6 : (isA5 ? 4 : 6));
+    const estWeightGram = Math.max(0, parseInt(order.est_weight_gram) || 0);
+    if (estWeightGram > 0) {
+      const weightKg = (estWeightGram / 1000).toFixed(2).replace('.', ',');
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(80, 80, 80);
+      doc.text(`Estimasi Berat Paket: ${weightKg} kg`, margin, finalY);
+      finalY += (isA6 ? 2.6 : (isA5 ? 4 : 6));
+    }
     doc.setTextColor(0);
   }
 

@@ -36,9 +36,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.30.0-stable",
+    version: "v1.31.0-stable",
     date: "15 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Nota Penjualan sekarang menampilkan estimasi berat paket dari berat produk + berat kemasan, supaya operator bisa memperkirakan ongkir dan kebutuhan packing sebelum kirim.",
+        dev: "product_master.weight_gram + sales_orders.package_weight_gram/est_weight_gram; SalesOrderList live estimator; generateNotaPDF prints weight line only when snapshot > 0.",
+      },
+    ],
+  },
+  {
+    version: "v1.30.0-stable",
+    date: "15 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "ui",

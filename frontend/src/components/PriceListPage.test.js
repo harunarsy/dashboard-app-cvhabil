@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
 jest.mock("../services/api", () => ({
@@ -140,11 +140,18 @@ describe("PriceListPage suggestion drawer", () => {
 
     await screen.findByText("Nescafe Classic 1 Renceng (10 sachet x 2 g)");
 
+    jest.useFakeTimers();
     fireEvent.click(
       screen.getByRole("button", {
         name: /Saran harga Offline untuk Nescafe Classic 1 Renceng/i,
       }),
     );
+
+    await act(async () => {
+      jest.advanceTimersByTime(400);
+      await Promise.resolve();
+    });
+    jest.useRealTimers();
 
     await screen.findByText("BEP (modal balik)");
 

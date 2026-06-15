@@ -164,6 +164,7 @@ export default function InventoryDashboard({
     pack_unit: "",
     pack_size: 1,
     sell_price_pack: 0,
+    weight_gram: 0,
     price_tiers: [],
   });
   // Stock in form
@@ -433,6 +434,7 @@ export default function InventoryDashboard({
       pack_unit: "",
       pack_size: 1,
       sell_price_pack: 0,
+      weight_gram: 0,
       price_tiers: [],
     });
     setModalError("");
@@ -453,6 +455,7 @@ export default function InventoryDashboard({
       pack_unit: p.pack_unit || "",
       pack_size: parseInt(p.pack_size) || 1,
       sell_price_pack: parseFloat(p.sell_price_pack) || 0,
+      weight_gram: Math.max(0, parseInt(p.weight_gram) || 0),
       price_tiers: [],
     });
     setModalError("");
@@ -2047,6 +2050,52 @@ export default function InventoryDashboard({
                       </strong>
                     </p>
                   )}
+
+                  <div
+                    style={{
+                      background: surface,
+                      border: `1px solid ${border}`,
+                      borderRadius: "10px",
+                      padding: "12px",
+                    }}
+                  >
+                    <label style={labelStyle}>
+                      Berat per {pForm.base_unit || pForm.unit || "pcs"} (gram)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      inputMode="numeric"
+                      value={pForm.weight_gram || 0}
+                      onChange={(e) =>
+                        setPForm((p) => ({
+                          ...p,
+                          weight_gram: Math.max(
+                            0,
+                            parseInt(e.target.value) || 0,
+                          ),
+                        }))
+                      }
+                      placeholder="Contoh: 100"
+                      style={inputStyle}
+                    />
+                    <p
+                      style={{
+                        margin: "6px 0 0",
+                        fontSize: "11px",
+                        color: sub,
+                      }}
+                    >
+                      Dipakai untuk estimasi berat paket di Nota Penjualan.
+                      {parseInt(pForm.weight_gram) > 0
+                        ? ` ${((parseInt(pForm.weight_gram) || 0) / 1000)
+                            .toLocaleString("id-ID", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })} kg per ${pForm.base_unit || pForm.unit || "pcs"}.`
+                        : ""}
+                    </p>
+                  </div>
 
                   {/* v1.6.0 Multi-Unit Packaging — optional */}
                   <div

@@ -25,6 +25,7 @@ import {
   formatQtyWithConversion,
   isPackUnit,
   resolveTierPrice,
+  toBase,
 } from "../constants/units";
 import { hppFromHna, hnaFromHpp } from "../utils/rupiah";
 import MasterSelect from "./MasterSelect";
@@ -78,6 +79,11 @@ const fmtRp = (n) =>
     currency: "IDR",
     minimumFractionDigits: 0,
   }).format(n || 0);
+const fmtKg = (gram) =>
+  (Math.max(0, gram || 0) / 1000).toLocaleString("id-ID", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 const fmtDate = (d) =>
   d
     ? new Date(d).toLocaleDateString("id-ID", {
@@ -240,6 +246,7 @@ export default function SalesOrderList({
     payment_terms: null,
     ongkir: "",
     ongkir_cost: "",
+    package_weight_gram: "",
     // v1.25.1: fee kartu kredit — rate dalam %, mode absorb (potong margin) / pass_on (bebankan customer)
     payment_fee_rate: "",
     payment_fee_mode: "absorb",
@@ -779,6 +786,7 @@ export default function SalesOrderList({
       payment_terms: null,
       ongkir: "",
       ongkir_cost: "",
+      package_weight_gram: "",
       payment_fee_rate: "",
       payment_fee_mode: "absorb",
     });
@@ -803,6 +811,10 @@ export default function SalesOrderList({
       payment_terms: order.payment_terms || null,
       ongkir: parseFloat(order.ongkir) > 0 ? String(parseFloat(order.ongkir)) : "",
       ongkir_cost: parseFloat(order.ongkir_cost) > 0 ? String(parseFloat(order.ongkir_cost)) : "",
+      package_weight_gram:
+        parseInt(order.package_weight_gram) > 0
+          ? String(parseInt(order.package_weight_gram))
+          : "",
       payment_fee_rate:
         parseFloat(order.payment_fee_rate) > 0
           ? String(+(parseFloat(order.payment_fee_rate) * 100).toFixed(3))
@@ -968,6 +980,10 @@ export default function SalesOrderList({
     setSaving(true);
     try {
       const payload = { ...form, items: validItems };
+      payload.package_weight_gram = Math.max(
+        0,
+        parseInt(form.package_weight_gram) || 0,
+      );
       // v1.25.1: rate fee di form dalam % → backend pakai desimal; hanya kirim
       // kalau metode Kartu Kredit (metode lain tanpa fee)
       payload.payment_fee_rate =
@@ -1356,6 +1372,28 @@ export default function SalesOrderList({
     (sum, it) => sum + (it.qty || 0) * (it.unit_price || 0),
     0,
   );
+  const packageWeightGram = Math.max(0, parseInt(form.package_weight_gram) || 0);
+  const findItemProduct = (it) =>
+    it._product ||
+    products.find(
+      (p) => p.name?.toLowerCase() === it.product_name?.toLowerCase(),
+    );
+  const estimatedItemWeightGram = items.reduce((sum, it) => {
+    if (!it.product_name?.trim()) return sum;
+    const product = findItemProduct(it);
+    const weightGram = Math.max(0, parseInt(product?.weight_gram) || 0);
+    if (!product || weightGram <= 0) return sum;
+    const qtyBase = toBase(parseFloat(it.qty) || 0, it.unit, product);
+    return sum + qtyBase * weightGram;
+  }, 0);
+  const estimatedWeightGram = Math.round(
+    estimatedItemWeightGram + packageWeightGram,
+  );
+  const missingWeightCount = items.filter((it) => {
+    if (!it.product_name?.trim()) return false;
+    const product = findItemProduct(it);
+    return product && !(parseInt(product.weight_gram) > 0);
+  }).length;
   // v1.21.14: ongkir (ditagih) masuk grand total nota.
   const ongkirAmount = Math.max(0, parseFloat(form.ongkir) || 0);
   const grandTotal = productSubtotal + ongkirAmount;
@@ -3860,6 +3898,104 @@ export default function SalesOrderList({
                     </div>
                   </div>
 
+                  {/* v1.31.0: Estimasi berat paket — info logistik, tidak mengubah harga/stok */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: isMobile
+                        ? "1fr"
+                        : "minmax(0, 1fr) minmax(180px, 0.8fr)",
+                      gap: "12px",
+                      padding: "12px",
+                      borderTop: `1px solid ${border}`,
+                      borderRadius: "12px",
+                      backgroundColor: "var(--color-surface-elevated)",
+                    }}
+                  >
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          color: sub,
+                          marginBottom: "4px",
+                        }}
+                      >
+                        Berat kemasan (gram)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        inputMode="numeric"
+                        value={form.package_weight_gram || ""}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            package_weight_gram: e.target.value,
+                          }))
+                        }
+                        placeholder="Contoh: 250"
+                        style={inputStyle}
+                      />
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          color: "var(--color-text-subtle)",
+                          display: "block",
+                          marginTop: "4px",
+                        }}
+                      >
+                        Input manual per nota, untuk estimasi ongkir/pengiriman.
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        border: `1px solid ${border}`,
+                        borderRadius: "10px",
+                        padding: "10px 12px",
+                        backgroundColor: "var(--color-surface)",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          color: sub,
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                        }}
+                      >
+                        Estimasi berat
+                      </span>
+                      <strong
+                        style={{
+                          color: "var(--color-primary)",
+                          fontSize: "20px",
+                          lineHeight: 1.1,
+                        }}
+                      >
+                        {estimatedWeightGram > 0
+                          ? `${fmtKg(estimatedWeightGram)} kg`
+                          : "Belum ada"}
+                      </strong>
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          color: "var(--color-text-subtle)",
+                        }}
+                      >
+                        {missingWeightCount > 0
+                          ? `${missingWeightCount} produk belum punya berat di Inventory.`
+                          : "Berat produk + kemasan."}
+                      </span>
+                    </div>
+                  </div>
+
                   {/* Total */}
                   <div
                     style={{
@@ -4010,6 +4146,8 @@ export default function SalesOrderList({
                   <NotaPreview
                     form={{
                       ...form,
+                      package_weight_gram: packageWeightGram,
+                      est_weight_gram: estimatedWeightGram,
                       order_number: editId
                         ? form.order_number
                         : isAutoNota
