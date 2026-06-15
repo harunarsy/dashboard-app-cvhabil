@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.32.0-stable] - 2026-06-15
+
+### Changed
+- **Dashboard ditata ulang**: metrik utama (Total Penjualan, Laba Kotor, Surat Pesanan Aktif, Stok Low/Expired) digabung jadi satu kotak ringkas dibagi 4 di bagian atas agar langsung terbaca. Akses Cepat dipindah ke bawah ringkasan/KPI. Manajemen Tugas kini collapsible dengan animasi dan default tertutup (jarang dipakai → hemat ruang).
+
 ## [v1.31.0-stable] - 2026-06-15
 
 ### Added

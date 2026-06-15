@@ -32,9 +32,22 @@ const {
   TrendingUp,
   ChevronLeft: ChevronLeftIcon,
   ChevronRight: ChevronRightIcon,
+  ClipboardList: ClipboardListIcon,
 } = Icons;
 
 const RELEASES = [
+  {
+    version: "v1.32.0-stable",
+    date: "15 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Dashboard dirapikan: metrik penting (Total Penjualan, Laba Kotor, Surat Pesanan Aktif, Stok Low/Expired) sekarang jadi satu kotak ringkas di atas biar langsung kebaca. Akses Cepat pindah ke bawahnya, dan Manajemen Tugas bisa disembunyikan/ditampilkan dengan animasi — defaultnya tertutup biar tidak makan tempat.",
+        dev: "Dashboard.jsx: 4 stat cards → compact KPI strip (1 box dibagi 4, grid-cols-2/lg:grid-cols-4, divider per cell) dipindah ke atas (bawah header/Ringkasan). Akses Cepat dipindah ke setelah KPI. TasksKanban dibungkus collapsible (gridTemplateRows 0fr↔1fr transition 0.3s, default tasksOpen=false, chevron rotate) + dipindah ke paling bawah. +ClipboardList icon, +tasksOpen state.",
+      },
+    ],
+  },
   {
     version: "v1.31.0-stable",
     date: "15 Juni 2026",
@@ -3295,6 +3308,7 @@ export default function Dashboard({
 }) {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
+  const [tasksOpen, setTasksOpen] = useState(false); // v1.32.0: Manajemen Tugas default tutup (jarang dipakai)
   const [showDevNotes, setShowDevNotes] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedChanges, setExpandedChanges] = useState(new Set());
@@ -3831,8 +3845,112 @@ export default function Dashboard({
         {weeklySummary}
       </div>
 
-      {/* Quick Access — antara Ringkasan & Manajemen Tugas. Tombol create
-          navigate ke tab terkait + auto-buka modal create (state quickCreate). */}
+      {/* KPI ringkas — 1 kotak dibagi 4, ditaruh atas biar metrik penting langsung kebaca. v1.32.0 */}
+      <div
+        data-onboarding="kpi"
+        className="ui-surface-panel ui-motion-card mb-10 grid grid-cols-2 lg:grid-cols-4 overflow-hidden rounded-3xl border shadow-sm"
+        style={{ backgroundColor: cardBg, borderColor: border }}
+      >
+        {[
+          {
+            label: "Total Penjualan bln ini",
+            value: stats.totalPenjualan,
+            previousValue: stats.prevTotalPenjualan,
+            type: "currency",
+            tint: "green",
+            icon: <Activity size={24} className="text-green-500" />,
+            emptyHint: "Belum ada nota lunas bulan ini.",
+          },
+          {
+            label: "Laba Kotor bln ini",
+            value: stats.totalLaba,
+            previousValue: stats.prevTotalLaba,
+            type: "currency",
+            tint: "blue",
+            icon: <Activity size={24} className="text-blue-500" />,
+            emptyHint: "Belum ada nota lunas bulan ini.",
+          },
+          {
+            label: "Surat Pesanan Aktif",
+            value: stats.suratPesananAktif,
+            type: "number",
+            tint: "orange",
+            icon: <ShoppingCart size={24} className="text-orange-500" />,
+          },
+          {
+            label: "Stok Low/Expired",
+            value: stats.stokLowExpired,
+            type: "number",
+            tint: "purple",
+            icon: <Package size={24} className="text-red-500" />,
+          },
+        ].map((stat, i) => {
+          const delta =
+            stat.label === "Laba Kotor bln ini" ? labaDelta : penjualanDelta;
+          const showDelta = typeof stat.previousValue !== "undefined" && delta;
+          return (
+            <div
+              key={i}
+              className={`ui-hover-delight flex flex-col gap-1.5 p-4 md:p-5 ${
+                i >= 2 ? "border-t lg:border-t-0" : ""
+              } ${i % 2 === 1 ? "border-l" : ""} ${i >= 1 ? "lg:border-l" : ""}`}
+              style={{ borderColor: border }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="shrink-0 opacity-90">{stat.icon}</span>
+                  <span
+                    className="text-[11px] md:text-xs font-semibold truncate"
+                    style={{ color: sub }}
+                  >
+                    {stat.label}
+                  </span>
+                </div>
+                {showDelta && (
+                  <div
+                    className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold shrink-0"
+                    style={{
+                      color: delta.positive
+                        ? "var(--color-success)"
+                        : "var(--color-danger)",
+                      backgroundColor: delta.positive
+                        ? "var(--color-success-soft)"
+                        : "var(--color-danger-soft)",
+                    }}
+                  >
+                    <delta.icon size={11} />
+                    <span>{delta.label}</span>
+                  </div>
+                )}
+              </div>
+              {loading ? (
+                <Skeleton width="70%" height="28px" />
+              ) : (
+                <h3
+                  className="text-lg md:text-2xl font-bold leading-tight"
+                  style={{ color: text }}
+                >
+                  <CountUpValue
+                    value={stat.value}
+                    loading={loading}
+                    formatter={
+                      stat.type === "currency" ? formatRupiah : formatQty
+                    }
+                  />
+                </h3>
+              )}
+              {!loading && stat.emptyHint && parseFloat(stat.value) === 0 && (
+                <p className="text-[11px] font-medium" style={{ color: sub }}>
+                  {stat.emptyHint}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Akses Cepat — di bawah Ringkasan & KPI. Tombol create navigate ke tab
+          terkait + auto-buka modal create (state quickCreate). */}
       <div
         data-onboarding="quick-actions"
         className="ui-surface-panel ui-motion-card ui-hover-delight mb-10 rounded-3xl p-6 border shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4"
@@ -3880,113 +3998,6 @@ export default function Dashboard({
           <Info size={14} />
           <span className="text-xs font-bold">Catatan Developer</span>
         </button>
-      </div>
-
-      {/* Kanban Tasks Section - MOVED TO TOP. v1.8.8: hapus inline bg supaya CSS token tint apply */}
-      <div
-        data-onboarding="tasks"
-        className="ui-surface-panel ui-motion-card mb-10 min-w-0 overflow-hidden rounded-3xl p-5 md:p-8 border shadow-sm"
-        style={{ borderColor: border }}
-      >
-        <TasksKanban isDarkMode={isDarkMode} isMobile={isMobile} />
-      </div>
-
-      {/* Quick Stats Cards */}
-      <div
-        data-onboarding="kpi"
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10"
-      >
-        {[
-          {
-            label: "Total Penjualan bln ini",
-            value: stats.totalPenjualan,
-            previousValue: stats.prevTotalPenjualan,
-            type: "currency",
-            tint: "green",
-            icon: <Activity size={24} className="text-green-500" />,
-            emptyHint: "Belum ada nota lunas bulan ini.",
-          },
-          {
-            label: "Laba Kotor bln ini",
-            value: stats.totalLaba,
-            previousValue: stats.prevTotalLaba,
-            type: "currency",
-            tint: "blue",
-            icon: <Activity size={24} className="text-blue-500" />,
-            emptyHint: "Belum ada nota lunas bulan ini.",
-          },
-          {
-            label: "Surat Pesanan Aktif",
-            value: stats.suratPesananAktif,
-            type: "number",
-            tint: "orange",
-            icon: <ShoppingCart size={24} className="text-orange-500" />,
-          },
-          {
-            label: "Stok Low/Expired",
-            value: stats.stokLowExpired,
-            type: "number",
-            tint: "purple",
-            icon: <Package size={24} className="text-red-500" />,
-          },
-        ].map((stat, i) => {
-          const delta =
-            stat.label === "Laba Kotor bln ini" ? labaDelta : penjualanDelta;
-          const showDelta = typeof stat.previousValue !== "undefined" && delta;
-          return (
-            <div
-              key={i}
-              className={`ui-surface-card ui-motion-card ui-hover-delight ui-stat-card-fluid rounded-2xl p-6 border shadow-sm`}
-              style={{ borderColor: border }}
-            >
-              <div className="flex justify-between items-start gap-3 mb-4">
-                <div className="p-3 bg-gray-50 rounded-xl dark:bg-gray-800">
-                  {stat.icon}
-                </div>
-                {showDelta && (
-                  <div
-                    className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold"
-                    style={{
-                      borderColor: delta.positive
-                        ? "var(--color-success-soft)"
-                        : "var(--color-danger-soft)",
-                      color: delta.positive
-                        ? "var(--color-success)"
-                        : "var(--color-danger)",
-                      backgroundColor: delta.positive
-                        ? "var(--color-success-soft)"
-                        : "var(--color-danger-soft)",
-                    }}
-                  >
-                    <delta.icon size={12} />
-                    <span>{delta.label}</span>
-                  </div>
-                )}
-              </div>
-              {loading ? (
-                <Skeleton width="80%" height="36px" className="mb-2" />
-              ) : (
-                <h3 className="ui-fluid-number mb-1" style={{ color: text }}>
-                  <CountUpValue
-                    value={stat.value}
-                    loading={loading}
-                    formatter={
-                      stat.type === "currency" ? formatRupiah : formatQty
-                    }
-                  />
-                </h3>
-              )}
-              {!loading && stat.emptyHint && parseFloat(stat.value) === 0 && (
-                <p className="text-sm font-medium mb-1" style={{ color: sub }}>
-                  {stat.emptyHint}
-                </p>
-              )}
-              <p className="text-sm font-medium" style={{ color: sub }}>
-                {stat.label}
-              </p>
-            </div>
-          );
-        })}
       </div>
 
       {/* Activity Heatmap */}
@@ -4528,6 +4539,52 @@ export default function Dashboard({
             </span>
           </div>
         </section>
+
+        {/* Manajemen Tugas — collapsible, default tutup (jarang dipakai → hemat tempat). v1.32.0 */}
+        <div
+          data-onboarding="tasks"
+          className="ui-surface-panel ui-motion-card mb-10 min-w-0 overflow-hidden rounded-3xl border shadow-sm"
+          style={{ borderColor: border }}
+        >
+          <button
+            onClick={() => setTasksOpen((v) => !v)}
+            aria-expanded={tasksOpen}
+            className="ui-motion-button ui-focus-ring w-full flex items-center justify-between gap-3 p-5 md:p-6 text-left"
+          >
+            <div className="flex items-center gap-2">
+              <ClipboardListIcon size={18} style={{ color: "var(--color-primary)" }} />
+              <h2 className="text-lg font-bold" style={{ color: text }}>
+                Manajemen Tugas
+              </h2>
+            </div>
+            <span
+              className="flex items-center gap-2 text-xs font-semibold"
+              style={{ color: sub }}
+            >
+              {tasksOpen ? "Sembunyikan" : "Tampilkan"}
+              <ChevronRightIcon
+                size={18}
+                style={{
+                  transition: "transform 0.3s ease",
+                  transform: tasksOpen ? "rotate(90deg)" : "rotate(0deg)",
+                }}
+              />
+            </span>
+          </button>
+          <div
+            className="grid"
+            style={{
+              gridTemplateRows: tasksOpen ? "1fr" : "0fr",
+              transition: "grid-template-rows 0.3s ease-in-out",
+            }}
+          >
+            <div className="overflow-hidden min-h-0">
+              <div className="px-5 md:px-8 pb-5 md:pb-8">
+                <TasksKanban isDarkMode={isDarkMode} isMobile={isMobile} />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
 
