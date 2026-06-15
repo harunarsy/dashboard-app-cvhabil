@@ -3802,7 +3802,7 @@ export default function Dashboard({
         width: "100%",
         maxWidth: "100%",
         padding: isMobile ? "1rem" : "2.5rem",
-        paddingTop: isMobile ? "4rem" : "2.5rem",
+        paddingTop: isMobile ? "4rem" : "1rem",
         backgroundColor: isVantaMode ? "transparent" : bg,
         overflowX: "hidden",
       }}
@@ -3810,22 +3810,10 @@ export default function Dashboard({
       {/* Header Stack — alignItems stretch override: .ui-toolbar set align-items:center
           yg bikin anak ke-center saat flex-col; stretch = full-width → judul kiri, version kanan */}
       <div
-        className="ui-surface-panel ui-toolbar mb-10 flex flex-col gap-5 p-4 md:p-5"
+        className="ui-surface-panel ui-toolbar mb-6 flex flex-col gap-4 p-4 md:p-5"
         style={{ alignItems: "stretch" }}
       >
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1
-              className="text-3xl font-bold mb-2 tracking-tight"
-              style={{ color: text }}
-            >
-              Dashboard
-            </h1>
-            <p className="text-sm font-medium" style={{ color: sub }}>
-              Welcome back to HABIL SUPERAPP.
-            </p>
-          </div>
-
+        <div className="flex flex-wrap items-center justify-end gap-4">
           {/* Version Badge & Changelog Trigger */}
           <button
             onClick={() => setShowModal(true)}
@@ -3848,7 +3836,7 @@ export default function Dashboard({
       {/* KPI ringkas — 1 kotak dibagi 4, ditaruh atas biar metrik penting langsung kebaca. v1.32.0 */}
       <div
         data-onboarding="kpi"
-        className="ui-surface-panel ui-motion-card mb-10 grid grid-cols-2 lg:grid-cols-4 overflow-hidden rounded-3xl border shadow-sm"
+        className="ui-surface-panel ui-motion-card mb-6 grid grid-cols-2 lg:grid-cols-4 overflow-hidden rounded-3xl border shadow-sm"
         style={{ backgroundColor: cardBg, borderColor: border }}
       >
         {[
@@ -3953,7 +3941,7 @@ export default function Dashboard({
           terkait + auto-buka modal create (state quickCreate). */}
       <div
         data-onboarding="quick-actions"
-        className="ui-surface-panel ui-motion-card ui-hover-delight mb-10 rounded-3xl p-6 border shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+        className="ui-surface-panel ui-motion-card ui-hover-delight mb-6 rounded-3xl p-5 border shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4"
         style={{ backgroundColor: cardBg, borderColor: border }}
       >
         <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
@@ -4002,7 +3990,7 @@ export default function Dashboard({
 
       {/* Activity Heatmap */}
       <section
-        className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm mb-10"
+        className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm mb-6"
         style={{ backgroundColor: cardBg, borderColor: border }}
       >
         {/* Header */}
@@ -4172,7 +4160,7 @@ export default function Dashboard({
       </section>
 
       {/* Profitability Snapshot */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <section
           data-onboarding="chart"
           className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm"
@@ -4374,7 +4362,7 @@ export default function Dashboard({
         </section>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <section
           className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm"
           style={{ backgroundColor: cardBg, borderColor: border }}
@@ -4543,7 +4531,7 @@ export default function Dashboard({
         {/* Manajemen Tugas — collapsible, default tutup (jarang dipakai → hemat tempat). v1.32.0 */}
         <div
           data-onboarding="tasks"
-          className="ui-surface-panel ui-motion-card mb-10 min-w-0 overflow-hidden rounded-3xl border shadow-sm"
+          className="ui-surface-panel ui-motion-card mb-6 min-w-0 overflow-hidden rounded-3xl border shadow-sm"
           style={{ borderColor: border }}
         >
           <button
@@ -4572,16 +4560,16 @@ export default function Dashboard({
             </span>
           </button>
           <div
-            className="grid"
             style={{
-              gridTemplateRows: tasksOpen ? "1fr" : "0fr",
-              transition: "grid-template-rows 0.3s ease-in-out",
+              maxHeight: tasksOpen ? "3000px" : "0px",
+              opacity: tasksOpen ? 1 : 0,
+              overflow: "hidden",
+              transition:
+                "max-height 0.45s ease-in-out, opacity 0.3s ease-in-out",
             }}
           >
-            <div className="overflow-hidden min-h-0">
-              <div className="px-5 md:px-8 pb-5 md:pb-8">
-                <TasksKanban isDarkMode={isDarkMode} isMobile={isMobile} />
-              </div>
+            <div className="px-5 md:px-8 pb-5 md:pb-8">
+              <TasksKanban isDarkMode={isDarkMode} isMobile={isMobile} />
             </div>
           </div>
         </div>
