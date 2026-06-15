@@ -118,9 +118,10 @@ describe("Dashboard Component - Loading State", () => {
       resolveApi({ data: mockStats });
     });
 
-    // Wait for the labels to be present
+    // Wait for the labels to be present (getAllByText: "Total Penjualan" juga
+    // muncul di teks changelog/RELEASES, jadi cukup pastikan ada minimal 1).
     await waitFor(() => {
-      expect(screen.getByText(/Total Penjualan/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Total Penjualan/i).length).toBeGreaterThan(0);
     });
 
     // Wait for skeletons to disappear (reflecting loading: false)
@@ -140,6 +141,6 @@ describe("Dashboard Component - Loading State", () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText(/^5$/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/^2$/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Stok Low\/Expired/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Stok Low\/Expired/i).length).toBeGreaterThan(0);
   });
 });

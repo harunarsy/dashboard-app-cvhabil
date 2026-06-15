@@ -37,6 +37,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.33.0-stable",
+    date: "15 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Header semua halaman utama (Nota, Faktur, Customer, Surat Pesanan, Inventory) dirapikan jadi breadcrumb kecil 'Dashboard › Halaman · N tercatat' biar hemat tempat dan isi/daftar langsung kelihatan. Di Nota Penjualan, tombol Buat Nota dipindah ke antara filter dan daftar nota.",
+        dev: "InvoiceList/SalesOrderList/CustomerList/PurchaseOrderList/InventoryDashboard: header h1 2rem + subtitle → breadcrumb row (Dashboard › title + count badge, pemisah '›'). SalesOrderList: tombol Buat Nota dipindah dari header ke atas tabel (antara toolbar filter & list). Dashboard.test getByText → getAllByText utk label yang juga muncul di teks RELEASES.",
+      },
+    ],
+  },
+  {
     version: "v1.32.0-stable",
     date: "15 Juni 2026",
     status: "latest",

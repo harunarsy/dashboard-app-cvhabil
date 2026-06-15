@@ -790,41 +790,45 @@ export default function InventoryDashboard({
         isDarkMode={isDarkMode}
       />
 
-      {/* Header */}
+      {/* Header — breadcrumb ringkas (hemat tempat). v1.33.0 */}
       <div
-        className="ui-readable-surface"
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "1.5rem",
+          marginBottom: "1rem",
           flexWrap: "wrap",
           gap: "12px",
-          padding: isMobile ? "1rem" : "1.25rem 1.5rem",
-          borderRadius: "1rem",
         }}
       >
-        <div>
-          <h1
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={{ fontSize: "13px", color: sub }}>Dashboard</span>
+          <span style={{ fontSize: "16px", color: sub, lineHeight: 1 }}>›</span>
+          <span style={{ fontSize: "15px", fontWeight: 700, color: text }}>
+            Inventory &amp; Stok
+          </span>
+          <span
             style={{
-              fontSize: "2rem",
-              fontWeight: "700",
-              margin: 0,
-              color: text,
+              padding: "2px 10px",
+              borderRadius: "999px",
+              backgroundColor: "var(--color-surface-elevated)",
+              border: `1px solid ${border}`,
+              fontSize: "11px",
+              fontWeight: 600,
+              color: sub,
             }}
           >
-            📦 Inventory & Stok
-          </h1>
-          <div style={{ margin: "4px 0 0", fontSize: "14px", color: sub }}>
-            {loading ? (
-              <Skeleton width="200px" height="14px" />
-            ) : (
-              <>
-                {products.length} produk aktif •{" "}
-                {totalAlerts > 0 ? `⚠️ ${totalAlerts} alert` : "✅ Semua aman"}
-              </>
-            )}
-          </div>
+            {loading
+              ? "…"
+              : `${products.length} produk${totalAlerts > 0 ? ` · ${totalAlerts} alert` : ""}`}
+          </span>
         </div>
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
           {headerBtn("var(--color-primary)", Plus, "Produk", openAddProduct)}

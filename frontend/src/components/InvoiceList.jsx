@@ -1609,41 +1609,38 @@ export default function InvoiceList({
         </div>
       )}
 
-      {/* Header */}
+      {/* Header — breadcrumb ringkas (hemat tempat, faktur langsung kelihatan). v1.33.0 */}
       <div
-        className="ui-readable-surface"
         style={{
-          marginBottom: "1.5rem",
+          marginBottom: "1rem",
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: "1rem",
+          alignItems: "center",
+          gap: "10px",
           flexWrap: "wrap",
-          padding: isMobile ? "1rem" : "1.25rem 1.5rem",
-          borderRadius: "1rem",
         }}
       >
-        <div>
-          <h1
-            style={{
-              fontSize: "2rem",
-              fontWeight: "700",
-              margin: "0 0 4px 0",
-              color: "var(--color-text)",
-            }}
-          >
-            📄 Faktur Pembelian
-          </h1>
-          <p
-            style={{
-              margin: 0,
-              fontSize: "14px",
-              color: "var(--color-text-subtle)",
-            }}
-          >
-            Faktur Pembelian — CV Habil
-          </p>
-        </div>
+        <span style={{ fontSize: "13px", color: "var(--color-text-subtle)" }}>
+          Dashboard
+        </span>
+        <ChevronRight size={14} color="var(--color-text-subtle)" />
+        <span
+          style={{ fontSize: "15px", fontWeight: 700, color: "var(--color-text)" }}
+        >
+          Faktur Pembelian
+        </span>
+        <span
+          style={{
+            padding: "2px 10px",
+            borderRadius: "999px",
+            backgroundColor: "var(--color-surface-elevated)",
+            border: "1px solid var(--color-border)",
+            fontSize: "11px",
+            fontWeight: 600,
+            color: "var(--color-text-subtle)",
+          }}
+        >
+          {invoices.length} faktur tercatat
+        </span>
       </div>
 
       {/* Draft Banner */}

@@ -247,9 +247,8 @@ export default function CustomerList({
         isDarkMode={isDarkMode}
       />
 
-      {/* Header */}
+      {/* Header — breadcrumb ringkas (hemat tempat). v1.33.0 */}
       <div
-        className="ui-surface-panel"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -257,27 +256,34 @@ export default function CustomerList({
           marginBottom: "1rem",
           flexWrap: "wrap",
           gap: "12px",
-          padding: isMobile ? "16px" : "18px 20px",
         }}
       >
-        <div>
-          <h1
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={{ fontSize: "13px", color: sub }}>Dashboard</span>
+          <span style={{ fontSize: "16px", color: sub, lineHeight: 1 }}>›</span>
+          <span style={{ fontSize: "15px", fontWeight: 700, color: text }}>
+            Master Customer
+          </span>
+          <span
             style={{
-              fontSize: "2rem",
-              fontWeight: "700",
-              margin: 0,
-              color: text,
+              padding: "2px 10px",
+              borderRadius: "999px",
+              backgroundColor: "var(--color-surface-elevated)",
+              border: `1px solid ${border}`,
+              fontSize: "11px",
+              fontWeight: 600,
+              color: sub,
             }}
           >
-            👥 Master Customer
-          </h1>
-          <p style={{ margin: "4px 0 0", fontSize: "14px", color: sub }}>
-            {loading ? (
-              <Skeleton width="160px" height="14px" />
-            ) : (
-              `${customers.length} customer terdaftar`
-            )}
-          </p>
+            {loading ? "…" : `${customers.length} customer terdaftar`}
+          </span>
         </div>
         <button
           onClick={openAdd}

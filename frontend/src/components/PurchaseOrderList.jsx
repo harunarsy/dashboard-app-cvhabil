@@ -692,38 +692,43 @@ export default function PurchaseOrderList({
         isMobile={isMobile}
         isDarkMode={isDarkMode}
       />
-      {/* Header */}
+      {/* Header — breadcrumb ringkas (hemat tempat). v1.33.0 */}
       <div
-        className="ui-readable-surface"
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "1.5rem",
+          marginBottom: "1rem",
           flexWrap: "wrap",
           gap: "12px",
-          padding: isMobile ? "1rem" : "1.25rem 1.5rem",
-          borderRadius: "1rem",
         }}
       >
-        <div>
-          <h1
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            flexWrap: "wrap",
+          }}
+        >
+          <span style={{ fontSize: "13px", color: sub }}>Dashboard</span>
+          <span style={{ fontSize: "16px", color: sub, lineHeight: 1 }}>›</span>
+          <span style={{ fontSize: "15px", fontWeight: 700, color: text }}>
+            Surat Pesanan
+          </span>
+          <span
             style={{
-              fontSize: "2rem",
-              fontWeight: "700",
-              margin: 0,
-              color: text,
+              padding: "2px 10px",
+              borderRadius: "999px",
+              backgroundColor: "var(--color-surface-elevated)",
+              border: `1px solid ${border}`,
+              fontSize: "11px",
+              fontWeight: 600,
+              color: sub,
             }}
           >
-            📋 Surat Pesanan
-          </h1>
-          <p style={{ margin: "4px 0 0", fontSize: "14px", color: sub }}>
-            {loading ? (
-              <Skeleton width="130px" height="14px" />
-            ) : (
-              `${orders.length} SP tercatat`
-            )}
-          </p>
+            {loading ? "…" : `${orders.length} SP tercatat`}
+          </span>
         </div>
         <button
           onClick={openCreate}

@@ -1474,57 +1474,34 @@ export default function SalesOrderList({
         isDarkMode={isDarkMode}
       />
 
-      {/* Header */}
+      {/* Header — breadcrumb ringkas. Tombol Buat Nota dipindah ke antara filter & list. v1.33.0 */}
       <div
-        className="ui-readable-surface"
         style={{
+          marginBottom: "1rem",
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "1.5rem",
+          gap: "10px",
           flexWrap: "wrap",
-          gap: "12px",
-          padding: "18px 20px",
-          borderRadius: "18px",
         }}
       >
-        <div>
-          <h1
-            style={{
-              fontSize: "2rem",
-              fontWeight: "700",
-              margin: 0,
-              color: text,
-            }}
-          >
-            🧾 Nota Penjualan
-          </h1>
-          <div style={{ margin: "4px 0 0", fontSize: "14px", color: sub }}>
-            {loading ? (
-              <Skeleton width="140px" height="14px" />
-            ) : (
-              `${orders.length} nota tercatat`
-            )}
-          </div>
-        </div>
-        <button
-          onClick={openAdd}
+        <span style={{ fontSize: "13px", color: sub }}>Dashboard</span>
+        <span style={{ fontSize: "16px", color: sub, lineHeight: 1 }}>›</span>
+        <span style={{ fontSize: "15px", fontWeight: 700, color: text }}>
+          Nota Penjualan
+        </span>
+        <span
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "10px 18px",
-            backgroundColor: "var(--color-success)",
-            color: "#FFF",
-            border: "none",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontWeight: "700",
-            fontSize: "14px",
+            padding: "2px 10px",
+            borderRadius: "999px",
+            backgroundColor: "var(--color-surface-elevated)",
+            border: `1px solid ${border}`,
+            fontSize: "11px",
+            fontWeight: 600,
+            color: sub,
           }}
         >
-          <Plus size={18} /> Buat Nota
-        </button>
+          {loading ? "…" : `${orders.length} nota tercatat`}
+        </span>
       </div>
 
       {/* v1.23.0: banner draft nota tersimpan (mirror draft faktur) */}
@@ -1863,6 +1840,35 @@ export default function SalesOrderList({
           </div>
         </div>
       )}
+
+      {/* Buat Nota — dipindah ke antara filter & list (v1.33.0) */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: "12px",
+        }}
+      >
+        <button
+          onClick={openAdd}
+          className="ui-motion-button"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "10px 18px",
+            backgroundColor: "var(--color-success)",
+            color: "#FFF",
+            border: "none",
+            borderRadius: "10px",
+            cursor: "pointer",
+            fontWeight: "700",
+            fontSize: "14px",
+          }}
+        >
+          <Plus size={18} /> Buat Nota
+        </button>
+      </div>
 
       {/* Table */}
       <div

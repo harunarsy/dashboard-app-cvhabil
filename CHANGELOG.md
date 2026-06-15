@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.33.0-stable] - 2026-06-15
+
+### Changed
+- **Header semua halaman dirapikan**: Nota Penjualan, Faktur Pembelian, Master Customer, Surat Pesanan, dan Inventory kini memakai breadcrumb ringkas ("Dashboard › Halaman · N tercatat") menggantikan judul besar 2rem — hemat ruang, daftar/isi langsung terlihat. Tombol Buat Nota dipindah ke antara filter dan daftar nota.
+
 ## [v1.32.0-stable] - 2026-06-15
 
 ### Changed
