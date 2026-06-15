@@ -3296,26 +3296,35 @@ const RELEASES = [
 // UPCOMING_FEATURES — single source of truth untuk roadmap modal "Changelog & Roadmap".
 // Cara update: tambah/edit/hapus entry. Saat fitur shipped, HAPUS dari sini dan tambahkan ke RELEASES[0].changes.
 // Fields: priority ('high'|'medium'|'low'), title (string), desc (string).
+// Roadmap — DIPERBARUI tiap rilis (lihat docs/UPCOMING_FEATURES_RULES.md):
+// fitur shipped DIHAPUS dari sini & masuk RELEASES, lalu AI menambah rekomendasi baru.
+// Dibersihkan v1.34.x: Export Excel bulanan (v1.29), Finance hutang/piutang (v1.29),
+// dan Predictive Restocking (live di Inventory) sudah shipped → dipindah ke RELEASES.
 const upcoming = [
   {
     priority: "high",
-    title: "Export Excel laporan bulanan profesional",
-    desc: "Rekap bulanan terpadu untuk Nota, Faktur, PPN, margin, dan inventory dalam format Excel/PDF siap arsip",
-  },
-  {
-    priority: "high",
-    title: "Halaman Finance & Karyawan",
-    desc: "Modul lanjutan untuk penggajian dan manajemen hutang/piutang",
+    title: "Notifikasi otomatis stok menipis",
+    desc: "Peringatan proaktif (in-app + draft WA) saat produk mendekati habis, memakai data velocity restock yang sudah berjalan",
   },
   {
     priority: "medium",
-    title: "Predictive Restocking (Mini AI)",
-    desc: "Saran restock berbasis velocity penjualan 60 hari, stok aktif, dan rata-rata pembelian terakhir",
+    title: "Ongkir otomatis dari berat paket",
+    desc: "Hitung estimasi ongkir per kurir dari total berat nota — lanjutan fitur estimasi berat paket (v1.31)",
+  },
+  {
+    priority: "medium",
+    title: "Scanner Barcode/QR",
+    desc: "Input stok & item nota lebih cepat lewat kamera/scanner untuk kurangi salah ketik",
+  },
+  {
+    priority: "low",
+    title: "Penggajian (Payroll) Karyawan",
+    desc: "Modul gaji karyawan; Finance hutang/piutang dasar sudah ada sejak v1.29",
   },
   {
     priority: "low",
     title: "TypeScript Migration",
-    desc: "Full type safety untuk seluruh codebase",
+    desc: "Full type safety untuk seluruh codebase (refactor besar, jangan digabung hotfix transaksi)",
   },
 ];
 

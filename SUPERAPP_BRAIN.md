@@ -115,21 +115,27 @@
 
 ## 4. FUTURE ROADMAP (Prioritas Pengembangan)
 
+> Disinkronkan dengan `upcoming` di Dashboard.jsx + `docs/UPCOMING_FEATURES_RULES.md`. Refresh tiap rilis: shipped → RELEASES, lalu AI isi rekomendasi baru.
+
+### ✅ Sudah Shipped (jangan dimunculkan lagi sebagai roadmap)
+
+- **Bcrypt Security** (v1.3.40), **Reporting Engine / Export Excel bulanan** (v1.29), **Finance Hutang-Piutang** (v1.29), **Predictive Restocking / Mini AI** (live, akurasi diverifikasi v1.34), **Estimasi Berat Paket Nota** (v1.31).
+
 ### 🔴 High Priority
 
-- **Bcrypt Security**: Migrasi password ke salted hashing untuk keamanan level-enterprise.
-- **Reporting Engine**: Export laporan bulanan ke Excel (.xlsx) dan PDF profesional dengan branding Habil.
-- **Master Data UI**: Modul terpadu untuk management Produk & Distributor (Inline Edit/Delete).
+- **Notifikasi otomatis stok menipis**: alert proaktif (in-app + draft WA) memakai data velocity restock yang sudah ada.
 
 ### 🟡 Medium Priority
 
-- **Finance Module**: Expense tracking otomatis dan Dashboard Hutang-Piutang.
-- **Advanced Inventory**: QR/Barcode scanner integration & Predictive Restocking alerts.
+- **Ongkir otomatis dari berat paket**: estimasi ongkir per kurir dari total berat nota (lanjutan fitur estimasi berat).
+- **Scanner Barcode/QR**: percepat input stok & item nota, kurangi salah ketik.
+- **Master Data UI**: modul terpadu management Produk & Distributor (inline edit/delete).
 
 ### 🟢 Low Priority (Future)
 
-- **TypeScript Migration**: Full type safety untuk seluruh codebase.
-- **Dockerization**: Standarisasi env development via Container.
+- **Penggajian (Payroll) Karyawan**: modul gaji terintegrasi.
+- **TypeScript Migration**: full type safety untuk seluruh codebase.
+- **Dockerization**: standarisasi env development via Container.
 
 ---
 
