@@ -3716,15 +3716,28 @@ export default function Dashboard({
                 .filter(Boolean)
                 .join(" ");
         return (
-          <div
-            className="rounded-3xl border p-5 md:p-6"
-            style={{ backgroundColor: cardBg, borderColor: border }}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles size={18} style={{ color: "var(--color-primary)" }} />
-              <h2 className="text-lg font-bold" style={{ color: text }}>
-                Ringkasan Minggu Ini
-              </h2>
+          <div>
+            <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Sparkles size={18} style={{ color: "var(--color-primary)" }} />
+                <h2 className="text-lg font-bold" style={{ color: text }}>
+                  Ringkasan Minggu Ini
+                </h2>
+              </div>
+              {/* Version Badge & Changelog Trigger — sejajar judul Ringkasan. v1.34.x */}
+              <button
+                onClick={() => setShowModal(true)}
+                className="ui-motion-button ui-focus-ring flex min-h-9 items-center gap-2 px-3 py-1.5 rounded-full border transition-colors hover:shadow-sm"
+                style={{ borderColor: border, color: text }}
+              >
+                <Info size={15} className="text-blue-500" />
+                <span className="text-xs font-semibold">
+                  Version {RELEASES[0]?.version}
+                </span>
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
+                  Release Notes
+                </span>
+              </button>
             </div>
             <p
               className="text-sm font-medium mb-5"
@@ -3846,23 +3859,6 @@ export default function Dashboard({
         className="ui-surface-panel ui-toolbar mb-6 flex flex-col gap-4 p-4 md:p-5"
         style={{ alignItems: "stretch" }}
       >
-        <div className="flex flex-wrap items-center justify-end gap-4">
-          {/* Version Badge & Changelog Trigger */}
-          <button
-            onClick={() => setShowModal(true)}
-            className="ui-motion-button ui-focus-ring flex min-h-10 items-center gap-2 px-4 py-2 rounded-full border transition-colors hover:shadow-sm"
-            style={{ borderColor: border, color: text }}
-          >
-            <Info size={16} className="text-blue-500" />
-            <span className="text-sm font-semibold">
-              Version {RELEASES[0]?.version}
-            </span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium ml-2">
-              Release Notes
-            </span>
-          </button>
-        </div>
-
         {weeklySummary}
       </div>
 
