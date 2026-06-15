@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
 import { Plus, Trash2, X, CheckCircle, FileText } from "lucide-react";
 import {
   purchaseOrdersAPI,
@@ -111,6 +112,14 @@ export default function PurchaseOrderList({
   const debouncedSearch = useDebouncedValue(search, 300);
   const [showModal, setShowModal] = useState(null); // null | 'create' | 'receive' | 'distributor'
   const [editId, setEditId] = useState(null);
+  // Auto-buka modal create dari Akses Cepat Dashboard (state quickCreate).
+  const location = useLocation();
+  useEffect(() => {
+    if (location.state?.quickCreate) {
+      setShowModal("create");
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState("");
   const [toastType, setToastType] = useState("success");

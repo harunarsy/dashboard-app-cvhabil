@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
 import {
   Plus,
   Trash2,
@@ -176,6 +177,14 @@ export default function SalesOrderList({
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const [showModal, setShowModal] = useState(false);
+  // Auto-buka modal create saat datang dari Akses Cepat Dashboard (state quickCreate).
+  const location = useLocation();
+  useEffect(() => {
+    if (location.state?.quickCreate) {
+      setShowModal(true);
+      window.history.replaceState({}, document.title); // cegah re-open saat reload/back
+    }
+  }, [location.state]);
   // Mobile: form & preview tidak muat berdampingan → tab; filter dilipat default
   const [formTab, setFormTab] = useState("form"); // 'form' | 'preview'
   const [showMobileFilters, setShowMobileFilters] = useState(false);

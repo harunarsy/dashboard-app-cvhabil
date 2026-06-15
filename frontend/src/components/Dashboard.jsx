@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import Icons from "./common/Icon";
 import api from "../services/api";
 import TasksKanban from "./TasksKanban";
@@ -35,9 +36,31 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.30.0-stable",
+    date: "15 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Akses Cepat dipindah ke atas (antara Ringkasan & Manajemen Tugas) dan ditambah tombol Buat Faktur Pembelian. Klik Buat Nota/SP/Faktur langsung membuka form-nya di tab terkait, jadi sekali klik langsung isi.",
+        dev: "Dashboard quick-access navigate('/sales'|'/orders'|'/invoices', {state:{quickCreate:true}}); SalesOrderList/PurchaseOrderList/InvoiceList useLocation effect auto-open modal create + history.replaceState anti re-open.",
+      },
+      {
+        type: "fix",
+        text: "Data master (customer/produk/distributor) kini lebih cepat ter-update antar perangkat operator — perubahan dari satu HP kebaca di HP lain maksimal 60 detik (sebelumnya 5 menit).",
+        dev: "api.js CACHE_TTL 5min → 60s untuk sessionStorage master-data cache.",
+      },
+      {
+        type: "fix",
+        text: "Ringkasan Mingguan tidak lagi menampilkan produk yang sama dua kali (mis. Tropicana Slim Classic) akibat beda penulisan nama lama vs baru.",
+        dev: "weekly-summary movers GROUP BY nama canonical via product_master + product_aliases; seed 7 alias produk lama.",
+      },
+    ],
+  },
+  {
     version: "v1.29.0-stable",
     date: "14 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "new",
@@ -3258,6 +3281,7 @@ export default function Dashboard({
   isMobile,
   isVantaMode,
 }) {
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [showDevNotes, setShowDevNotes] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -3793,6 +3817,57 @@ export default function Dashboard({
         </div>
 
         {weeklySummary}
+      </div>
+
+      {/* Quick Access — antara Ringkasan & Manajemen Tugas. Tombol create
+          navigate ke tab terkait + auto-buka modal create (state quickCreate). */}
+      <div
+        data-onboarding="quick-actions"
+        className="ui-surface-panel ui-motion-card ui-hover-delight mb-10 rounded-3xl p-6 border shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+        style={{ backgroundColor: cardBg, borderColor: border }}
+      >
+        <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+          <h2 className="text-lg font-bold whitespace-nowrap" style={{ color: text }}>
+            Akses Cepat
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => navigate("/sales", { state: { quickCreate: true } })}
+              className="ui-motion-button px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-1"
+            >
+              <Plus size={14} /> Buat Nota
+            </button>
+            <button
+              onClick={() => navigate("/orders", { state: { quickCreate: true } })}
+              className="ui-motion-button px-4 py-2 rounded-xl border text-xs font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-1"
+              style={{ borderColor: border, color: text }}
+            >
+              <Plus size={14} /> Buat SP
+            </button>
+            <button
+              onClick={() => navigate("/invoices", { state: { quickCreate: true } })}
+              className="ui-motion-button px-4 py-2 rounded-xl border text-xs font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-1"
+              style={{ borderColor: border, color: text }}
+            >
+              <Plus size={14} /> Buat Faktur Pembelian
+            </button>
+            <button
+              onClick={() => navigate("/online-store")}
+              className="ui-motion-button px-4 py-2 rounded-xl border text-xs font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800"
+              style={{ borderColor: border, color: text }}
+            >
+              CSV Online
+            </button>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setShowDevNotes(true)}
+          className="ui-motion-button ui-focus-ring flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-100 bg-blue-50/30 text-blue-600 hover:bg-blue-50 transition-colors shrink-0"
+        >
+          <Info size={14} />
+          <span className="text-xs font-bold">Catatan Developer</span>
+        </button>
       </div>
 
       {/* Kanban Tasks Section - MOVED TO TOP. v1.8.8: hapus inline bg supaya CSS token tint apply */}
@@ -4443,52 +4518,6 @@ export default function Dashboard({
         </section>
       </div>
 
-      {/* Quick Access Section - Compacted Row */}
-      <div
-        data-onboarding="quick-actions"
-        className="flex flex-col md:flex-row gap-6 mb-10"
-      >
-        <div
-          className="ui-surface-panel ui-motion-card ui-hover-delight flex-1 rounded-3xl p-6 border shadow-sm flex items-center justify-between"
-          style={{ backgroundColor: cardBg, borderColor: border }}
-        >
-          <div className="flex items-center gap-6">
-            <h2 className="text-lg font-bold" style={{ color: text }}>
-              Akses Cepat
-            </h2>
-            <div className="flex flex-wrap gap-3">
-              <a
-                href="/sales"
-                className="ui-motion-button px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-1"
-              >
-                <Plus size={14} /> Buat Nota
-              </a>
-              <a
-                href="/orders"
-                className="ui-motion-button px-4 py-2 rounded-xl border text-xs font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-1"
-                style={{ borderColor: border, color: text }}
-              >
-                <Plus size={14} /> Buat SP
-              </a>
-              <a
-                href="/online-store"
-                className="ui-motion-button px-4 py-2 rounded-xl border text-xs font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800"
-                style={{ borderColor: border, color: text }}
-              >
-                CSV Online
-              </a>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowDevNotes(true)}
-            className="ui-motion-button ui-focus-ring flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-100 bg-blue-50/30 text-blue-600 hover:bg-blue-50 transition-colors"
-          >
-            <Info size={14} />
-            <span className="text-xs font-bold">Catatan Developer</span>
-          </button>
-        </div>
-      </div>
 
       {/* Auto-Release Popup v1.2.1 */}
       {showReleaseModal &&

@@ -2,6 +2,18 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.30.0-stable] - 2026-06-15
+
+### Added
+- **Akses Cepat dipindah ke atas** (antara Ringkasan Minggu Ini & Manajemen Tugas) + tombol baru **Buat Faktur Pembelian**. Tombol Buat Nota/SP/Faktur sekarang langsung membuka form create di tab terkait (navigate + auto-open modal), bukan cuma pindah halaman.
+
+### Changed
+- Cache master data (customer/produk/distributor) dipersingkat dari 5 menit → **60 detik**, supaya perubahan data antar perangkat operator (Harun/Fivin/Ferry) lebih cepat sinkron.
+
+### Fixed
+- **Ringkasan Mingguan**: produk yang pernah di-rename (mis. Tropicana Slim Classic 160) tidak lagi kebaca 2x (naik + turun) karena beda penulisan nama snapshot lama vs master. Movers sekarang grup by nama canonical (master + alias); 7 alias produk lama yang kelewat saat rename Fase 0 sudah di-seed.
+- **Customer CATUR LIMAS** yang hanya ada sebagai teks di 1 nota lama kini ditambahkan ke master + nota lama di-link, jadi muncul di dropdown Buat Nota.
+
 ## [v1.29.0-stable] - 2026-06-14
 
 ### Added

@@ -6,9 +6,12 @@ const localApiFallback = 'http://localhost:5001/api';
 const API_BASE_URL = configuredApiUrl || (isLocal ? localApiFallback : '/api');
 // Cache bust v2
 
-/* ─── sessionStorage master data cache (5 min TTL) ─── */
+/* ─── sessionStorage master data cache (60 dtk TTL) ─── */
+// TTL dipersingkat 5mnt → 60dtk: multi-operator (Harun/Fivin/Ferry) di device beda,
+// perubahan master (customer/produk/distributor) dari 1 device kebaca device lain
+// maks 60 dtk (dulu 5 mnt). Mutasi via app tetap langsung invalidate cache lokal.
 const CACHE_PREFIX = 'mc_';
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 60 * 1000; // 60 detik
 
 function cacheKey(url) {
   return CACHE_PREFIX + url;

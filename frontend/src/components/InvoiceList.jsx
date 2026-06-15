@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
 import {
   invoicesAPI,
   distributorsAPI,
@@ -1308,6 +1309,15 @@ export default function InvoiceList({
     setItems([blankItem()]);
     setEditingId(null);
   }, []);
+  // Auto-buka modal create faktur dari Akses Cepat Dashboard (state quickCreate).
+  const location = useLocation();
+  useEffect(() => {
+    if (location.state?.quickCreate) {
+      resetForm();
+      setShowModal(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, resetForm]);
   const loadDraft = () => {
     if (!savedDraft) return;
     const draftTaxType =
