@@ -941,6 +941,11 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
   const priceCell = (r, ch) => {
     const hpp = lastHppFor(r);
     const cur = r[ch.field] != null ? parseFloat(r[ch.field]) : null;
+    // v1.34.0: sel kosong tampilkan harga inventory (sell_price) sebagai referensi
+    // (ghost). Set harga tetap independen di price_list_entries — TIDAK nulis balik
+    // ke inventory; effectivePrice() yang fallback ke sell_price untuk PDF/stats.
+    const inheritPrice = parseFloat(r.sell_price) || 0;
+    const inheriting = cur == null && inheritPrice > 0;
     const val = vals[r.id]?.[ch.key] ?? "";
     const dirty = val !== (cur != null ? String(Math.round(cur)) : "");
     const key = `${r.id}|${ch.key}`;
@@ -965,7 +970,9 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
             type="number"
             min="0"
             value={val}
-            placeholder="—"
+            placeholder={
+              inheriting ? Math.round(inheritPrice).toLocaleString("id-ID") : "—"
+            }
             disabled={saving}
             aria-label={`Harga ${ch.label} ${r.name}`}
             onChange={(e) =>
@@ -1028,6 +1035,10 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
             </span>
           ) : cur != null && r[ch.dateField] ? (
             <span>sejak {fmtDate(r[ch.dateField])}</span>
+          ) : inheriting ? (
+            <span style={{ color: sub, fontWeight: 600 }}>
+              ↩ ikut inventory · Rp {fmtRpShort(inheritPrice)}
+            </span>
           ) : (
             <span> </span>
           )}

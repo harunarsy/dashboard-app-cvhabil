@@ -37,6 +37,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.34.0-stable",
+    date: "15 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "feat",
+        text: "Daftar Harga: kolom harga yang belum di-set sekarang menampilkan harga jual dari Inventory sebagai acuan (tulisan abu 'ikut inventory'). Begitu kamu isi harga sendiri, harga itu tersimpan terpisah per channel (Offline/Shopee/Tokopedia) dan tidak mengubah harga di Inventory.",
+        dev: "PriceListPage.priceCell: inheritPrice = r.sell_price; saat cur==null → placeholder = harga inventory + hint 'ikut inventory'. saveChannel tetap nulis ke price_list_entries saja (bukan product_master). effectivePrice fallback ke sell_price tetap utk PDF/stats.",
+      },
+    ],
+  },
+  {
     version: "v1.33.0-stable",
     date: "15 Juni 2026",
     status: "latest",

@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.34.0-stable] - 2026-06-15
+
+### Changed
+- **Daftar Harga ikut Inventory untuk sel kosong**: harga channel (Offline/Shopee/Tokopedia) yang belum di-set kini menampilkan harga jual Inventory sebagai acuan (ghost + label "ikut inventory"). Mengisi harga menyimpannya terpisah di Daftar Harga tanpa mengubah harga di Inventory.
+
 ## [v1.33.0-stable] - 2026-06-15
 
 ### Changed
