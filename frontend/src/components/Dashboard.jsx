@@ -37,6 +37,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.39.0-stable",
+    date: "16 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "feat",
+        text: "Konsistensi data batch & nota: nama-nama lama di nota yang dulu tidak nyambung ke produk (mis. ENTRAMIX 555, DIANERAL, dll) sekarang otomatis dikenali (25 alias ditambah) sehingga batch-nya muncul konsisten. Perubahan nomor batch / tanggal kadaluarsa kini dicatat (riwayat batch) untuk audit.",
+        dev: "DB: +25 product_aliases utk nama-nota orphan (resolusi by inventory). +tabel batch_audit_log (log perubahan batch_no/expired_date/hna di PUT /batches/:id, fire-and-forget) + GET /inventory/batches/:id/audit. Sisa orphan: OMELA 1 CTN (ambigu 39/74), MIKA NASI (no master), LAIN-LAIN (generik).",
+      },
+    ],
+  },
+  {
     version: "v1.38.0-stable",
     date: "16 Juni 2026",
     status: "latest",

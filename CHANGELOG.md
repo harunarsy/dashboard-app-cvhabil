@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.39.0-stable] - 2026-06-16
+
+### Added
+- **Riwayat (audit-log) perubahan batch**: tabel `batch_audit_log` mencatat perubahan nomor batch / tanggal kadaluarsa / HNA tiap kali batch diedit (`PUT /inventory/batches/:id`), dapat dibaca via `GET /inventory/batches/:id/audit`. Berguna melacak kasus "batch dulu kosong lalu diisi". Mulai mencatat sejak rilis ini (perubahan lampau tidak terekam).
+
+### Fixed
+- **Konsistensi nama nota → produk**: 25 alias ditambahkan untuk nama-nama lama di nota yang sebelumnya tidak cocok dengan master (mis. ENTRAMIX 555, DIANERAL, PEPTISOL, TS SWEET DIABTX, DUS NASI/SNACK, dll), sehingga batch-nya muncul konsisten. Sisa belum dipetakan: OMELA 1 CTN (ambigu 2 produk Omela), MIKA NASI (belum ada di master), LAIN-LAIN (generik).
+
 ## [v1.38.0-stable] - 2026-06-16
 
 ### Changed

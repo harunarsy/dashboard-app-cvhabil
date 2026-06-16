@@ -86,6 +86,21 @@ const ensureSchema = async () => {
     CREATE INDEX IF NOT EXISTS idx_product_aliases_product
       ON product_aliases (product_id);
   `);
+  // v1.39.0: audit-log perubahan IDENTITAS batch (nomor batch / ED / HNA) — buat lacak
+  // kasus "dulu kosong lalu diisi". Qty TIDAK dicatat di sini (sudah ada di inventory_mutations).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS batch_audit_log (
+      id SERIAL PRIMARY KEY,
+      batch_id INTEGER,
+      product_id INTEGER,
+      action VARCHAR(20) NOT NULL,
+      changes JSONB,
+      changed_by INTEGER,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_batch_audit_batch ON batch_audit_log(batch_id);
+    CREATE INDEX IF NOT EXISTS idx_batch_audit_created ON batch_audit_log(created_at DESC);
+  `);
   // Phase 1 additions: per-batch opname tracking + batch notes/soft-delete
   await pool.query(`
     ALTER TABLE inventory_batches ADD COLUMN IF NOT EXISTS notes TEXT;
@@ -473,6 +488,12 @@ router.get('/products/:id/full', auth, async (req, res) => {
 router.put('/batches/:id', auth, async (req, res) => {
   const { batch_no, expired_date, hna, notes } = req.body;
   try {
+    // v1.39.0: ambil state lama dulu untuk audit-log perubahan identitas batch
+    const { rows: [before] } = await pool.query(
+      'SELECT batch_no, expired_date, hna FROM inventory_batches WHERE id = $1',
+      [req.params.id]
+    );
+    if (!before) return res.status(404).json({ error: 'Batch not found' });
     const { rows } = await pool.query(
       `UPDATE inventory_batches
        SET batch_no = $1, expired_date = $2, hna = $3, notes = $4
@@ -480,8 +501,37 @@ router.put('/batches/:id', auth, async (req, res) => {
       [batch_no || null, expired_date || null, hna || 0, notes || null, req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Batch not found' });
-    if (global.io) global.io.emit('inventoryBatchUpdated', { product_id: rows[0].product_id, batch_id: rows[0].id });
-    res.json(rows[0]);
+    const after = rows[0];
+    // v1.39.0: catat perubahan batch_no / expired_date / hna (fire-and-forget; audit ≠ data inti)
+    const ed = (v) => (v ? String(v).slice(0, 10) : null);
+    const changes = {};
+    if (String(before.batch_no || '') !== String(after.batch_no || ''))
+      changes.batch_no = { from: before.batch_no || null, to: after.batch_no || null };
+    if (ed(before.expired_date) !== ed(after.expired_date))
+      changes.expired_date = { from: ed(before.expired_date), to: ed(after.expired_date) };
+    if (Number(before.hna || 0) !== Number(after.hna || 0))
+      changes.hna = { from: Number(before.hna || 0), to: Number(after.hna || 0) };
+    if (Object.keys(changes).length) {
+      pool.query(
+        `INSERT INTO batch_audit_log (batch_id, product_id, action, changes, changed_by)
+         VALUES ($1, $2, 'edit', $3, $4)`,
+        [after.id, after.product_id, JSON.stringify(changes), req.user?.id || null]
+      ).catch((e) => console.error('batch_audit_log edit:', e.message));
+    }
+    if (global.io) global.io.emit('inventoryBatchUpdated', { product_id: after.product_id, batch_id: after.id });
+    res.json(after);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// v1.39.0: riwayat perubahan identitas batch (nomor/ED/HNA)
+router.get('/batches/:id/audit', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, batch_id, product_id, action, changes, changed_by, created_at
+       FROM batch_audit_log WHERE batch_id = $1 ORDER BY created_at DESC LIMIT 100`,
+      [req.params.id]
+    );
+    res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
