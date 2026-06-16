@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.37.0-stable] - 2026-06-16
+
+### Fixed
+- **Konsistensi batch di Nota Penjualan**: saat buat nota baru, dropdown batch kini menampilkan SEMUA batch produk (termasuk stok 0, expired, atau tanpa nomor batch) — konsisten dengan mode edit — sehingga batch + ED selalu bisa dipilih dan tampil di nota. Default tetap FEFO (batch in-stock, ED terdekat). Catatan: nama produk yang tidak terdaftar di master (mis. "ENTRAMIX 555" vs "Entramix Vanila 555 g") tetap tidak menarik batch — perlu disamakan namanya / ditambah alias.
+
 ## [v1.36.0-stable] - 2026-06-16
 
 ### Changed

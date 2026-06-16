@@ -37,6 +37,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.37.0-stable",
+    date: "16 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Konsistensi batch di Nota: saat buat nota baru, daftar batch sekarang menampilkan SEMUA batch produk (termasuk stok 0/expired/tanpa nomor) — sama seperti saat edit nota — jadi batch + ED tetap bisa dipilih dan muncul di nota. Default tetap memilih batch yang ada stoknya dengan ED terdekat (FEFO).",
+        dev: "SalesOrderList create-mode (prepareProductItem + handleItemChange): getAvailableBatches → getProductBatches (semua batch). +pickFefoBatch (utamakan in-stock non-expired ED terdekat, fallback batch pertama). Dropdown label batch_no null → '(tanpa no. batch)'. CATATAN: nama produk non-master (mis. 'ENTRAMIX 555') tetap tak resolve ke batch — itu isu data/alias, bukan filter.",
+      },
+    ],
+  },
+  {
     version: "v1.36.0-stable",
     date: "16 Juni 2026",
     status: "latest",

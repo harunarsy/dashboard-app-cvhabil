@@ -84,6 +84,24 @@ const fmtKg = (gram) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+// v1.37.0: pilih default batch FEFO — utamakan batch in-stock & belum ED (ED terdekat),
+// fallback ke batch pertama (mis. semua stok 0) supaya nota tetap punya source batch+ED.
+const pickFefoBatch = (batches) => {
+  if (!batches || !batches.length) return null;
+  const today = new Date(new Date().toDateString());
+  const sortByEd = (arr) =>
+    [...arr].sort((a, b) => {
+      const ea = a.expired_date ? new Date(a.expired_date).getTime() : Infinity;
+      const eb = b.expired_date ? new Date(b.expired_date).getTime() : Infinity;
+      return ea - eb;
+    });
+  const inStock = batches.filter(
+    (b) =>
+      (parseFloat(b.qty_current) || 0) > 0 &&
+      (!b.expired_date || new Date(b.expired_date) >= today),
+  );
+  return sortByEd(inStock)[0] || sortByEd(batches)[0];
+};
 const fmtDate = (d) =>
   d
     ? new Date(d).toLocaleDateString("id-ID", {
@@ -1135,20 +1153,21 @@ export default function SalesOrderList({
 
     try {
       const [batchesResp, tiersResp] = await Promise.all([
-        inventoryAPI.getAvailableBatches(match.id),
+        inventoryAPI.getProductBatches(match.id),
         inventoryAPI.getProductTiers(match.id).catch(() => ({ data: [] })),
       ]);
       const batches = batchesResp.data || [];
       const tiers = tiersResp.data || [];
       prepared._product = { ...match, price_tiers: tiers };
-      if (batches.length > 0) {
-        prepared.unit_hpp = parseFloat(batches[0].hna) || 0;
+      const fefo = pickFefoBatch(batches);
+      if (fefo) {
+        prepared.unit_hpp = parseFloat(fefo.hna) || 0;
         prepared.unit_hpp_tax_type =
-          batches[0].tax_type === "nota" ? "nota" : "faktur";
-        prepared._selected_batch = batches[0].batch_no;
-        prepared._selected_batch_id = batches[0].id || null;
-        prepared.batch_no_snapshot = batches[0].batch_no;
-        prepared.expired_date_snapshot = batches[0].expired_date;
+          fefo.tax_type === "nota" ? "nota" : "faktur";
+        prepared._selected_batch = fefo.batch_no;
+        prepared._selected_batch_id = fefo.id || null;
+        prepared.batch_no_snapshot = fefo.batch_no;
+        prepared.expired_date_snapshot = fefo.expired_date;
       } else {
         prepared.unit_hpp = parseFloat(match.hna) || 0;
         prepared.unit_hpp_tax_type = "faktur";
@@ -1268,7 +1287,7 @@ export default function SalesOrderList({
         // Fetch available batches + tiers (v1.7.0 parallel) for dropdown
         try {
           const [batchesResp, tiersResp] = await Promise.all([
-            inventoryAPI.getAvailableBatches(match.id),
+            inventoryAPI.getProductBatches(match.id),
             inventoryAPI.getProductTiers(match.id).catch(() => ({ data: [] })),
           ]);
           const batches = batchesResp.data || [];
@@ -1277,13 +1296,14 @@ export default function SalesOrderList({
           const newBatches = [...itemBatches];
           newBatches[idx] = batches;
           setItemBatches(newBatches);
-          // Auto-select FEFO (first batch)
-          if (batches.length > 0) {
-            updated.unit_hpp = parseFloat(batches[0].hna) || 0;
+          // Auto-select FEFO (batch in-stock ED terdekat; fallback batch pertama)
+          const fefo = pickFefoBatch(batches);
+          if (fefo) {
+            updated.unit_hpp = parseFloat(fefo.hna) || 0;
             updated.unit_hpp_tax_type =
-              batches[0].tax_type === "nota" ? "nota" : "faktur";
-            updated._selected_batch = batches[0].batch_no;
-            updated._selected_batch_id = batches[0].id || null;
+              fefo.tax_type === "nota" ? "nota" : "faktur";
+            updated._selected_batch = fefo.batch_no;
+            updated._selected_batch_id = fefo.id || null;
           } else {
             updated.unit_hpp = parseFloat(match.hna) || 0;
             updated.unit_hpp_tax_type = "faktur";
@@ -3729,7 +3749,7 @@ export default function SalesOrderList({
                                   const isHistorical = (b.qty_current || 0) <= 0;
                                   return (
                                     <option key={b.id || b.batch_no} value={String(b.id)}>
-                                      {b.batch_no} | ED:{" "}
+                                      {b.batch_no || "(tanpa no. batch)"} | ED:{" "}
                                       {b.expired_date
                                         ? new Date(
                                             b.expired_date,
