@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.35.0-stable] - 2026-06-16
+
+### Changed
+- **Breadcrumb tidak dobel + Dashboard clickable**: Nota, Faktur, Customer, Surat Pesanan, dan Inventory kini pakai satu komponen breadcrumb (count badge + tombol aksi sejajar). "Dashboard" bisa diklik untuk kembali.
+- **Inventory**: tombol aksi (Produk/Stok Masuk/Stok Keluar/Opname/Cetak Template) dipindah sejajar tab Produk/Alert.
+- **Dashboard**: jarak antar-bagian dirapatkan (mb-6→mb-4); posisi Catatan Developer & Version Release Notes ditukar; popup Catatan Developer kini center (createPortal) dan baris "Ekspektasi Performa" dihapus.
+- **Faktur**: kotak Terlambat/Jatuh Tempo dibuat warna penuh agar terbaca; banner draft dipindah ringkas ke baris tombol (antara Trash dan Terlambat).
+
 ## [v1.34.0-stable] - 2026-06-15
 
 ### Changed

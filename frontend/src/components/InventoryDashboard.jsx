@@ -785,67 +785,73 @@ export default function InventoryDashboard({
       }}
     >
       <Breadcrumb
-        title="Inventory"
+        title="Inventory & Stok"
+        count={
+          loading
+            ? "…"
+            : `${products.length} produk${totalAlerts > 0 ? ` · ${totalAlerts} alert` : ""}`
+        }
         isMobile={isMobile}
         isDarkMode={isDarkMode}
       />
 
-      {/* Header — breadcrumb ringkas (hemat tempat). v1.33.0 */}
+      {/* Tabs + tombol aksi sejajar (hemat tempat di atas). v1.35.0 */}
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "1rem",
-          flexWrap: "wrap",
+          justifyContent: "space-between",
           gap: "12px",
+          flexWrap: "wrap",
+          marginBottom: "1.5rem",
         }}
       >
         <div
+          className="ui-toolbar"
           style={{
             display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            flexWrap: "wrap",
+            gap: "4px",
+            backgroundColor: "var(--color-surface)",
+            borderRadius: "10px",
+            padding: "3px",
+            flex: "0 1 auto",
           }}
         >
-          <span style={{ fontSize: "13px", color: sub }}>Dashboard</span>
-          <span style={{ fontSize: "16px", color: sub, lineHeight: 1 }}>›</span>
-          <span style={{ fontSize: "15px", fontWeight: 700, color: text }}>
-            Inventory &amp; Stok
-          </span>
-          <span
-            style={{
-              padding: "2px 10px",
-              borderRadius: "999px",
-              backgroundColor: "var(--color-surface-elevated)",
-              border: `1px solid ${border}`,
-              fontSize: "11px",
-              fontWeight: 600,
-              color: sub,
-            }}
-          >
-            {loading
-              ? "…"
-              : `${products.length} produk${totalAlerts > 0 ? ` · ${totalAlerts} alert` : ""}`}
-          </span>
+          {[
+            ["products", "📦 Produk"],
+            ["alerts", `⚠️ Alert ${totalAlerts > 0 ? `(${totalAlerts})` : ""}`],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className="ui-motion-button ui-focus-ring"
+              style={{
+                minHeight: "40px",
+                padding: "8px 16px",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "13px",
+                fontWeight: "700",
+                backgroundColor: tab === key ? cardBg : "transparent",
+                color: tab === key ? text : sub,
+                boxShadow: tab === key ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
           {headerBtn("var(--color-primary)", Plus, "Produk", openAddProduct)}
-          {headerBtn(
-            "var(--color-success)",
-            ArrowDownCircle,
-            "Stok Masuk",
-            () => openStockIn(null),
+          {headerBtn("var(--color-success)", ArrowDownCircle, "Stok Masuk", () =>
+            openStockIn(null),
           )}
           {headerBtn("var(--color-warning)", ArrowUpCircle, "Stok Keluar", () =>
             openStockOut(null),
           )}
-          {headerBtn(
-            "var(--color-primary-hover)",
-            ClipboardCheck,
-            "Opname",
-            () => setShowModal("opname"),
+          {headerBtn("var(--color-primary-hover)", ClipboardCheck, "Opname", () =>
+            setShowModal("opname"),
           )}
           {headerBtn(
             "var(--color-text-subtle)",
@@ -854,46 +860,6 @@ export default function InventoryDashboard({
             handleExportOpnameTemplate,
           )}
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div
-        className="ui-toolbar"
-        style={{
-          display: "flex",
-          gap: "4px",
-          backgroundColor: "var(--color-surface)",
-          borderRadius: "10px",
-          padding: "3px",
-          marginBottom: "1.5rem",
-          maxWidth: "500px",
-        }}
-      >
-        {[
-          ["products", "📦 Produk"],
-          ["alerts", `⚠️ Alert ${totalAlerts > 0 ? `(${totalAlerts})` : ""}`],
-        ].map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className="ui-motion-button ui-focus-ring"
-            style={{
-              flex: 1,
-              minHeight: "40px",
-              padding: "8px 12px",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: "700",
-              backgroundColor: tab === key ? cardBg : "transparent",
-              color: tab === key ? text : sub,
-              boxShadow: tab === key ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
-            }}
-          >
-            {label}
-          </button>
-        ))}
       </div>
 
       {/* Search + filter */}

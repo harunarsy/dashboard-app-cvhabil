@@ -37,6 +37,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.35.0-stable",
+    date: "16 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Rapi-rapi besar: breadcrumb halaman (Nota, Faktur, Customer, SP, Inventory) tidak dobel lagi dan 'Dashboard' bisa diklik untuk balik. Tombol Buat Nota/SP/Tambah Customer kini sejajar breadcrumb di kanan. Di Inventory tombol aksi (Produk, Stok Masuk, dll) pindah sejajar tab biar hemat tempat. Di Dashboard jarak antar-bagian dirapatkan, posisi Catatan Developer & Version ditukar, dan popup Catatan Developer kini muncul di tengah layar. Di Faktur, kotak Terlambat/Jatuh Tempo dibuat warna penuh biar kebaca dan info draft dipindah ringkas ke baris tombol.",
+        dev: "Breadcrumb.jsx +count/+rightSlot; 5 halaman pakai shared Breadcrumb (hapus breadcrumb inline dobel). InventoryDashboard: action buttons → baris tab (justify-between). Dashboard: section mb-6→mb-4, Catatan Developer↔Version swap, dev-notes modal pakai createPortal(document.body) + baris Ekspektasi Performa dihapus. InvoiceList: badge Terlambat/Jatuh Tempo solid (bukan soft), draft banner compact dipindah ke tengah action row.",
+      },
+    ],
+  },
+  {
     version: "v1.34.0-stable",
     date: "15 Juni 2026",
     status: "latest",
@@ -3724,19 +3736,13 @@ export default function Dashboard({
                   Ringkasan Minggu Ini
                 </h2>
               </div>
-              {/* Version Badge & Changelog Trigger — sejajar judul Ringkasan. v1.34.x */}
+              {/* Catatan Developer — pindah ke baris judul Ringkasan. v1.35.0 */}
               <button
-                onClick={() => setShowModal(true)}
-                className="ui-motion-button ui-focus-ring flex min-h-9 items-center gap-2 px-3 py-1.5 rounded-full border transition-colors hover:shadow-sm"
-                style={{ borderColor: border, color: text }}
+                onClick={() => setShowDevNotes(true)}
+                className="ui-motion-button ui-focus-ring flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-100 bg-blue-50/30 text-blue-600 hover:bg-blue-50 transition-colors shrink-0"
               >
-                <Info size={15} className="text-blue-500" />
-                <span className="text-xs font-semibold">
-                  Version {RELEASES[0]?.version}
-                </span>
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
-                  Release Notes
-                </span>
+                <Info size={15} />
+                <span className="text-xs font-bold">Catatan Developer</span>
               </button>
             </div>
             <p
@@ -3856,7 +3862,7 @@ export default function Dashboard({
       {/* Header Stack — alignItems stretch override: .ui-toolbar set align-items:center
           yg bikin anak ke-center saat flex-col; stretch = full-width → judul kiri, version kanan */}
       <div
-        className="ui-surface-panel ui-toolbar mb-6 flex flex-col gap-4 p-4 md:p-5"
+        className="ui-surface-panel ui-toolbar mb-4 flex flex-col gap-4 p-4 md:p-5"
         style={{ alignItems: "stretch" }}
       >
         {weeklySummary}
@@ -3865,7 +3871,7 @@ export default function Dashboard({
       {/* KPI ringkas — 1 kotak dibagi 4, ditaruh atas biar metrik penting langsung kebaca. v1.32.0 */}
       <div
         data-onboarding="kpi"
-        className="ui-surface-panel ui-motion-card mb-6 grid grid-cols-2 lg:grid-cols-4 overflow-hidden rounded-3xl border shadow-sm"
+        className="ui-surface-panel ui-motion-card mb-4 grid grid-cols-2 lg:grid-cols-4 overflow-hidden rounded-3xl border shadow-sm"
         style={{ backgroundColor: cardBg, borderColor: border }}
       >
         {[
@@ -3970,7 +3976,7 @@ export default function Dashboard({
           terkait + auto-buka modal create (state quickCreate). */}
       <div
         data-onboarding="quick-actions"
-        className="ui-surface-panel ui-motion-card ui-hover-delight mb-6 rounded-3xl p-5 border shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+        className="ui-surface-panel ui-motion-card ui-hover-delight mb-4 rounded-3xl p-5 border shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4"
         style={{ backgroundColor: cardBg, borderColor: border }}
       >
         <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
@@ -4008,18 +4014,25 @@ export default function Dashboard({
           </div>
         </div>
 
+        {/* Version & Release Notes — pindah ke baris Akses Cepat. v1.35.0 */}
         <button
-          onClick={() => setShowDevNotes(true)}
-          className="ui-motion-button ui-focus-ring flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-100 bg-blue-50/30 text-blue-600 hover:bg-blue-50 transition-colors shrink-0"
+          onClick={() => setShowModal(true)}
+          className="ui-motion-button ui-focus-ring flex items-center gap-2 px-4 py-2 rounded-full border transition-colors hover:shadow-sm shrink-0"
+          style={{ borderColor: border, color: text }}
         >
-          <Info size={14} />
-          <span className="text-xs font-bold">Catatan Developer</span>
+          <Info size={15} className="text-blue-500" />
+          <span className="text-xs font-semibold">
+            Version {RELEASES[0]?.version}
+          </span>
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
+            Release Notes
+          </span>
         </button>
       </div>
 
       {/* Activity Heatmap */}
       <section
-        className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm mb-6"
+        className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm mb-4"
         style={{ backgroundColor: cardBg, borderColor: border }}
       >
         {/* Header */}
@@ -4189,7 +4202,7 @@ export default function Dashboard({
       </section>
 
       {/* Profitability Snapshot */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
         <section
           data-onboarding="chart"
           className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm"
@@ -4391,7 +4404,7 @@ export default function Dashboard({
         </section>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
         <section
           className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm"
           style={{ backgroundColor: cardBg, borderColor: border }}
@@ -4560,7 +4573,7 @@ export default function Dashboard({
         {/* Manajemen Tugas — collapsible, default tutup (jarang dipakai → hemat tempat). v1.32.0 */}
         <div
           data-onboarding="tasks"
-          className="ui-surface-panel ui-motion-card mb-6 min-w-0 overflow-hidden rounded-3xl border shadow-sm"
+          className="ui-surface-panel ui-motion-card mb-4 min-w-0 overflow-hidden rounded-3xl border shadow-sm"
           style={{ borderColor: border }}
         >
           <button
@@ -5033,8 +5046,9 @@ export default function Dashboard({
           document.body,
         )}
       {/* Developer Notes Modal */}
-      {showDevNotes && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
+      {showDevNotes &&
+        createPortal(
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] transition-opacity">
           <div
             className="ui-surface-panel ui-motion-modal ui-modal-shell w-full max-w-md overflow-hidden rounded-3xl shadow-2xl flex flex-col"
             style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
@@ -5067,13 +5081,6 @@ export default function Dashboard({
                 </span>
                 di sidebar agar segera diperbaiki oleh tim pengembang.
               </p>
-              <div className="p-4 rounded-2xl bg-blue-50 text-xs font-medium text-blue-600 flex gap-3 items-start border border-blue-100">
-                <Activity size={16} className="mt-0.5 shrink-0" />
-                <span>
-                  Ekspektasi Performa: Latency antar pulau (Singapore) ~500ms -
-                  1s (Normal).
-                </span>
-              </div>
             </div>
             <div
               className="p-4 border-t flex justify-center"
@@ -5087,7 +5094,8 @@ export default function Dashboard({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

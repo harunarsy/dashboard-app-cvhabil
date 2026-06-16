@@ -1470,39 +1470,31 @@ export default function SalesOrderList({
     >
       <Breadcrumb
         title="Nota Penjualan"
+        count={loading ? "…" : `${orders.length} nota tercatat`}
         isMobile={isMobile}
         isDarkMode={isDarkMode}
+        rightSlot={
+          <button
+            onClick={openAdd}
+            className="ui-motion-button"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "10px 18px",
+              backgroundColor: "var(--color-success)",
+              color: "#FFF",
+              border: "none",
+              borderRadius: "10px",
+              cursor: "pointer",
+              fontWeight: "700",
+              fontSize: "14px",
+            }}
+          >
+            <Plus size={18} /> Buat Nota
+          </button>
+        }
       />
-
-      {/* Header — breadcrumb ringkas. Tombol Buat Nota dipindah ke antara filter & list. v1.33.0 */}
-      <div
-        style={{
-          marginBottom: "1rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          flexWrap: "wrap",
-        }}
-      >
-        <span style={{ fontSize: "13px", color: sub }}>Dashboard</span>
-        <span style={{ fontSize: "16px", color: sub, lineHeight: 1 }}>›</span>
-        <span style={{ fontSize: "15px", fontWeight: 700, color: text }}>
-          Nota Penjualan
-        </span>
-        <span
-          style={{
-            padding: "2px 10px",
-            borderRadius: "999px",
-            backgroundColor: "var(--color-surface-elevated)",
-            border: `1px solid ${border}`,
-            fontSize: "11px",
-            fontWeight: 600,
-            color: sub,
-          }}
-        >
-          {loading ? "…" : `${orders.length} nota tercatat`}
-        </span>
-      </div>
 
       {/* v1.23.0: banner draft nota tersimpan (mirror draft faktur) */}
       {draftBanner && savedDraft && (
@@ -1840,35 +1832,6 @@ export default function SalesOrderList({
           </div>
         </div>
       )}
-
-      {/* Buat Nota — dipindah ke antara filter & list (v1.33.0) */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: "12px",
-        }}
-      >
-        <button
-          onClick={openAdd}
-          className="ui-motion-button"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "10px 18px",
-            backgroundColor: "var(--color-success)",
-            color: "#FFF",
-            border: "none",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontWeight: "700",
-            fontSize: "14px",
-          }}
-        >
-          <Plus size={18} /> Buat Nota
-        </button>
-      </div>
 
       {/* Table */}
       <div

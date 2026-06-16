@@ -243,71 +243,34 @@ export default function CustomerList({
     >
       <Breadcrumb
         title="Master Customer"
+        count={loading ? "…" : `${customers.length} customer terdaftar`}
         isMobile={isMobile}
         isDarkMode={isDarkMode}
-      />
-
-      {/* Header — breadcrumb ringkas (hemat tempat). v1.33.0 */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "1rem",
-          flexWrap: "wrap",
-          gap: "12px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            flexWrap: "wrap",
-          }}
-        >
-          <span style={{ fontSize: "13px", color: sub }}>Dashboard</span>
-          <span style={{ fontSize: "16px", color: sub, lineHeight: 1 }}>›</span>
-          <span style={{ fontSize: "15px", fontWeight: 700, color: text }}>
-            Master Customer
-          </span>
-          <span
+        rightSlot={
+          <button
+            onClick={openAdd}
+            className="btn-primary ui-motion-button ui-focus-ring"
+            data-magnetic="true"
             style={{
-              padding: "2px 10px",
-              borderRadius: "999px",
-              backgroundColor: "var(--color-surface-elevated)",
-              border: `1px solid ${border}`,
-              fontSize: "11px",
-              fontWeight: 600,
-              color: sub,
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              minHeight: "44px",
+              padding: "10px 18px",
+              backgroundColor: "var(--color-primary)",
+              color: "#FFF",
+              border: "none",
+              borderRadius: "12px",
+              cursor: "pointer",
+              fontWeight: "700",
+              fontSize: "14px",
+              boxShadow: "var(--shadow-card)",
             }}
           >
-            {loading ? "…" : `${customers.length} customer terdaftar`}
-          </span>
-        </div>
-        <button
-          onClick={openAdd}
-          className="btn-primary ui-motion-button ui-focus-ring"
-          data-magnetic="true"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            minHeight: "44px",
-            padding: "10px 18px",
-            backgroundColor: "var(--color-primary)",
-            color: "#FFF",
-            border: "none",
-            borderRadius: "12px",
-            cursor: "pointer",
-            fontWeight: "700",
-            fontSize: "14px",
-            boxShadow: "var(--shadow-card)",
-          }}
-        >
-          <Plus size={18} /> Tambah Customer
-        </button>
-      </div>
+            <Plus size={18} /> Tambah Customer
+          </button>
+        }
+      />
 
       {/* Search + Sort */}
       <div

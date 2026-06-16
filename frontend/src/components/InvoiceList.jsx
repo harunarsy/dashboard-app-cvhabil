@@ -1507,6 +1507,7 @@ export default function InvoiceList({
     >
       <Breadcrumb
         title="Faktur Pembelian"
+        count={`${invoices.length} faktur tercatat`}
         isMobile={isMobile}
         isDarkMode={isDarkMode}
       />
@@ -1609,112 +1610,6 @@ export default function InvoiceList({
         </div>
       )}
 
-      {/* Header — breadcrumb ringkas (hemat tempat, faktur langsung kelihatan). v1.33.0 */}
-      <div
-        style={{
-          marginBottom: "1rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          flexWrap: "wrap",
-        }}
-      >
-        <span style={{ fontSize: "13px", color: "var(--color-text-subtle)" }}>
-          Dashboard
-        </span>
-        <ChevronRight size={14} color="var(--color-text-subtle)" />
-        <span
-          style={{ fontSize: "15px", fontWeight: 700, color: "var(--color-text)" }}
-        >
-          Faktur Pembelian
-        </span>
-        <span
-          style={{
-            padding: "2px 10px",
-            borderRadius: "999px",
-            backgroundColor: "var(--color-surface-elevated)",
-            border: "1px solid var(--color-border)",
-            fontSize: "11px",
-            fontWeight: 600,
-            color: "var(--color-text-subtle)",
-          }}
-        >
-          {invoices.length} faktur tercatat
-        </span>
-      </div>
-
-      {/* Draft Banner */}
-      {draftBanner && savedDraft && (
-        <div
-          className="ui-motion-card"
-          style={{
-            ...S.card,
-            padding: "14px 18px",
-            marginBottom: "1.25rem",
-            backgroundColor: isDarkMode
-              ? "var(--color-surface-elevated)"
-              : "var(--color-warning-soft)",
-            borderColor: "var(--color-warning)",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-          }}
-        >
-          <FileText size={18} color="var(--color-warning)" />
-          <div style={{ flex: 1 }}>
-            <span
-              style={{
-                fontWeight: "700",
-                fontSize: "14px",
-                color: isDarkMode ? "#FFF" : "#000",
-              }}
-            >
-              Ada draft tersimpan
-            </span>
-            <span
-              style={{
-                fontSize: "13px",
-                color: "var(--color-text-subtle)",
-                marginLeft: "8px",
-              }}
-            >
-              {savedDraftUpdatedAt
-                ? `disimpan ${formatRelativeTime(savedDraftUpdatedAt)} · `
-                : "disimpan otomatis · "}
-              lanjutkan atau hapus supaya formulir tetap bersih.
-            </span>
-          </div>
-          <button
-            onClick={loadDraft}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "var(--color-warning)",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: "700",
-              fontSize: "13px",
-            }}
-          >
-            Pulihkan Draft
-          </button>
-          <button
-            onClick={dismissDraft}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "transparent",
-              color: "var(--color-text-subtle)",
-              border: `1px solid ${isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontSize: "13px",
-            }}
-          >
-            Hapus Draft
-          </button>
-        </div>
-      )}
 
       {/* Summary Cards */}
       <div
@@ -2032,6 +1927,44 @@ export default function InvoiceList({
             <Trash2 size={16} /> Trash
           </button>
         </div>
+        {/* Draft tersimpan — dipindah ke tengah baris aksi (compact). v1.35.0 */}
+        {draftBanner && savedDraft && (
+          <div
+            className="ui-motion-card"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              padding: "8px 12px",
+              borderRadius: "10px",
+              backgroundColor: isDarkMode
+                ? "var(--color-surface-elevated)"
+                : "var(--color-warning-soft)",
+              border: "1px solid var(--color-warning)",
+              flexWrap: "wrap",
+            }}
+          >
+            <FileText size={15} color="var(--color-warning)" />
+            <span style={{ fontSize: "12px", fontWeight: 700, color: isDarkMode ? "#FFF" : "#000" }}>
+              Draft tersimpan
+            </span>
+            <span style={{ fontSize: "11px", color: "var(--color-text-subtle)" }}>
+              {savedDraftUpdatedAt ? formatRelativeTime(savedDraftUpdatedAt) : "otomatis"}
+            </span>
+            <button
+              onClick={loadDraft}
+              style={{ padding: "6px 12px", backgroundColor: "var(--color-warning)", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "12px" }}
+            >
+              Pulihkan
+            </button>
+            <button
+              onClick={dismissDraft}
+              style={{ padding: "6px 12px", backgroundColor: isDarkMode ? "var(--color-surface-raised)" : "var(--color-border)", color: isDarkMode ? "#FFF" : "#000", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "12px" }}
+            >
+              Hapus
+            </button>
+          </div>
+        )}
         {/* Jatuh Tempo — di sebelah kanan toolbar */}
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
           {overdueCount > 0 && (
@@ -2043,20 +1976,20 @@ export default function InvoiceList({
               style={{
                 cursor: "pointer",
                 padding: "8px 14px",
-                backgroundColor: "var(--color-danger-soft)",
-                border: "1.5px solid var(--color-danger)",
+                backgroundColor: "var(--color-danger)",
+                border: "none",
                 borderRadius: "10px",
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
               }}
             >
-              <AlertTriangle size={14} color="var(--color-danger)" />
+              <AlertTriangle size={14} color="#FFF" />
               <span
                 style={{
                   fontSize: "13px",
                   fontWeight: "700",
-                  color: "var(--color-danger)",
+                  color: "#FFF",
                 }}
               >
                 {overdueCount} Terlambat
@@ -2072,20 +2005,20 @@ export default function InvoiceList({
               style={{
                 cursor: "pointer",
                 padding: "8px 14px",
-                backgroundColor: "var(--color-warning-soft)",
-                border: "1.5px solid var(--color-warning)",
+                backgroundColor: "var(--color-warning)",
+                border: "none",
                 borderRadius: "10px",
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
               }}
             >
-              <Clock size={14} color="var(--color-warning)" />
+              <Clock size={14} color="#FFF" />
               <span
                 style={{
                   fontSize: "13px",
                   fontWeight: "700",
-                  color: "var(--color-warning)",
+                  color: "#FFF",
                 }}
               >
                 {soonCount} Jatuh Tempo
