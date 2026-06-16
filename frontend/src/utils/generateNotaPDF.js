@@ -239,7 +239,7 @@ export function generateNotaPDF(order, options = {}) {
     const ccFee =
       order.payment_fee_mode === 'pass_on' ? parseFloat(order.payment_fee) || 0 : 0;
     const productTotal = grandTotal - ongkir - ccFee;
-    const PPN_RATE = 0.11;
+    const PPN_RATE = 0.12; // PPN Indonesia 12% (sinkron dgn utils/rupiah.js & backend tax.js)
     const dpp = productTotal / (1 + PPN_RATE);
     const ppn = productTotal - dpp;
     const rightX = pageWidth - margin;
@@ -249,7 +249,7 @@ export function generateNotaPDF(order, options = {}) {
     doc.setTextColor(80, 80, 80);
     doc.text(`Subtotal (DPP): ${fmtRp(dpp)}`, rightX, finalY, { align: 'right' });
     finalY += isA6 ? 2.4 : (isA5 ? 3.3 : 4.5);
-    doc.text(`PPN 11%: ${fmtRp(ppn)}`, rightX, finalY, { align: 'right' });
+    doc.text(`PPN ${Math.round(PPN_RATE * 100)}%: ${fmtRp(ppn)}`, rightX, finalY, { align: 'right' });
     finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
     if (ongkir > 0) {
       doc.text(`Ongkir: ${fmtRp(ongkir)}`, rightX, finalY, { align: 'right' });

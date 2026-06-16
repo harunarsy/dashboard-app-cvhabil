@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.40.0-stable] - 2026-06-17
+
+### Changed
+- **PPN 11% → 12%** (tarif pajak terbaru) di semua perhitungan HNA↔HPP, nota, dan faktur. Konstanta tunggal (`tax.js` backend + `rupiah.js` frontend); `generateNotaPDF` & rekap CSV faktur memakai rate dinamis. PPN faktur tersimpan per-faktur (`ppn_masukan`) sehingga **faktur lama tidak berubah** — hanya derivasi HPP/HNA live & transaksi baru yang memakai 12%.
+- **Dashboard Aktivitas Nota**: kalender di-tengah saat panel detail ditutup (hapus ruang kosong kanan).
+- **Manajemen Tugas**: saat dibuka, kolom kanban melebar penuh (flex-1) — tidak lagi sempit di kiri.
+
 ## [v1.39.0-stable] - 2026-06-16
 
 ### Added

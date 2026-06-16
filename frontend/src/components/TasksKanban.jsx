@@ -613,7 +613,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
         {COLUMNS.map((column) => (
           <div
             key={column.id}
-            className="flex-shrink-0 w-64 flex flex-col h-full"
+            className="flex-1 min-w-[240px] flex flex-col h-full"
             onDragOver={onDragOver}
             onDrop={(e) => onDrop(e, column.id)}
           >

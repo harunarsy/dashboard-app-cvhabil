@@ -797,7 +797,7 @@ export default function InvoiceList({
       showToast("❌ Gagal ambil detail faktur");
       return;
     }
-    const PPN = 0.11;
+    const PPN = PPN_RATE;
     const header = [
       "Tanggal",
       "No Faktur",
@@ -806,7 +806,7 @@ export default function InvoiceList({
       "Qty",
       "Satuan",
       "DPP",
-      "PPN 11%",
+      `PPN ${Math.round(PPN_RATE * 100)}%`,
       "Total",
     ];
     const lines = [header.join(";")];
@@ -4185,7 +4185,7 @@ function InvoiceModal({
               >
                 {form.tax_type === "nota"
                   ? "Nota: tidak ada PPN masukan. HPP = harga beli apa adanya (tanpa × 1,11)."
-                  : "Faktur: ada PPN masukan 11%. HPP = HNA exc PPN × 1,11."}
+                  : `Faktur: ada PPN masukan ${Math.round(PPN_RATE * 100)}%. HPP = HNA exc PPN × ${(1 + PPN_RATE).toFixed(2).replace(".", ",")}.`}
               </p>
             </div>
             <div style={{ marginBottom: "14px" }}>
@@ -4810,7 +4810,7 @@ function InvoiceModal({
                           >
                             {form.tax_type === "nota"
                               ? "HPP final per pcs (nota, tanpa PPN)"
-                              : "HPP final per pcs (inc PPN 11%)"}
+                              : `HPP final per pcs (inc PPN ${Math.round(PPN_RATE * 100)}%)`}
                           </span>
                           <div
                             style={{
@@ -5115,7 +5115,7 @@ function InvoiceModal({
                 <label style={S.label}>
                   {form.tax_type === "nota"
                     ? "PPN Masukan (nota: tidak ada)"
-                    : "PPN Masukan (HNA Final × 11%)"}
+                    : `PPN Masukan (HNA Final × ${Math.round(PPN_RATE * 100)}%)`}
                 </label>
                 <input
                   style={{

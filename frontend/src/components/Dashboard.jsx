@@ -37,6 +37,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.40.0-stable",
+    date: "17 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "feat",
+        text: "PPN sistem diperbarui ke 12% (sesuai tarif pajak terbaru) di semua perhitungan HNA↔HPP, nota, dan faktur — satu sumber jadi konsisten. Faktur lama TIDAK terpengaruh (PPN-nya tersimpan per faktur). Plus: kalender Aktivitas Nota kini di tengah saat detail ditutup (tidak ada ruang kosong), dan Manajemen Tugas saat dibuka kolomnya melebar penuh.",
+        dev: "PPN_RATE 0.11→0.12 di backend tax.js + frontend rupiah.js (single source). generateNotaPDF + InvoiceList (CSV header + label hint) pakai rate dinamis. ppn_masukan tetap per-faktur STORED → faktur lama aman; hanya derivasi HPP live yang pakai rate baru. Heatmap: justifyContent center saat !selectedDay. TasksKanban kolom flex-shrink-0 w-64 → flex-1 min-w-[240px].",
+      },
+    ],
+  },
+  {
     version: "v1.39.0-stable",
     date: "16 Juni 2026",
     status: "latest",
@@ -4145,12 +4157,14 @@ export default function Dashboard({
         </div>
 
         {/* Calendar + detail berdampingan (detail geser ke kanan saat tile diklik). v1.36.0 */}
+        {/* v1.40.0: saat detail ditutup, kalender di-center biar tidak ada ruang kosong kanan */}
         <div
           style={{
             display: "flex",
             gap: "16px",
             alignItems: "flex-start",
             flexDirection: isMobile ? "column" : "row",
+            justifyContent: !isMobile && !selectedDay ? "center" : "flex-start",
           }}
         >
         <div
