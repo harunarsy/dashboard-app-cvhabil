@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.36.0-stable] - 2026-06-16
+
+### Changed
+- **Aktivitas Nota Harian (heatmap) dirombak**: tile kalender lebih ringkas (h-12/md:h-14); panel detail nota muncul di sebelah kanan saat tile diklik (bukan di bawah). Setiap nota pada detail dapat diklik untuk langsung membuka edit nota tersebut (navigate ke Nota Penjualan + auto-open edit via order_number).
+
 ## [v1.35.0-stable] - 2026-06-16
 
 ### Changed

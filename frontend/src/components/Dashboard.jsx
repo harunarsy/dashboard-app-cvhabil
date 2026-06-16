@@ -37,6 +37,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.36.0-stable",
+    date: "16 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "feat",
+        text: "Aktivitas Nota Harian dirombak: kalender dibuat lebih ringkas (tile lebih kecil) dan saat tanggal diklik, detail notanya muncul di sebelah kanan (bukan di bawah lagi). Tiap nota di detail bisa langsung diklik untuk membuka edit nota itu.",
+        dev: "Dashboard heatmap: tile aspect-square → h-12/md:h-14; calendar + detail dibungkus flex (panel detail 340px di kanan, stack di mobile); nota row onClick navigate('/sales', {state:{editNotaNumber}}). SalesOrderList: useEffect baca location.state.editNotaNumber → openEdit(order match by order_number) setelah daftar termuat.",
+      },
+    ],
+  },
+  {
     version: "v1.35.0-stable",
     date: "16 Juni 2026",
     status: "latest",
@@ -4077,6 +4089,16 @@ export default function Dashboard({
           </div>
         </div>
 
+        {/* Calendar + detail berdampingan (detail geser ke kanan saat tile diklik). v1.36.0 */}
+        <div
+          style={{
+            display: "flex",
+            gap: "16px",
+            alignItems: "flex-start",
+            flexDirection: isMobile ? "column" : "row",
+          }}
+        >
+        <div style={{ flex: 1, minWidth: 0, width: "100%" }}>
         {/* Day-of-week headers */}
         <div className="grid gap-2 mb-1" style={{ gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}>
           {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map((d) => (
@@ -4092,13 +4114,13 @@ export default function Dashboard({
             ? Array.from({ length: 35 }, (_, i) => (
                 <div
                   key={i}
-                  className="aspect-square rounded-xl"
+                  className="h-12 md:h-14 rounded-xl"
                   style={{ backgroundColor: isDarkMode ? "var(--color-surface-raised)" : "var(--color-bg-subtle)" }}
                 />
               ))
             : monthCalendarSeries.map((cell, idx) => {
                 if (!cell) {
-                  return <div key={`pad-${idx}`} className="aspect-square" />;
+                  return <div key={`pad-${idx}`} className="h-12 md:h-14" />;
                 }
                 const intensity = Math.max(0, Math.min(1, cell.notaCount / maxHeatmapCount));
                 const fill = cell.notaCount
@@ -4112,7 +4134,7 @@ export default function Dashboard({
                     key={cell.day}
                     onClick={() => handleDayClick(cell.day)}
                     title={`${cell.day} · ${cell.notaCount} nota`}
-                    className="aspect-square rounded-xl border p-1 flex flex-col justify-between transition-all"
+                    className="h-12 md:h-14 rounded-xl border p-1 flex flex-col justify-between transition-all"
                     style={{
                       backgroundColor: fill,
                       borderColor: isSelected
@@ -4136,11 +4158,13 @@ export default function Dashboard({
                 );
               })}
         </div>
+        </div>
 
-        {/* Day detail panel */}
+        {/* Day detail panel — geser ke kanan saat tile diklik. v1.36.0 */}
         {selectedDay && (
+          <div style={{ width: isMobile ? "100%" : "340px", flexShrink: 0 }}>
           <div
-            className="mt-4 rounded-2xl border p-4"
+            className="rounded-2xl border p-4"
             style={{ borderColor: "var(--color-primary-soft)", backgroundColor: isDarkMode ? "color-mix(in srgb, var(--color-primary) 8%, transparent)" : "var(--color-primary-soft)" }}
           >
             <div className="flex items-center justify-between mb-3">
@@ -4160,8 +4184,14 @@ export default function Dashboard({
                 {dayNotas.map((n) => (
                   <div
                     key={n.notaNumber}
-                    className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 border"
-                    style={{ borderColor: border, backgroundColor: cardBg }}
+                    onClick={() =>
+                      navigate("/sales", {
+                        state: { editNotaNumber: n.notaNumber },
+                      })
+                    }
+                    title={`Edit ${n.notaNumber}`}
+                    className="ui-motion-button flex items-center justify-between gap-2 rounded-xl px-3 py-2 border"
+                    style={{ borderColor: border, backgroundColor: cardBg, cursor: "pointer" }}
                   >
                     <div className="flex flex-col min-w-0">
                       <span className="text-xs font-semibold truncate" style={{ color: text }}>{n.notaNumber}</span>
@@ -4189,10 +4219,12 @@ export default function Dashboard({
               </div>
             )}
           </div>
+          </div>
         )}
+        </div>
 
         <div className="flex items-center justify-between gap-4 mt-4 text-xs font-medium flex-wrap" style={{ color: sub }}>
-          <span>Klik tile untuk lihat detail nota</span>
+          <span>Klik tile untuk lihat detail · klik nota untuk edit</span>
           <span className="inline-flex items-center gap-2">
             <span className="w-3 h-3 rounded-md border" style={{ backgroundColor: isDarkMode ? "var(--color-surface-raised)" : "var(--color-bg-subtle)", borderColor: border }} />
             <span className="w-3 h-3 rounded-md border" style={{ backgroundColor: "color-mix(in srgb, var(--color-primary) 42%, transparent)", borderColor: "color-mix(in srgb, var(--color-primary) 30%, transparent)" }} />

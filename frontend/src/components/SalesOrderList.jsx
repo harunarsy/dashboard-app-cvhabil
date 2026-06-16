@@ -952,6 +952,19 @@ export default function SalesOrderList({
     }
   };
 
+  // v1.36.0: buka edit nota langsung dari klik nota di heatmap Dashboard
+  // (navigate "/sales" state.editNotaNumber). Tunggu daftar nota termuat.
+  useEffect(() => {
+    const num = location.state?.editNotaNumber;
+    if (!num || !orders.length) return;
+    const target = orders.find((o) => o.order_number === num);
+    if (target) {
+      openEdit(target);
+      window.history.replaceState({}, document.title);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, orders]);
+
   const handleSave = async (skipLossGuard = false) => {
     setSaveError("");
     const errors = {};
