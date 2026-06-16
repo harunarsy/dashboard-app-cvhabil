@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.38.0-stable] - 2026-06-16
+
+### Changed
+- **Aktivitas Nota Harian (heatmap) dipoles**: tile kalender simetris (kotak, tidak kelebaran) dengan lebar kalender dibatasi + panel detail mengisi sisa ruang; saat dibuka langsung menampilkan detail tanggal hari ini; legend warna diberi keterangan (Sepi → Ramai, makin ungu = makin banyak nota); panah bulan berikutnya tampil abu-abu + non-aktif saat sudah di bulan berjalan (tidak lagi tak terlihat).
+
 ## [v1.37.0-stable] - 2026-06-16
 
 ### Fixed

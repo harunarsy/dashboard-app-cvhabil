@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import Icons from "./common/Icon";
@@ -36,6 +36,18 @@ const {
 } = Icons;
 
 const RELEASES = [
+  {
+    version: "v1.38.0-stable",
+    date: "16 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "ui",
+        text: "Aktivitas Nota Harian dipoles: tile kalender dibuat simetris (kotak, tidak kelebaran), saat dibuka langsung menampilkan detail tanggal HARI INI, keterangan warna ditambah (Sepi → Ramai, makin ungu = makin banyak nota), dan panah bulan-berikutnya kini tampil abu-abu + tidak bisa diklik saat sudah di bulan berjalan (tidak hilang lagi).",
+        dev: "Dashboard heatmap: tile aspect-square + kolom kalender maxWidth 720, detail panel flex-fill (maxWidth 460, isi sisa ruang). Default selectedDay = hari ini via useRef once-effect (hanya bulan berjalan). Next-month arrow: color transparent → opacity 0.35 + cursor not-allowed (tetap terlihat). Legend + label Sepi/Ramai + title per shade.",
+      },
+    ],
+  },
   {
     version: "v1.37.0-stable",
     date: "16 Juni 2026",
@@ -3515,6 +3527,24 @@ export default function Dashboard({
     });
   }, []);
 
+  // v1.38.0: default buka detail tanggal HARI INI saat load (hanya bulan berjalan, sekali).
+  const didInitDayRef = useRef(false);
+  useEffect(() => {
+    if (didInitDayRef.current || heatmapLoading) return;
+    const now = new Date();
+    const curMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    if (heatmapMonth !== curMonth) return;
+    didInitDayRef.current = true;
+    const todayStr = `${curMonth}-${String(now.getDate()).padStart(2, "0")}`;
+    setSelectedDay(todayStr);
+    setDayNotasLoading(true);
+    api
+      .get(`/dashboard/daily-notas?date=${todayStr}`)
+      .then(({ data }) => setDayNotas(Array.isArray(data) ? data : []))
+      .catch((e) => console.error("Failed to init day notas", e))
+      .finally(() => setDayNotasLoading(false));
+  }, [heatmapLoading, heatmapMonth]);
+
   // v1.28.0 (#7): ringkasan bisnis mingguan — 7 hari terakhir vs sebelumnya.
   const [weekly, setWeekly] = useState(null);
   useEffect(() => {
@@ -4084,9 +4114,10 @@ export default function Dashboard({
               className="p-2 rounded-xl border transition-colors"
               style={{
                 borderColor: border,
-                color: isCurrentMonth ? "transparent" : sub,
+                color: sub,
+                opacity: isCurrentMonth ? 0.35 : 1,
                 backgroundColor: "transparent",
-                cursor: isCurrentMonth ? "default" : "pointer",
+                cursor: isCurrentMonth ? "not-allowed" : "pointer",
               }}
               title="Bulan berikutnya"
             >
@@ -4110,7 +4141,14 @@ export default function Dashboard({
             flexDirection: isMobile ? "column" : "row",
           }}
         >
-        <div style={{ flex: 1, minWidth: 0, width: "100%" }}>
+        <div
+          style={{
+            flex: "1 1 0",
+            minWidth: 0,
+            width: "100%",
+            maxWidth: isMobile ? "100%" : "720px",
+          }}
+        >
         {/* Day-of-week headers */}
         <div className="grid gap-2 mb-1" style={{ gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}>
           {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map((d) => (
@@ -4126,13 +4164,13 @@ export default function Dashboard({
             ? Array.from({ length: 35 }, (_, i) => (
                 <div
                   key={i}
-                  className="h-12 md:h-14 rounded-xl"
+                  className="aspect-square rounded-xl"
                   style={{ backgroundColor: isDarkMode ? "var(--color-surface-raised)" : "var(--color-bg-subtle)" }}
                 />
               ))
             : monthCalendarSeries.map((cell, idx) => {
                 if (!cell) {
-                  return <div key={`pad-${idx}`} className="h-12 md:h-14" />;
+                  return <div key={`pad-${idx}`} className="aspect-square" />;
                 }
                 const intensity = Math.max(0, Math.min(1, cell.notaCount / maxHeatmapCount));
                 const fill = cell.notaCount
@@ -4146,7 +4184,7 @@ export default function Dashboard({
                     key={cell.day}
                     onClick={() => handleDayClick(cell.day)}
                     title={`${cell.day} · ${cell.notaCount} nota`}
-                    className="h-12 md:h-14 rounded-xl border p-1 flex flex-col justify-between transition-all"
+                    className="aspect-square rounded-xl border p-1.5 flex flex-col justify-between transition-all"
                     style={{
                       backgroundColor: fill,
                       borderColor: isSelected
@@ -4174,7 +4212,14 @@ export default function Dashboard({
 
         {/* Day detail panel — geser ke kanan saat tile diklik. v1.36.0 */}
         {selectedDay && (
-          <div style={{ width: isMobile ? "100%" : "340px", flexShrink: 0 }}>
+          <div
+            style={{
+              width: isMobile ? "100%" : "auto",
+              flex: isMobile ? "none" : "1 1 300px",
+              minWidth: 0,
+              maxWidth: isMobile ? "100%" : "460px",
+            }}
+          >
           <div
             className="rounded-2xl border p-4"
             style={{ borderColor: "var(--color-primary-soft)", backgroundColor: isDarkMode ? "color-mix(in srgb, var(--color-primary) 8%, transparent)" : "var(--color-primary-soft)" }}
@@ -4238,9 +4283,11 @@ export default function Dashboard({
         <div className="flex items-center justify-between gap-4 mt-4 text-xs font-medium flex-wrap" style={{ color: sub }}>
           <span>Klik tile untuk lihat detail · klik nota untuk edit</span>
           <span className="inline-flex items-center gap-2">
-            <span className="w-3 h-3 rounded-md border" style={{ backgroundColor: isDarkMode ? "var(--color-surface-raised)" : "var(--color-bg-subtle)", borderColor: border }} />
-            <span className="w-3 h-3 rounded-md border" style={{ backgroundColor: "color-mix(in srgb, var(--color-primary) 42%, transparent)", borderColor: "color-mix(in srgb, var(--color-primary) 30%, transparent)" }} />
-            <span className="w-3 h-3 rounded-md border" style={{ backgroundColor: "color-mix(in srgb, var(--color-primary) 72%, transparent)", borderColor: "color-mix(in srgb, var(--color-primary) 48%, transparent)" }} />
+            <span style={{ color: sub }}>Sepi</span>
+            <span className="w-3 h-3 rounded-md border" title="Tidak ada / sedikit nota" style={{ backgroundColor: isDarkMode ? "var(--color-surface-raised)" : "var(--color-bg-subtle)", borderColor: border }} />
+            <span className="w-3 h-3 rounded-md border" title="Cukup banyak nota" style={{ backgroundColor: "color-mix(in srgb, var(--color-primary) 42%, transparent)", borderColor: "color-mix(in srgb, var(--color-primary) 30%, transparent)" }} />
+            <span className="w-3 h-3 rounded-md border" title="Paling ramai nota" style={{ backgroundColor: "color-mix(in srgb, var(--color-primary) 72%, transparent)", borderColor: "color-mix(in srgb, var(--color-primary) 48%, transparent)" }} />
+            <span style={{ color: sub }}>Ramai (makin ungu = makin banyak nota)</span>
           </span>
         </div>
       </section>
