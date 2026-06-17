@@ -8,6 +8,8 @@ import {
 import Sidebar from "./components/Sidebar";
 import RouteFade from "./components/common/RouteFade";
 import { AuthContext, AuthProvider } from "./context/AuthContext";
+import { queryClient, qk } from "./lib/queryClient";
+import { fetchProductsList, fetchCustomersList } from "./hooks/useMasterData";
 import { useDocumentTitle } from "./hooks/useDocumentTitle";
 import useReducedMotion from "./hooks/useReducedMotion";
 import useVantaBackground from "./hooks/useVantaBackground";
@@ -122,6 +124,24 @@ function AppRoutes({
   isMobile,
 }) {
   const { token } = useContext(AuthContext);
+  // v1.41.0: prefetch data master saat idle (sesudah login) → halaman dengan picker
+  // produk/customer terasa instan karena datanya sudah hangat di cache.
+  useEffect(() => {
+    if (!token) return;
+    const run = () => {
+      queryClient.prefetchQuery({ queryKey: qk.products, queryFn: fetchProductsList });
+      queryClient.prefetchQuery({ queryKey: qk.customers, queryFn: fetchCustomersList });
+    };
+    const ric =
+      typeof window !== "undefined" && window.requestIdleCallback
+        ? window.requestIdleCallback
+        : null;
+    const id = ric ? ric(run, { timeout: 2500 }) : setTimeout(run, 800);
+    return () => {
+      if (ric && window.cancelIdleCallback) window.cancelIdleCallback(id);
+      else clearTimeout(id);
+    };
+  }, [token]);
   const wrap = (Component, title) => (
     <ProtectedRoute
       isDarkMode={isDarkMode}

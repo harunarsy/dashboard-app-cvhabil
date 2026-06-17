@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.41.0-stable] - 2026-06-17
+
+### Added
+- **Fondasi caching TanStack Query**: `QueryClientProvider` + `lib/queryClient` (stale-while-revalidate) + `hooks/useMasterData` (useProducts/useCustomers) + prefetch data master saat idle setelah login. Tujuan: kunjungan halaman berikutnya tampil instan dari cache. Migrasi konsumer per-halaman + optimistic UI + keep-warm cold-start menyusul.
+
 ## [v1.40.0-stable] - 2026-06-17
 
 ### Changed

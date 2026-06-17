@@ -37,6 +37,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.41.0-stable",
+    date: "17 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "perf",
+        text: "Fondasi performa: dipasang sistem cache data (TanStack Query) + prefetch data master (produk & customer) saat idle setelah login — persiapan supaya halaman terasa makin instan. Faktur faktur baru (mis. Nescafe 12%) sudah masuk dengan benar.",
+        dev: "Tambah @tanstack/react-query v5 + QueryClientProvider (index.js) + lib/queryClient (staleTime 60s, gcTime 10m, refetch on focus/reconnect). hooks/useMasterData (useProducts/useCustomers + fetch fns). App.js: prefetchQuery products+customers via requestIdleCallback saat token ada. Migrasi konsumer (Nota/Inventory/dll) ke useQuery + optimistic UI + keep-warm cold-start = tahap berikutnya.",
+      },
+    ],
+  },
+  {
     version: "v1.40.0-stable",
     date: "17 Juni 2026",
     status: "latest",
