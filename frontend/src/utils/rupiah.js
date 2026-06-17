@@ -45,8 +45,12 @@ export const hnaFromHpp = (hpp) => {
 };
 
 // v1.22.3: HPP per batch sadar tax_type — batch nota = harga beli riil (TANPA ×1,11).
-// Pakai ini (bukan hppFromHna langsung) di mana pun yang dihitung adalah batch.
-export const hppForBatch = (batch) =>
-  batch?.tax_type === 'nota'
-    ? parseFloat(batch?.hna) || 0
-    : hppFromHna(batch?.hna);
+// v1.43.0: faktur pakai rate PER-BATCH (batch.ppn_rate, mis. 0.11 stok lama / 0.12 baru),
+// bukan global. NULL/invalid → fallback PPN_RATE. Pakai ini di mana pun yg dihitung batch.
+export const hppForBatch = (batch) => {
+  if (batch?.tax_type === 'nota') return parseFloat(batch?.hna) || 0;
+  const hna = parseFloat(batch?.hna);
+  if (isNaN(hna)) return 0;
+  const rate = batch?.ppn_rate != null ? parseFloat(batch.ppn_rate) : PPN_RATE;
+  return hna * (1 + (isNaN(rate) ? PPN_RATE : rate));
+};

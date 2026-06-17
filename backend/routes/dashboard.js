@@ -7,11 +7,9 @@ const tax = require('../utils/tax');
 // GET dashboard statistics
 router.get('/stats', auth, async (req, res) => {
   try {
-    const hppMultiplier = 1 + tax.PPN_RATE;
-    const unitHppCostSql = `CASE
-      WHEN COALESCE(si.unit_hpp_tax_type, 'faktur') = 'nota' THEN COALESCE(si.unit_hpp, 0)
-      ELSE COALESCE(si.unit_hpp, 0) * $1
-    END`;
+    // v1.43.0: HPP gross-up pakai rate per-batch yang di-snapshot (unit_hpp_ppn_rate),
+    // bukan rate global. NULL → fallback PPN_RATE (stok lama 11%).
+    const unitHppCostSql = tax.hppSqlForSalesItem('si');
 
     // v1.22.3 (AUDIT-CA-02): semua query independen → jalan paralel via Promise.all.
     // Serverless Vercel → Neon Singapore: 13 query serial = 13× RTT di endpoint
@@ -57,7 +55,7 @@ router.get('/stats', auth, async (req, res) => {
         AND so.payment_status = 'paid'
         AND so.status = 'final'
         AND DATE_TRUNC('month', so.sale_date) = DATE_TRUNC('month', CURRENT_DATE)
-    `, [hppMultiplier]);
+    `);
 
     const qPrevLaba = pool.query(`
       SELECT COALESCE(SUM(COALESCE(si.qty_in_unit, si.qty, 0) * (COALESCE(si.unit_price, 0) - ${unitHppCostSql})), 0)
@@ -76,7 +74,7 @@ router.get('/stats', auth, async (req, res) => {
         AND so.status = 'final'
         AND so.sale_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
         AND so.sale_date < DATE_TRUNC('month', CURRENT_DATE)
-    `, [hppMultiplier]);
+    `);
 
     // 1c. Margin by channel bln ini (Paid + Final only) — same formula as total_laba.
     const qMarginChannel = pool.query(`
@@ -112,7 +110,7 @@ router.get('/stats', auth, async (req, res) => {
       FROM scoped_items
       GROUP BY channel
       ORDER BY margin DESC
-    `, [hppMultiplier]);
+    `);
 
     // 1d. Top kategori by margin bln ini. Join by product name karena sales_items menyimpan snapshot nama.
     const qTopCategory = pool.query(`
@@ -144,7 +142,7 @@ router.get('/stats', auth, async (req, res) => {
       GROUP BY COALESCE(NULLIF(TRIM(pm.category), ''), '(tanpa kategori)')
       ORDER BY margin DESC
       LIMIT 5
-    `, [hppMultiplier]);
+    `);
 
     // 1e. Top customer bulan ini (Paid + Final only)
     const qTopCustomer = pool.query(`

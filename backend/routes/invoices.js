@@ -25,7 +25,8 @@ const ensureSchema = async () => {
       ADD COLUMN IF NOT EXISTS is_draft BOOLEAN DEFAULT FALSE,
       ADD COLUMN IF NOT EXISTS draft_data JSONB,
       ADD COLUMN IF NOT EXISTS purchase_order_id INTEGER,
-      ADD COLUMN IF NOT EXISTS tax_type VARCHAR(20) DEFAULT 'faktur'
+      ADD COLUMN IF NOT EXISTS tax_type VARCHAR(20) DEFAULT 'faktur',
+      ADD COLUMN IF NOT EXISTS ppn_rate DECIMAL(5,4) DEFAULT 0.11
   `);
   await pool.query(`
     ALTER TABLE invoice_items
@@ -619,6 +620,10 @@ router.post('/', auth, async (req, res) => {
   const taxType = tax.normalizeTaxType(req.body.tax_type);
   const resolvedHnaFinal = hna_final ?? final_hna ?? null;
   const resolvedPpn = taxType === tax.TAX_TYPE_NOTA ? 0 : (ppn_masukan ?? ppn_input ?? null);
+  // v1.43.0: rate PPN per-faktur (default 0.11 historis bila tak dikirim; form baru kirim 0.12).
+  const resolvedPpnRate = taxType === tax.TAX_TYPE_NOTA
+    ? 0
+    : (parseFloat(req.body.ppn_rate) || tax.PPN_RATE);
   const purchase_order_id = req.body.purchase_order_id ?? null;
   const invoiceItems = items || [];
   const itemError = validateInvoiceItems(invoiceItems);
@@ -657,14 +662,14 @@ router.post('/', auth, async (req, res) => {
           hna_plus_ppn=$12, harga_per_produk=$13,
           due_date=$14, payment_date=$15, status=$16,
           purchase_order_id=COALESCE($17, purchase_order_id),
-          tax_type=$18, updated_at=NOW()
-        WHERE id=$19`,
+          tax_type=$18, ppn_rate=$19, updated_at=NOW()
+        WHERE id=$20`,
         [purchase_date, distributor_name,
          total_hna||null, discount_amount||null, hna_baru||null,
          disc_cod_ada||false, disc_cod_amount||null,
          resolvedHnaFinal, resolvedPpn, resolvedPpn, ppn_pembulatan||null,
          hna_plus_ppn||null, harga_per_produk||null,
-         due_date||null, payment_date||null, status||'Pending', purchase_order_id, taxType, invoiceId]
+         due_date||null, payment_date||null, status||'Pending', purchase_order_id, taxType, resolvedPpnRate, invoiceId]
       );
     } else {
       const r = await client.query(
@@ -674,14 +679,14 @@ router.post('/', auth, async (req, res) => {
            disc_cod_ada, disc_cod_amount,
            hna_final, ppn_input, ppn_masukan, ppn_pembulatan,
            hna_plus_ppn, harga_per_produk,
-	           due_date, payment_date, status, purchase_order_id, tax_type)
-	         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id`,
+	           due_date, payment_date, status, purchase_order_id, tax_type, ppn_rate)
+	         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING id`,
         [invoice_number, purchase_date, distributor_name,
          total_hna||null, discount_amount||null, hna_baru||null,
          disc_cod_ada||false, disc_cod_amount||null,
          resolvedHnaFinal, resolvedPpn, resolvedPpn, ppn_pembulatan||null,
 	         hna_plus_ppn||null, harga_per_produk||null,
-	         due_date||null, payment_date||null, status||'Pending', purchase_order_id, taxType]
+	         due_date||null, payment_date||null, status||'Pending', purchase_order_id, taxType, resolvedPpnRate]
       );
       invoiceId = r.rows[0].id;
       await logAudit(invoiceId, invoice_number, 'CREATE', { invoice_number, distributor_name, status, hna_final: resolvedHnaFinal, hna_plus_ppn });
@@ -816,9 +821,9 @@ router.post('/', auth, async (req, res) => {
           // HNA per pcs menggelembung (1jt/40 = 25rb padahal benar 1jt/100 = 10rb).
           const batchHna = effectiveHna(item, qtyBase);
           const { rows: [batch] } = await client.query(
-            `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size, tax_type)
-             VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9, $10) RETURNING id`,
-            [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize, taxType]
+            `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size, tax_type, ppn_rate)
+             VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9, $10, $11) RETURNING id`,
+            [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize, taxType, resolvedPpnRate]
           );
           await client.query(
             `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
@@ -871,6 +876,10 @@ router.put('/:id', auth, async (req, res) => {
   const taxType = tax.normalizeTaxType(req.body.tax_type);
   const resolvedHnaFinal = hna_final ?? final_hna ?? null;
   const resolvedPpn = taxType === tax.TAX_TYPE_NOTA ? 0 : (ppn_masukan ?? ppn_input ?? null);
+  // v1.43.0: rate PPN per-faktur — saat edit, kalau tak dikirim pertahankan default historis.
+  const resolvedPpnRate = taxType === tax.TAX_TYPE_NOTA
+    ? 0
+    : (parseFloat(req.body.ppn_rate) || tax.PPN_RATE);
   const invoiceItems = items || [];
   const itemError = items !== undefined ? validateInvoiceItems(invoiceItems) : null;
   if (itemError) return res.status(400).json({ error: itemError });
@@ -919,15 +928,15 @@ router.put('/:id', auth, async (req, res) => {
         hna_final=$9, ppn_input=$10, ppn_masukan=$11, ppn_pembulatan=$12,
 	        hna_plus_ppn=$13, harga_per_produk=$14,
 	        due_date=$15, payment_date=$16, status=$17,
-	        tax_type=$18,
+	        tax_type=$18, ppn_rate=$19,
 	        updated_at=NOW()
-	       WHERE id=$19 RETURNING *`,
+	       WHERE id=$20 RETURNING *`,
       [invoice_number, purchase_date, distributor_name,
        total_hna||null, discount_amount||null, hna_baru||null,
        disc_cod_ada||false, disc_cod_amount||null,
        resolvedHnaFinal, resolvedPpn, resolvedPpn, ppn_pembulatan||null,
 	       hna_plus_ppn||null, harga_per_produk||null,
-	       due_date||null, payment_date||null, status||'Pending', taxType, id]
+	       due_date||null, payment_date||null, status||'Pending', taxType, resolvedPpnRate, id]
     );
     if (!result.rows.length) {
       await client.query('ROLLBACK');
@@ -949,6 +958,15 @@ router.put('/:id', auth, async (req, res) => {
       await client.query(
         `UPDATE inventory_batches SET tax_type = $1 WHERE source_type = 'faktur' AND source_ref = $2`,
         [taxType, `invoice-${id}`]
+      );
+    }
+    // v1.43.0: ganti rate PPN faktur (mis. 11%→12%) juga MENJALAR ke batch faktur ini,
+    // supaya HPP inventory & nota berikutnya ikut rate baru (bukan rate lama batch).
+    if (taxType === tax.TAX_TYPE_FAKTUR &&
+        parseFloat(beforeSnap?.ppn_rate ?? tax.PPN_RATE) !== resolvedPpnRate) {
+      await client.query(
+        `UPDATE inventory_batches SET ppn_rate = $1 WHERE source_type = 'faktur' AND source_ref = $2`,
+        [resolvedPpnRate, `invoice-${id}`]
       );
     }
 

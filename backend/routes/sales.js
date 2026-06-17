@@ -51,6 +51,8 @@ const ensureSchema = async () => {
 	    await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS gross_profit DECIMAL(15,2) DEFAULT 0`);
 	    await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS unit_hpp DECIMAL(15,2) DEFAULT 0`);
 	    await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS unit_hpp_tax_type VARCHAR(20) DEFAULT 'faktur'`);
+	    // v1.43.0: snapshot rate PPN batch saat jual → gross profit sadar rate per-batch (NULL=11% historis).
+	    await pool.query(`ALTER TABLE sales_items ADD COLUMN IF NOT EXISTS unit_hpp_ppn_rate DECIMAL(5,4)`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'unpaid'`);
     await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP`);
     // v1.6.0 multi-unit packaging: snapshot qty di unit input + pack_size saat sale
@@ -465,6 +467,7 @@ router.post('/', auth, async (req, res) => {
       let snapshotBatchNo = null;
       let snapshotExpiredDate = null;
       let snapshotTaxType = tax.normalizeTaxType(it.unit_hpp_tax_type);
+      let snapshotPpnRate = null;
 
       if (product) {
         const resolved = await resolveSelectedBatchForSale(client, product.id, it);
@@ -478,11 +481,12 @@ router.post('/', auth, async (req, res) => {
           snapshotBatchNo = resolved.batch.batch_no;
           snapshotExpiredDate = resolved.batch.expired_date;
           snapshotTaxType = resolveItemHppTaxType(it, resolved.batch);
+          snapshotPpnRate = resolved.batch.ppn_rate ?? null;
           itemBatchInfo.push({ product, selectedBatchId: resolved.batch.id, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: true });
         } else {
           // FEFO fallback (existing behavior)
           const { rows: [firstBatch] } = await client.query(
-            `SELECT id, batch_no, expired_date, tax_type FROM inventory_batches
+            `SELECT id, batch_no, expired_date, tax_type, ppn_rate FROM inventory_batches
              WHERE product_id = $1 AND qty_current > 0 AND COALESCE(is_active, TRUE) = TRUE
              AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
              ORDER BY expired_date ASC NULLS LAST LIMIT 1`,
@@ -492,19 +496,20 @@ router.post('/', auth, async (req, res) => {
           snapshotBatchNo = firstBatch?.batch_no || null;
           snapshotExpiredDate = firstBatch?.expired_date || null;
           snapshotTaxType = resolveItemHppTaxType(it, firstBatch);
+          snapshotPpnRate = firstBatch?.ppn_rate ?? null;
           itemBatchInfo.push({ product, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: false });
         }
       } else {
         itemBatchInfo.push({ product: null, qtyBase: 0, qtyInUnit, unit: 'pcs', isSelected: false });
       }
 
-      actualItemGross += qtyInUnit * ((it.unit_price || 0) - tax.hppFromHnaByTaxType(it.unit_hpp || 0, snapshotTaxType));
+      actualItemGross += qtyInUnit * ((it.unit_price || 0) - tax.hppFromHnaByRate(it.unit_hpp || 0, snapshotTaxType, snapshotPpnRate));
 
       await client.query(
-        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, unit_hpp_tax_type, subtotal, qty_in_unit, pack_size_at_sale, batch_id_snapshot, batch_no_snapshot, expired_date_snapshot)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, unit_hpp_tax_type, subtotal, qty_in_unit, pack_size_at_sale, batch_id_snapshot, batch_no_snapshot, expired_date_snapshot, unit_hpp_ppn_rate)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
         [order.id, it.product_name, qtyBase, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, snapshotTaxType, subtotal, qtyInUnit, packSize,
-         snapshotBatchId, snapshotBatchNo, snapshotExpiredDate]
+         snapshotBatchId, snapshotBatchNo, snapshotExpiredDate, snapshotPpnRate]
       );
     }
 
@@ -707,6 +712,7 @@ router.put('/:id', auth, async (req, res) => {
       let snapshotBatchNo = null;
       let snapshotExpiredDate = null;
       let snapshotTaxType = tax.normalizeTaxType(it.unit_hpp_tax_type);
+      let snapshotPpnRate = null;
 
       if (product) {
         const resolved = await resolveSelectedBatchForSale(client, product.id, it);
@@ -720,11 +726,12 @@ router.put('/:id', auth, async (req, res) => {
           snapshotBatchNo = resolved.batch.batch_no;
           snapshotExpiredDate = resolved.batch.expired_date;
           snapshotTaxType = resolveItemHppTaxType(it, resolved.batch);
+          snapshotPpnRate = resolved.batch.ppn_rate ?? null;
           itemBatchInfo.push({ product, selectedBatchId: resolved.batch.id, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: true });
         } else {
           // FEFO fallback (existing behavior)
           const { rows: [firstBatch] } = await client.query(
-            `SELECT id, batch_no, expired_date, tax_type FROM inventory_batches
+            `SELECT id, batch_no, expired_date, tax_type, ppn_rate FROM inventory_batches
              WHERE product_id = $1 AND qty_current > 0 AND COALESCE(is_active, TRUE) = TRUE
              AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
              ORDER BY expired_date ASC NULLS LAST LIMIT 1`,
@@ -734,19 +741,20 @@ router.put('/:id', auth, async (req, res) => {
           snapshotBatchNo = firstBatch?.batch_no || null;
           snapshotExpiredDate = firstBatch?.expired_date || null;
           snapshotTaxType = resolveItemHppTaxType(it, firstBatch);
+          snapshotPpnRate = firstBatch?.ppn_rate ?? null;
           itemBatchInfo.push({ product, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: false });
         }
       } else {
         itemBatchInfo.push({ product: null, qtyBase: 0, qtyInUnit, unit: 'pcs', isSelected: false });
       }
 
-      actualItemGross += qtyInUnit * ((it.unit_price || 0) - tax.hppFromHnaByTaxType(it.unit_hpp || 0, snapshotTaxType));
+      actualItemGross += qtyInUnit * ((it.unit_price || 0) - tax.hppFromHnaByRate(it.unit_hpp || 0, snapshotTaxType, snapshotPpnRate));
 
       await client.query(
-        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, unit_hpp_tax_type, subtotal, qty_in_unit, pack_size_at_sale, batch_id_snapshot, batch_no_snapshot, expired_date_snapshot)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, unit_hpp_tax_type, subtotal, qty_in_unit, pack_size_at_sale, batch_id_snapshot, batch_no_snapshot, expired_date_snapshot, unit_hpp_ppn_rate)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
         [req.params.id, it.product_name, qtyBase, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, snapshotTaxType, subtotal, qtyInUnit, packSize,
-         snapshotBatchId, snapshotBatchNo, snapshotExpiredDate]
+         snapshotBatchId, snapshotBatchNo, snapshotExpiredDate, snapshotPpnRate]
       );
     }
 

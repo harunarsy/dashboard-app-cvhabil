@@ -70,7 +70,8 @@ const ensureSchema = async () => {
 	  await pool.query(`
 	    ALTER TABLE inventory_batches
 	      ADD COLUMN IF NOT EXISTS hna DECIMAL(15,2) DEFAULT 0,
-	      ADD COLUMN IF NOT EXISTS tax_type VARCHAR(20) DEFAULT 'faktur';
+	      ADD COLUMN IF NOT EXISTS tax_type VARCHAR(20) DEFAULT 'faktur',
+	      ADD COLUMN IF NOT EXISTS ppn_rate DECIMAL(5,4) DEFAULT 0.11;
 	  `);
   // v1.22.2: alias nama produk (invisible) — nama distributor lama tetap auto-match.
   // Unique index normalized → 1 alias mustahil nyangkut ke 2 produk.
@@ -763,14 +764,14 @@ router.post('/opname', auth, async (req, res) => {
 
 router.get('/alerts', auth, async (req, res) => {
   try {
-    // Near-expiry batches (within 90 days)
+    // v1.43.0: "harus dikeluarkan" = stok (qty>0) yang ED-nya ≤4 bulan (120 hari)
+    // ATAU sudah lewat ED. Yang sudah expired ikut (paling urgent) → order ASC = expired dulu.
     const { rows: expiring } = await pool.query(`
       SELECT b.*, pm.name AS product_name, pm.unit
       FROM inventory_batches b
       JOIN product_master pm ON pm.id = b.product_id
       WHERE b.qty_current > 0 AND b.expired_date IS NOT NULL
-        AND b.expired_date >= CURRENT_DATE
-        AND b.expired_date < CURRENT_DATE + INTERVAL '90 days'
+        AND b.expired_date < CURRENT_DATE + INTERVAL '120 days'
       ORDER BY b.expired_date ASC
     `);
     // Low stock products
@@ -887,10 +888,11 @@ router.get('/batches-by-product/:productId', auth, async (req, res) => {
 	    const { rows } = await pool.query(`
 	      SELECT id, batch_no, expired_date, qty_current, hna,
 	             COALESCE(tax_type, 'faktur') AS tax_type,
+	             COALESCE(ppn_rate, ${tax.PPN_RATE}) AS ppn_rate,
 	             CASE
 	               WHEN hna <= 0 THEN 0
 	               WHEN COALESCE(tax_type, 'faktur') = 'nota' THEN hna
-	               ELSE hna * ${1 + tax.PPN_RATE}
+	               ELSE hna * (1 + COALESCE(ppn_rate, ${tax.PPN_RATE}))
 	             END AS hpp_inc_ppn,
 	             CASE WHEN qty_current <= 0 THEN true ELSE false END AS is_historical
       FROM inventory_batches

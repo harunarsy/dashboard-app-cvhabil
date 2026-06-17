@@ -39,6 +39,24 @@ const hnaFromHppByTaxType = (hpp, taxType = TAX_TYPE_FAKTUR) => {
   return normalizeTaxType(taxType) === TAX_TYPE_NOTA ? n : hnaFromHpp(n);
 };
 
+// v1.43.0: HPP per-batch sadar RATE. rate = ppn_rate batch (mis. 0.11 stok lama,
+// 0.12 faktur baru). NULL/invalid → fallback PPN_RATE default. nota → tanpa PPN.
+const hppFromHnaByRate = (hna, taxType = TAX_TYPE_FAKTUR, rate = null) => {
+  const n = parseFloat(hna);
+  if (isNaN(n)) return 0;
+  if (normalizeTaxType(taxType) === TAX_TYPE_NOTA) return n;
+  const r = parseFloat(rate);
+  return n * (1 + (isNaN(r) ? PPN_RATE : r));
+};
+
+// SQL fragment HPP inc PPN per sales_item, pakai rate per-batch yang DI-SNAPSHOT
+// (unit_hpp_ppn_rate). NULL → fallback PPN_RATE (stok lama = 11%). Dipakai dashboard/
+// reports/insights supaya gross profit sadar rate per-batch, BUKAN global.
+const hppSqlForSalesItem = (alias = 'si') => `CASE
+      WHEN COALESCE(${alias}.unit_hpp_tax_type, 'faktur') = 'nota' THEN COALESCE(${alias}.unit_hpp, 0)
+      ELSE COALESCE(${alias}.unit_hpp, 0) * (1 + COALESCE(${alias}.unit_hpp_ppn_rate, ${PPN_RATE}))
+    END`;
+
 module.exports = {
   PPN_RATE,
   TAX_TYPE_FAKTUR,
@@ -46,6 +64,8 @@ module.exports = {
   normalizeTaxType,
   hppFromHna,
   hppFromHnaByTaxType,
+  hppFromHnaByRate,
+  hppSqlForSalesItem,
   hnaFromHpp,
   hnaFromHppByTaxType,
 };

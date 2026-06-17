@@ -13,11 +13,8 @@ router.get('/monthly', auth, async (req, res) => {
       return res.status(400).json({ error: 'month param required (YYYY-MM)' });
     }
     const startDate = month + '-01';
-    const hppMultiplier = 1 + tax.PPN_RATE;
-    const unitHppCostSql = `CASE
-      WHEN COALESCE(si.unit_hpp_tax_type, 'faktur') = 'nota' THEN COALESCE(si.unit_hpp, 0)
-      ELSE COALESCE(si.unit_hpp, 0) * ${hppMultiplier}
-    END`;
+    // v1.43.0: HPP gross-up pakai rate per-batch yang di-snapshot, bukan global.
+    const unitHppCostSql = tax.hppSqlForSalesItem('si');
 
     const [notaRows, fakturRows, summaryRows] = await Promise.all([
       // Nota Penjualan

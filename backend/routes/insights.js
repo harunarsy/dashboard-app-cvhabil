@@ -6,13 +6,9 @@ const tax = require('../utils/tax');
 
 router.use(auth);
 
-// HPP per-satuan-jual inc PPN, sadar tax_type batch (samakan dengan dashboard.js).
-// Param $1 = (1 + PPN_RATE).
-const PPN_MULT = 1 + tax.PPN_RATE;
-const unitHppCostSql = `CASE
-  WHEN COALESCE(si.unit_hpp_tax_type, 'faktur') = 'nota' THEN COALESCE(si.unit_hpp, 0)
-  ELSE COALESCE(si.unit_hpp, 0) * $1
-END`;
+// HPP per-satuan-jual inc PPN, sadar tax_type + rate per-batch (samakan dengan dashboard.js).
+// v1.43.0: rate dari snapshot unit_hpp_ppn_rate (NULL → fallback PPN_RATE), bukan global.
+const unitHppCostSql = tax.hppSqlForSalesItem('si');
 
 const toPositiveInt = (value, fallback, max) => {
   const n = Number.parseInt(value, 10);
@@ -242,7 +238,6 @@ router.get('/product-health', async (req, res) => {
         WHERE pm.is_active = TRUE
         ORDER BY pm.name ASC
       `,
-      [PPN_MULT],
     );
 
     const bandOf = (score) =>
@@ -322,7 +317,6 @@ router.get('/weekly-summary', async (req, res) => {
           AND so.status = 'final'
           AND so.sale_date >= CURRENT_DATE - INTERVAL '14 days'
       `,
-      [PPN_MULT],
     );
 
     // Resolusi nama canonical: produk yang pernah di-rename simpan nama lama di
