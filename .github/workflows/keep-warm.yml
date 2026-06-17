@@ -1,0 +1,27 @@
+name: Keep Backend Warm
+
+# v1.41.x: ping /api/health berkala biar fungsi serverless Vercel tetap hangat
+# (kurangi cold-start ~1-2 dtk saat halaman pertama dibuka setelah idle).
+# Repo public → GitHub Actions gratis. Cron bisa molor sedikit di free tier, wajar.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # tiap 10 menit
+  workflow_dispatch: {}
+
+concurrency:
+  group: keep-warm
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health
+        run: |
+          for url in \
+            "https://habil-backend.vercel.app/api/health" \
+            "https://habil-dashboard.vercel.app"; do
+            code=$(curl -s -m 30 -o /dev/null -w "%{http_code}" "$url" || echo "000")
+            echo "$url -> $code"
+          done
