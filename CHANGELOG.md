@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.42.0-stable] - 2026-06-17
+
+### Fixed
+- **Regresi HPP Inventory 12%**: revert PPN_RATE global 0.12→0.11. Update PPN sebelumnya (v1.40) membuat derivasi HPP semua stok jadi ×1,12 padahal stok lama dibeli @11%. Tidak ada data stored yang berubah — hanya rate turunan. PPN 12% untuk pembelian baru akan ditangani per-faktur/per-batch (kolom `ppn_rate`) menyusul.
+- **Customer**: migrasi ke TanStack Query (useCustomers) → load instan dari cache; teks alamat/no HP di light mode diubah dari border-strong → text (hitam, readable).
+
 ## [v1.41.0-stable] - 2026-06-17
 
 ### Added

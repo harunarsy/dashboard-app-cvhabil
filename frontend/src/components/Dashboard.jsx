@@ -37,6 +37,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.42.0-stable",
+    date: "17 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "PERBAIKAN PENTING: HPP di Inventory sempat ikut jadi 12% untuk SEMUA stok gara-gara update PPN — padahal stok lama dibeli saat PPN 11%. Dikembalikan ke 11% (default historis). Tidak ada data yang rusak (hanya tampilan rate-nya). PPN 12% untuk pembelian baru akan ditangani per-faktur menyusul. Plus: halaman Customer kini load instan (cache) dan teks alamat/no HP di mode terang dibuat hitam biar kebaca.",
+        dev: "Revert PPN_RATE 0.12→0.11 (tax.js + rupiah.js + generateNotaPDF) — derivasi HPP global balik 11%; tidak ada kolom stored yang berubah. CustomerList: migrasi ke useCustomers (TanStack) + refetch sesudah mutasi; warna phone/address light-mode border-strong→text. TODO proper: kolom ppn_rate per-batch/faktur (old 11% / new 12%).",
+      },
+    ],
+  },
+  {
     version: "v1.41.0-stable",
     date: "17 Juni 2026",
     status: "latest",

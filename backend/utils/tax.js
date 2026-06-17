@@ -2,7 +2,10 @@
 // HNA = Harga Netto Apotek (raw cost per pcs from distributor, after disc, EXC PPN)
 // HPP = Harga Pokok Penjualan (cost per pcs INC PPN) = HNA × (1 + PPN_RATE)
 
-const PPN_RATE = 0.12; // Indonesia PPN 12% (berlaku sejak 2025). Satu sumber utk semua kalkulasi backend.
+// PPN_RATE = rate DEFAULT (historis stok lama = 11%). Rate aktual per-pembelian disimpan
+// per-batch/faktur (kolom ppn_rate). Jangan ubah ini jadi 12% global → bikin HPP stok lama
+// ikut 12% (regresi v1.40). PPN penjualan/output diatur terpisah bila perlu.
+const PPN_RATE = 0.11;
 const TAX_TYPE_FAKTUR = 'faktur';
 const TAX_TYPE_NOTA = 'nota';
 

@@ -18,6 +18,7 @@ import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import SearchBox from "./common/SearchBox";
 import ToastNotice from "./common/ToastNotice";
 import useDebouncedValue from "../hooks/useDebouncedValue";
+import { useCustomers } from "../hooks/useMasterData";
 import { normalizeIndonesianPhone, copyTextToClipboard } from "../utils/waMessage";
 
 const fmtRp = (n) =>
@@ -49,7 +50,9 @@ export default function CustomerList({
   isMobile,
   isVantaMode,
 }) {
-  const [customers, setCustomers] = useState([]);
+  // v1.42.0: data customer via TanStack Query (prefetched saat idle → buka halaman instan)
+  const { data: customers = [], isLoading: loading, refetch: refetchCustomers } =
+    useCustomers();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const [sortBy, setSortBy] = useState("name_asc"); // name_asc | name_desc | most_active | top_spender | oldest
@@ -62,7 +65,6 @@ export default function CustomerList({
     type: "offline",
   });
   const [toast, setToast] = useState("");
-  const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   // v1.28.0 (#5): radar customer hilang / churn
@@ -76,20 +78,7 @@ export default function CustomerList({
   const sub = "var(--color-text-subtle)";
   useBodyScrollLock(showModal || !!deleteConfirmId);
 
-  const fetchCustomers = async () => {
-    setLoading(true);
-    try {
-      const { data } = await customersAPI.getAll();
-      setCustomers(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchCustomers();
     insightsAPI
       .getChurn()
       .then(({ data }) => setChurnList(data?.items || []))
@@ -158,7 +147,7 @@ export default function CustomerList({
         flash("Customer ditambahkan");
       }
       setShowModal(false);
-      fetchCustomers();
+      refetchCustomers();
     } catch (e) {
       flash(e.response?.data?.error || e.message);
     } finally {
@@ -172,7 +161,7 @@ export default function CustomerList({
     try {
       await customersAPI.remove(deleteConfirmId);
       flash("Customer dihapus");
-      fetchCustomers();
+      refetchCustomers();
     } catch (e) {
       flash(e.response?.data?.error || e.message);
     } finally {
@@ -621,7 +610,7 @@ export default function CustomerList({
                             fontWeight: "500",
                             color: isDarkMode
                               ? "var(--color-text-muted)"
-                              : "var(--color-border-strong)",
+                              : "var(--color-text)",
                           }}
                         >
                           <Phone
@@ -641,7 +630,7 @@ export default function CustomerList({
                             fontWeight: "500",
                             color: isDarkMode
                               ? "var(--color-text-muted)"
-                              : "var(--color-border-strong)",
+                              : "var(--color-text)",
                             lineHeight: "1.45",
                           }}
                         >

@@ -2,7 +2,8 @@
 // Display: "Rp 288.288,25" (titik ribuan, koma desimal — native ID-id)
 // Parse:   "Rp 288.288,25" / "288.288,25" / "288288.25" / "288288,25" → 288288.25
 
-export const PPN_RATE = 0.12; // Indonesia PPN 12% (berlaku sejak 2025). Satu sumber utk semua kalkulasi frontend.
+// Rate DEFAULT (historis = 11%). Rate aktual per-pembelian per-batch/faktur. Jangan global-kan 12%.
+export const PPN_RATE = 0.11;
 
 export const formatRupiah = (n, decimals = 2) => {
   if (n === null || n === undefined || n === '') return '';

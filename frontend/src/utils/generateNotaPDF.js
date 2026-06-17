@@ -239,7 +239,7 @@ export function generateNotaPDF(order, options = {}) {
     const ccFee =
       order.payment_fee_mode === 'pass_on' ? parseFloat(order.payment_fee) || 0 : 0;
     const productTotal = grandTotal - ongkir - ccFee;
-    const PPN_RATE = 0.12; // PPN Indonesia 12% (sinkron dgn utils/rupiah.js & backend tax.js)
+    const PPN_RATE = 0.11; // default DPP/PPN nota (rate historis); per-faktur diatur terpisah
     const dpp = productTotal / (1 + PPN_RATE);
     const ppn = productTotal - dpp;
     const rightX = pageWidth - margin;
