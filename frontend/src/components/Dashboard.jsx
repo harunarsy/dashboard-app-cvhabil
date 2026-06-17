@@ -37,6 +37,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.43.0-stable",
+    date: "17 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "PPN sekarang FLEKSIBEL per faktur: default 11%, tapi tiap faktur bisa dipilih 11% atau 12% (mis. Nescafe yang dibeli dengan PPN 12%). Tiap stok 'ingat' PPN-nya sendiri — stok 11% tetap dihitung 11% di Inventory, HPP, dan laba; stok 12% tetap 12%. Tidak ada lagi yang dipukul rata jadi 12%. Plus: Alert Inventory 'Harus Dikeluarkan' kini menandai stok yang kadaluarsa dalam ≤4 bulan (sebelumnya 3 bulan), termasuk yang sudah lewat ED.",
+        dev: "Per-batch/faktur PPN: +kolom inventory_batches.ppn_rate (DEF 0.11), invoices.ppn_rate (DEF 0.11), sales_items.unit_hpp_ppn_rate (NULL→fallback 0.11). Derivasi HPP fefo-hna + rupiah.hppForBatch pakai COALESCE(ppn_rate). Aggregates dashboard/reports/insights via tax.hppSqlForSalesItem (per-row rate, hapus param global $1). Nota POST/PUT snapshot ppn_rate batch → gross profit per-batch (tax.hppFromHnaByRate). Faktur form: selektor 11%/12% default 11% (BUKAN 12%), threaded ke calcItem/calcTotals/buildPayload + load/draft/PO. Prod: batch 110 (Nescafe) + invoice-187 di-set 0.12 manual via script idempotent; 106 batch lain tetap 0.11. ED alert window 90→120d incl expired ('harus dikeluarkan').",
+      },
+    ],
+  },
+  {
     version: "v1.42.0-stable",
     date: "17 Juni 2026",
     status: "latest",

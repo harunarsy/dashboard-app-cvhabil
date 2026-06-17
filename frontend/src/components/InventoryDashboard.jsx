@@ -94,7 +94,7 @@ function expirySeverity(date, isDarkMode) {
       bg: redBg,
       label: `${fmtDate(date)} (${days}d)`,
     };
-  if (days < 90)
+  if (days < 120)
     return {
       color: "#FF9F0A",
       bg: orangeBg,
@@ -302,7 +302,7 @@ export default function InventoryDashboard({
       const days = daysUntil(p.nearest_expiry);
       if (statusFilter === "low") return stock < p.min_stock;
       if (statusFilter === "expiring")
-        return days !== null && days > 0 && days < 90;
+        return days !== null && days > 0 && days < 120;
       if (statusFilter === "expired") return days !== null && days <= 0;
       return true;
     });
@@ -893,7 +893,7 @@ export default function InventoryDashboard({
           >
             <option value="all">Semua status</option>
             <option value="low">Stok rendah</option>
-            <option value="expiring">Mendekati expired</option>
+            <option value="expiring">ED ≤4 bulan (harus dikeluarkan)</option>
             <option value="expired">Sudah expired</option>
           </select>
         </div>
@@ -1706,7 +1706,7 @@ export default function InventoryDashboard({
                 gap: "8px",
               }}
             >
-              <Clock size={18} /> Mendekati Expired ({alerts.expiring.length})
+              <Clock size={18} /> Harus Dikeluarkan — ED ≤4 bulan / expired ({alerts.expiring.length})
             </h3>
             {alerts.expiring.length ? (
               alerts.expiring.map((b, i) => {
@@ -1763,7 +1763,7 @@ export default function InventoryDashboard({
               })
             ) : (
               <p style={{ color: sub, fontSize: "14px", margin: 0 }}>
-                ✅ Tidak ada produk mendekati expired.
+                ✅ Tidak ada stok yang perlu dikeluarkan (semua ED &gt; 4 bulan).
               </p>
             )}
           </div>

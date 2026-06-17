@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.43.0-stable] - 2026-06-17
+
+### Fixed
+- **PPN per-faktur/per-batch (FLEKSIBEL, bukan global)**: setiap stok kini menyimpan tarif PPN-nya sendiri. Default **11%** (kita tidak tahu faktur berikutnya 11% atau 12% — default aman = norma historis); tiap faktur bisa dipilih **11% atau 12%** secara manual di form (mis. kasus Nescafe yang dibeli @12%). Tarif menjalar konsisten ke Inventory → HPP → laba kotor nota: stok 11% tetap 11%, stok 12% tetap 12%. **Tidak ada lagi pukul rata 12%** (mengakhiri akar masalah regresi v1.40).
+  - Kolom baru: `inventory_batches.ppn_rate` (DEF 0.11), `invoices.ppn_rate` (DEF 0.11), `sales_items.unit_hpp_ppn_rate` (NULL→fallback 0.11).
+  - Derivasi: `fefo-hna` & `rupiah.hppForBatch` pakai `COALESCE(ppn_rate, 0.11)`; agregat dashboard/reports/insights via `tax.hppSqlForSalesItem` (rate per-baris, bukan param global); nota snapshot rate batch saat jual.
+  - Form faktur: selektor 11%/12% (default **11%**), threaded ke kalkulasi item/total/payload + load/draft/PO.
+  - Data prod: batch 110 (Nescafe Classic 90 g) + faktur `SI2606389526` di-set 0.12; 106 batch lain tetap 0.11.
+- **Alert Inventory "Harus Dikeluarkan"**: jendela diperluas dari 90 → **120 hari (≤4 bulan)** dan kini **menyertakan stok yang sudah lewat ED** (paling urgent). Filter & badge ED ikut menyesuaikan.
+
 ## [v1.42.0-stable] - 2026-06-17
 
 ### Fixed
