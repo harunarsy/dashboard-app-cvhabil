@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.51.1-stable] - 2026-06-18
+
+### Fixed
+- **Dashboard crash setelah login** (hotfix): akar masalah = menu Distributor di Sidebar memakai `Icons.Truck`, tetapi ikon `Truck` belum diekspor dari registry `common/Icon`. React merender komponen `undefined` dan jatuh ke fallback "Terjadi gangguan".
+  - `common/Icon` sekarang mengekspos wrapper `Truck`.
+  - Test harness komponen yang memakai TanStack Query diperbaiki dengan `QueryClientProvider`.
+
 ## [v1.51.0-stable] - 2026-06-18
 
 ### Fixed

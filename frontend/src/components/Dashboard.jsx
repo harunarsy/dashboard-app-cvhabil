@@ -38,9 +38,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.51.0-stable",
+    version: "v1.51.1-stable",
     date: "18 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "PERBAIKAN DARURAT: setelah login, Dashboard tidak lagi jatuh ke layar 'Terjadi gangguan'. Penyebabnya menu Distributor memakai ikon yang belum terdaftar.",
+        dev: "common/Icon: expose Truck icon wrapper so Sidebar Distributor menu no longer renders an undefined component (React error #130). Test harness TanStack Query diperbaiki dengan QueryClientProvider.",
+      },
+    ],
+  },
+  {
+    version: "v1.51.0-stable",
+    date: "18 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

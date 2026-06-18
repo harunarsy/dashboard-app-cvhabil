@@ -17,6 +17,14 @@ jest.mock("../services/api", () => ({
     restore: jest.fn(),
     getHistory: jest.fn(() => Promise.resolve({ data: [] })),
   },
+  dashboardAPI: {
+    getStats: jest.fn(),
+    getHeatmap: jest.fn(),
+    getDailyNotas: jest.fn(),
+  },
+  insightsAPI: {
+    getWeeklySummary: jest.fn(),
+  },
 }));
 
 // Mock useOnboarding to avoid pending setTimeout(900ms)
@@ -49,9 +57,9 @@ jest.mock(
 
 import { render, screen, waitFor, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Dashboard from "./Dashboard";
-import api from "../services/api";
-import { tasksAPI } from "../services/api";
+import api, { dashboardAPI, insightsAPI, tasksAPI } from "../services/api";
 
 // Mock lucide-react broadly because Dashboard renders child widgets that import
 // many icons directly.
@@ -67,6 +75,15 @@ jest.mock("lucide-react", () => {
   );
 });
 
+const renderWithQueryClient = (ui) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+  );
+};
+
 describe("Dashboard Component - Loading State", () => {
   const mockStats = {
     totalPenjualan: 1000000,
@@ -77,7 +94,9 @@ describe("Dashboard Component - Loading State", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    api.get.mockResolvedValue({ data: [] });
     tasksAPI.getAll.mockResolvedValue({ data: [] });
+    insightsAPI.getWeeklySummary.mockResolvedValue({ data: null });
     global.ResizeObserver = class {
       observe() {}
       unobserve() {}
@@ -98,10 +117,10 @@ describe("Dashboard Component - Loading State", () => {
     const apiPromise = new Promise((resolve) => {
       resolveApi = resolve;
     });
-    api.get.mockReturnValue(apiPromise);
+    dashboardAPI.getStats.mockReturnValue(apiPromise);
 
     jest.useFakeTimers();
-    render(<Dashboard isDarkMode={false} isSidebarOpen={true} />);
+    renderWithQueryClient(<Dashboard isDarkMode={false} isSidebarOpen={true} />);
     act(() => { jest.runAllTimers(); });
     jest.useRealTimers();
 

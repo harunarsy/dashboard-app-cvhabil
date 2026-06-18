@@ -38,6 +38,7 @@ import {
   AlertTriangle as AlertTriangleIcon,
   Download as DownloadIcon,
   RefreshCw as RefreshCwIcon,
+  Truck as TruckIcon,
 } from "lucide-react";
 
 export const UI_ICON_DEFAULTS = {
@@ -106,6 +107,7 @@ const Icons = {
   AlertTriangle: wrapIcon(AlertTriangleIcon),
   Download: wrapIcon(DownloadIcon),
   RefreshCw: wrapIcon(RefreshCwIcon),
+  Truck: wrapIcon(TruckIcon),
 };
 
 export default Icons;

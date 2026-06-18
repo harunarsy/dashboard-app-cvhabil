@@ -1,6 +1,7 @@
 import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 jest.mock("../services/api", () => ({
   __esModule: true,
@@ -63,6 +64,15 @@ jest.mock("lucide-react", () => {
 
 import PriceListPage from "./PriceListPage";
 import { priceListAPI, printSettingsAPI } from "../services/api";
+
+const renderWithQueryClient = (ui) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+  );
+};
 
 describe("PriceListPage suggestion drawer", () => {
   beforeEach(() => {
@@ -136,7 +146,9 @@ describe("PriceListPage suggestion drawer", () => {
   });
 
   test("card tier bisa diklik dan mengirim harga hasil pembulatan yang berbeda", async () => {
-    render(<PriceListPage isDarkMode={false} isMobile={false} isVantaMode={false} />);
+    renderWithQueryClient(
+      <PriceListPage isDarkMode={false} isMobile={false} isVantaMode={false} />,
+    );
 
     await screen.findByText("Nescafe Classic 1 Renceng (10 sachet x 2 g)");
 

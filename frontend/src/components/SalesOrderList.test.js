@@ -38,6 +38,7 @@ jest.mock('react-router-dom', () => ({
 
 import { render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SalesOrderList from './SalesOrderList';
 import { salesAPI, customersAPI, productsAPI, priceListAPI, inventoryAPI, printSettingsAPI, countersAPI, settingsAPI } from '../services/api';
 
@@ -59,6 +60,15 @@ jest.mock('lucide-react', () => ({
   RotateCcw: () => <div data-testid="icon-rotate" />,
   History: () => <div data-testid="icon-history" />
 }));
+
+const renderWithQueryClient = (ui) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+  );
+};
 
 describe('SalesOrderList Component - Loading State', () => {
   beforeEach(() => {
@@ -85,7 +95,7 @@ describe('SalesOrderList Component - Loading State', () => {
     });
     salesAPI.getAll.mockReturnValue(salesPromise);
 
-    render(<SalesOrderList isDarkMode={false} isSidebarOpen={true} />);
+    renderWithQueryClient(<SalesOrderList isDarkMode={false} isSidebarOpen={true} />);
 
     // Check if skeletons are present in the table body
     // SalesOrderList.jsx renders 5 skeleton rows
