@@ -38,6 +38,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.48.0-stable",
+    date: "18 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Inventory: jumlah baris per halaman default jadi 20 (dari 10) + ada opsi 'Semua' untuk tampilkan semua produk sekaligus. Tombol di Pengaturan profitabilitas: teks 'Simpan Ambang' diperpendek jadi 'Simpan'.",
+        dev: "InventoryDashboard pageSize default 10→20; opsi value -1 = Semua (showAll → paged=filtered, totalPages=1, label hitung aman). PrintSettings tombol threshold 'Simpan Ambang'→'Simpan'. Pagination Nota/Customer/SP/Daftar Harga menyusul.",
+      },
+    ],
+  },
+  {
     version: "v1.47.0-stable",
     date: "18 Juni 2026",
     status: "latest",

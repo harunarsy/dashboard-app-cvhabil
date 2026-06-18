@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.48.0-stable] - 2026-06-18
+
+### Changed
+- **Inventory pagination**: default baris per halaman 10 → **20**, + opsi **"Semua"** (tampilkan semua produk tanpa paging).
+- **Pengaturan profitabilitas**: tombol "Simpan Ambang" → "Simpan" (P5 #12).
+
+> Pagination Nota Penjualan, Customer, Surat Pesanan, dan Daftar Harga menyusul.
+
 ## [v1.47.0-stable] - 2026-06-18
 
 ### Added

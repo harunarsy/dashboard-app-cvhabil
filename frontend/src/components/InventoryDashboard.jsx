@@ -130,7 +130,7 @@ export default function InventoryDashboard({
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState("all"); // all | low | expiring | expired
-  const [pageSize, setPageSize] = useState(10); // 10 | 20 | 50
+  const [pageSize, setPageSize] = useState(20); // 10 | 20 | 50 | -1 (Semua)
   const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(null); // null | 'product' | 'stockIn' | 'stockOut' | 'opname'
   const [editId, setEditId] = useState(null);
@@ -302,12 +302,16 @@ export default function InventoryDashboard({
     setCurrentPage(1);
   }, [debouncedSearch, statusFilter, pageSize]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  // v1.48.0: pageSize -1 = "Semua" (tampilkan semua tanpa paging).
+  const showAll = pageSize === -1;
+  const effPageSize = showAll ? Math.max(1, filtered.length) : pageSize;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / effPageSize));
   const safePage = Math.min(currentPage, totalPages);
   const paged = useMemo(() => {
+    if (showAll) return filtered;
     const start = (safePage - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
-  }, [filtered, safePage, pageSize]);
+  }, [filtered, safePage, pageSize, showAll]);
 
   // v1.10.2: total nilai persediaan = Σ HPP(inc PPN) × stok (ikut filter aktif)
   const totalNilai = useMemo(
@@ -1608,6 +1612,7 @@ export default function InventoryDashboard({
                   <option value={10}>10</option>
                   <option value={20}>20</option>
                   <option value={50}>50</option>
+                  <option value={-1}>Semua</option>
                 </select>
                 <span>per halaman</span>
               </div>
@@ -1621,9 +1626,10 @@ export default function InventoryDashboard({
                 }}
               >
                 <span style={{ fontVariantNumeric: "tabular-nums" }}>
-                  {(safePage - 1) * pageSize + 1}–
-                  {Math.min(safePage * pageSize, filtered.length)} dari{" "}
-                  {filtered.length}
+                  {showAll || filtered.length === 0
+                    ? filtered.length
+                    : `${(safePage - 1) * pageSize + 1}–${Math.min(safePage * pageSize, filtered.length)}`}{" "}
+                  dari {filtered.length}
                 </span>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <button

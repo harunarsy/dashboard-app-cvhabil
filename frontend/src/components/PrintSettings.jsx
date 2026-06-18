@@ -601,7 +601,7 @@ export default function PrintSettings({
                   ) : (
                     <Save size={18} />
                   )}{" "}
-                  {savingThresholds ? "Menyimpan..." : "Simpan Ambang"}{" "}
+                  {savingThresholds ? "Menyimpan..." : "Simpan"}{" "}
                 </button>{" "}
               </div>{" "}
             </div>{" "}
