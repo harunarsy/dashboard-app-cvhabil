@@ -7,6 +7,7 @@ import { hppForBatch, hppFromHna } from "../utils/rupiah";
 import Breadcrumb from "./common/Breadcrumb";
 import SearchBox from "./common/SearchBox";
 import Skeleton from "./common/Skeleton";
+import Pagination from "./common/Pagination";
 import ToastNotice from "./common/ToastNotice";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import { UI_MOTION } from "../constants/ui";
@@ -837,15 +838,29 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
     return out;
   }, [rows, search, onlyUnset]);
 
+  // v1.50.0: pagination (default 20) — slice flat dulu, baru di-group per kategori.
+  const [pageSize, setPageSize] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, onlyUnset, pageSize]);
+  const pagedFiltered = useMemo(
+    () =>
+      pageSize === -1
+        ? filtered
+        : filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [filtered, currentPage, pageSize],
+  );
+
   const grouped = useMemo(() => {
     const map = new Map();
-    filtered.forEach((r) => {
+    pagedFiltered.forEach((r) => {
       const cat = r.category || "Lain-lain";
       if (!map.has(cat)) map.set(cat, []);
       map.get(cat).push(r);
     });
     return Array.from(map.entries());
-  }, [filtered]);
+  }, [pagedFiltered]);
 
   const stats = useMemo(() => {
     const setCount = rows.filter((r) => r.list_price != null).length;
@@ -1405,6 +1420,17 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {!loading && (
+        <Pagination
+          total={filtered.length}
+          page={currentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          isMobile={isMobile}
+        />
       )}
 
       {suggestFor && (

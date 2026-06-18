@@ -38,6 +38,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.50.0-stable",
+    date: "18 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "feat",
+        text: "Pagination di semua halaman daftar: Nota Penjualan (default 20), Customer (20), Surat Pesanan (10), Daftar Harga (20) — plus Inventory & Faktur yang sudah ada. Ada pilihan jumlah baris per halaman + 'Semua', tombol halaman sebelumnya/berikutnya, dan info '1–20 dari N'. Daftar jadi ringan walau data banyak.",
+        dev: "+common/Pagination.jsx reusable (select size + prev/next + ringkasan, pageSize -1 = Semua). Wire ke CustomerList/PurchaseOrderList/SalesOrderList/PriceListPage (paged slice + reset page on filter/sort). Daftar Harga: slice flat dulu baru group per kategori. Inventory/Faktur pagination existing dibiarkan.",
+      },
+    ],
+  },
+  {
     version: "v1.49.0-stable",
     date: "18 Juni 2026",
     status: "latest",

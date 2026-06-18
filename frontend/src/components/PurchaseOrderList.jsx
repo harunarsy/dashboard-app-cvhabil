@@ -22,6 +22,7 @@ import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import SearchBox from "./common/SearchBox";
 import ToastNotice from "./common/ToastNotice";
 import useDebouncedValue from "../hooks/useDebouncedValue";
+import Pagination from "./common/Pagination";
 import {
   usePurchaseOrders,
   useDistributors,
@@ -274,6 +275,17 @@ export default function PurchaseOrderList({
         return 0;
       })
     : filtered;
+
+  // v1.50.0: pagination (default 10). Reset hal saat cari/sort/pageSize berubah.
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, sortKeys, pageSize]);
+  const paged =
+    pageSize === -1
+      ? sorted
+      : sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // AUDIT-UX-02 + UX-13: bedakan error vs sukses + clearTimeout biar toast
   // beruntun tidak kepotong timer lama.
@@ -835,7 +847,7 @@ export default function PurchaseOrderList({
                     </td>
                   </tr>
                 ))
-              : sorted.map((o) => {
+              : paged.map((o) => {
                   const sc = statusColors[o.status] || statusColors.draft;
                   return (
                     <React.Fragment key={o.id}>
@@ -1074,6 +1086,17 @@ export default function PurchaseOrderList({
           </tbody>
         </table>
       </div>
+
+      {!loading && (
+        <Pagination
+          total={sorted.length}
+          page={currentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          isMobile={isMobile}
+        />
+      )}
 
       {/* Create/Edit Modal */}
       {showModal === "create" &&

@@ -51,6 +51,7 @@ import {
   useCustomers,
   useProducts,
 } from "../hooks/useMasterData";
+import Pagination from "./common/Pagination";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -803,6 +804,27 @@ export default function SalesOrderList({
         );
       return 0;
     });
+
+  // v1.50.0: pagination (default 20). Reset hal saat filter/sort berubah.
+  const [pageSize, setPageSize] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    debouncedSearch,
+    filterMonth,
+    filterYear,
+    filterStatus,
+    filterChannel,
+    filterProfit,
+    sortKey,
+    sortDir,
+    pageSize,
+  ]);
+  const pagedOrders =
+    pageSize === -1
+      ? filtered
+      : filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const openAdd = () => {
     // v1.8.4: refetch counter biar preview Auto field selalu fresh (handle delete/concurrent)
@@ -2076,7 +2098,7 @@ export default function SalesOrderList({
                     </td>
                   </tr>
                 ))
-              : filtered.map((o) => (
+              : pagedOrders.map((o) => (
                   <React.Fragment key={o.id}>
                     <tr
                       className="ui-row ui-hover-delight"
@@ -2655,6 +2677,17 @@ export default function SalesOrderList({
           </tbody>
         </table>
       </div>
+
+      {!loading && (
+        <Pagination
+          total={filtered.length}
+          page={currentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          isMobile={isMobile}
+        />
+      )}
 
       {/* Modal */}
       {showModal &&

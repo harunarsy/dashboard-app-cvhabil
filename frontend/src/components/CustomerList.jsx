@@ -18,6 +18,7 @@ import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import SearchBox from "./common/SearchBox";
 import ToastNotice from "./common/ToastNotice";
 import useDebouncedValue from "../hooks/useDebouncedValue";
+import Pagination from "./common/Pagination";
 import { useCustomers } from "../hooks/useMasterData";
 import { normalizeIndonesianPhone, copyTextToClipboard } from "../utils/waMessage";
 
@@ -115,6 +116,18 @@ export default function CustomerList({
     });
     return sorted;
   }, [customers, debouncedSearch, sortBy]);
+
+  // v1.50.0: pagination (default 20). Reset ke hal 1 saat filter/sort berubah.
+  const [pageSize, setPageSize] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, sortBy, pageSize]);
+  const paged = useMemo(() => {
+    if (pageSize === -1) return filtered;
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
 
   const openAdd = () => {
     setEditId(null);
@@ -479,7 +492,7 @@ export default function CustomerList({
           ))
         ) : (
           <>
-            {filtered.map((c) => {
+            {paged.map((c) => {
               // v1.23.0: hint spesifik — tunjukkan field yang kosong saja
               const missingPhone = !String(c.phone || "").trim();
               const missingAddress = !String(c.address || "").trim();
@@ -765,6 +778,17 @@ export default function CustomerList({
           </>
         )}
       </div>
+
+      {!loading && (
+        <Pagination
+          total={filtered.length}
+          page={currentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          isMobile={isMobile}
+        />
+      )}
 
       {/* Modal */}
       {showModal && renderPortal(

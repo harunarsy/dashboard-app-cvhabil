@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.50.0-stable] - 2026-06-18
+
+### Added
+- **Pagination di semua halaman daftar** (P3 selesai): komponen `common/Pagination.jsx` reusable (pilih jumlah/halaman + opsi "Semua" + prev/next + ringkasan "1–N dari total").
+  - Nota Penjualan (default **20**), Customer (**20**), Surat Pesanan (default **10**), Daftar Harga (**20**). Inventory (**20** + Semua) & Faktur sudah ada sebelumnya.
+  - Daftar Harga: slice flat dulu lalu di-group per kategori; reset ke halaman 1 saat filter/sort berubah.
+
 ## [v1.49.0-stable] - 2026-06-18
 
 ### Added
