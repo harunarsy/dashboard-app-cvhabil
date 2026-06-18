@@ -103,8 +103,8 @@ export function generateNotaPDF(order, options = {}) {
   doc.setFont('helvetica', 'bold');
   doc.text(String(order.customer_name || '-'), margin + (isA6 ? 16 : 22), customerY);
 
-  // v1.23.0: No. HP lalu Alamat (berlabel) di bawah nama; alamat panjang di-wrap
-  // supaya tidak nabrak kolom Metode kanan / ketutupan tabel.
+  // v1.49.0: No. HP lalu Alamat TANPA label (langsung nilainya); alamat panjang
+  // di-wrap supaya tidak nabrak kolom Metode kanan / ketutupan tabel.
   let addressY = customerY;
   const contactX = margin + (isA6 ? 18 : 22);
   const contactStep = isA6 ? 3.4 : 4.2;
@@ -113,11 +113,11 @@ export function generateNotaPDF(order, options = {}) {
   doc.setTextColor(40, 40, 40);
   if (order.customer_phone) {
     addressY += contactStep;
-    doc.text(`No. HP: ${String(order.customer_phone)}`, contactX, addressY);
+    doc.text(String(order.customer_phone), contactX, addressY);
   }
   if (order.customer_address) {
     const maxAddrW = pageWidth - contactX - margin - (isA6 ? 26 : 40);
-    const addrLines = doc.splitTextToSize(`Alamat: ${String(order.customer_address)}`, maxAddrW);
+    const addrLines = doc.splitTextToSize(String(order.customer_address), maxAddrW);
     addrLines.forEach((ln) => {
       addressY += contactStep;
       doc.text(ln, contactX, addressY);

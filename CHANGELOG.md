@@ -2,6 +2,19 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.49.0-stable] - 2026-06-18
+
+### Added
+- **Tandai Lunas massal (Nota)**: centang beberapa nota → modal pilih tanggal → semua ditandai LUNAS serentak (`salesAPI.updatePaymentStatus` per nota non-paid + refetch).
+- **Detail nota tampilkan batch + ED** per produk (dari `batch_no_snapshot` / `expired_date_snapshot`).
+
+### Changed
+- **Label jatuh tempo** Nota diperjelas: "JT" → "Jatuh Tempo Pembayaran" / "Jatuh tempo X hari lagi" / "Terlambat bayar X hari".
+- **Nota PDF + preview**: hapus prefix "No. HP:" dan "Alamat:" — tampil nilainya langsung.
+- **Tombol pulihkan draft** (Nota & Faktur) disamakan gaya tombol utama (`btn-primary`).
+
+> Filter sudah/belum bayar + badge terlambat/jatuh tempo sudah ada dari rilis sebelumnya. Pagination Nota/Customer/SP/Daftar Harga & P4 (mini-AI polish) menyusul.
+
 ## [v1.48.0-stable] - 2026-06-18
 
 ### Changed

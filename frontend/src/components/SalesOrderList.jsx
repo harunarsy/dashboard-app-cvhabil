@@ -253,6 +253,8 @@ export default function SalesOrderList({
     mode: "pay",
   });
   const [paymentSaving, setPaymentSaving] = useState(false);
+  // v1.49.0: tandai lunas massal (centang beberapa nota → lunas + tanggal serentak)
+  const [bulkPay, setBulkPay] = useState({ open: false, date: "", saving: false });
   const [pdfLoading, setPdfLoading] = useState(false);
 
   // Filters
@@ -527,6 +529,43 @@ export default function SalesOrderList({
     } finally {
       setPaymentSaving(false);
     }
+  };
+
+  // v1.49.0: tandai lunas massal — semua nota terpilih jadi 'paid' di tanggal sama.
+  const openBulkPay = () => {
+    if (selectedNotaIds.size === 0) return;
+    setBulkPay({
+      open: true,
+      date: new Date().toISOString().split("T")[0],
+      saving: false,
+    });
+  };
+  const handleBulkPaySave = async () => {
+    if (!bulkPay.date || selectedNotaIds.size === 0) return;
+    setBulkPay((p) => ({ ...p, saving: true }));
+    const ids = orders
+      .filter((o) => selectedNotaIds.has(o.id) && o.payment_status !== "paid")
+      .map((o) => o.id);
+    let ok = 0;
+    let fail = 0;
+    for (const id of ids) {
+      try {
+        await salesAPI.updatePaymentStatus(id, "paid", bulkPay.date);
+        ok++;
+      } catch (e) {
+        fail++;
+        console.error("Bulk pay gagal utk nota", id, e);
+      }
+    }
+    await fetchOrders();
+    setBulkPay({ open: false, date: "", saving: false });
+    setSelectedNotaIds(new Set());
+    flash(
+      fail === 0
+        ? `${ok} nota ditandai lunas`
+        : `${ok} nota lunas, ${fail} gagal — cek koneksi`,
+      fail === 0 ? "success" : "error",
+    );
   };
 
   // Customer CRUD Handlers
@@ -1582,9 +1621,10 @@ export default function SalesOrderList({
           </div>
           <button
             onClick={loadDraft}
+            className="btn-primary ui-motion-button ui-focus-ring"
             style={{
               padding: "8px 16px",
-              backgroundColor: "var(--color-warning)",
+              backgroundColor: "var(--color-primary)",
               color: "white",
               border: "none",
               borderRadius: "8px",
@@ -1861,6 +1901,22 @@ export default function SalesOrderList({
               }}
             >
               Batal
+            </button>
+            <button
+              onClick={openBulkPay}
+              disabled={exportingPdf}
+              style={{
+                padding: "8px 16px",
+                background: "rgba(255,255,255,0.2)",
+                color: "#FFF",
+                border: "1px solid rgba(255,255,255,0.45)",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontWeight: "700",
+                fontSize: "12px",
+              }}
+            >
+              ✓ Tandai Lunas
             </button>
             <button
               onClick={handleExportPdfLaporan}
@@ -2162,7 +2218,7 @@ export default function SalesOrderList({
                                       "habil-pulse 1.2s ease-in-out infinite",
                                   }}
                                 >
-                                  Terlambat {Math.abs(diff)}h
+                                  Terlambat bayar {Math.abs(diff)} hari
                                 </p>
                               );
                             if (diff <= 3)
@@ -2175,7 +2231,7 @@ export default function SalesOrderList({
                                     color: "var(--color-warning)",
                                   }}
                                 >
-                                  JT {diff}h lagi
+                                  Jatuh tempo {diff} hari lagi
                                 </p>
                               );
                             return (
@@ -2186,7 +2242,7 @@ export default function SalesOrderList({
                                   color: sub,
                                 }}
                               >
-                                JT: {fmtDate(o.due_date)}
+                                Jatuh Tempo Pembayaran: {fmtDate(o.due_date)}
                               </p>
                             );
                           })()}
@@ -2342,6 +2398,24 @@ export default function SalesOrderList({
                                       }}
                                     >
                                       {it.product_name}
+                                      {/* v1.49.0: tampilkan batch + ED per item nota */}
+                                      {(it.batch_no_snapshot ||
+                                        it.expired_date_snapshot) && (
+                                        <div
+                                          style={{
+                                            fontSize: "10px",
+                                            color: sub,
+                                            marginTop: "2px",
+                                          }}
+                                        >
+                                          {it.batch_no_snapshot
+                                            ? `Batch ${it.batch_no_snapshot}`
+                                            : "(tanpa no. batch)"}
+                                          {it.expired_date_snapshot
+                                            ? ` · ED ${fmtDate(it.expired_date_snapshot)}`
+                                            : ""}
+                                        </div>
+                                      )}
                                     </td>
                                     <td
                                       style={{
@@ -4421,6 +4495,96 @@ export default function SalesOrderList({
         )}
 
       {/* Payment Date Modal */}
+      {/* v1.49.0: modal tandai lunas massal */}
+      {bulkPay.open &&
+        renderPortal(
+          <div
+            onClick={() => !bulkPay.saving && setBulkPay({ open: false, date: "", saving: false })}
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10000,
+              backdropFilter: "blur(4px)",
+              padding: "1rem",
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="ui-motion-modal ui-modal-shell ui-surface-panel"
+              style={{
+                backgroundColor: cardBg,
+                width: "100%",
+                maxWidth: "400px",
+                border: `1px solid ${border}`,
+                padding: "22px",
+              }}
+            >
+              <h3 style={{ margin: "0 0 6px", fontSize: "16px", fontWeight: 700, color: text }}>
+                Tandai Lunas Massal
+              </h3>
+              <p style={{ margin: "0 0 16px", fontSize: "13px", color: sub }}>
+                {
+                  orders.filter(
+                    (o) => selectedNotaIds.has(o.id) && o.payment_status !== "paid",
+                  ).length
+                }{" "}
+                nota (yang belum lunas) akan ditandai LUNAS pada tanggal di bawah.
+              </p>
+              <label style={labelStyle}>Tanggal Pelunasan</label>
+              <input
+                type="date"
+                value={bulkPay.date}
+                onChange={(e) => setBulkPay((p) => ({ ...p, date: e.target.value }))}
+                className="ui-form-field ui-focus-ring"
+                style={inputStyle}
+              />
+              <div style={{ display: "flex", gap: "10px", marginTop: "18px" }}>
+                <button
+                  onClick={handleBulkPaySave}
+                  disabled={bulkPay.saving || !bulkPay.date}
+                  className="btn-primary ui-motion-button ui-focus-ring"
+                  style={{
+                    flex: 1,
+                    padding: "12px",
+                    backgroundColor: "var(--color-primary)",
+                    color: "#FFF",
+                    border: "none",
+                    borderRadius: "10px",
+                    cursor: bulkPay.saving ? "wait" : "pointer",
+                    fontWeight: 700,
+                    fontSize: "14px",
+                    opacity: bulkPay.saving ? 0.7 : 1,
+                  }}
+                >
+                  {bulkPay.saving ? "Menyimpan..." : "Tandai Lunas"}
+                </button>
+                <button
+                  onClick={() => setBulkPay({ open: false, date: "", saving: false })}
+                  disabled={bulkPay.saving}
+                  className="ui-motion-button ui-focus-ring"
+                  style={{
+                    flex: 1,
+                    padding: "12px",
+                    backgroundColor: "var(--color-surface-elevated)",
+                    color: text,
+                    border: `1px solid ${border}`,
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    fontSize: "14px",
+                  }}
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          </div>,
+        )}
+
       {paymentModal.open &&
         renderPortal(
           <div

@@ -88,8 +88,8 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
       <div style={{ marginBottom: '8px' }}>
         <span style={{ fontSize: '11px', color: subText }}>Kepada Yth: </span>
         <span style={{ fontSize: '11px', fontWeight: '700', color: bodyText }}>{customer_name || '—'}</span>
-        {customer_phone && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px' }}>No. HP: {customer_phone}</div>}
-        {customer_address && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px', lineHeight: '1.45' }}>Alamat: {customer_address}</div>}
+        {customer_phone && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px' }}>{customer_phone}</div>}
+        {customer_address && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px', lineHeight: '1.45' }}>{customer_address}</div>}
       </div>
 
       {/* Items table */}

@@ -38,6 +38,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.49.0-stable",
+    date: "18 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "feat",
+        text: "Nota Penjualan lebih lengkap: (1) Tandai Lunas massal — centang beberapa nota lalu set tanggal pelunasan sekaligus. (2) Detail nota kini menampilkan nomor batch + tanggal ED tiap produk. (3) Label jatuh tempo diperjelas: 'Jatuh Tempo Pembayaran' / 'Jatuh tempo X hari lagi' / 'Terlambat bayar X hari'. (4) Nota PDF & preview: 'No. HP' dan 'Alamat:' tampil langsung nilainya tanpa label. (5) Tombol pulihkan draft disamakan gaya tombol utama.",
+        dev: "SalesOrderList: +bulkPay modal (loop salesAPI.updatePaymentStatus paid+date utk selected non-paid, refetch+clear) +tombol bulk bar; expanded items +batch_no_snapshot/expired_date_snapshot; relabel JT. generateNotaPDF + NotaPreview: drop 'No. HP:'/'Alamat:' prefix. PrintSettings/draft buttons → btn-primary. Filter sudah/belum bayar + badge terlambat/JT sudah ada sebelumnya.",
+      },
+    ],
+  },
+  {
     version: "v1.48.0-stable",
     date: "18 Juni 2026",
     status: "latest",

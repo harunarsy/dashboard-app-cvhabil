@@ -1981,7 +1981,8 @@ export default function InvoiceList({
             </span>
             <button
               onClick={loadDraft}
-              style={{ padding: "6px 12px", backgroundColor: "var(--color-warning)", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "12px" }}
+              className="btn-primary ui-motion-button ui-focus-ring"
+              style={{ padding: "6px 12px", backgroundColor: "var(--color-primary)", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "12px" }}
             >
               Pulihkan
             </button>
