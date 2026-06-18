@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import RouteFade from "./components/common/RouteFade";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 import { AuthContext, AuthProvider } from "./context/AuthContext";
 import { queryClient, qk } from "./lib/queryClient";
 import { fetchProductsList, fetchCustomersList } from "./hooks/useMasterData";
@@ -125,6 +126,14 @@ function AppRoutes({
   isMobile,
 }) {
   const { token } = useContext(AuthContext);
+  // v1.51.0: konten berhasil mount → reset guard auto-reload chunk (boleh reload lagi
+  // kalau nanti ada deploy baru lagi). Kalau chunk gagal terus, AppRoutes tak mount →
+  // guard tetap → tidak loop.
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem("habil_chunk_reloaded");
+    } catch {}
+  }, []);
   // v1.41.0: prefetch data master saat idle (sesudah login) → halaman dengan picker
   // produk/customer terasa instan karena datanya sudah hangat di cache.
   useEffect(() => {
@@ -350,14 +359,16 @@ function App() {
             backgroundColor: isVantaMode ? "transparent" : "var(--color-bg)",
           }}
         >
-          <AppRoutes
-            isDarkMode={isDarkMode}
-            setIsDarkMode={setIsDarkMode}
-            isVantaMode={isVantaMode}
-            isSidebarOpen={isSidebarOpen}
-            setIsSidebarOpen={setIsSidebarOpen}
-            isMobile={isMobile}
-          />
+          <ErrorBoundary>
+            <AppRoutes
+              isDarkMode={isDarkMode}
+              setIsDarkMode={setIsDarkMode}
+              isVantaMode={isVantaMode}
+              isSidebarOpen={isSidebarOpen}
+              setIsSidebarOpen={setIsSidebarOpen}
+              isMobile={isMobile}
+            />
+          </ErrorBoundary>
         </div>
       </Router>
     </AuthProvider>

@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.51.0-stable] - 2026-06-18
+
+### Fixed
+- **Layar putih kosong setelah login** (hotfix): akar masalah = `ChunkLoadError` — browser/tab masih memegang `index.html` lama yang menunjuk chunk JS yang sudah terhapus pasca redeploy (umum setelah banyak deploy beruntun). Bukan crash kode (render Dashboard terbukti bersih lewat test dengan `QueryClientProvider`).
+  - `+common/ErrorBoundary` di root (bungkus `AppRoutes`): `ChunkLoadError` → `window.location.reload()` sekali (guard `sessionStorage` anti-loop, di-reset saat konten sukses mount); error render lain → fallback "Muat Ulang" (bukan layar putih).
+- **Workaround langsung** untuk yang sudah kena: hard refresh (Cmd/Ctrl+Shift+R).
+
 ## [v1.50.0-stable] - 2026-06-18
 
 ### Added

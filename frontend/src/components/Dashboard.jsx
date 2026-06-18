@@ -38,6 +38,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.51.0-stable",
+    date: "18 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "PERBAIKAN: layar putih kosong setelah login (terjadi saat ada versi baru di-deploy sementara tab/cache browser masih versi lama). Sekarang aplikasi otomatis memuat ulang versi terbaru — tidak lagi blank. Kalau ada error lain, muncul layar 'Muat Ulang' yang jelas, bukan layar putih.",
+        dev: "+common/ErrorBoundary (root, bungkus AppRoutes): ChunkLoadError → auto window.location.reload sekali (guard sessionStorage anti-loop, di-reset saat konten sukses mount); error render lain → fallback UI + tombol Muat Ulang. Root cause blank: stale chunk pasca redeploy (Dashboard render terbukti bersih via test dgn QueryClientProvider — bukan crash kode).",
+      },
+    ],
+  },
+  {
     version: "v1.50.0-stable",
     date: "18 Juni 2026",
     status: "latest",
