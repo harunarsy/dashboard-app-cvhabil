@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.45.0-stable] - 2026-06-18
+
+### Performance
+- **Migrasi TanStack Query (fase 1): Surat Pesanan & Inventory**. Daftar SP & Inventory kini load instan saat dikunjungi ulang (cache + stale-while-revalidate). Data master (produk/customer/distributor) di-fetch sekali & dibagi antar halaman.
+  - Fondasi: `qk` diperluas (sales, invoices, purchase-orders, distributors, inventory-alerts, price-list, fee-profiles, weekly-summary, dll); `useMasterData` ditambah hook per-domain (`useDistributors`, `usePurchaseOrders`, `useInventoryAlerts`, `useInvoices`, `useSalesOrders`, `usePriceList`, `useFeeProfiles`, `useWeeklySummary`, `useDashboardStats`); `fetchProductsList` limit 2000; `dashboardAPI` ditambah di `api.js`.
+  - `PurchaseOrderList` & `InventoryDashboard`: mount-fetch (orders/products/distributors/alerts) → hook useQuery; `fetchX()` di handler mutasi dialias ke `refetch` (perilaku refresh tetap).
+  - Fase berikutnya: Daftar Harga, Faktur, Nota Penjualan, Dashboard (+ optimistic UI).
+
 ## [v1.44.0-stable] - 2026-06-18
 
 ### Fixed

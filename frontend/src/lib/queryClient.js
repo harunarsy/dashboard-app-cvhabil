@@ -17,8 +17,23 @@ export const queryClient = new QueryClient({
 });
 
 // Kunci query terpusat biar konsisten + gampang prefetch/invalidate.
+// Hirarkis: invalidate parent (mis. ["sales"]) otomatis kena semua turunannya.
 export const qk = {
   products: ["products"],
   customers: ["customers"],
+  distributors: ["distributors"],
   dashboardStats: ["dashboard", "stats"],
+  weeklySummary: ["insights", "weekly-summary"],
+  // list per-domain
+  sales: ["sales"], // daftar nota → ["sales","list"]
+  salesList: ["sales", "list"],
+  invoices: ["invoices"], // daftar faktur → ["invoices","list"]
+  invoicesList: ["invoices", "list"],
+  purchaseOrders: ["purchase-orders"],
+  purchaseOrdersList: ["purchase-orders", "list"],
+  inventoryAlerts: ["inventory", "alerts"],
+  inventoryInsights: ["insights", "inventory"],
+  priceList: ["price-list", "all"],
+  feeProfiles: ["price-list", "fee-profiles"],
+  counters: ["counters"],
 };

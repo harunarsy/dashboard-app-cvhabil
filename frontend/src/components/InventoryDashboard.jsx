@@ -34,6 +34,7 @@ import PrintBarcodeModal from "./inventory/PrintBarcodeModal";
 import SearchBox from "./common/SearchBox";
 import ToastNotice from "./common/ToastNotice";
 import useDebouncedValue from "../hooks/useDebouncedValue";
+import { useProducts, useInventoryAlerts } from "../hooks/useMasterData";
 import Tooltip from "./common/Tooltip";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import Icons from "./common/Icon";
@@ -115,8 +116,17 @@ export default function InventoryDashboard({
   isVantaMode,
 }) {
   const [tab, setTab] = useState("products");
-  const [products, setProducts] = useState([]);
-  const [alerts, setAlerts] = useState({ expiring: [], lowStock: [] });
+  // v1.45.0: TanStack Query — products & alerts di-cache & dibagi antar halaman.
+  // fetchProducts/fetchAlerts = refetch (nama dipertahankan utk call-site lama).
+  const {
+    data: products = [],
+    isLoading: loading,
+    refetch: fetchProducts,
+  } = useProducts();
+  const {
+    data: alerts = { expiring: [], lowStock: [] },
+    refetch: fetchAlerts,
+  } = useInventoryAlerts();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState("all"); // all | low | expiring | expired
@@ -126,7 +136,6 @@ export default function InventoryDashboard({
   const [editId, setEditId] = useState(null);
   const [toast, setToast] = useState({ msg: "", type: "success" });
   const [modalError, setModalError] = useState("");
-  const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const toastTimerRef = useRef(null);
 
@@ -200,25 +209,6 @@ export default function InventoryDashboard({
   );
   const surface = "var(--color-surface-elevated)";
 
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await inventoryAPI.getProducts();
-      setProducts(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setTimeout(() => setLoading(false), UI_MOTION.duration.loading);
-    }
-  }, []);
-  const fetchAlerts = useCallback(async () => {
-    try {
-      const { data } = await inventoryAPI.getAlerts();
-      setAlerts(data);
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
   // v1.28.0 mini-AI: saran restock (#2) + skor kesehatan (#9), best-effort.
   const fetchInsights = useCallback(async () => {
     try {
@@ -238,10 +228,9 @@ export default function InventoryDashboard({
   }, []);
 
   useEffect(() => {
-    fetchProducts();
-    fetchAlerts();
+    // products & alerts auto-fetch via hooks TanStack Query.
     fetchInsights();
-  }, [fetchProducts, fetchAlerts, fetchInsights]);
+  }, [fetchInsights]);
   useEffect(
     () => () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);

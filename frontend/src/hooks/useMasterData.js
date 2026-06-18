@@ -1,12 +1,24 @@
 // v1.41.0: hook data master via TanStack Query — di-cache & dibagi antar halaman.
-// Tujuan: produk/customer yang dipakai di banyak halaman (Nota, SP, Faktur, Inventory,
-// Daftar Harga) cukup di-fetch sekali; kunjungan berikutnya tampil instan dari cache.
+// v1.45.0: diperluas ke semua data list per-domain (nota, faktur, SP, inventory,
+//   daftar harga, dashboard) supaya kunjungan ulang halaman tampil instan dari cache.
 import { useQuery } from "@tanstack/react-query";
-import { inventoryAPI, customersAPI } from "../services/api";
+import {
+  inventoryAPI,
+  customersAPI,
+  distributorsAPI,
+  salesAPI,
+  invoicesAPI,
+  purchaseOrdersAPI,
+  priceListAPI,
+  insightsAPI,
+  dashboardAPI,
+} from "../services/api";
 import { qk } from "../lib/queryClient";
 
+// ── fetchers (dipakai juga utk prefetch) ──────────────────────────────────
 export const fetchProductsList = async () => {
-  const { data } = await inventoryAPI.getProducts();
+  // limit 2000 = sama dgn picker faktur, biar 1 cache lengkap utk semua halaman.
+  const { data } = await inventoryAPI.getProducts({ limit: 2000 });
   return Array.isArray(data) ? data : [];
 };
 
@@ -15,6 +27,9 @@ export const fetchCustomersList = async () => {
   return Array.isArray(data) ? data : data?.data || [];
 };
 
+const arr = (data) => (Array.isArray(data) ? data : data?.data || []);
+
+// ── master data (dipakai banyak halaman) ──────────────────────────────────
 export function useProducts(options = {}) {
   return useQuery({
     queryKey: qk.products,
@@ -29,6 +44,94 @@ export function useCustomers(options = {}) {
     queryKey: qk.customers,
     queryFn: fetchCustomersList,
     staleTime: 2 * 60 * 1000,
+    ...options,
+  });
+}
+
+export function useDistributors(options = {}) {
+  return useQuery({
+    queryKey: qk.distributors,
+    queryFn: async () => arr((await distributorsAPI.getAll()).data),
+    staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+}
+
+// ── list per-domain ───────────────────────────────────────────────────────
+export function useSalesOrders(options = {}) {
+  return useQuery({
+    queryKey: qk.salesList,
+    queryFn: async () => arr((await salesAPI.getAll()).data),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+}
+
+export function useInvoices(options = {}) {
+  return useQuery({
+    queryKey: qk.invoicesList,
+    queryFn: async () => arr((await invoicesAPI.getAll()).data),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+}
+
+export function usePurchaseOrders(options = {}) {
+  return useQuery({
+    queryKey: qk.purchaseOrdersList,
+    queryFn: async () => arr((await purchaseOrdersAPI.getAll()).data),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+}
+
+export function useInventoryAlerts(options = {}) {
+  return useQuery({
+    queryKey: qk.inventoryAlerts,
+    queryFn: async () => {
+      const { data } = await inventoryAPI.getAlerts();
+      return data && typeof data === "object"
+        ? data
+        : { expiring: [], lowStock: [] };
+    },
+    staleTime: 60 * 1000,
+    ...options,
+  });
+}
+
+export function usePriceList(options = {}) {
+  return useQuery({
+    queryKey: qk.priceList,
+    queryFn: async () => arr((await priceListAPI.getAll()).data),
+    staleTime: 60 * 1000,
+    ...options,
+  });
+}
+
+export function useFeeProfiles(options = {}) {
+  return useQuery({
+    queryKey: qk.feeProfiles,
+    queryFn: async () => arr((await priceListAPI.getFeeProfiles()).data),
+    staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+}
+
+export function useWeeklySummary(options = {}) {
+  return useQuery({
+    queryKey: qk.weeklySummary,
+    queryFn: async () => (await insightsAPI.getWeeklySummary()).data,
+    staleTime: 10 * 60 * 1000,
+    ...options,
+  });
+}
+
+// dashboardAPI mungkin belum ada → guard supaya tidak crash kalau API absen.
+export function useDashboardStats(options = {}) {
+  return useQuery({
+    queryKey: qk.dashboardStats,
+    queryFn: async () => (await dashboardAPI.getStats()).data,
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 }

@@ -37,6 +37,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.45.0-stable",
+    date: "18 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "perf",
+        text: "Performa (fase 1): halaman Surat Pesanan & Inventory kini load instan saat dikunjungi ulang — data di-cache (TanStack Query) dan di-refresh diam-diam di belakang. Data master (produk, customer, distributor) cukup di-ambil sekali lalu dipakai bareng antar halaman, jadi makin berasa cepat. Halaman lain (Daftar Harga, Faktur, Nota, Dashboard) menyusul.",
+        dev: "qk diperluas (sales/invoices/purchase-orders/distributors/inventory-alerts/price-list/fee-profiles/dll). useMasterData +useDistributors/useSalesOrders/useInvoices/usePurchaseOrders/useInventoryAlerts/usePriceList/useFeeProfiles/useWeeklySummary/useDashboardStats; fetchProductsList limit 2000. +dashboardAPI di api.js. MIGRASI: PurchaseOrderList & InventoryDashboard → hook (orders/products/distributors/alerts), refetch alias dipertahankan utk call-site mutasi; mount fetch dihapus (auto via hook). Faktur/Nota/DaftarHarga/Dashboard fase berikutnya.",
+      },
+    ],
+  },
+  {
     version: "v1.44.0-stable",
     date: "18 Juni 2026",
     status: "latest",

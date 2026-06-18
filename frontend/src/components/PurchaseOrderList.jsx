@@ -22,6 +22,11 @@ import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import SearchBox from "./common/SearchBox";
 import ToastNotice from "./common/ToastNotice";
 import useDebouncedValue from "../hooks/useDebouncedValue";
+import {
+  usePurchaseOrders,
+  useDistributors,
+  useProducts,
+} from "../hooks/useMasterData";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -105,9 +110,16 @@ export default function PurchaseOrderList({
   isMobile,
   isVantaMode,
 }) {
-  const [orders, setOrders] = useState([]);
-  const [distributors, setDistributors] = useState([]);
-  const [products, setProducts] = useState([]);
+  // v1.45.0: TanStack Query — list di-cache, kunjungan ulang instan. fetchX = refetch
+  // (nama dipertahankan supaya call-site mutasi lama tetap jalan).
+  const {
+    data: orders = [],
+    isLoading: loading,
+    refetch: fetchOrders,
+  } = usePurchaseOrders();
+  const { data: distributors = [], refetch: fetchDistributors } =
+    useDistributors();
+  const { data: products = [], refetch: fetchProducts } = useProducts();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const [showModal, setShowModal] = useState(null); // null | 'create' | 'receive' | 'distributor'
@@ -124,7 +136,6 @@ export default function PurchaseOrderList({
   const [toast, setToast] = useState("");
   const [toastType, setToastType] = useState("success");
   const toastTimerRef = useRef(null);
-  const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [saveError, setSaveError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -190,33 +201,6 @@ export default function PurchaseOrderList({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [showModal]);
-  const fetchOrders = async () => {
-    setLoading(true);
-    try {
-      const { data } = await purchaseOrdersAPI.getAll();
-      setOrders(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setTimeout(() => setLoading(false), UI_MOTION.duration.loading);
-    }
-  };
-  const fetchDistributors = async () => {
-    try {
-      const { data } = await distributorsAPI.getAll();
-      setDistributors(data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-  const fetchProducts = async () => {
-    try {
-      const { data } = await inventoryAPI.getProducts();
-      setProducts(data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
   const fetchCounters = async () => {
     try {
       const { data } = await countersAPI.getAll();
@@ -236,9 +220,7 @@ export default function PurchaseOrderList({
   };
 
   useEffect(() => {
-    fetchOrders();
-    fetchDistributors();
-    fetchProducts();
+    // orders/distributors/products auto-fetch via hooks TanStack Query.
     fetchCounters();
     fetchSettings();
   }, []);
