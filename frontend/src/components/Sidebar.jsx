@@ -27,6 +27,7 @@ const {
   ClipboardList,
   Boxes,
   Tags,
+  Truck,
 } = Icons;
 
 export default function Sidebar({
@@ -100,6 +101,7 @@ export default function Sidebar({
     { icon: Home, label: "Dashboard", path: "/dashboard", active: true },
     { icon: FileText, label: "Nota Penjualan", path: "/sales", active: true },
     { icon: Users, label: "Customer", path: "/customers", active: true },
+    { icon: Truck, label: "Distributor", path: "/distributors", active: true },
     {
       icon: ReceiptText,
       label: "Faktur Pembelian",
@@ -193,7 +195,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.46.0-stable";
+  const appVersion = "v1.47.0-stable";
   const TooltipButton = ({
     label,
     children,

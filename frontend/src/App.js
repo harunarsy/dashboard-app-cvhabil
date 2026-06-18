@@ -22,6 +22,7 @@ const InvoiceList = lazy(() => import("./components/InvoiceList"));
 const BugReports = lazy(() => import("./components/BugReports"));
 const SalesOrderList = lazy(() => import("./components/SalesOrderList"));
 const CustomerList = lazy(() => import("./components/CustomerList"));
+const DistributorList = lazy(() => import("./components/DistributorList"));
 const InventoryDashboard = lazy(
   () => import("./components/InventoryDashboard"),
 );
@@ -182,6 +183,10 @@ function AppRoutes({
         <Route path="/invoices" element={wrap(InvoiceList, "Nota Penjualan")} />
         <Route path="/sales" element={wrap(SalesOrderList, "Nota Penjualan")} />
         <Route path="/customers" element={wrap(CustomerList, "Customers")} />
+        <Route
+          path="/distributors"
+          element={wrap(DistributorList, "Distributor")}
+        />
         <Route
           path="/inventory"
           element={wrap(InventoryDashboard, "Inventory")}

@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.47.0-stable] - 2026-06-18
+
+### Added
+- **Menu Master Distributor** (sidebar, ikon truk, setelah Customer). Halaman kelola distributor: nama, kode singkat, nama sales, no HP sales (klik → WhatsApp). CRUD penuh seperti Master Customer.
+  - `DistributorList.jsx` (TanStack `useDistributors`, cache dibagi dengan Faktur & Surat Pesanan); route `/distributors`; entri Sidebar (`Truck`).
+  - `distributorsAPI.update` baru (PATCH rename + field salesman/short_code; `rename` lama hanya kirim nama sehingga meng-null-kan field).
+
 ## [v1.46.0-stable] - 2026-06-18
 
 ### Performance

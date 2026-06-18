@@ -38,6 +38,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.47.0-stable",
+    date: "18 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "feat",
+        text: "Menu baru: Master Distributor (ikon truk di sidebar, dekat Customer). Kelola daftar distributor di satu tempat — nama, kode singkat, nama & no HP sales (klik nomor langsung WhatsApp). Tambah, edit, hapus seperti halaman Customer. Datanya sama dengan yang dipakai di Faktur & Surat Pesanan.",
+        dev: "+DistributorList.jsx (useDistributors + distributorsAPI.add/update/remove, refetch sesudah mutasi) + route /distributors + Sidebar entry (Truck icon). +distributorsAPI.update (PATCH oldName→newName + short_code/salesman_name/salesman_phone; rename lama hanya kirim nama → null-kan field). Cache dibagi dgn Faktur/SP.",
+      },
+    ],
+  },
+  {
     version: "v1.46.0-stable",
     date: "18 Juni 2026",
     status: "latest",

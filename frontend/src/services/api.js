@@ -148,6 +148,17 @@ export const distributorsAPI = {
   },
   remove: (name) => { cacheInvalidate('/distributors'); return api.delete('/distributors', { data: { name } }); },
   rename: (oldName, newName) => { cacheInvalidate('/distributors'); return api.patch('/distributors', { oldName, newName }); },
+  // v1.47.0: update penuh (rename + field salesman/short_code) via PATCH.
+  update: (oldName, data) => {
+    cacheInvalidate('/distributors');
+    return api.patch('/distributors', {
+      oldName,
+      newName: data.name,
+      short_code: data.short_code || null,
+      salesman_name: data.salesman_name || null,
+      salesman_phone: data.salesman_phone || null,
+    });
+  },
 };
 
 export const productsAPI = {
