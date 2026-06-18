@@ -897,12 +897,11 @@ export default function SalesOrderList({
             );
           }
           if (matchedBatch) {
-            // Update item fields from matched batch.
-            // v1.23.1: batch.hna = per pcs — kalau unit nota karton/pack, HPP
-            // WAJIB dikali pack_size (dulu ketimpa per-pcs → margin overstate
-            // gila-gilaan tiap nota karton dibuka di Edit lalu disimpan).
-            const editIsPack = isPackUnit(item.unit, prod);
-            const editPackSize = parseInt(prod.pack_size) || 1;
+            // v1.44.0: HPP nota DIBEKUKAN di snapshot saat terjual — JANGAN timpa
+            // unit_hpp/tax_type dari batch terkini di sini (dulu auto-overwrite bikin
+            // HPP "berubah-ubah" tiap nota dibuka di Edit, dan rawan salah saat harga
+            // beli batch dikoreksi). Cukup set metadata batch utk picker. Refresh HPP
+            // dilakukan EKSPLISIT via tombol "Perbarui HPP dari batch terkini".
             setItems((prev) => {
               const n = [...prev];
               if (n[idx]) {
@@ -912,11 +911,6 @@ export default function SalesOrderList({
                   _selected_batch: matchedBatch.batch_no,
                   batch_no_snapshot: matchedBatch.batch_no,
                   expired_date_snapshot: matchedBatch.expired_date,
-                  unit_hpp:
-                    (parseFloat(matchedBatch.hna) || 0) *
-                    (editIsPack ? editPackSize : 1),
-                  unit_hpp_tax_type:
-                    matchedBatch.tax_type === "nota" ? "nota" : "faktur",
                 };
               }
               return n;
@@ -1126,6 +1120,48 @@ export default function SalesOrderList({
   const removeItem = (idx) => {
     setItems(items.filter((_, i) => i !== idx));
     setItemBatches(itemBatches.filter((_, i) => i !== idx));
+  };
+
+  // v1.44.0: sinkron HPP MANUAL (opt-in). Default nota DIBEKUKAN di HPP saat terjual
+  // (laba historis aman). Tombol ini menarik ulang HPP dari batch terkini PER ITEM
+  // (batch yg sama spt snapshot, fallback FEFO/legacy) — buat kasus KOREKSI harga
+  // beli yg salah. Tidak otomatis: operator yg putuskan, lalu Simpan.
+  const syncHppFromBatch = () => {
+    let changed = 0;
+    setItems((prev) =>
+      prev.map((it, idx) => {
+        const prod =
+          it._product ||
+          products.find(
+            (p) => p.name?.toLowerCase() === it.product_name?.toLowerCase(),
+          );
+        if (!prod) return it;
+        const batches = itemBatches[idx] || [];
+        let b = null;
+        if (it._selected_batch_id)
+          b = batches.find((x) => String(x.id) === String(it._selected_batch_id));
+        if (!b && it.batch_no_snapshot)
+          b = batches.find((x) => x.batch_no === it.batch_no_snapshot);
+        // batch sintetik legacy (id "legacy-...") = harga snapshot lama → skip (no-op)
+        if (!b || String(b.id).startsWith("legacy-")) return it;
+        const isPack = isPackUnit(it.unit, prod);
+        const packSize = parseInt(prod.pack_size) || 1;
+        const newHpp = (parseFloat(b.hna) || 0) * (isPack ? packSize : 1);
+        const newTax = b.tax_type === "nota" ? "nota" : "faktur";
+        if (
+          Math.abs((parseFloat(it.unit_hpp) || 0) - newHpp) > 0.005 ||
+          it.unit_hpp_tax_type !== newTax
+        )
+          changed++;
+        return { ...it, unit_hpp: newHpp, unit_hpp_tax_type: newTax };
+      }),
+    );
+    flash(
+      changed > 0
+        ? `HPP ${changed} item diperbarui dari batch terkini. Periksa lalu Simpan.`
+        : "HPP sudah sama dengan batch terkini.",
+      changed > 0 ? "success" : "info",
+    );
   };
 
   const prepareProductItem = async (productName, fallback = {}) => {
@@ -3784,20 +3820,50 @@ export default function SalesOrderList({
                       );
                     })}
 
-                    <button
-                      onClick={addItem}
+                    <div
                       style={{
-                        fontSize: "13px",
-                        color: "var(--color-primary)",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontWeight: "600",
+                        display: "flex",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                        gap: "14px",
                         marginTop: "4px",
                       }}
                     >
-                      + Tambah Produk
-                    </button>
+                      <button
+                        onClick={addItem}
+                        style={{
+                          fontSize: "13px",
+                          color: "var(--color-primary)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontWeight: "600",
+                        }}
+                      >
+                        + Tambah Produk
+                      </button>
+                      {/* v1.44.0: sinkron HPP manual — nota default beku di harga saat
+                          terjual; tombol ini cuma muncul saat EDIT nota tersimpan. */}
+                      {editId && (
+                        <button
+                          type="button"
+                          onClick={syncHppFromBatch}
+                          title="Tarik ulang HPP tiap item dari harga beli batch terkini (untuk koreksi). HPP nota default dibekukan di harga saat barang terjual."
+                          style={{
+                            fontSize: "12px",
+                            color: "var(--color-text-muted)",
+                            background: "none",
+                            border: "1px solid var(--color-border)",
+                            borderRadius: "8px",
+                            padding: "5px 10px",
+                            cursor: "pointer",
+                            fontWeight: "600",
+                          }}
+                        >
+                          ↻ Perbarui HPP dari batch terkini
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Notes */}

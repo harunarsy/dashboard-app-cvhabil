@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.44.0-stable] - 2026-06-18
+
+### Fixed
+- **HPP nota dibekukan (snapshot) + sinkron manual**: HPP per item nota kini memakai harga beli **saat barang terjual** dan **tidak lagi otomatis berubah** ketika nota dibuka di menu Edit. Sebelumnya (v1.23.1) edit-load menarik ulang `unit_hpp` dari batch terkini → HPP terasa "berubah-ubah" dan bisa salah saat HNA batch dikoreksi. Sekarang laba historis stabil.
+  - Koreksi HPP: di Edit nota tersedia tombol **"↻ Perbarui HPP dari batch terkini"** (opt-in, per item, berdasarkan batch yang sama dengan snapshot; batch legacy di-skip). Operator yang memutuskan kapan sinkron, lalu Simpan.
+  - Memilih batch lain dari dropdown tetap memperbarui HPP (memang disengaja).
+  - Kebijakan dikonfirmasi: **snapshot beku + sinkron manual** (bukan auto-refresh / live).
+
 ## [v1.43.0-stable] - 2026-06-17
 
 ### Fixed

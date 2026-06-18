@@ -37,6 +37,18 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.44.0-stable",
+    date: "18 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "HPP di nota sekarang DIBEKUKAN pada harga beli saat barang terjual — tidak lagi berubah-ubah sendiri saat nota dibuka di menu Edit. Laba historis jadi stabil & akurat. Kalau kamu MENGOREKSI harga beli (HPP) suatu produk di Inventory dan ingin nota tertentu ikut diperbarui, buka Edit nota lalu klik tombol '↻ Perbarui HPP dari batch terkini' (manual, kamu yang putuskan). Default: nota lama tidak berubah otomatis.",
+        dev: "SalesOrderList: edit-load TIDAK lagi overwrite unit_hpp/unit_hpp_tax_type dari batch (hapus auto-refresh v1.23.1 yg bikin HPP labil + rawan saat koreksi HNA) — pakai snapshot tersimpan apa adanya, set metadata batch saja. +syncHppFromBatch() (opt-in, per item, by snapshot batch_id/no, skip legacy) + tombol '↻ Perbarui HPP dari batch terkini' (muncul saat editId). Pilih batch lain di dropdown tetap update HPP (intent). Kebijakan: snapshot beku + sinkron manual.",
+      },
+    ],
+  },
+  {
     version: "v1.43.0-stable",
     date: "17 Juni 2026",
     status: "latest",
