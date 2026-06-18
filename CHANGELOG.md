@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.46.0-stable] - 2026-06-18
+
+### Performance
+- **Migrasi TanStack Query (fase 2 — P1 SELESAI): Daftar Harga, Faktur, Nota, Dashboard**. Keempat halaman ini kini load instan saat dikunjungi ulang (cache + stale-while-revalidate). Seluruh halaman utama + data master (produk/customer/distributor) kini berbagi cache.
+  - `PriceListPage`: `rows`+`feeProfiles` → useQuery; optimistic harga via `setQueryData`; buffer `vals` di-seed sekali (ref) agar tak menimpa ketikan.
+  - `InvoiceList` (Faktur): `invoices`/`distributors` → hook; `products`/`purchaseOrders` via `useMemo` transform (option shape / filter draft); optimistic distributor add/remove/rename + invoice rename via `setQueryData`.
+  - `SalesOrderList` (Nota): `orders`/`customers`/`products` → hook; `products` buang ONGKIR via `useMemo`.
+  - `Dashboard`: `stats` (normalisasi array via `useMemo` dari `useDashboardStats`) + `weekly` (`useWeeklySummary`); heatmap & daily-notas tetap param-driven.
+  - Pola seragam: `fetchX()` dialias ke `refetch`; mount-fetch dihapus (otomatis via hook). Tidak ada perubahan logika bisnis.
+
 ## [v1.45.0-stable] - 2026-06-18
 
 ### Performance

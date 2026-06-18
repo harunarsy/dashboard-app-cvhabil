@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import {
   invoicesAPI,
   distributorsAPI,
-  inventoryAPI,
   auditAPI,
   purchaseOrdersAPI,
   insightsAPI,
@@ -39,6 +38,14 @@ import Icons from "./common/Icon";
 import { UI_MOTION, uiTransition } from "../constants/ui";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import useDebouncedValue from "../hooks/useDebouncedValue";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useInvoices,
+  useDistributors,
+  useProducts,
+  usePurchaseOrders,
+} from "../hooks/useMasterData";
+import { qk } from "../lib/queryClient";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -455,14 +462,30 @@ export default function InvoiceList({
   isMobile,
   isVantaMode,
 }) {
-  const [invoices, setInvoices] = useState([]);
+  // v1.46.0: TanStack Query — list & master di-cache (kunjungan ulang instan).
+  // fetchX = refetch (nama dipertahankan utk call-site refresh). products & PO
+  // di-transform via useMemo; optimistic distributor/invoice via setQueryData.
+  const queryClient = useQueryClient();
+  const {
+    data: invoices = [],
+    isLoading: loading,
+    refetch: fetchInvoices,
+  } = useInvoices();
+  const { data: distributors = [], refetch: fetchDistributors } =
+    useDistributors();
+  const { data: productsRaw = [], refetch: fetchProducts } = useProducts();
+  const products = useMemo(
+    () => (productsRaw || []).map(toProductOption),
+    [productsRaw],
+  );
+  const { data: poRaw = [] } = usePurchaseOrders();
+  const purchaseOrders = useMemo(
+    () => (poRaw || []).filter((po) => po.status && po.status !== "draft"),
+    [poRaw],
+  );
   const [filteredInvoices, setFilteredInvoices] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [distributors, setDistributors] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [selectedIds, setSelectedIds] = useState(() => new Set()); // v1.11.0 multi-select utk export CSV
   const [expandedRows, setExpandedRows] = useState({});
   const [showTrash, setShowTrash] = useState(false);
@@ -510,10 +533,7 @@ export default function InvoiceList({
   useBodyScrollLock(showModal || !!auditModal);
 
   useEffect(() => {
-    fetchInvoices();
-    fetchDistributors();
-    fetchProducts();
-    fetchPurchaseOrders();
+    // invoices/distributors/products/purchaseOrders auto-fetch via hooks TanStack Query.
     checkDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -559,45 +579,6 @@ export default function InvoiceList({
     );
   };
 
-  const fetchInvoices = async () => {
-    try {
-      const r = await invoicesAPI.getAll();
-      setInvoices(r.data);
-    } catch (e) {
-      console.error(e);
-      // AUDIT-UX-06: gagal fetch jangan diam — tanpa ini layar tampil "belum ada faktur"
-      // palsu dan operator bisa input ulang (dobel data).
-      showToast("Gagal memuat daftar faktur — cek koneksi lalu muat ulang halaman", 6000);
-    } finally {
-      setLoading(false);
-    }
-  };
-  const fetchDistributors = async () => {
-    try {
-      const r = await distributorsAPI.getAll();
-      setDistributors(r.data);
-    } catch (e) {
-      console.error("Error loading distributors:", e);
-    }
-  };
-  const fetchProducts = async () => {
-    try {
-      const r = await inventoryAPI.getProducts({ limit: 2000 });
-      setProducts((r.data || []).map(toProductOption));
-    } catch (e) {
-      console.error("Error loading products:", e);
-    }
-  };
-  const fetchPurchaseOrders = async () => {
-    try {
-      const r = await purchaseOrdersAPI.getAll();
-      setPurchaseOrders(
-        (r.data || []).filter((po) => po.status && po.status !== "draft"),
-      );
-    } catch (e) {
-      console.error("Error loading purchase orders:", e);
-    }
-  };
   // v1.10.0: pilih SP sebagai sumber faktur → prefill items + link purchase_order_id (backend skip stock-in kalau SP sudah Terima Barang, cegah stok dobel)
   const handleSelectSP = async (poId) => {
     if (!poId) {
@@ -996,31 +977,34 @@ export default function InvoiceList({
     }
   };
 
+  // v1.46.0: optimistic via setQueryData (cache TanStack), bukan setState lokal.
   const handleAddDistributor = async (name) => {
     const res = await distributorsAPI.add(name);
     const saved = res.data.name;
-    setDistributors((prev) =>
-      prev.some((d) => d.name === saved)
+    queryClient.setQueryData(qk.distributors, (prev = []) =>
+      (prev || []).some((d) => d.name === saved)
         ? prev
-        : [...prev, { name: saved }].sort((a, b) =>
+        : [...(prev || []), { name: saved }].sort((a, b) =>
             a.name.localeCompare(b.name),
           ),
     );
   };
   const handleRemoveDistributor = async (name) => {
     await distributorsAPI.remove(name);
-    setDistributors((prev) => prev.filter((d) => d.name !== name));
+    queryClient.setQueryData(qk.distributors, (prev = []) =>
+      (prev || []).filter((d) => d.name !== name),
+    );
   };
   const handleRenameDistributor = async (oldName, newName) => {
     try {
       await distributorsAPI.rename(oldName, newName);
-      setDistributors((prev) =>
-        prev
+      queryClient.setQueryData(qk.distributors, (prev = []) =>
+        (prev || [])
           .map((d) => (d.name === oldName ? { ...d, name: newName } : d))
           .sort((a, b) => a.name.localeCompare(b.name)),
       );
-      setInvoices((prev) =>
-        prev.map((inv) =>
+      queryClient.setQueryData(qk.invoicesList, (prev = []) =>
+        (prev || []).map((inv) =>
           inv.distributor_name === oldName
             ? { ...inv, distributor_name: newName }
             : inv,

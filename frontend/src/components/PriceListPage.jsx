@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { priceListAPI, printSettingsAPI } from "../services/api";
+import { usePriceList, useFeeProfiles } from "../hooks/useMasterData";
+import { qk } from "../lib/queryClient";
 import { hppForBatch, hppFromHna } from "../utils/rupiah";
 import Breadcrumb from "./common/Breadcrumb";
 import SearchBox from "./common/SearchBox";
@@ -737,8 +740,10 @@ function HistoryModal({ row, isMobile, onClose }) {
 }
 
 export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // v1.46.0: TanStack Query — rows & fee profiles di-cache (kunjungan ulang instan).
+  const queryClient = useQueryClient();
+  const { data: rows = [], isLoading: loading } = usePriceList();
+  const { data: feeProfiles = [], refetch: fetchFees } = useFeeProfiles();
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState("");
   const [toastType, setToastType] = useState("success");
@@ -750,7 +755,6 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
   const [exporting, setExporting] = useState(false);
   const [suggestFor, setSuggestFor] = useState(null); // { row, channelKey }
   const [historyFor, setHistoryFor] = useState(null);
-  const [feeProfiles, setFeeProfiles] = useState([]);
   const [showFees, setShowFees] = useState(false);
   const [onlyUnset, setOnlyUnset] = useState(false);
 
@@ -780,27 +784,20 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
     setVals(m);
   };
 
-  const fetchRows = async () => {
-    try {
-      const { data } = await priceListAPI.getAll();
-      setRows(data || []);
-      seedVals(data);
-    } catch (e) {
-      flash("Gagal memuat daftar harga — cek koneksi lalu muat ulang halaman", "error");
-    } finally {
-      setLoading(false);
+  // Seed buffer input `vals` SEKALI saat data harga pertama termuat. Tidak re-seed
+  // pada refetch latar (biar tidak menimpa ketikan harga yang sedang berlangsung) —
+  // update lokal sudah ditangani optimistic di saveChannel.
+  const seededRef = useRef(false);
+  useEffect(() => {
+    if (rows.length && !seededRef.current) {
+      seedVals(rows);
+      seededRef.current = true;
     }
-  };
-
-  const fetchFees = () =>
-    priceListAPI
-      .getFeeProfiles()
-      .then((r) => setFeeProfiles(r.data || []))
-      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows]);
 
   useEffect(() => {
-    fetchRows();
-    fetchFees();
+    // rows & feeProfiles auto-fetch via hooks TanStack Query.
     printSettingsAPI
       .get()
       .then((r) => setSettings(r.data?.nota_layout || {}))
@@ -872,9 +869,9 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
     setSavingKey(key);
     try {
       await priceListAPI.setPrice(r.id, { price, channel: channelKey });
-      // update lokal tanpa refetch penuh (cepat) — efektif sejak otomatis hari ini
-      setRows((prev) =>
-        prev.map((x) =>
+      // optimistic: patch cache TanStack tanpa refetch penuh (cepat), efektif hari ini.
+      queryClient.setQueryData(qk.priceList, (prev = []) =>
+        (prev || []).map((x) =>
           x.id === r.id ? { ...x, [ch.field]: price, [ch.dateField]: todayStr() } : x,
         ),
       );

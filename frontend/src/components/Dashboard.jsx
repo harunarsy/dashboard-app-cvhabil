@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import Icons from "./common/Icon";
 import api from "../services/api";
+import { useDashboardStats, useWeeklySummary } from "../hooks/useMasterData";
 import TasksKanban from "./TasksKanban";
 import Skeleton from "./common/Skeleton";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
@@ -36,6 +37,18 @@ const {
 } = Icons;
 
 const RELEASES = [
+  {
+    version: "v1.46.0-stable",
+    date: "18 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "perf",
+        text: "Performa (fase 2 — selesai): Daftar Harga, Faktur, Nota Penjualan, dan Dashboard kini ikut load instan saat dikunjungi ulang (data di-cache & di-refresh diam-diam). Sekarang seluruh halaman utama terasa cepat berpindah-pindah. Data master (produk/customer/distributor) benar-benar diambil sekali lalu dibagi ke semua halaman.",
+        dev: "Migrasi TanStack Query lengkap: PriceListPage (rows+feeProfiles, optimistic setQueryData + seed vals once via ref), InvoiceList (invoices/distributors + products/PO via useMemo transform; optimistic distributor/invoice rename via setQueryData), SalesOrderList (orders/customers/products via hook, products filter ONGKIR via useMemo), Dashboard (stats via useMemo dari useDashboardStats + weekly via useWeeklySummary; heatmap/daily-notas tetap param-driven). Pola: fetchX alias ke refetch; mount fetch dihapus. P1 COMPLETE (6/6 halaman + Customer).",
+      },
+    ],
+  },
   {
     version: "v1.45.0-stable",
     date: "18 Juni 2026",
@@ -3475,7 +3488,9 @@ export default function Dashboard({
   const [showModal, setShowModal] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false); // v1.32.0: Manajemen Tugas default tutup (jarang dipakai)
   const [showDevNotes, setShowDevNotes] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // v1.46.0: stats & weekly via TanStack Query — instan saat balik ke Dashboard.
+  const { data: statsRaw, isLoading: loading } = useDashboardStats();
+  const { data: weekly } = useWeeklySummary();
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   const onboarding = useOnboarding(true);
   // Show release modal once per session (per new login), reset on new version
@@ -3551,20 +3566,35 @@ export default function Dashboard({
     },
   };
 
-  const [stats, setStats] = useState({
-    totalPenjualan: 0,
-    prevTotalPenjualan: 0,
-    totalLaba: 0,
-    prevTotalLaba: 0,
-    suratPesananAktif: 0,
-    stokLowExpired: 0,
-    totalCustomer: 0,
-    marginByChannel: [],
-    topCategoryMargins: [],
-    topCustomers: [],
-    dailyNota30d: [],
-    stockMovement30d: [],
-  });
+  // v1.46.0: stats diturunkan dari cache query + normalisasi array (shape sama spt dulu).
+  const stats = useMemo(
+    () => ({
+      totalPenjualan: 0,
+      prevTotalPenjualan: 0,
+      totalLaba: 0,
+      prevTotalLaba: 0,
+      suratPesananAktif: 0,
+      stokLowExpired: 0,
+      totalCustomer: 0,
+      ...(statsRaw || {}),
+      marginByChannel: Array.isArray(statsRaw?.marginByChannel)
+        ? statsRaw.marginByChannel
+        : [],
+      topCategoryMargins: Array.isArray(statsRaw?.topCategoryMargins)
+        ? statsRaw.topCategoryMargins
+        : [],
+      topCustomers: Array.isArray(statsRaw?.topCustomers)
+        ? statsRaw.topCustomers
+        : [],
+      dailyNota30d: Array.isArray(statsRaw?.dailyNota30d)
+        ? statsRaw.dailyNota30d
+        : [],
+      stockMovement30d: Array.isArray(statsRaw?.stockMovement30d)
+        ? statsRaw.stockMovement30d
+        : [],
+    }),
+    [statsRaw],
+  );
 
   // Heatmap calendar state
   const [heatmapMonth, setHeatmapMonth] = useState(() => {
@@ -3629,53 +3659,8 @@ export default function Dashboard({
       .finally(() => setDayNotasLoading(false));
   }, [heatmapLoading, heatmapMonth]);
 
-  // v1.28.0 (#7): ringkasan bisnis mingguan — 7 hari terakhir vs sebelumnya.
-  const [weekly, setWeekly] = useState(null);
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .get("/insights/weekly-summary")
-      .then(({ data }) => {
-        if (!cancelled) setWeekly(data);
-      })
-      .catch((e) => console.error("Failed to fetch weekly summary", e));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true);
-      try {
-        const { data } = await api.get("/dashboard/stats");
-        setStats((prev) => ({
-          ...prev,
-          ...data,
-          marginByChannel: Array.isArray(data?.marginByChannel)
-            ? data.marginByChannel
-            : [],
-          topCategoryMargins: Array.isArray(data?.topCategoryMargins)
-            ? data.topCategoryMargins
-            : [],
-          topCustomers: Array.isArray(data?.topCustomers)
-            ? data.topCustomers
-            : [],
-          dailyNota30d: Array.isArray(data?.dailyNota30d)
-            ? data.dailyNota30d
-            : [],
-          stockMovement30d: Array.isArray(data?.stockMovement30d)
-            ? data.stockMovement30d
-            : [],
-        }));
-      } catch (error) {
-        console.error("Failed to fetch dashboard stats", error);
-      } finally {
-        setTimeout(() => setLoading(false), UI_MOTION.duration.page);
-      }
-    };
-    fetchStats();
-  }, []);
+  // v1.46.0: weekly summary + dashboard stats kini via TanStack Query (hook di atas) —
+  // di-cache & refresh diam-diam; tak perlu useEffect fetch manual lagi.
 
   useEffect(() => {
     let cancelled = false;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import {
@@ -46,6 +46,11 @@ import {
   buildWaUrl,
   copyTextToClipboard,
 } from "../utils/waMessage";
+import {
+  useSalesOrders,
+  useCustomers,
+  useProducts,
+} from "../hooks/useMasterData";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -189,12 +194,25 @@ export default function SalesOrderList({
   isMobile,
   isVantaMode,
 }) {
-  const [orders, setOrders] = useState([]);
+  // v1.46.0: TanStack Query — list & master di-cache (kunjungan ulang instan).
+  // fetchX = refetch (call-site refresh lama tetap jalan). products buang ONGKIR via useMemo.
+  const {
+    data: orders = [],
+    isLoading: loading,
+    refetch: fetchOrders,
+  } = useSalesOrders();
+  const { data: customers = [], refetch: fetchCustomers } = useCustomers();
+  const { data: productsRaw = [], refetch: fetchProducts } = useProducts();
+  const products = useMemo(
+    () =>
+      (productsRaw || []).filter(
+        (p) => (p.name || "").trim().toUpperCase() !== "ONGKIR",
+      ),
+    [productsRaw],
+  );
   // v1.7.0 multi-select bulk export
   const [selectedNotaIds, setSelectedNotaIds] = useState(new Set());
   const [exportingPdf, setExportingPdf] = useState(false);
-  const [customers, setCustomers] = useState([]);
-  const [products, setProducts] = useState([]);
   const [profitThresholds, setProfitThresholds] = useState(
     DEFAULT_PROFIT_THRESHOLDS,
   );
@@ -227,7 +245,6 @@ export default function SalesOrderList({
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState("");
   const [toastType, setToastType] = useState("success");
-  const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [paymentModal, setPaymentModal] = useState({
     open: false,
@@ -428,40 +445,6 @@ export default function SalesOrderList({
     textTransform: "uppercase",
   };
 
-  const fetchOrders = async () => {
-    setLoading(true);
-    try {
-      const { data } = await salesAPI.getAll();
-      setOrders(data);
-    } catch (e) {
-      console.error(e);
-      // AUDIT-UX-06: tanpa ini layar tampil "belum ada nota" palsu saat backend down
-      flash("Gagal memuat daftar nota — cek koneksi lalu muat ulang halaman", "error");
-    } finally {
-      setTimeout(() => setLoading(false), UI_MOTION.duration.loading);
-    }
-  };
-  const fetchCustomers = async () => {
-    try {
-      const { data } = await customersAPI.getAll();
-      setCustomers(data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-  const fetchProducts = async () => {
-    try {
-      const { data } = await inventoryAPI.getProducts();
-      // v1.21.14: ONGKIR jadi field nota (legacy product disembunyikan dari pemilih produk)
-      setProducts(
-        (data || []).filter(
-          (p) => (p.name || "").trim().toUpperCase() !== "ONGKIR",
-        ),
-      );
-    } catch (e) {
-      console.error(e);
-    }
-  };
   const fetchSettings = async () => {
     try {
       const { data } = await printSettingsAPI.get();
@@ -644,9 +627,7 @@ export default function SalesOrderList({
   };
 
   useEffect(() => {
-    fetchOrders();
-    fetchCustomers();
-    fetchProducts();
+    // orders/customers/products auto-fetch via hooks TanStack Query.
     fetchSettings();
     fetchProfitThresholds();
     fetchCounters();
