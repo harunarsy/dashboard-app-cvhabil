@@ -38,9 +38,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.51.4-stable",
+    version: "v1.52.0-stable",
     date: "19 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Nota Penjualan dapat 3 peningkatan: (1) badge '⚠ X Terlambat' & '🕒 X Jatuh Tempo' di atas daftar — klik untuk langsung menyaring nota yang perlu ditagih; (2) fitur Trash — nota yang dihapus tidak langsung hilang, bisa dipulihkan lewat tombol Trash (stok ikut dipotong ulang otomatis saat dipulihkan); (3) banner draft tersimpan dirapikan, tombol 'Hapus Draft' kini jelas terbaca.",
+        dev: "SalesOrderList: badge overdue/dueSoon (notaDaysDiff diperkuat utk ISO date) + filterDue (overdue/soon) terintegrasi ke `filtered`. Trash: backend GET /sales/trash + PUT /sales/:id/restore (re-deduct stok via net outstanding 'nota-cancelled' in − 'nota-restored' out, guard stok kurang → tolak; mutasi restore pakai reference_type 'nota-restored' agar delete berikutnya tak dobel-reverse). salesAPI.getTrash/restore. Tombol Hapus Draft → danger-soft readable.",
+      },
+    ],
+  },
+  {
+    version: "v1.51.4-stable",
+    date: "19 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "perf",

@@ -256,6 +256,8 @@ export const salesAPI = {
   create: (data) => api.post('/sales', data),
   update: (id, data) => api.put(`/sales/${id}`, data),
   remove: (id) => api.delete(`/sales/${id}`),
+  getTrash: () => api.get('/sales/trash'),
+  restore: (id) => api.put(`/sales/${id}/restore`),
   updatePdfStatus: (id, pdf_status) => api.patch(`/sales/${id}/pdf-status`, { pdf_status }),
   updatePaymentStatus: (id, payment_status, paid_at) => api.patch(`/sales/${id}/payment-status`, { payment_status, ...(paid_at && { paid_at }) }),
 };

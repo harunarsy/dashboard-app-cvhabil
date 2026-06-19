@@ -2,6 +2,20 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.52.0-stable] - 2026-06-19
+
+### Added (Nota Penjualan)
+- **Badge jatuh tempo** di atas daftar: `⚠ X Terlambat` (merah) & `🕒 X Jatuh Tempo` (oranye), **klik → filter** nota terkait; tombol Reset muncul saat filter aktif. Basis: `due_date` & `payment_status !== "paid"`, ≤7 hari = jatuh tempo.
+- **Trash nota** (soft-delete + restore):
+  - Backend `GET /sales/trash` (is_deleted=TRUE) + `PUT /sales/:id/restore`.
+  - Restore **memotong ulang stok** dari batch yang sama (delete nota me-reverse stok). Hitungan pakai **net outstanding** = Σ(`nota-cancelled` in) − Σ(`nota-restored` out) → aman untuk siklus delete→restore berulang. Mutasi restore pakai `reference_type='nota-restored'` agar delete berikutnya tak dobel-reverse.
+  - **Guard**: kalau stok batch sudah terpakai (kurang), restore **ditolak** (jangan korup inventory) — arahkan koreksi via Stok Opname.
+  - `salesAPI.getTrash/restore`; UI tombol Trash + modal (skeleton loading + tombol Pulihkan per nota).
+
+### Changed
+- **`notaDaysDiff`** diperkuat: tangani `due_date` ISO penuh maupun date-only (cegah `NaN`).
+- **Banner draft nota**: tombol **"Hapus Draft"** kini danger-soft (kontras jelas di light & dark) + ikon trash.
+
 ## [v1.51.4-stable] - 2026-06-19
 
 ### Changed (Optimistic UI — create/edit nota & faktur)

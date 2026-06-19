@@ -9,6 +9,9 @@ import {
   ChevronsUpDown,
   ChevronUp,
   ChevronDown,
+  Clock,
+  AlertTriangle,
+  RotateCcw,
 } from "lucide-react";
 import {
   salesAPI,
@@ -125,7 +128,9 @@ const addDays = (dateStr, n) => {
 };
 const notaDaysDiff = (dateStr) => {
   if (!dateStr) return null;
-  const d = new Date(dateStr + "T00:00:00");
+  // due_date bisa date-only ("2026-06-19") atau ISO penuh → ambil tanggalnya saja.
+  const d = new Date(String(dateStr).split("T")[0] + "T00:00:00");
+  if (isNaN(d.getTime())) return null;
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   return Math.ceil((d - now) / 86400000);
@@ -365,7 +370,12 @@ export default function SalesOrderList({
   const text = "var(--color-text)";
   const sub = "var(--color-text-muted)";
   const selectedCustomer = customers.find((c) => c.name === form.customer_name);
-  useBodyScrollLock(showModal || showPrintModal || !!deleteConfirmId);
+  // Trash (nota terhapus → bisa dipulihkan)
+  const [showTrash, setShowTrash] = useState(false);
+  const [trashItems, setTrashItems] = useState([]);
+  const [trashLoading, setTrashLoading] = useState(false);
+  const [restoringId, setRestoringId] = useState(null);
+  useBodyScrollLock(showModal || showPrintModal || !!deleteConfirmId || showTrash);
   useEffect(() => {
     if (!showModal || !selectedCustomer?.id) {
       setCustomerInsights([]);
@@ -758,6 +768,7 @@ export default function SalesOrderList({
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterChannel, setFilterChannel] = useState("all");
   const [filterProfit, setFilterProfit] = useState("all");
+  const [filterDue, setFilterDue] = useState("all"); // all | overdue | soon
   const [sortKey, setSortKey] = useState("sale_date"); // 'sale_date' | 'total' | 'order_number'
   const [sortDir, setSortDir] = useState("desc"); // 'asc' | 'desc'
   const activeProfitThresholds = normalizeProfitThresholds(profitThresholds);
@@ -798,13 +809,24 @@ export default function SalesOrderList({
           pct >= activeProfitThresholds.thin &&
           pct < activeProfitThresholds.normal) ||
         (filterProfit === "loss" && pct < activeProfitThresholds.thin);
+      const dueDiff = notaDaysDiff(o.due_date);
+      const unpaid = o.payment_status !== "paid";
+      const matchesDue =
+        filterDue === "all" ||
+        (filterDue === "overdue" && dueDiff !== null && dueDiff < 0 && unpaid) ||
+        (filterDue === "soon" &&
+          dueDiff !== null &&
+          dueDiff >= 0 &&
+          dueDiff <= 7 &&
+          unpaid);
       return (
         matchesSearch &&
         matchesMonth &&
         matchesYear &&
         matchesStatus &&
         matchesChannel &&
-        matchesProfit
+        matchesProfit &&
+        matchesDue
       );
     })
     .sort((a, b) => {
@@ -820,6 +842,16 @@ export default function SalesOrderList({
       return 0;
     });
 
+  // Badge ringkasan jatuh tempo (atas daftar) — basis seluruh nota aktif.
+  const overdueCount = orders.filter((o) => {
+    const d = notaDaysDiff(o.due_date);
+    return d !== null && d < 0 && o.payment_status !== "paid";
+  }).length;
+  const dueSoonCount = orders.filter((o) => {
+    const d = notaDaysDiff(o.due_date);
+    return d !== null && d >= 0 && d <= 7 && o.payment_status !== "paid";
+  }).length;
+
   // v1.50.0: pagination (default 20). Reset hal saat filter/sort berubah.
   const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
@@ -832,6 +864,7 @@ export default function SalesOrderList({
     filterStatus,
     filterChannel,
     filterProfit,
+    filterDue,
     sortKey,
     sortDir,
     pageSize,
@@ -1121,13 +1154,40 @@ export default function SalesOrderList({
     if (!deleteConfirmId) return;
     try {
       await salesAPI.remove(deleteConfirmId);
-      flash("Nota dihapus");
+      flash("Nota dipindahkan ke trash");
       fetchOrders();
       fetchCounters(); // v1.8.4: re-sync preview ke MAX setelah delete
     } catch (e) {
       flash(e.response?.data?.error || e.message, "error");
     } finally {
       setDeleteConfirmId(null);
+    }
+  };
+
+  // Trash: muat nota terhapus + pulihkan (restore re-deduct stok di backend).
+  const fetchTrash = async () => {
+    setTrashLoading(true);
+    try {
+      const r = await salesAPI.getTrash();
+      setTrashItems(Array.isArray(r.data) ? r.data : []);
+    } catch (e) {
+      flash("Gagal memuat trash: " + (e.response?.data?.error || e.message), "error");
+    } finally {
+      setTrashLoading(false);
+    }
+  };
+  const handleRestore = async (id) => {
+    setRestoringId(id);
+    try {
+      await salesAPI.restore(id);
+      flash("Nota dipulihkan");
+      setTrashItems((prev) => prev.filter((t) => t.id !== id));
+      fetchOrders();
+      fetchCounters();
+    } catch (e) {
+      flash(e.response?.data?.error || e.message, "error");
+    } finally {
+      setRestoringId(null);
     }
   };
 
@@ -1602,27 +1662,269 @@ export default function SalesOrderList({
         isMobile={isMobile}
         isDarkMode={isDarkMode}
         rightSlot={
-          <button
-            onClick={openAdd}
-            className="ui-motion-button"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "10px 18px",
-              backgroundColor: "var(--color-success)",
-              color: "#FFF",
-              border: "none",
-              borderRadius: "10px",
-              cursor: "pointer",
-              fontWeight: "700",
-              fontSize: "14px",
-            }}
-          >
-            <Plus size={18} /> Buat Nota
-          </button>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <button
+              onClick={() => {
+                const next = !showTrash;
+                setShowTrash(next);
+                if (next) fetchTrash();
+              }}
+              className="ui-motion-button ui-focus-ring"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "10px 16px",
+                backgroundColor: showTrash
+                  ? "var(--color-danger)"
+                  : "var(--color-surface)",
+                color: showTrash ? "#FFF" : text,
+                border: `1px solid ${showTrash ? "var(--color-danger)" : border}`,
+                borderRadius: "10px",
+                cursor: "pointer",
+                fontWeight: "700",
+                fontSize: "14px",
+              }}
+            >
+              <Trash2 size={16} /> Trash
+            </button>
+            <button
+              onClick={openAdd}
+              className="ui-motion-button"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "10px 18px",
+                backgroundColor: "var(--color-success)",
+                color: "#FFF",
+                border: "none",
+                borderRadius: "10px",
+                cursor: "pointer",
+                fontWeight: "700",
+                fontSize: "14px",
+              }}
+            >
+              <Plus size={18} /> Buat Nota
+            </button>
+          </div>
         }
       />
+
+      {/* Badge ringkasan jatuh tempo — klik untuk filter */}
+      {(overdueCount > 0 || dueSoonCount > 0) && (
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            flexWrap: "wrap",
+            marginBottom: "1rem",
+          }}
+        >
+          {overdueCount > 0 && (
+            <button
+              type="button"
+              onClick={() =>
+                setFilterDue((p) => (p === "overdue" ? "all" : "overdue"))
+              }
+              className="ui-motion-button ui-focus-ring"
+              style={{
+                cursor: "pointer",
+                padding: "8px 14px",
+                backgroundColor: "var(--color-danger)",
+                border:
+                  filterDue === "overdue"
+                    ? "2px solid var(--color-text)"
+                    : "2px solid transparent",
+                borderRadius: "10px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                color: "#FFF",
+                fontSize: "13px",
+                fontWeight: "700",
+              }}
+            >
+              <AlertTriangle size={14} color="#FFF" />
+              {overdueCount} Terlambat
+            </button>
+          )}
+          {dueSoonCount > 0 && (
+            <button
+              type="button"
+              onClick={() =>
+                setFilterDue((p) => (p === "soon" ? "all" : "soon"))
+              }
+              className="ui-motion-button ui-focus-ring"
+              style={{
+                cursor: "pointer",
+                padding: "8px 14px",
+                backgroundColor: "var(--color-warning)",
+                border:
+                  filterDue === "soon"
+                    ? "2px solid var(--color-text)"
+                    : "2px solid transparent",
+                borderRadius: "10px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                color: "#FFF",
+                fontSize: "13px",
+                fontWeight: "700",
+              }}
+            >
+              <Clock size={14} color="#FFF" />
+              {dueSoonCount} Jatuh Tempo
+            </button>
+          )}
+          {filterDue !== "all" && (
+            <button
+              type="button"
+              onClick={() => setFilterDue("all")}
+              className="ui-motion-button ui-focus-ring"
+              style={{
+                cursor: "pointer",
+                padding: "8px 12px",
+                backgroundColor: "transparent",
+                border: `1px solid ${border}`,
+                borderRadius: "10px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                color: sub,
+                fontSize: "13px",
+                fontWeight: "600",
+              }}
+            >
+              <X size={14} /> Reset
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Modal Trash — nota terhapus, bisa dipulihkan */}
+      {showTrash &&
+        createPortal(
+          <div
+            onClick={() => setShowTrash(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0,0,0,0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: "16px",
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="ui-panel ui-motion-modal"
+              style={{
+                backgroundColor: "var(--color-surface)",
+                border: `1px solid ${border}`,
+                borderRadius: "16px",
+                width: "100%",
+                maxWidth: "640px",
+                maxHeight: "80vh",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "16px 18px",
+                  borderBottom: `1px solid ${border}`,
+                }}
+              >
+                <span style={{ fontSize: "16px", fontWeight: "800", color: text, display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Trash2 size={18} /> Trash Nota
+                </span>
+                <button
+                  onClick={() => setShowTrash(false)}
+                  className="ui-focus-ring"
+                  style={{ background: "transparent", border: "none", cursor: "pointer", color: sub }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div style={{ padding: "12px 18px", overflowY: "auto" }}>
+                {trashLoading ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {[...Array(3)].map((_, i) => (
+                      <Skeleton key={i} width="100%" height="64px" borderRadius="10px" />
+                    ))}
+                  </div>
+                ) : trashItems.length === 0 ? (
+                  <p style={{ textAlign: "center", color: sub, padding: "32px 0", fontSize: "14px" }}>
+                    Trash kosong — tidak ada nota terhapus.
+                  </p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {trashItems.map((t) => (
+                      <div
+                        key={t.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          padding: "12px 14px",
+                          borderRadius: "10px",
+                          border: `1px solid ${border}`,
+                          backgroundColor: "var(--color-surface-elevated)",
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: "700", color: text, fontSize: "13.5px" }}>
+                            {t.order_number}
+                          </div>
+                          <div style={{ fontSize: "12px", color: sub, marginTop: "2px" }}>
+                            {t.customer_name} · {fmtRp(t.total)} · {t.item_count || 0} item
+                          </div>
+                          {t.updated_at && (
+                            <div style={{ fontSize: "11px", color: sub }}>
+                              dihapus {formatRelativeTime(t.updated_at)}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleRestore(t.id)}
+                          disabled={restoringId === t.id}
+                          className="ui-motion-button ui-focus-ring"
+                          style={{
+                            flexShrink: 0,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            padding: "8px 14px",
+                            backgroundColor: "var(--color-primary)",
+                            color: "#FFF",
+                            border: "none",
+                            borderRadius: "8px",
+                            cursor: restoringId === t.id ? "wait" : "pointer",
+                            fontWeight: "700",
+                            fontSize: "12.5px",
+                            opacity: restoringId === t.id ? 0.6 : 1,
+                          }}
+                        >
+                          <RotateCcw size={14} />
+                          {restoringId === t.id ? "Memulihkan…" : "Pulihkan"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
 
       {/* v1.23.0: banner draft nota tersimpan (mirror draft faktur) */}
       {draftBanner && savedDraft && (
@@ -1676,17 +1978,22 @@ export default function SalesOrderList({
           </button>
           <button
             onClick={dismissDraft}
+            className="ui-motion-button ui-focus-ring"
             style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
               padding: "8px 16px",
-              backgroundColor: "transparent",
-              color: sub,
-              border: `1px solid ${border}`,
+              backgroundColor: "var(--color-danger-soft)",
+              color: "var(--color-danger)",
+              border: "1px solid var(--color-danger)",
               borderRadius: "8px",
               cursor: "pointer",
+              fontWeight: "700",
               fontSize: "13px",
             }}
           >
-            Hapus Draft
+            <Trash2 size={14} /> Hapus Draft
           </button>
         </div>
       )}

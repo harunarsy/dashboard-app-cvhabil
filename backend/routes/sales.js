@@ -340,6 +340,25 @@ router.delete('/draft/clear', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// GET trash — nota yang sudah di-soft-delete (is_deleted=TRUE).
+// Wajib di atas '/:id' supaya '/trash' tidak ketangkap sebagai id.
+router.get('/trash', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT s.*, COUNT(i.id) AS item_count
+       FROM sales_orders s
+       LEFT JOIN sales_items i ON i.sales_order_id = s.id
+       WHERE s.is_deleted = TRUE
+       GROUP BY s.id
+       ORDER BY s.updated_at DESC, s.id DESC
+       LIMIT 200`
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/:id', auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -881,6 +900,80 @@ router.delete('/:id', auth, async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.message.replace('USER: ','') });
+    res.status(500).json({ error: err.message });
+  } finally { client.release(); }
+});
+
+// RESTORE nota dari trash. Karena DELETE me-reverse stok (qty balik ke batch +
+// mutasi 'nota-cancelled'), restore HARUS re-deduct stok dari batch yang sama
+// supaya stok tidak dobel. Kalau stok batch sudah terpakai (kurang) → tolak,
+// jangan korup inventory.
+router.put('/:id/restore', auth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows: [existing] } = await client.query(
+      'SELECT id, order_number FROM sales_orders WHERE id = $1 AND is_deleted = TRUE', [req.params.id]
+    );
+    if (!existing) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota tidak ada di trash' }); }
+
+    // Qty yg HARUS dipotong ulang = stok yg masih "outstanding" dikembalikan ke
+    // batch oleh delete, yaitu net (reversal delete 'nota-cancelled' in) −
+    // (re-deduct restore sebelumnya 'nota-restored' out). Net ini aman untuk
+    // siklus delete→restore→delete berapa kali pun (tidak dobel-hitung).
+    const { rows: reversals } = await client.query(
+      `SELECT batch_id, product_id,
+         SUM(CASE WHEN reference_type = 'nota-cancelled' AND type = 'in' THEN qty
+                  WHEN reference_type = 'nota-restored'  AND type = 'out' THEN -qty
+                  ELSE 0 END) AS qty
+       FROM inventory_mutations
+       WHERE reference_id = $1 AND batch_id IS NOT NULL
+         AND reference_type IN ('nota-cancelled', 'nota-restored')
+       GROUP BY batch_id, product_id
+       HAVING SUM(CASE WHEN reference_type = 'nota-cancelled' AND type = 'in' THEN qty
+                       WHEN reference_type = 'nota-restored'  AND type = 'out' THEN -qty
+                       ELSE 0 END) > 0`,
+      [req.params.id]
+    );
+
+    // Guard: pastikan tiap batch masih punya stok cukup untuk di-deduct ulang.
+    for (const r of reversals) {
+      const { rows: [b] } = await client.query(
+        'SELECT qty_current FROM inventory_batches WHERE id = $1 FOR UPDATE', [r.batch_id]
+      );
+      if (!b || Number(b.qty_current) < Number(r.qty)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          error: `Tidak bisa restore: stok salah satu batch nota ini sudah terpakai (tersedia ${b ? b.qty_current : 0}, butuh ${r.qty}). Koreksi stok dulu lewat Stok Opname.`,
+        });
+      }
+    }
+
+    // Re-deduct stok + catat mutasi 'out' (reference_type 'nota-restored' supaya
+    // delete berikutnya tidak ikut me-reverse mutasi restore ini).
+    for (const r of reversals) {
+      await client.query(
+        'UPDATE inventory_batches SET qty_current = qty_current - $1 WHERE id = $2',
+        [r.qty, r.batch_id]
+      );
+      await client.query(
+        `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by)
+         VALUES ($1, $2, 'out', $3, 'nota-restored', $4, $5, $6)`,
+        [r.product_id, r.batch_id, r.qty, req.params.id,
+         `Restore nota ${existing.order_number} dari trash`, req.user?.id || null]
+      );
+    }
+
+    await client.query(
+      'UPDATE sales_orders SET is_deleted = FALSE, updated_at = NOW() WHERE id = $1', [req.params.id]
+    );
+    await client.query('COMMIT');
+    res.json({
+      message: `Nota ${existing.order_number} dipulihkan + ${reversals.length} mutasi stok dipotong ulang`,
+      restored_mutations: reversals.length,
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
   } finally { client.release(); }
 });
