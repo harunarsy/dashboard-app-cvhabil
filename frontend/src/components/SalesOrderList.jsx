@@ -51,6 +51,8 @@ import {
   useCustomers,
   useProducts,
 } from "../hooks/useMasterData";
+import { useQueryClient } from "@tanstack/react-query";
+import { qk } from "../lib/queryClient";
 import Pagination from "./common/Pagination";
 
 const renderPortal = (node) =>
@@ -202,6 +204,19 @@ export default function SalesOrderList({
     isLoading: loading,
     refetch: fetchOrders,
   } = useSalesOrders();
+  const queryClient = useQueryClient();
+  // Optimistic: patch cache list dari response server (full row) → row langsung
+  // muncul/terupdate tanpa nunggu refetch. fetchOrders() tetap dipanggil utk
+  // rekonsiliasi (mis. items via json_agg yg tidak ada di RETURNING).
+  const upsertOrderCache = (saved) => {
+    if (!saved?.id) return;
+    queryClient.setQueryData(qk.salesList, (prev = []) => {
+      const list = prev || [];
+      return list.some((o) => o.id === saved.id)
+        ? list.map((o) => (o.id === saved.id ? { ...o, ...saved } : o))
+        : [saved, ...list];
+    });
+  };
   const { data: customers = [], refetch: fetchCustomers } = useCustomers();
   const { data: productsRaw = [], refetch: fetchProducts } = useProducts();
   const products = useMemo(
@@ -1074,10 +1089,12 @@ export default function SalesOrderList({
         delete payload.order_number;
       }
       if (editId) {
-        await salesAPI.update(editId, { ...payload, status: "final" });
+        const res = await salesAPI.update(editId, { ...payload, status: "final" });
+        upsertOrderCache(res?.data);
         flash("Nota diperbarui");
       } else {
-        await salesAPI.create(payload);
+        const res = await salesAPI.create(payload);
+        upsertOrderCache(res?.data);
         try {
           await salesAPI.clearDraft();
         } catch (e) {

@@ -38,9 +38,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.51.3-stable",
+    version: "v1.51.4-stable",
     date: "19 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "perf",
+        text: "Simpan nota & faktur terasa lebih instan: setelah klik simpan, baris baru/perubahan langsung muncul di daftar tanpa jeda menunggu data dimuat ulang. Angka final tetap disinkronkan otomatis dengan server di belakang layar, jadi tidak ada risiko salah tampil.",
+        dev: "Optimistic cache: SalesOrderList & InvoiceList patch qk.salesList/qk.invoicesList via setQueryData dari response server (full row — nota POST/PUT return row; faktur POST data.invoice, PUT data). Upsert by id (create=prepend bila id baru, edit=merge). fetchOrders()/fetchInvoices() tetap dipanggil untuk rekonsiliasi (items json_agg & derived fields).",
+      },
+    ],
+  },
+  {
+    version: "v1.51.3-stable",
+    date: "19 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "polish",

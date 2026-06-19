@@ -466,6 +466,18 @@ export default function InvoiceList({
   // fetchX = refetch (nama dipertahankan utk call-site refresh). products & PO
   // di-transform via useMemo; optimistic distributor/invoice via setQueryData.
   const queryClient = useQueryClient();
+  // Optimistic: patch cache faktur dari response server (full row) → row langsung
+  // muncul/terupdate tanpa nunggu refetch. fetchInvoices() tetap rekonsiliasi.
+  const upsertInvoiceCache = (saved) => {
+    if (!saved?.id) return;
+    const { unmatchedProducts, ...row } = saved;
+    queryClient.setQueryData(qk.invoicesList, (prev = []) => {
+      const list = prev || [];
+      return list.some((i) => i.id === row.id)
+        ? list.map((i) => (i.id === row.id ? { ...i, ...row } : i))
+        : [row, ...list];
+    });
+  };
   const {
     data: invoices = [],
     isLoading: loading,
@@ -1111,9 +1123,11 @@ export default function InvoiceList({
     try {
       const isEdit = !!editingId;
       if (isEdit) {
-        await invoicesAPI.update(editingId, payload);
+        const res = await invoicesAPI.update(editingId, payload);
+        upsertInvoiceCache(res?.data);
       } else {
-        await invoicesAPI.create(payload);
+        const res = await invoicesAPI.create(payload);
+        upsertInvoiceCache(res?.data?.invoice);
       }
       try {
         await invoicesAPI.clearDraft();

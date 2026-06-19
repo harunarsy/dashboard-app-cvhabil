@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.51.4-stable] - 2026-06-19
+
+### Changed (Optimistic UI — create/edit nota & faktur)
+- Simpan nota/faktur kini **optimistic**: daftar langsung memperlihatkan baris baru/perubahan tanpa menunggu refetch.
+  - `SalesOrderList`: `+useQueryClient`, `upsertOrderCache(res.data)` patch `qk.salesList` (nota POST/PUT return full row).
+  - `InvoiceList`: `upsertInvoiceCache(res.data / res.data.invoice)` patch `qk.invoicesList` (faktur PUT return row, POST return `{invoice}`).
+  - Upsert by `id` (create → prepend bila id baru, edit → merge). `fetchOrders()`/`fetchInvoices()` tetap dipanggil untuk **rekonsiliasi** (items `json_agg` & derived fields yang tidak ada di `RETURNING`).
+- Melengkapi optimistic yang sudah ada di Distributor & Daftar Harga.
+
 ## [v1.51.3-stable] - 2026-06-19
 
 ### Changed (P4 — polish fitur saran otomatis)
