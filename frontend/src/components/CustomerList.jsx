@@ -68,8 +68,9 @@ export default function CustomerList({
   const [toast, setToast] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-  // v1.28.0 (#5): radar customer hilang / churn
+  // Radar customer lama tak order (churn), rule-based best-effort
   const [churnList, setChurnList] = useState([]);
+  const [churnLoading, setChurnLoading] = useState(true);
 
   const bg = "var(--color-bg)";
   const cardBg = "var(--color-surface)";
@@ -80,10 +81,12 @@ export default function CustomerList({
   useBodyScrollLock(showModal || !!deleteConfirmId);
 
   useEffect(() => {
+    setChurnLoading(true);
     insightsAPI
       .getChurn()
       .then(({ data }) => setChurnList(data?.items || []))
-      .catch((e) => console.error("Failed to fetch churn radar:", e));
+      .catch((e) => console.error("Failed to fetch churn radar:", e))
+      .finally(() => setChurnLoading(false));
   }, []);
 
   const filtered = useMemo(() => {
@@ -317,8 +320,41 @@ export default function CustomerList({
         </select>
       </div>
 
-      {/* 📡 Customer Lama Tak Order (#5 churn radar) */}
-      {churnList.length > 0 && (
+      {/* 📡 Customer Lama Tak Order (churn radar) — skeleton saat menyiapkan */}
+      {churnLoading && (
+        <div
+          className="ui-panel"
+          style={{
+            marginBottom: "1.5rem",
+            padding: "16px 18px",
+            borderRadius: "14px",
+            border: `1px solid ${border}`,
+            backgroundColor: cardBg,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: text }}>
+              📡 Customer Lama Tak Order
+            </span>
+            <span style={{ fontSize: 11, color: sub }}>menyiapkan…</span>
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile
+                ? "1fr"
+                : "repeat(auto-fill, minmax(280px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {[...Array(isMobile ? 2 : 3)].map((_, i) => (
+              <Skeleton key={i} width="100%" height="96px" borderRadius="12px" />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!churnLoading && churnList.length > 0 && (
         <div
           className="ui-panel"
           style={{

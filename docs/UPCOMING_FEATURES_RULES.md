@@ -20,7 +20,7 @@ SHIPPED (sudah di RELEASES, JANGAN munculkan lagi sebagai upcoming):
 
 - ✅ **Export Excel laporan bulanan** — shipped v1.29.0.
 - ✅ **Finance hutang/piutang** — shipped v1.29.0 (payroll karyawan masih belum).
-- ✅ **Predictive Restocking (Mini AI)** — live di Inventory (velocity blend 30d×0.7 + 31–90d×0.3 + days-left; akurasi diverifikasi vs data nyata di v1.34.0).
+- ✅ **Saran Restock (insight stok rule-based)** — live di Inventory (velocity blend 30d×0.7 + 31–90d×0.3 + days-left; akurasi diverifikasi vs data nyata di v1.34.0).
 - ✅ **Estimasi berat paket nota** — shipped v1.31.0.
 
 UPCOMING aktif (sinkron dengan array `upcoming` di Dashboard.jsx):

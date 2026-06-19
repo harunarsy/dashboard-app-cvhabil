@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.51.3-stable] - 2026-06-19
+
+### Changed (P4 — polish fitur saran otomatis)
+- **Branding "Mini AI" dihapus dari UI**. Label `Mini AI: Biasanya beli` di form Nota → `✨ Biasanya dibeli customer`; badge dev `non-blocking` dihapus (tidak perlu dilihat operator).
+- **Design language diselaraskan** dengan kartu Dashboard (gaya `✨ Saran`), plus **skeleton loading** saat data insight disiapkan:
+  - `SalesOrderList`: skeleton chips di panel riwayat produk customer.
+  - `InventoryDashboard`: `insightsLoading` → Saran Restock tampil skeleton dulu (tidak muncul tiba-tiba).
+  - `CustomerList`: `churnLoading` → panel radar churn tampil skeleton.
+- Komentar kode `mini-AI` dinetralkan jadi `insight rule-based`; docs `SUPERAPP_BRAIN.md` & `docs/UPCOMING_FEATURES_RULES.md` ikut diselaraskan.
+- Entri RELEASES/CHANGELOG historis (v1.27/v1.28) **tidak diubah** (catatan rilis tetap akurat).
+
 ## [v1.51.2-stable] - 2026-06-19
 
 ### Changed

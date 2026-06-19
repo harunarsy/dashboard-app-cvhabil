@@ -3067,47 +3067,32 @@ export default function SalesOrderList({
                         backgroundColor: "var(--color-bg-subtle)",
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: "8px",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        <div>
-                          <div
-                            style={{
-                              fontSize: "12px",
-                              fontWeight: "800",
-                              color: text,
-                            }}
-                          >
-                            Mini AI: Biasanya beli
-                          </div>
-                          <div style={{ fontSize: "11px", color: sub }}>
-                            Dari riwayat customer — klik chip untuk prefill baris
-                            produk.
-                          </div>
-                        </div>
-                        <span
+                      <div style={{ marginBottom: "8px" }}>
+                        <div
                           style={{
-                            fontSize: "10px",
+                            fontSize: "12px",
                             fontWeight: "800",
-                            color: "var(--color-primary)",
-                            backgroundColor: "var(--color-primary-soft)",
-                            borderRadius: "999px",
-                            padding: "4px 8px",
+                            color: text,
                           }}
                         >
-                          non-blocking
-                        </span>
+                          ✨ Biasanya dibeli customer
+                        </div>
+                        <div style={{ fontSize: "11px", color: sub }}>
+                          Dari riwayat customer — klik chip untuk prefill baris
+                          produk.
+                        </div>
                       </div>
                       {customerInsightsLoading ? (
-                        <p style={{ margin: 0, fontSize: "11px", color: sub }}>
-                          Memuat riwayat...
-                        </p>
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                          {[...Array(4)].map((_, i) => (
+                            <Skeleton
+                              key={i}
+                              width={`${90 + i * 18}px`}
+                              height="30px"
+                              borderRadius="999px"
+                            />
+                          ))}
+                        </div>
                       ) : customerInsights.length > 0 ? (
                         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                           {customerInsights.map((item) => (

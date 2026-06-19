@@ -38,9 +38,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.51.2-stable",
+    version: "v1.51.3-stable",
     date: "19 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "polish",
+        text: "Fitur saran otomatis dirapikan biar serasi dengan tampilan Dashboard: label 'Mini AI' di form nota diganti jadi '✨ Biasanya dibeli customer', dan saat data lagi disiapkan muncul kerangka loading (skeleton) yang halus — bukan tulisan polos atau muncul tiba-tiba. Berlaku di Saran Restock (Inventory), riwayat produk customer (Nota), dan radar customer lama tak order.",
+        dev: "Hapus branding 'Mini AI' + badge dev 'non-blocking' dari UI. SalesOrderList customer-insight: skeleton chips saat loading. InventoryDashboard: +insightsLoading flag → Saran Restock skeleton. CustomerList: +churnLoading → panel skeleton churn radar. Komentar 'mini-AI' dinetralkan jadi 'insight rule-based'; docs (BRAIN/UPCOMING) ikut diselaraskan. Entri RELEASES/CHANGELOG historis tidak diubah.",
+      },
+    ],
+  },
+  {
+    version: "v1.51.2-stable",
+    date: "19 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "feat",

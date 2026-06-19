@@ -1,9 +1,9 @@
 # 🧠 HABIL SUPERAPP — Source of Truth
 
-> **Current Version: v1.51.2-stable
-> System Version: v1.51.2-stable
+> **Current Version: v1.51.3-stable
+> System Version: v1.51.3-stable
 > Status: PROD-STABLE
-> **VERSI SISTEM\\*\\*: v1.51.2-stable
+> **VERSI SISTEM\\*\\*: v1.51.3-stable
 
 > **CREDENTIALS (LOKAL):** Lihat `CREDENTIALS.local.md` di root project untuk semua akses: DB URL, JWT, Vercel, GitHub. File ini hanya ada di lokal (tidak di-commit).
 
@@ -119,7 +119,7 @@
 
 ### ✅ Sudah Shipped (jangan dimunculkan lagi sebagai roadmap)
 
-- **Bcrypt Security** (v1.3.40), **Reporting Engine / Export Excel bulanan** (v1.29), **Finance Hutang-Piutang** (v1.29), **Predictive Restocking / Mini AI** (live, akurasi diverifikasi v1.34), **Estimasi Berat Paket Nota** (v1.31).
+- **Bcrypt Security** (v1.3.40), **Reporting Engine / Export Excel bulanan** (v1.29), **Finance Hutang-Piutang** (v1.29), **Insight Stok rule-based** (saran restock + skor kesehatan, live, akurasi diverifikasi v1.34), **Estimasi Berat Paket Nota** (v1.31).
 
 ### 🔴 High Priority
 

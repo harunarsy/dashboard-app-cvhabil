@@ -156,9 +156,10 @@ export default function InventoryDashboard({
   const [batchActionSaving, setBatchActionSaving] = useState(false);
   const [scannerMode, setScannerMode] = useState(null); // stockIn | stockOut
   const [barcodePrintOpen, setBarcodePrintOpen] = useState(false);
-  // v1.28.0 mini-AI: #2 saran restock + #9 skor kesehatan produk
+  // Insight stok: saran restock + skor kesehatan produk (rule-based, best-effort)
   const [restockItems, setRestockItems] = useState([]);
   const [healthScores, setHealthScores] = useState({}); // product_id -> {grade,score,metrics}
+  const [insightsLoading, setInsightsLoading] = useState(true);
 
   // Product form (v1.6.0 multi-unit: base_unit + pack_unit + pack_size + sell_price_pack; v1.7.0 tiers)
   const [pForm, setPForm] = useState({
@@ -209,8 +210,9 @@ export default function InventoryDashboard({
   );
   const surface = "var(--color-surface-elevated)";
 
-  // v1.28.0 mini-AI: saran restock (#2) + skor kesehatan (#9), best-effort.
+  // Insight stok: saran restock + skor kesehatan, best-effort (tidak blok halaman).
   const fetchInsights = useCallback(async () => {
+    setInsightsLoading(true);
     try {
       const [restockRes, healthRes] = await Promise.all([
         insightsAPI.getRestock(),
@@ -224,6 +226,8 @@ export default function InventoryDashboard({
       setHealthScores(map);
     } catch (e) {
       console.error("Failed to fetch inventory insights:", e);
+    } finally {
+      setInsightsLoading(false);
     }
   }, []);
 
@@ -892,8 +896,8 @@ export default function InventoryDashboard({
         </div>
       )}
 
-      {/* ✨ Saran Restock (#2) */}
-      {tab === "products" && restockItems.length > 0 && (
+      {/* ✨ Saran Restock — insight stok rule-based */}
+      {tab === "products" && (insightsLoading || restockItems.length > 0) && (
         <div
           className="ui-panel"
           style={{
@@ -907,9 +911,26 @@ export default function InventoryDashboard({
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <span style={{ fontSize: 14, fontWeight: 800, color: text }}>✨ Saran Restock</span>
             <span style={{ fontSize: 11, color: sub }}>
-              {restockItems.length} produk hampir habis
+              {insightsLoading
+                ? "menyiapkan saran…"
+                : `${restockItems.length} produk hampir habis`}
             </span>
           </div>
+          {insightsLoading ? (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile
+                  ? "1fr"
+                  : "repeat(auto-fill, minmax(260px, 1fr))",
+                gap: 8,
+              }}
+            >
+              {[...Array(isMobile ? 2 : 4)].map((_, i) => (
+                <Skeleton key={i} width="100%" height="48px" borderRadius="10px" />
+              ))}
+            </div>
+          ) : (
           <div
             style={{
               display: "grid",
@@ -977,6 +998,7 @@ export default function InventoryDashboard({
               );
             })}
           </div>
+          )}
         </div>
       )}
 
