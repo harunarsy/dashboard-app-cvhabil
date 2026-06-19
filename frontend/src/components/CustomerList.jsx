@@ -320,40 +320,8 @@ export default function CustomerList({
         </select>
       </div>
 
-      {/* 📡 Customer Lama Tak Order (churn radar) — skeleton saat menyiapkan */}
-      {churnLoading && (
-        <div
-          className="ui-panel"
-          style={{
-            marginBottom: "1.5rem",
-            padding: "16px 18px",
-            borderRadius: "14px",
-            border: `1px solid ${border}`,
-            backgroundColor: cardBg,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: text }}>
-              📡 Customer Lama Tak Order
-            </span>
-            <span style={{ fontSize: 11, color: sub }}>menyiapkan…</span>
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: isMobile
-                ? "1fr"
-                : "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: 12,
-            }}
-          >
-            {[...Array(isMobile ? 2 : 3)].map((_, i) => (
-              <Skeleton key={i} width="100%" height="96px" borderRadius="12px" />
-            ))}
-          </div>
-        </div>
-      )}
-
+      {/* 📡 Customer Lama Tak Order (churn radar) — tampil hanya saat ada data
+          (tanpa skeleton, supaya tidak "kedip" saat hasil kosong) */}
       {!churnLoading && churnList.length > 0 && (
         <div
           className="ui-panel"

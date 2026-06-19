@@ -4698,7 +4698,7 @@ export default function Dashboard({
         </section>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4 items-start">
         <section
           className="ui-surface-panel ui-motion-card ui-hover-delight rounded-3xl p-6 border shadow-sm"
           style={{ backgroundColor: cardBg, borderColor: border }}
@@ -4867,7 +4867,7 @@ export default function Dashboard({
         {/* Manajemen Tugas — collapsible, default tutup (jarang dipakai → hemat tempat). v1.32.0 */}
         <div
           data-onboarding="tasks"
-          className="ui-surface-panel ui-motion-card mb-4 min-w-0 overflow-hidden rounded-3xl border shadow-sm"
+          className="ui-surface-panel ui-motion-card mb-4 min-w-0 overflow-hidden rounded-3xl border shadow-sm lg:col-span-2"
           style={{ borderColor: border }}
         >
           <button

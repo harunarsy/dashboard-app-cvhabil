@@ -1431,6 +1431,7 @@ export default function InvoiceList({
     setSavedDraftUpdatedAt(null);
     setDraftBanner(false);
     lastDraftSnapRef.current = "";
+    showToast("🗑️ Draft tersimpan sudah dihapus");
   };
 
   const openAuditLog = async (inv) => {
@@ -2051,8 +2052,8 @@ export default function InvoiceList({
               padding: "8px 12px",
               borderRadius: "10px",
               backgroundColor: isDarkMode
-                ? "var(--color-surface-elevated)"
-                : "var(--color-warning-soft)",
+                ? "color-mix(in srgb, var(--color-warning) 25%, var(--color-surface))"
+                : "color-mix(in srgb, var(--color-warning) 30%, white)",
               border: "1px solid var(--color-warning)",
               flexWrap: "wrap",
             }}
@@ -2061,7 +2062,7 @@ export default function InvoiceList({
             <span style={{ fontSize: "12px", fontWeight: 700, color: isDarkMode ? "#FFF" : "#000" }}>
               Draft tersimpan
             </span>
-            <span style={{ fontSize: "11px", color: "var(--color-text-subtle)" }}>
+            <span style={{ fontSize: "11px", color: isDarkMode ? "#FFF" : "#000", opacity: 0.7 }}>
               {savedDraftUpdatedAt ? formatRelativeTime(savedDraftUpdatedAt) : "otomatis"}
             </span>
             <button
@@ -2073,9 +2074,10 @@ export default function InvoiceList({
             </button>
             <button
               onClick={dismissDraft}
-              style={{ padding: "6px 12px", backgroundColor: isDarkMode ? "var(--color-surface-raised)" : "var(--color-border)", color: isDarkMode ? "#FFF" : "#000", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "12px" }}
+              className="ui-motion-button ui-focus-ring"
+              style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "6px 12px", backgroundColor: "var(--color-danger)", color: "#FFF", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "12px" }}
             >
-              Hapus
+              <Trash2 size={13} /> Hapus
             </button>
           </div>
         )}
@@ -2173,8 +2175,8 @@ export default function InvoiceList({
           ...S.card,
           padding: "1rem",
           marginBottom: "1rem",
-          flexDirection: "column",
-          alignItems: "stretch",
+          // override flex .ui-toolbar → block: cegah panel filter melar (col+wrap bug)
+          display: "block",
         }}
       >
         <div
@@ -2820,7 +2822,7 @@ export default function InvoiceList({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 2000,
+            zIndex: 99999,
             padding: "16px",
           }}
         >

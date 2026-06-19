@@ -762,6 +762,7 @@ export default function SalesOrderList({
     setSavedDraftUpdatedAt(null);
     setDraftBanner(false);
     lastDraftSnapRef.current = "";
+    flash("Draft tersimpan sudah dihapus");
   };
 
   // Filters
@@ -1661,66 +1662,131 @@ export default function SalesOrderList({
         count={loading ? "…" : `${orders.length} nota tercatat`}
         isMobile={isMobile}
         isDarkMode={isDarkMode}
-        rightSlot={
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <button
-              onClick={() => {
-                const next = !showTrash;
-                setShowTrash(next);
-                if (next) fetchTrash();
-              }}
-              className="ui-motion-button ui-focus-ring"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "10px 16px",
-                backgroundColor: showTrash
-                  ? "var(--color-danger)"
-                  : "var(--color-surface)",
-                color: showTrash ? "#FFF" : text,
-                border: `1px solid ${showTrash ? "var(--color-danger)" : border}`,
-                borderRadius: "10px",
-                cursor: "pointer",
-                fontWeight: "700",
-                fontSize: "14px",
-              }}
-            >
-              <Trash2 size={16} /> Trash
-            </button>
-            <button
-              onClick={openAdd}
-              className="ui-motion-button"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "10px 18px",
-                backgroundColor: "var(--color-success)",
-                color: "#FFF",
-                border: "none",
-                borderRadius: "10px",
-                cursor: "pointer",
-                fontWeight: "700",
-                fontSize: "14px",
-              }}
-            >
-              <Plus size={18} /> Buat Nota
-            </button>
-          </div>
-        }
       />
 
-      {/* Badge ringkasan jatuh tempo — klik untuk filter */}
-      {(overdueCount > 0 || dueSoonCount > 0) && (
-        <div
-          style={{
-            display: "flex",
-            gap: "8px",
-            flexWrap: "wrap",
-            marginBottom: "1rem",
-          }}
-        >
+      {/* Toolbar aksi — mirror Faktur: tombol kiri · draft tengah · badge kanan */}
+      <div
+        style={{
+          display: "flex",
+          gap: "0.75rem",
+          marginBottom: "1.25rem",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+          <button
+            onClick={openAdd}
+            className="ui-motion-button"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "10px 18px",
+              backgroundColor: "var(--color-success)",
+              color: "#FFF",
+              border: "none",
+              borderRadius: "10px",
+              cursor: "pointer",
+              fontWeight: "700",
+              fontSize: "14px",
+            }}
+          >
+            <Plus size={18} /> Buat Nota
+          </button>
+          <button
+            onClick={() => {
+              const next = !showTrash;
+              setShowTrash(next);
+              if (next) fetchTrash();
+            }}
+            className="ui-motion-button ui-focus-ring"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "10px 16px",
+              backgroundColor: showTrash
+                ? "var(--color-danger)"
+                : isDarkMode
+                  ? "var(--color-surface-raised)"
+                  : "var(--color-border)",
+              color: showTrash ? "#FFF" : isDarkMode ? "#FFF" : "#000",
+              border: "none",
+              borderRadius: "10px",
+              cursor: "pointer",
+              fontWeight: "700",
+              fontSize: "14px",
+            }}
+          >
+            <Trash2 size={16} /> Trash
+          </button>
+        </div>
+        {/* Draft tersimpan — kompak di tengah baris aksi (kotak oren opaque, readable) */}
+        {draftBanner && savedDraft && (
+          <div
+            className="ui-motion-card"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              padding: "8px 12px",
+              borderRadius: "10px",
+              backgroundColor: isDarkMode
+                ? "color-mix(in srgb, var(--color-warning) 25%, var(--color-surface))"
+                : "color-mix(in srgb, var(--color-warning) 30%, white)",
+              border: "1px solid var(--color-warning)",
+              flexWrap: "wrap",
+            }}
+          >
+            <FileText size={15} color="var(--color-warning)" />
+            <span style={{ fontSize: "12px", fontWeight: 700, color: text }}>
+              Draft tersimpan
+            </span>
+            <span style={{ fontSize: "11px", color: sub }}>
+              {savedDraftUpdatedAt
+                ? formatRelativeTime(savedDraftUpdatedAt)
+                : "otomatis"}
+            </span>
+            <button
+              onClick={loadDraft}
+              className="btn-primary ui-motion-button ui-focus-ring"
+              style={{
+                padding: "6px 12px",
+                backgroundColor: "var(--color-primary)",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontWeight: 700,
+                fontSize: "12px",
+              }}
+            >
+              Pulihkan
+            </button>
+            <button
+              onClick={dismissDraft}
+              className="ui-motion-button ui-focus-ring"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                padding: "6px 12px",
+                backgroundColor: "var(--color-danger)",
+                color: "#FFF",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontWeight: 700,
+                fontSize: "12px",
+              }}
+            >
+              <Trash2 size={13} /> Hapus
+            </button>
+          </div>
+        )}
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
           {overdueCount > 0 && (
             <button
               type="button"
@@ -1800,7 +1866,7 @@ export default function SalesOrderList({
             </button>
           )}
         </div>
-      )}
+      </div>
 
       {/* Modal Trash — nota terhapus, bisa dipulihkan */}
       {showTrash &&
@@ -1814,7 +1880,7 @@ export default function SalesOrderList({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              zIndex: 1000,
+              zIndex: 99999,
               padding: "16px",
             }}
           >
@@ -1926,77 +1992,6 @@ export default function SalesOrderList({
           document.body,
         )}
 
-      {/* v1.23.0: banner draft nota tersimpan (mirror draft faktur) */}
-      {draftBanner && savedDraft && (
-        <div
-          className="ui-motion-card ui-readable-surface"
-          style={{
-            padding: "14px 18px",
-            marginBottom: "1.25rem",
-            backgroundColor: isDarkMode
-              ? "var(--color-surface-elevated)"
-              : "var(--color-warning-soft)",
-            border: "1px solid var(--color-warning)",
-            borderRadius: "14px",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            flexWrap: "wrap",
-          }}
-        >
-          <FileText size={18} color="var(--color-warning)" />
-          <div style={{ flex: 1, minWidth: "220px" }}>
-            <span
-              style={{ fontWeight: "700", fontSize: "14px", color: text }}
-            >
-              Ada draft nota tersimpan
-            </span>
-            <span
-              style={{ fontSize: "13px", color: sub, marginLeft: "8px" }}
-            >
-              {savedDraftUpdatedAt
-                ? `disimpan ${formatRelativeTime(savedDraftUpdatedAt)} · `
-                : "disimpan otomatis · "}
-              lanjutkan atau hapus supaya formulir tetap bersih.
-            </span>
-          </div>
-          <button
-            onClick={loadDraft}
-            className="btn-primary ui-motion-button ui-focus-ring"
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "var(--color-primary)",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: "700",
-              fontSize: "13px",
-            }}
-          >
-            Pulihkan Draft
-          </button>
-          <button
-            onClick={dismissDraft}
-            className="ui-motion-button ui-focus-ring"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "8px 16px",
-              backgroundColor: "var(--color-danger-soft)",
-              color: "var(--color-danger)",
-              border: "1px solid var(--color-danger)",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: "700",
-              fontSize: "13px",
-            }}
-          >
-            <Trash2 size={14} /> Hapus Draft
-          </button>
-        </div>
-      )}
 
       {/* Search & Filters */}
       <div

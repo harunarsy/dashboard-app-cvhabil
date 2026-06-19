@@ -9,6 +9,15 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
   - Backend `PATCH /invoices/:id/payment-status` (set `status` + `payment_date`, tidak menyentuh item/stok, + audit log `PAYMENT_STATUS`).
   - `invoicesAPI.updatePaymentStatus`; InvoiceList badge → tombol → `paymentModal` (optimistic `upsertInvoiceCache`). Saat sudah lunas ada tombol "Tandai Belum Bayar".
 
+### Fixed (quick fixes UI — batch)
+- **Faktur — gap raksasa saat filter dibuka**: card `.ui-toolbar` (flex column) + `flex-wrap: wrap` bikin panel filter melar (667px). Tambah `flexWrap: "nowrap"`.
+- **Faktur — modal pembayaran "terlalu center"**: overlay `zIndex` 2000 → 99999 (ketutup sidebar z-9999); sekarang nutup penuh kayak modal lain. Modal Trash Nota juga (1000 → 99999).
+- **Nota — layout toolbar disamakan Faktur**: baris aksi tunggal `[Buat Nota][Trash]` kiri · draft tengah · `[Terlambat][Jatuh Tempo]` kanan, di atas filter (dipindah dari breadcrumb/banner terpisah).
+- **Nota & Faktur — banner draft tersimpan**: kotak jadi oren **opaque** (readable, sebelumnya `warning-soft` 12% transparan tembus gradient), tombol **Hapus** merah solid, + **toast "Draft tersimpan sudah dihapus"** saat draft dihapus.
+- **Customer — radar churn tidak "kedip"**: hapus skeleton "menyiapkan…"; panel tampil hanya saat ada data.
+- **Dashboard — card "Pergerakan Stok 30 Hari"** tidak lagi melar kosong (grid `items-start`).
+- **Dashboard — Manajemen Tugas** saat dibuka melebar **penuh** (`lg:col-span-2`, sebelumnya separuh karena jadi item ke-3 grid 2-kolom).
+
 ## [v1.52.0-stable] - 2026-06-19
 
 ### Added (Nota Penjualan)
