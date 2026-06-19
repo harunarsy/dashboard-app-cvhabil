@@ -38,9 +38,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.52.0-stable",
+    version: "v1.52.1-stable",
     date: "19 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Di daftar Faktur Pembelian, status 'BELUM BAYAR' (atau 'SUDAH DIBAYAR') sekarang bisa diklik langsung untuk memilih tanggal bayar — tidak perlu buka form Ubah penuh. Sama seperti di Nota Penjualan.",
+        dev: "Backend PATCH /invoices/:id/payment-status (set status+payment_date, tanpa sentuh item/stok, +audit log PAYMENT_STATUS). invoicesAPI.updatePaymentStatus. InvoiceList: badge status jadi tombol → paymentModal (date picker) + optimistic upsertInvoiceCache; tombol 'Tandai Belum Bayar' saat sudah lunas.",
+      },
+    ],
+  },
+  {
+    version: "v1.52.0-stable",
+    date: "19 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "new",

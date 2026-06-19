@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.52.1-stable] - 2026-06-19
+
+### Added (Faktur Pembelian)
+- **Status pembayaran klik-cepat**: badge `BELUM BAYAR`/`SUDAH DIBAYAR` di daftar faktur kini bisa diklik → modal pilih **tanggal bayar** (mirror Nota Penjualan), tanpa buka form Ubah penuh.
+  - Backend `PATCH /invoices/:id/payment-status` (set `status` + `payment_date`, tidak menyentuh item/stok, + audit log `PAYMENT_STATUS`).
+  - `invoicesAPI.updatePaymentStatus`; InvoiceList badge → tombol → `paymentModal` (optimistic `upsertInvoiceCache`). Saat sudah lunas ada tombol "Tandai Belum Bayar".
+
 ## [v1.52.0-stable] - 2026-06-19
 
 ### Added (Nota Penjualan)

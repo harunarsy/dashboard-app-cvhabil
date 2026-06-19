@@ -1025,6 +1025,31 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
+// PATCH payment status — set Paid + payment_date (atau balik ke Pending) tanpa
+// menyentuh item/stok. Untuk klik cepat status "BELUM BAYAR" di daftar faktur.
+router.patch('/:id/payment-status', auth, async (req, res) => {
+  try {
+    const { status, payment_date } = req.body;
+    if (!['Paid', 'Pending'].includes(status)) {
+      return res.status(400).json({ error: 'status harus Paid atau Pending' });
+    }
+    let payDate = null;
+    if (status === 'Paid') {
+      payDate = payment_date || new Date().toISOString().split('T')[0];
+      const d = new Date(payDate);
+      if (isNaN(d.getTime())) return res.status(400).json({ error: 'Tanggal bayar tidak valid' });
+    }
+    const result = await pool.query(
+      `UPDATE invoices SET status = $1, payment_date = $2 WHERE id = $3 AND deleted_at IS NULL RETURNING *`,
+      [status, payDate, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Faktur tidak ditemukan' });
+    await logAudit(req.params.id, result.rows[0].invoice_number, 'PAYMENT_STATUS', { status, payment_date: payDate });
+    if (global.io) global.io.emit('invoiceUpdated', result.rows[0]);
+    res.json({ ...result.rows[0], unmatchedProducts: [] });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // SOFT DELETE
 router.delete('/:id', auth, async (req, res) => {
   const client = await pool.connect();

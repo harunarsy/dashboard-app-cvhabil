@@ -511,6 +511,8 @@ export default function InvoiceList({
   const [successToast, setSuccessToast] = useState("");
   const [auditModal, setAuditModal] = useState(null); // { invoiceId, invoiceNumber }
   const [auditLog, setAuditLog] = useState([]);
+  const [paymentModal, setPaymentModal] = useState({ open: false, inv: null, date: "" });
+  const [paymentSaving, setPaymentSaving] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const draftDebounceRef = useRef(null);
@@ -1328,6 +1330,55 @@ export default function InvoiceList({
       console.error("Error restoring invoice:", e);
     }
   };
+  // Klik status faktur → catat/ubah tanggal bayar (mirror nota), tanpa form penuh.
+  const openPaymentModal = (inv) => {
+    const today = new Date().toISOString().split("T")[0];
+    const existing = inv.payment_date
+      ? String(inv.payment_date).split("T")[0]
+      : today;
+    setPaymentModal({
+      open: true,
+      inv,
+      date: inv.status === "Paid" ? existing : today,
+    });
+  };
+  const handlePaymentSave = async () => {
+    if (!paymentModal.inv || !paymentModal.date) return;
+    setPaymentSaving(true);
+    try {
+      const res = await invoicesAPI.updatePaymentStatus(
+        paymentModal.inv.id,
+        "Paid",
+        paymentModal.date,
+      );
+      upsertInvoiceCache(res?.data);
+      showToast("✅ Tanggal bayar disimpan");
+      setPaymentModal({ open: false, inv: null, date: "" });
+      fetchInvoices();
+    } catch (e) {
+      showToast(e.response?.data?.error || "Gagal simpan pembayaran");
+    } finally {
+      setPaymentSaving(false);
+    }
+  };
+  const handlePaymentUnpay = async () => {
+    if (!paymentModal.inv) return;
+    setPaymentSaving(true);
+    try {
+      const res = await invoicesAPI.updatePaymentStatus(
+        paymentModal.inv.id,
+        "Pending",
+      );
+      upsertInvoiceCache(res?.data);
+      showToast("Status dikembalikan ke Belum Bayar");
+      setPaymentModal({ open: false, inv: null, date: "" });
+      fetchInvoices();
+    } catch (e) {
+      showToast(e.response?.data?.error || "Gagal ubah status");
+    } finally {
+      setPaymentSaving(false);
+    }
+  };
   // AUDIT-UX-03: hapus permanen lewat ConfirmModal, bukan window.confirm
   const handlePermanentDelete = (id) => setPermanentDeleteId(id);
   const executePermanentDelete = async () => {
@@ -1394,10 +1445,21 @@ export default function InvoiceList({
   };
 
   useEffect(() => {
-    if (!showModal && !showTrash && !dupConfirm && !deleteConfirm && !auditModal)
+    if (
+      !showModal &&
+      !showTrash &&
+      !dupConfirm &&
+      !deleteConfirm &&
+      !auditModal &&
+      !paymentModal.open
+    )
       return;
     const onKey = (e) => {
       if (e.key !== "Escape") return;
+      if (paymentModal.open) {
+        if (!paymentSaving) setPaymentModal({ open: false, inv: null, date: "" });
+        return;
+      }
       if (auditModal) {
         setAuditModal(null);
         return;
@@ -1421,7 +1483,16 @@ export default function InvoiceList({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [showModal, showTrash, dupConfirm, deleteConfirm, auditModal, resetForm]);
+  }, [
+    showModal,
+    showTrash,
+    dupConfirm,
+    deleteConfirm,
+    auditModal,
+    paymentModal.open,
+    paymentSaving,
+    resetForm,
+  ]);
 
   const summaryData = filteredInvoices.length > 0 ? filteredInvoices : invoices;
   const sumHna = summaryData.reduce(
@@ -2590,6 +2661,7 @@ export default function InvoiceList({
               onEdit={() => handleEdit(inv)}
               onDelete={() => handleDeleteRequest(inv)}
               onAudit={() => openAuditLog(inv)}
+              onMarkPaid={() => openPaymentModal(inv)}
               allKnownDist={allKnownDist}
               formatRp={formatRp}
             />
@@ -2738,6 +2810,135 @@ export default function InvoiceList({
       </div>
 
       {/* Duplicate Confirm */}
+      {paymentModal.open && (
+        <div
+          onClick={() => !paymentSaving && setPaymentModal({ open: false, inv: null, date: "" })}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 2000,
+            padding: "16px",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="ui-motion-modal"
+            style={{
+              backgroundColor: isDarkMode ? "var(--color-surface-elevated)" : "#FFF",
+              borderRadius: "16px",
+              padding: "24px",
+              maxWidth: "380px",
+              width: "100%",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+            }}
+          >
+            <h3
+              style={{
+                margin: "0 0 4px",
+                fontSize: "17px",
+                fontWeight: "800",
+                color: isDarkMode ? "#FFF" : "#000",
+              }}
+            >
+              Catat Pembayaran
+            </h3>
+            <p style={{ margin: "0 0 16px", fontSize: "13px", color: "var(--color-text-subtle)" }}>
+              {paymentModal.inv?.invoice_number} ·{" "}
+              {formatRp(paymentModal.inv?.hna_plus_ppn)}
+            </p>
+            <label
+              style={{
+                display: "block",
+                fontSize: "12px",
+                fontWeight: "700",
+                color: "var(--color-text-subtle)",
+                marginBottom: "6px",
+              }}
+            >
+              Tanggal Bayar
+            </label>
+            <input
+              type="date"
+              value={paymentModal.date}
+              onChange={(e) =>
+                setPaymentModal((p) => ({ ...p, date: e.target.value }))
+              }
+              className="ui-focus-ring"
+              style={{
+                width: "100%",
+                padding: "11px 12px",
+                borderRadius: "10px",
+                border: "1px solid var(--color-border)",
+                backgroundColor: isDarkMode ? "var(--color-surface)" : "#FFF",
+                color: isDarkMode ? "#FFF" : "#000",
+                fontSize: "14px",
+                marginBottom: "18px",
+              }}
+            />
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <button
+                onClick={handlePaymentSave}
+                disabled={paymentSaving || !paymentModal.date}
+                className="ui-motion-button ui-focus-ring"
+                style={{
+                  padding: "12px",
+                  backgroundColor: "var(--color-success)",
+                  color: "#FFF",
+                  border: "none",
+                  borderRadius: "10px",
+                  cursor: paymentSaving ? "wait" : "pointer",
+                  fontWeight: "800",
+                  fontSize: "14px",
+                  opacity: paymentSaving || !paymentModal.date ? 0.6 : 1,
+                }}
+              >
+                {paymentSaving ? "Menyimpan…" : "Simpan — Tandai Lunas"}
+              </button>
+              {paymentModal.inv?.status === "Paid" && (
+                <button
+                  onClick={handlePaymentUnpay}
+                  disabled={paymentSaving}
+                  className="ui-motion-button ui-focus-ring"
+                  style={{
+                    padding: "11px",
+                    backgroundColor: "var(--color-danger-soft)",
+                    color: "var(--color-danger)",
+                    border: "1px solid var(--color-danger)",
+                    borderRadius: "10px",
+                    cursor: paymentSaving ? "wait" : "pointer",
+                    fontWeight: "700",
+                    fontSize: "13px",
+                  }}
+                >
+                  Tandai Belum Bayar
+                </button>
+              )}
+              <button
+                onClick={() => setPaymentModal({ open: false, inv: null, date: "" })}
+                disabled={paymentSaving}
+                className="ui-focus-ring"
+                style={{
+                  padding: "11px",
+                  backgroundColor: "transparent",
+                  color: "var(--color-text-subtle)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  fontSize: "13px",
+                }}
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {dupConfirm && (
         <div
           style={{
@@ -3465,6 +3666,7 @@ function InvoiceRow({
   onEdit,
   onDelete,
   onAudit,
+  onMarkPaid,
   allKnownDist = [],
   formatRp,
 }) {
@@ -3673,7 +3875,14 @@ function InvoiceRow({
         </div>
         {/* Status + jatuh tempo */}
         <div>
-          <span
+          <button
+            type="button"
+            title={isPaid ? "Klik untuk ubah tanggal bayar" : "Klik untuk catat tanggal bayar"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onMarkPaid?.();
+            }}
+            className="ui-focus-ring"
             style={{
               padding: "4px 10px",
               borderRadius: "20px",
@@ -3683,10 +3892,12 @@ function InvoiceRow({
               color: sc.text,
               letterSpacing: "0.03em",
               whiteSpace: "nowrap",
+              border: "none",
+              cursor: "pointer",
             }}
           >
             {statusLabel}
-          </span>
+          </button>
           {!isPaid && inv.due_date && dueStatus && (
             <div
               style={{

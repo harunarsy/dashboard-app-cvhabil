@@ -109,6 +109,8 @@ export const invoicesAPI = {
   clearDraft: () => api.delete('/invoices/draft/clear'),
   create: (data) => api.post('/invoices', data),
   update: (id, data) => api.put(`/invoices/${id}`, data),
+  updatePaymentStatus: (id, status, payment_date) =>
+    api.patch(`/invoices/${id}/payment-status`, { status, ...(payment_date && { payment_date }) }),
   softDelete: (id) => api.delete(`/invoices/${id}`),
   restore: (id) => api.put(`/invoices/${id}/restore`),
   permanentDelete: (id) => api.delete(`/invoices/${id}/permanent`),
