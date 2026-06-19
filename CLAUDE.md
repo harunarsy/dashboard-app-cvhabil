@@ -42,7 +42,7 @@ cd frontend && npm test -- --testPathPattern=SalesOrderList
 
 ### Backend patterns
 - **Schema migration**: Each route file calls `ensureSchema()` on startup via `ALTER TABLE IF NOT EXISTS`. No migration runner needed — schema evolves in-place.
-- **Auth**: All routes use `middleware/auth.js` (JWT Bearer). Token decoded client-side for user state; 15-min session.
+- **Auth**: All routes use `middleware/auth.js` (JWT Bearer). Token decoded client-side for user state; 4-hour session (default `JWT_EXPIRE`, owner decision 19 Jun 2026).
 - **Real-time**: `global.io` emits events (`invoiceCreated`, `invoiceUpdated`, `invoiceDeleted`, etc.) after mutations.
 - **Env loading**: `server.js` auto-loads `.env.dev` if on `dev` git branch, else `.env`.
 

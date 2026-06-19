@@ -38,9 +38,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.51.2-stable",
+    date: "19 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "feat",
+        text: "Sesi login sekarang bertahan 4 jam (sebelumnya 15 menit). Operator tidak lagi cepat ke-logout saat lagi menginput nota/faktur.",
+        dev: "auth.js: default expiresIn 15m → 4h (override via env JWT_EXPIRE). Catatan: bila prod masih 15m, env JWT_EXPIRE di Vercel backend masih di-set 15m — perlu diubah/dihapus manual.",
+      },
+    ],
+  },
+  {
     version: "v1.51.1-stable",
     date: "18 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",

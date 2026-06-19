@@ -1,9 +1,9 @@
 # 🧠 HABIL SUPERAPP — Source of Truth
 
-> **Current Version: v1.51.1-stable
-> System Version: v1.51.1-stable
+> **Current Version: v1.51.2-stable
+> System Version: v1.51.2-stable
 > Status: PROD-STABLE
-> **VERSI SISTEM\\*\\*: v1.51.1-stable
+> **VERSI SISTEM\\*\\*: v1.51.2-stable
 
 > **CREDENTIALS (LOKAL):** Lihat `CREDENTIALS.local.md` di root project untuk semua akses: DB URL, JWT, Vercel, GitHub. File ini hanya ada di lokal (tidak di-commit).
 
@@ -21,7 +21,7 @@
 - **Backend:** Node.js + Express 5.x (Vercel)
 - **Database:** PostgreSQL 17 (Neon.tech - Singapore Region)
 - **Real-time:** Socket.io
-- **Auth:** JWT (15m Session)
+- **Auth:** JWT (4h Session)
 
 ### Production URLs
 

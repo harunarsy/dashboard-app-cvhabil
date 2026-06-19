@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.51.2-stable] - 2026-06-19
+
+### Changed
+- **Sesi login 15 menit → 4 jam** (permintaan owner). Operator tidak lagi cepat ke-logout saat menginput.
+  - `backend/routes/auth.js`: default `expiresIn` `'15m'` → `'4h'` (tetap bisa di-override via env `JWT_EXPIRE`).
+  - `.env` / `.env.example`: `JWT_EXPIRE=4h`.
+  - Catatan deploy: bila prod masih 15m setelah rilis, berarti env `JWT_EXPIRE` di Vercel backend masih di-set `15m` — perlu diubah/dihapus manual dari dashboard Vercel.
+
 ## [v1.51.1-stable] - 2026-06-18
 
 ### Fixed

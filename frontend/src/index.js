@@ -13,5 +13,5 @@ root.render(
     </QueryClientProvider>
   </React.StrictMode>,
 );
-document.title = "HABIL SUPERAPP — v1.51.1-stable";
-// HABIL SUPERAPP v1.51.1-stable
+document.title = "HABIL SUPERAPP — v1.51.2-stable";
+// HABIL SUPERAPP v1.51.2-stable
