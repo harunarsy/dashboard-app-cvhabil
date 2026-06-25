@@ -121,6 +121,18 @@ const fmtDate = (d) =>
         year: "numeric",
       })
     : "-";
+// Tanggal + nama hari (mis. "Selasa, 01 Jul 2026") — buat info jatuh tempo.
+const fmtDateDay = (d) => {
+  if (!d) return "-";
+  const dt = new Date(String(d).split("T")[0] + "T00:00:00");
+  if (isNaN(dt.getTime())) return "-";
+  return dt.toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
 const addDays = (dateStr, n) => {
   const base = dateStr ? new Date(dateStr + "T00:00:00") : new Date();
   base.setDate(base.getDate() + n);
@@ -2601,44 +2613,43 @@ export default function SalesOrderList({
                           (() => {
                             const diff = notaDaysDiff(o.due_date);
                             if (diff === null) return null;
-                            if (diff < 0)
-                              return (
-                                <p
-                                  style={{
-                                    margin: "4px 0 0",
-                                    fontSize: "9px",
-                                    fontWeight: "700",
-                                    color: "var(--color-danger)",
-                                    animation:
-                                      "habil-pulse 1.2s ease-in-out infinite",
-                                  }}
-                                >
-                                  Terlambat bayar {Math.abs(diff)} hari
-                                </p>
-                              );
-                            if (diff <= 3)
-                              return (
-                                <p
-                                  style={{
-                                    margin: "4px 0 0",
-                                    fontSize: "9px",
-                                    fontWeight: "700",
-                                    color: "var(--color-warning)",
-                                  }}
-                                >
-                                  Jatuh tempo {diff} hari lagi
-                                </p>
-                              );
+                            const overdue = diff < 0;
+                            const soon = diff >= 0 && diff <= 3;
+                            const relColor = overdue
+                              ? "var(--color-danger)"
+                              : soon
+                                ? "var(--color-warning)"
+                                : sub;
+                            const relText = overdue
+                              ? `Terlambat bayar ${Math.abs(diff)} hari`
+                              : diff === 0
+                                ? "Jatuh tempo hari ini"
+                                : `Jatuh tempo ${diff} hari lagi`;
                             return (
-                              <p
-                                style={{
-                                  margin: "4px 0 0",
-                                  fontSize: "9px",
-                                  color: sub,
-                                }}
-                              >
-                                Jatuh Tempo Pembayaran: {fmtDate(o.due_date)}
-                              </p>
+                              <div style={{ margin: "4px 0 0" }}>
+                                <p
+                                  style={{
+                                    margin: 0,
+                                    fontSize: "9px",
+                                    color: sub,
+                                  }}
+                                >
+                                  Jatuh tempo: {fmtDateDay(o.due_date)}
+                                </p>
+                                <p
+                                  style={{
+                                    margin: "2px 0 0",
+                                    fontSize: "9px",
+                                    fontWeight: "700",
+                                    color: relColor,
+                                    animation: overdue
+                                      ? "habil-pulse 1.2s ease-in-out infinite"
+                                      : "none",
+                                  }}
+                                >
+                                  {relText}
+                                </p>
+                              </div>
                             );
                           })()}
                       </td>

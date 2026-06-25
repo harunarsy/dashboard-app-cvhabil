@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.52.4-stable] - 2026-06-25
+
+### Added (Info jatuh tempo lebih jelas)
+- **Faktur Pembelian & Nota Penjualan**: di bawah badge "BELUM BAYAR" kini tampil **tanggal jatuh tempo + nama hari** (mis. "Selasa, 01 Jul 2026") dan **sisa hari dieja penuh** ("5 hari lagi", "Terlambat 3 hari", "Jatuh tempo hari ini"). User tak perlu buka Ubah untuk tahu tanggal/tempo.
+  - `InvoiceList.getDueStatus`: singkatan `Xh` → `X hari`; tambah cabang `diff===0` ("hari ini") & selalu kembalikan status (termasuk >7 hari). Render due: baris tanggal+weekday (`formatLocalDate` `weekday:'long'`) di atas badge relatif; blok `JT: date` lama dihapus (redundant).
+  - `SalesOrderList`: helper `fmtDateDay` (with weekday); blok info due dirombak agar selalu menampilkan tanggal+hari lalu baris relatif berwarna.
+
 ## [v1.52.3-stable] - 2026-06-25
 
 ### Fixed (Harga Offline = Inventory, satu sumber)

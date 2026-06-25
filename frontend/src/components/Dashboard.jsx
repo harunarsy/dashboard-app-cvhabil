@@ -38,9 +38,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.52.3-stable",
+    version: "v1.52.4-stable",
     date: "25 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Info jatuh tempo lebih jelas di Faktur Pembelian & Nota Penjualan: di bawah 'BELUM BAYAR' kini tampil tanggal jatuh tempo lengkap dengan nama hari (mis. 'Selasa, 01 Jul 2026') plus sisa harinya dieja penuh ('5 hari lagi', 'Terlambat 3 hari', 'Jatuh tempo hari ini') — tidak perlu buka Ubah lagi.",
+        dev: "InvoiceList.getDueStatus: label 'Xh' → 'X hari' penuh + cabang diff===0 'hari ini' + selalu return (>7 hari juga). Render: tanggal+weekday (formatLocalDate weekday:long) di atas badge relatif. SalesOrderList: fmtDateDay helper (weekday), blok due dirombak → selalu tampil tanggal+hari lalu relatif.",
+      },
+    ],
+  },
+  {
+    version: "v1.52.3-stable",
+    date: "25 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

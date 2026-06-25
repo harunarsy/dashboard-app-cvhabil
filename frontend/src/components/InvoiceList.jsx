@@ -299,20 +299,35 @@ const getDueStatus = (due_date, status) => {
   const diff = daysDiff(due_date);
   if (diff < 0)
     return {
-      label: `Terlambat ${Math.abs(diff)}h`,
+      label: `Terlambat ${Math.abs(diff)} hari`,
       color: "var(--color-danger)",
       bg: "var(--color-danger-soft-strong)",
       animation: "habil-pulse 1.2s ease-in-out infinite",
     };
+  if (diff === 0)
+    return {
+      label: "Jatuh tempo hari ini",
+      color: "var(--color-warning)",
+      bg: "var(--color-warning-soft-strong)",
+    };
   if (diff <= 3)
     return {
-      label: `Jatuh tempo ${diff}h lagi`,
+      label: `Jatuh tempo ${diff} hari lagi`,
       color: "var(--color-warning)",
       bg: "var(--color-warning-soft-strong)",
     };
   if (diff <= 7)
-    return { label: `${diff}h lagi`, color: "#FFCC00", bg: "#FFCC0020" };
-  return null;
+    return {
+      label: `Jatuh tempo ${diff} hari lagi`,
+      color: "#B8860B",
+      bg: "#FFCC0020",
+    };
+  // > 7 hari: tetap tampilkan info (tanpa warna peringatan)
+  return {
+    label: `Jatuh tempo ${diff} hari lagi`,
+    color: "var(--color-text-subtle)",
+    bg: "var(--color-bg-subtle)",
+  };
 };
 
 const formatRelativeTime = (dateStr) => {
@@ -3904,17 +3919,35 @@ function InvoiceRow({
             <div
               style={{
                 marginTop: "5px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                padding: "2px 8px",
-                borderRadius: "8px",
-                backgroundColor: dueStatus.bg,
-                animation: dueStatus.animation || "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                gap: "3px",
               }}
             >
               <span
                 style={{
+                  fontSize: "10px",
+                  color: "var(--color-text-subtle)",
+                  fontWeight: "600",
+                }}
+              >
+                Jatuh tempo:{" "}
+                {formatLocalDate(inv.due_date, {
+                  weekday: "long",
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "2px 8px",
+                  borderRadius: "8px",
+                  backgroundColor: dueStatus.bg,
+                  animation: dueStatus.animation || "none",
                   fontSize: "10px",
                   fontWeight: "700",
                   color: dueStatus.color,
@@ -3922,17 +3955,6 @@ function InvoiceRow({
               >
                 {dueStatus.label}
               </span>
-            </div>
-          )}
-          {!isPaid && inv.due_date && !dueStatus && (
-            <div
-              style={{
-                marginTop: "4px",
-                fontSize: "11px",
-                color: "var(--color-text-subtle)",
-              }}
-            >
-              JT: {formatLocalDate(inv.due_date)}
             </div>
           )}
           {isPaid && inv.payment_date && (
