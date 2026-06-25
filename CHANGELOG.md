@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.52.3-stable] - 2026-06-25
+
+### Fixed (Harga Offline = Inventory, satu sumber)
+- **Offline sinkron dua arah dengan Inventory**: harga Offline di Daftar Harga sebelumnya pakai override `price_list_entries` yang bisa "nyangkut" di harga lama walau `sell_price` inventory sudah berubah (mis. Entrakid Offline Rp66.000 padahal Excel Rp70.000).
+  - Offline kini = `product_master.sell_price` (single source): GET `list_price` offline = NULL (selalu ikut sell_price); PUT `channel=offline` → `UPDATE product_master.sell_price`. Ubah di Inventory atau di Daftar Harga sama-sama nyambung.
+  - 13 override offline lama dihapus dari prod. Shopee & Tokopedia/TikTok tetap pakai override per-saluran sendiri (fallback ke sell_price kalau kosong).
+  - `PriceListPage`: `saveChannel` offline patch `sell_price`; stat "sudah di-set" & filter "belum di-set" berbasis `sell_price`.
+
+### Changed (Cetak A4)
+- Daftar Harga A4 dipecah jadi kolom terpisah: `No | Kode | Nama Produk | Harga Eceran | Isi/Karton | Harga/Karton` (dari `pack_size` & `sell_price_pack`).
+
 ## [v1.52.2-stable] - 2026-06-25
 
 ### Fixed (Satuan pcs/karton + Daftar Harga)

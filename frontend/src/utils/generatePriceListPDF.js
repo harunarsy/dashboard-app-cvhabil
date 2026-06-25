@@ -51,16 +51,18 @@ export function generatePriceListPDF(rows, options = {}) {
   doc.line(margin, margin + 33, pageWidth - margin, margin + 33);
 
   const tableData = rows.map((r, i) => {
-    const eceran = `${fmtRp(r.price)} / ${r.base_unit || 'pcs'}`;
-    const grosir = r.pack_price > 0 && r.pack_unit
-      ? `${fmtRp(r.pack_price)} / ${r.pack_unit}${r.pack_size > 1 ? ` (${r.pack_size} ${r.base_unit || 'pcs'})` : ''}`
-      : '-';
-    return [i + 1, r.code || '-', r.name, eceran, grosir];
+    const base = r.base_unit || 'pcs';
+    const eceran = `${fmtRp(r.price)} / ${base}`;
+    // Isi/Karton + Harga/Karton dibuat kolom terpisah (jelas dibaca customer).
+    const hasPack = r.pack_size > 1 && r.pack_unit;
+    const isiKarton = hasPack ? `${r.pack_size} ${base}` : '-';
+    const hargaKarton = r.pack_price > 0 && hasPack ? fmtRp(r.pack_price) : '-';
+    return [i + 1, r.code || '-', r.name, eceran, isiKarton, hargaKarton];
   });
 
   autoTable(doc, {
     startY: margin + 37,
-    head: [['No', 'Kode', 'Nama Produk', 'Harga Eceran', 'Harga Karton/Dus']],
+    head: [['No', 'Kode', 'Nama Produk', 'Harga Eceran', 'Isi/Karton', 'Harga/Karton']],
     body: tableData,
     theme: 'striped',
     headStyles: {
@@ -71,10 +73,11 @@ export function generatePriceListPDF(rows, options = {}) {
     alternateRowStyles: { fillColor: [248, 248, 250] },
     styles: { fontSize: 8.5, cellPadding: 1.6, lineWidth: 0 },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 10 },
-      1: { cellWidth: 32, fontStyle: 'bold' },
-      3: { halign: 'right', cellWidth: 38 },
-      4: { halign: 'right', cellWidth: 48 },
+      0: { halign: 'center', cellWidth: 9 },
+      1: { cellWidth: 28, fontStyle: 'bold' },
+      3: { halign: 'right', cellWidth: 33 },
+      4: { halign: 'center', cellWidth: 22 },
+      5: { halign: 'right', cellWidth: 33 },
     },
     margin: { left: margin, right: margin },
     didDrawPage: () => {

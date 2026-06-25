@@ -83,12 +83,13 @@ router.get('/', auth, async (req, res) => {
       SELECT p.id, p.code, p.name, p.category, p.base_unit, p.pack_unit, p.pack_size,
              p.sell_price, p.sell_price_pack, p.hna AS master_hna,
              lb.hna AS last_hna, lb.tax_type AS last_tax_type, lb.created_at AS last_purchase_at,
-             off.price AS list_price, off.effective_date,
+             -- v1.52.3: offline = harga inventory (sell_price), SATU sumber. Tidak lagi
+             -- pakai override price_list_entries 'offline' (selalu ikut sell_price).
+             NULL::numeric AS list_price, NULL::date AS effective_date,
              shp.price AS shopee_price, shp.effective_date AS shopee_date,
              tok.price AS tokopedia_price, tok.effective_date AS tokopedia_date
       FROM product_master p
       LEFT JOIN last_batch lb ON lb.product_id = p.id
-      LEFT JOIN ranked_entries off ON off.product_id = p.id AND off.channel = 'offline' AND off.rn = 1
       LEFT JOIN ranked_entries shp ON shp.product_id = p.id AND shp.channel = 'shopee' AND shp.rn = 1
       LEFT JOIN ranked_entries tok ON tok.product_id = p.id AND tok.channel = 'tokopedia_tiktok' AND tok.rn = 1
       WHERE p.is_active = TRUE
@@ -196,6 +197,23 @@ router.put('/:productId', auth, async (req, res) => {
     // v1.26.0: harga per saluran jual
     const channel = ['offline', 'shopee', 'tokopedia_tiktok'].includes(req.body?.channel)
       ? req.body.channel : 'offline';
+
+    // v1.52.3: harga OFFLINE = harga inventory (sell_price) — SATU sumber kebenaran.
+    // Edit offline di Daftar Harga menulis langsung ke product_master.sell_price
+    // (tidak bikin override price_list_entries lagi) supaya offline & inventory
+    // selalu sinkron dua arah. Shopee/Tokopedia tetap pakai override price_list.
+    if (channel === 'offline') {
+      const { rows: [updated] } = await pool.query(
+        `UPDATE product_master SET sell_price = $1, updated_at = NOW()
+         WHERE id = $2 AND is_active = TRUE RETURNING id, sell_price`,
+        [price, productId]
+      );
+      if (!updated) return res.status(404).json({ error: 'Produk tidak ditemukan' });
+      return res.json({
+        offline_synced: true, channel: 'offline',
+        price: parseFloat(updated.sell_price), effective_date: effectiveDate,
+      });
+    }
 
     const { rows: [product] } = await pool.query(
       'SELECT id FROM product_master WHERE id = $1 AND is_active = TRUE', [productId]

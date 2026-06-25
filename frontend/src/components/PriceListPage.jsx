@@ -834,7 +834,9 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
           r.category?.toLowerCase().includes(q),
       );
     }
-    if (onlyUnset) out = out.filter((r) => r.list_price == null);
+    // v1.52.3: "belum di-set" = belum ada harga inventory (sell_price), karena
+    // offline kini SATU sumber dgn sell_price (bukan override price_list lagi).
+    if (onlyUnset) out = out.filter((r) => !(parseFloat(r.sell_price) > 0));
     return out;
   }, [rows, search, onlyUnset]);
 
@@ -863,7 +865,7 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
   }, [pagedFiltered]);
 
   const stats = useMemo(() => {
-    const setCount = rows.filter((r) => r.list_price != null).length;
+    const setCount = rows.filter((r) => parseFloat(r.sell_price) > 0).length;
     return { set: setCount, unset: rows.length - setCount };
   }, [rows]);
 
@@ -884,6 +886,19 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
     setSavingKey(key);
     try {
       await priceListAPI.setPrice(r.id, { price, channel: channelKey });
+      // v1.52.3: offline = harga inventory (sell_price), SATU sumber. Edit offline
+      // menulis ke sell_price → kosongkan input agar kembali tampil "ikut inventory"
+      // dengan harga baru (tidak bikin override terpisah).
+      if (channelKey === "offline") {
+        queryClient.setQueryData(qk.priceList, (prev = []) =>
+          (prev || []).map((x) =>
+            x.id === r.id ? { ...x, sell_price: price, list_price: null } : x,
+          ),
+        );
+        setVals((prev) => ({ ...prev, [r.id]: { ...prev[r.id], offline: "" } }));
+        flash(`🏪 Offline · ${r.name} → ${fmtRp(price)} (tersinkron ke Inventory)`);
+        return;
+      }
       // optimistic: patch cache TanStack tanpa refetch penuh (cepat), efektif hari ini.
       queryClient.setQueryData(qk.priceList, (prev = []) =>
         (prev || []).map((x) =>

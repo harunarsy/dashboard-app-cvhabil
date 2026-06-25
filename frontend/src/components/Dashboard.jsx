@@ -38,9 +38,26 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.52.2-stable",
+    version: "v1.52.3-stable",
     date: "25 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Harga Offline di Daftar Harga sekarang SATU harga dengan Inventory — selalu sinkron dua arah. Ubah harga jual di Inventory → harga Offline ikut; ketik harga di kolom Offline → harga Inventory ikut. Sebelumnya Offline bisa 'nyangkut' di harga lama walau Inventory sudah diperbarui (mis. Entrakid Offline Rp66.000 padahal harusnya Rp70.000).",
+        dev: "Offline tidak lagi pakai override price_list_entries. priceList GET: list_price offline = NULL (selalu ikut sell_price). PUT channel=offline → UPDATE product_master.sell_price (single source). 13 override offline lama dihapus. PriceListPage: saveChannel offline patch sell_price; stat/filter 'sudah di-set' berbasis sell_price. Shopee/Tokopedia tetap pakai override sendiri.",
+      },
+      {
+        type: "fix",
+        text: "Cetak A4 Daftar Harga kini punya kolom terpisah 'Isi/Karton' dan 'Harga/Karton' yang jelas.",
+        dev: "generatePriceListPDF: kolom dipecah jadi No | Kode | Nama | Harga Eceran | Isi/Karton | Harga/Karton (dari pack_size & sell_price_pack).",
+      },
+    ],
+  },
+  {
+    version: "v1.52.2-stable",
+    date: "25 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
