@@ -38,9 +38,26 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.52.2-stable",
+    date: "25 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Daftar harga & HPP banyak produk diperbarui dari data terbaru. Diperbaiki juga bug satuan: beberapa produk salah hitung 'pcs' jadi 1 karton (mis. 3 pcs dianggap 72 pcs, harga ikut harga karton) — sekarang pilih 'pcs' = 1 biji, 'karton' = sesuai isi. Nota lama tidak berubah.",
+        dev: "DB prod: product_master hna(=HPP/1.11)/sell_price/pack_size/sell_price_pack di-update dari Excel (61 produk), inventory_batches.hna diisi utk 21 batch opname (HNA=0). Fix pack_unit: 49 produk pack_size>1 dgn pack_unit NULL/=base → set 'karton' (uom.isPackUnit hanya fire kalau unit===pack_unit; pack_unit='pcs' bikin base unit ke-treat sbg pack). sales_items snapshot tak disentuh.",
+      },
+      {
+        type: "fix",
+        text: "Saat memulihkan draft Nota, nomor batch yang sebelumnya sudah dipilih kini langsung muncul — tidak perlu klik manual lagi.",
+        dev: "SalesOrderList.loadDraft: dulu setItemBatches([]) → batch picker (render saat batches.length>0) hilang & _selected_batch_id tak ter-render. Sekarang fetch getProductBatches per item + re-match batch terpilih (by id, fallback batch_no), mirror alur openEdit.",
+      },
+    ],
+  },
+  {
     version: "v1.52.1-stable",
     date: "19 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "new",

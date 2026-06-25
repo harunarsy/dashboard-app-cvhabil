@@ -735,7 +735,7 @@ export default function SalesOrderList({
     return () => clearTimeout(draftDebounceRef.current);
   }, [form, items, showModal, editId]);
 
-  const loadDraft = () => {
+  const loadDraft = async () => {
     if (!savedDraft?.form) return;
     fetchCounters();
     setIsAutoNota(true);
@@ -750,6 +750,60 @@ export default function SalesOrderList({
     setDraftBanner(false);
     lastDraftSnapRef.current = "";
     setShowModal(true);
+
+    // v1.52.2: hidrasi batch per item saat draft dipulihkan — dulu itemBatches
+    // dikosongkan sehingga batch picker (render kalau batches.length>0) hilang &
+    // batch yang sebelumnya terpilih tidak muncul sampai user klik manual.
+    // Mirror alur Edit: fetch semua batch per produk lalu re-match batch terpilih.
+    for (let idx = 0; idx < draftItems.length; idx++) {
+      const item = draftItems[idx];
+      if (!item?.product_name) continue;
+      const prod = products.find(
+        (p) => p.name?.toLowerCase() === item.product_name?.toLowerCase(),
+      );
+      if (!prod) continue;
+      try {
+        const { data: allBatches } = await inventoryAPI.getProductBatches(
+          prod.id,
+        );
+        const batches = allBatches || [];
+        // re-match batch terpilih: by id dulu, fallback ke batch_no
+        const selId = item._selected_batch_id;
+        const selNo = item._selected_batch || item.batch_no_snapshot;
+        let matched = null;
+        if (selId != null && !String(selId).startsWith("legacy-")) {
+          matched = batches.find((b) => String(b.id) === String(selId));
+        }
+        if (!matched && selNo) {
+          matched = batches.find((b) => b.batch_no === selNo);
+        }
+        setItemBatches((prev) => {
+          const n = [...prev];
+          n[idx] = batches;
+          return n;
+        });
+        setItems((prev) => {
+          const n = [...prev];
+          if (n[idx]) {
+            n[idx] = {
+              ...n[idx],
+              _product: prod,
+              ...(matched
+                ? {
+                    _selected_batch_id: matched.id,
+                    _selected_batch: matched.batch_no,
+                    batch_no_snapshot: matched.batch_no,
+                    expired_date_snapshot: matched.expired_date,
+                  }
+                : {}),
+            };
+          }
+          return n;
+        });
+      } catch (e) {
+        console.error("Error hidrasi batch draft:", e);
+      }
+    }
   };
 
   const dismissDraft = async () => {

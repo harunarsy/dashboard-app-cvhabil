@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.52.2-stable] - 2026-06-25
+
+### Fixed (Satuan pcs/karton + Daftar Harga)
+- **Bug satuan pcs ke-treat sebagai karton**: produk dengan `pack_size>1` tapi `pack_unit` NULL atau sama dengan base unit (`pcs`) membuat satuan `pcs` salah dikali isi karton (mis. `3 pcs` jadi `72 pcs`, harga jual ikut harga per-karton).
+  - Fix DB prod: 49 produk → `pack_unit='karton'` (uom `isPackUnit` hanya aktif kalau `unit===pack_unit`; `pack_unit='pcs'` bikin base unit dianggap pack). Sekarang `pcs` = 1 biji, `karton` = sesuai isi.
+- **Update harga & HPP massal dari Excel**: `product_master` (hna=HPP/1.11, sell_price, pack_size, sell_price_pack) di-update untuk 61 produk; `inventory_batches.hna` diisi untuk 21 batch hasil opname yang HNA-nya 0.
+  - Snapshot `sales_items` & cost batch riil **tidak disentuh** → nota lama tidak berubah, hanya nota baru ikut harga baru.
+
+### Fixed (Draft Nota)
+- **Batch terpilih muncul saat draft dipulihkan**: `loadDraft` dulu mengosongkan `itemBatches` sehingga batch picker (render saat `batches.length>0`) hilang dan batch yang sebelumnya dipilih tak tampil sampai diklik manual. Kini fetch `getProductBatches` per item + re-match batch terpilih (by id, fallback batch_no), mirror alur `openEdit`.
+
 ## [v1.52.1-stable] - 2026-06-19
 
 ### Added (Faktur Pembelian)
