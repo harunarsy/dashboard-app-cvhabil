@@ -2605,7 +2605,7 @@ export default function SalesOrderList({
                               openPaymentModal(o);
                             }}
                           >
-                            {fmtDate(o.paid_at)} ✏️
+                            {fmtDateDay(o.paid_at)} ✏️
                           </p>
                         )}
                         {o.payment_status !== "paid" &&

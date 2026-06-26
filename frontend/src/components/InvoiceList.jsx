@@ -3966,7 +3966,13 @@ function InvoiceRow({
                 fontWeight: "600",
               }}
             >
-              ✅ {formatLocalDate(inv.payment_date)}
+              ✅{" "}
+              {formatLocalDate(inv.payment_date, {
+                weekday: "long",
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}
             </div>
           )}
           {expanded && (

@@ -526,6 +526,38 @@ const invoiceItemsChanged = async (client, invoiceId, nextItems = []) => {
   return JSON.stringify(current) !== JSON.stringify(next);
 };
 
+// v1.52.5: hanya field yang MEMENGARUHI STOK (produk + qty base + satuan).
+// No. Batch & Expired Date adalah metadata → boleh diedit walau stok sudah
+// diposting (tidak mengubah jumlah stok). Dipakai PUT untuk memutuskan tolak/izinkan.
+const canonicalStockKey = (productId, productName, qtyBase, unit) =>
+  JSON.stringify({
+    product_id: productId ? Number.parseInt(productId, 10) || null : null,
+    product_name: normalizeProductName(productName),
+    quantity: roundQty(qtyBase),
+    unit: unit || 'pcs',
+  });
+const invoiceStockFieldsChanged = async (client, invoiceId, nextItems = []) => {
+  const { rows: currentItems } = await client.query(
+    `SELECT product_id, product_name, quantity, unit FROM invoice_items
+     WHERE invoice_id = $1 ORDER BY id`,
+    [invoiceId]
+  );
+  if (currentItems.length !== nextItems.length) return true;
+  const current = currentItems.map((it) =>
+    canonicalStockKey(it.product_id, it.product_name, it.quantity, it.unit),
+  );
+  const next = [];
+  for (const item of nextItems) {
+    const { product } = await resolveProductByIdOrName(client, item);
+    const unit = item.unit || product?.base_unit || 'pcs';
+    const qtyBase = product
+      ? uom.toBase(toNumber(item.quantity), unit, product)
+      : toNumber(item.quantity);
+    next.push(canonicalStockKey(product?.id ?? item.product_id, item.product_name, qtyBase, unit));
+  }
+  return JSON.stringify(current) !== JSON.stringify(next);
+};
+
 // GET all invoices
 router.get('/', auth, async (req, res) => {
   try {
@@ -898,17 +930,21 @@ router.put('/:id', auth, async (req, res) => {
       [id]
     );
     const hasStockMutations = mutationRows.length > 0;
-    const allowItemRewrite = items !== undefined
-      ? !(hasStockMutations && await invoiceItemsChanged(client, id, items || []))
+    // v1.52.5: stok sudah diposting → qty/produk dikunci, TAPI No. Batch & ED
+    // (metadata) tetap boleh diedit (tidak mengubah jumlah stok).
+    const stockFieldsChanged = items !== undefined && hasStockMutations
+      ? await invoiceStockFieldsChanged(client, id, items || [])
       : false;
-    if (items !== undefined && hasStockMutations && !allowItemRewrite) {
+    if (items !== undefined && hasStockMutations && stockFieldsChanged) {
       await client.query('ROLLBACK');
       return res.status(400).json({
-        error: 'Qty faktur posted tidak bisa diedit — koreksi lewat Stok Opname',
+        error: 'Qty/produk faktur yang sudah masuk stok tidak bisa diedit — koreksi lewat Stok Opname. (No. Batch & Expired Date tetap bisa diedit.)',
       });
     }
 
     const shouldRewriteItems = items !== undefined && !hasStockMutations;
+    // Metadata-only: stok diposting & qty/produk tak berubah → patch batch_no/ED saja.
+    const shouldPatchItemMeta = items !== undefined && hasStockMutations && !stockFieldsChanged;
     const productLookup = shouldRewriteItems && invoiceItems.length > 0
       ? await loadProductLookupForItems(client, invoiceItems)
       : emptyProductLookup();
@@ -968,6 +1004,47 @@ router.put('/:id', auth, async (req, res) => {
         `UPDATE inventory_batches SET ppn_rate = $1 WHERE source_type = 'faktur' AND source_ref = $2`,
         [resolvedPpnRate, `invoice-${id}`]
       );
+    }
+
+    // v1.52.5: edit METADATA item (No. Batch & Expired Date) untuk faktur yang
+    // stoknya sudah diposting — update invoice_items + inventory_batches terkait
+    // TANPA menyentuh qty/mutasi stok. Match batch via source_ref + product_id +
+    // nilai lama (batch_no kosong default = invoice_number saat batch dibuat).
+    if (shouldPatchItemMeta) {
+      const invNo = result.rows[0].invoice_number;
+      const { rows: storedItems } = await client.query(
+        'SELECT id, product_id, batch_number, expired_date FROM invoice_items WHERE invoice_id = $1 ORDER BY id',
+        [id]
+      );
+      let metaChanged = false;
+      for (let idx = 0; idx < storedItems.length; idx++) {
+        const stored = storedItems[idx];
+        const next = invoiceItems[idx];
+        if (!next) continue;
+        const newBatch = next.batch_number || null;
+        const newEd = toDateOnly(next.expired_date);
+        const oldBatch = stored.batch_number || null;
+        const oldEd = toDateOnly(stored.expired_date);
+        if ((newBatch || '') === (oldBatch || '') && (newEd || '') === (oldEd || '')) continue;
+        metaChanged = true;
+        await client.query(
+          'UPDATE invoice_items SET batch_number = $1, expired_date = $2 WHERE id = $3',
+          [newBatch, newEd, stored.id]
+        );
+        await client.query(
+          `UPDATE inventory_batches
+             SET batch_no = $1, expired_date = $2
+           WHERE source_type = 'faktur' AND source_ref = $3 AND product_id = $4
+             AND COALESCE(batch_no, '') = COALESCE($5, '')
+             AND COALESCE(expired_date::text, '') = COALESCE($6, '')`,
+          [newBatch || invNo, newEd, `invoice-${id}`, stored.product_id,
+           oldBatch || invNo, oldEd]
+        );
+      }
+      if (metaChanged) {
+        await logAudit(id, invNo, 'UPDATE', { note: 'Edit No. Batch / Expired Date item' },
+          'Metadata batch/ED diperbarui (stok tidak berubah)');
+      }
     }
 
     if (shouldRewriteItems) {

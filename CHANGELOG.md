@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.52.5-stable] - 2026-06-26
+
+### Fixed (Edit No. Batch & ED faktur sudah posting stok)
+- **Faktur yang sudah masuk stok kini tetap bisa edit No. Batch & Expired Date**. Sebelumnya `invoiceItemsChanged` ikut membandingkan `batch_number`/`expired_date` → perubahan metadata dianggap "ubah item" → backend menolak **400** ("Qty faktur posted tidak bisa diedit").
+  - `PUT /invoices/:id`: guard baru `invoiceStockFieldsChanged` (bandingkan **produk + qtyBase + unit** saja). Tolak hanya jika field stok berubah.
+  - Jalur `shouldPatchItemMeta`: update `invoice_items.batch_number/expired_date` + `inventory_batches` terkait (match `source_ref`+`product_id`+nilai lama; batch_no kosong default = invoice_number) **tanpa** menyentuh qty/mutasi stok. + audit log.
+
+### Added (Nama hari di tanggal bayar)
+- Tanggal **LUNAS/bayar** di Nota Penjualan (`paid_at`) & Faktur Pembelian (`payment_date`) kini menampilkan nama hari (mis. "Jumat, 26 Jun 2026").
+
 ## [v1.52.4-stable] - 2026-06-25
 
 ### Added (Info jatuh tempo lebih jelas)

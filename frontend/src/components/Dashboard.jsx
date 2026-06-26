@@ -38,9 +38,26 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.52.5-stable",
+    date: "26 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Faktur Pembelian yang barangnya sudah masuk stok kini tetap bisa diedit No. Batch & Expired Date-nya (sebelumnya gagal/ditolak). Qty & produk tetap dikunci demi riwayat stok — koreksi qty lewat Stok Opname.",
+        dev: "PUT /invoices/:id: ganti guard invoiceItemsChanged (yg ikut bandingin batch/ED) → invoiceStockFieldsChanged (produk+qtyBase+unit saja). Tambah jalur shouldPatchItemMeta: update invoice_items.batch_number/expired_date + inventory_batches terkait (match source_ref+product_id+nilai lama) tanpa menyentuh qty/mutasi stok.",
+      },
+      {
+        type: "new",
+        text: "Tanggal LUNAS/bayar di Nota Penjualan & Faktur Pembelian sekarang menampilkan nama hari juga (mis. 'Jumat, 26 Jun 2026').",
+        dev: "SalesOrderList paid_at pakai fmtDateDay; InvoiceList payment_date pakai formatLocalDate weekday:long.",
+      },
+    ],
+  },
+  {
     version: "v1.52.4-stable",
     date: "25 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "new",
