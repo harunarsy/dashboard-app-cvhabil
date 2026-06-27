@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.52.6-stable] - 2026-06-27
+
+### Fixed (Nota/Faktur lama "hilang" dari daftar — limit list)
+- **Nota & faktur lama (April–Mei) tidak muncul** padahal ada di DB. Penyebab: `GET /sales` & `GET /invoices` default `limit 100`, di-sort tanggal terbaru → 63 nota terlama (dari 163 aktif) terpotong. **Tidak ada data hilang.**
+  - Backend: cap limit `500 → 5000` di kedua route.
+  - Frontend: `salesAPI.getAll` & `invoicesAPI.getAll` kirim `params.limit = 5000` (sebelumnya tidak kirim → kena default 100).
+
 ## [v1.52.5-stable] - 2026-06-26
 
 ### Fixed (Edit No. Batch & ED faktur sudah posting stok)

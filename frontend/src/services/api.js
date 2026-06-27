@@ -101,7 +101,7 @@ export const ordersAPI = {
 };
 
 export const invoicesAPI = {
-  getAll: () => api.get('/invoices'),
+  getAll: () => api.get('/invoices', { params: { limit: 5000 } }),
   getById: (id) => api.get(`/invoices/${id}`),
   getTrash: () => api.get('/invoices/trash'),
   getDraft: () => api.get('/invoices/draft'),
@@ -250,7 +250,7 @@ export const insightsAPI = {
 };
 
 export const salesAPI = {
-  getAll: () => api.get('/sales'),
+  getAll: () => api.get('/sales', { params: { limit: 5000 } }),
   getById: (id) => api.get(`/sales/${id}`),
   getDraft: () => api.get('/sales/draft'),
   saveDraft: (data) => api.post('/sales/draft', { draft_data: data }),

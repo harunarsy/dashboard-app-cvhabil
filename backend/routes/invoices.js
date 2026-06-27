@@ -561,7 +561,8 @@ const invoiceStockFieldsChanged = async (client, invoiceId, nextItems = []) => {
 // GET all invoices
 router.get('/', auth, async (req, res) => {
   try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 100, 1), 500);
+    // v1.52.6: cap 500→5000 — faktur lama jangan kepotong dari list saat data tumbuh.
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 100, 1), 5000);
     const result = await pool.query(`
       SELECT i.*,
         COUNT(ii.id) AS item_count,

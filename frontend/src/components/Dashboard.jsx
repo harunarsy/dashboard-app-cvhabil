@@ -38,9 +38,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.52.6-stable",
+    date: "27 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "PENTING: nota & faktur lama (mis. April–Mei) yang sebelumnya tidak muncul di daftar kini tampil semua. Datanya tidak pernah hilang — daftar dulu dibatasi 100 data terbaru sehingga yang lama terpotong. Sekarang seluruh nota/faktur dimuat.",
+        dev: "GET /sales & /invoices: cap limit 500→5000. salesAPI.getAll & invoicesAPI.getAll kirim params limit:5000 (default backend dulu 100 → 63 nota terlama kepotong dari 163 aktif).",
+      },
+    ],
+  },
+  {
     version: "v1.52.5-stable",
     date: "26 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",

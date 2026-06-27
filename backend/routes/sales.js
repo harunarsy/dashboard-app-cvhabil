@@ -294,7 +294,9 @@ const syncCustomerContact = async ({ customerId, customerName, phone, address })
 // GET all (excluding soft-deleted)
 router.get('/', auth, async (req, res) => {
   try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 100, 1), 500);
+    // v1.52.6: cap dinaikkan 500→5000 — list nota terus bertambah; default 100 dulu
+    // bikin nota lama (April/Mei) kepotong dari list walau ada di DB.
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 100, 1), 5000);
     const { rows } = await pool.query(
       `SELECT s.*, COALESCE(s.customer_phone, MAX(c.phone)) AS customer_phone,
         COALESCE(json_agg(i ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
