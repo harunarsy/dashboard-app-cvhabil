@@ -99,25 +99,34 @@ export function generateNotaPDF(order, options = {}) {
   doc.setFontSize(baseFontSize);
   doc.setTextColor(0);
   doc.setFont('helvetica', 'normal');
-  doc.text('Kepada Yth:', margin, customerY);
-  doc.setFont('helvetica', 'bold');
-  doc.text(String(order.customer_name || '-'), margin + (isA6 ? 16 : 22), customerY);
-
-  // v1.49.0: No. HP lalu Alamat TANPA label (langsung nilainya); alamat panjang
-  // di-wrap supaya tidak nabrak kolom Metode kanan / ketutupan tabel.
-  let addressY = customerY;
   const contactX = margin + (isA6 ? 18 : 22);
   const contactStep = isA6 ? 3.4 : 4.2;
+  // v1.52.8: nama/HP/alamat panjang WAJIB di-wrap — kalau tidak, teks tanpa spasi
+  // narik melebar ke kanan / nabrak kolom Metode. maxTextW konsisten utk ketiganya.
+  const maxTextW = pageWidth - contactX - margin - (isA6 ? 26 : 40);
+  doc.text('Kepada Yth:', margin, customerY);
+  doc.setFont('helvetica', 'bold');
+  const nameX = margin + (isA6 ? 16 : 22);
+  let addressY = customerY;
+  const nameLines = doc.splitTextToSize(String(order.customer_name || '-'), maxTextW);
+  nameLines.forEach((ln, i) => {
+    if (i > 0) addressY += contactStep;
+    doc.text(ln, nameX, addressY);
+  });
+
+  // v1.49.0: No. HP lalu Alamat TANPA label (langsung nilainya); semua di-wrap.
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize - 2);
   doc.setTextColor(40, 40, 40);
   if (order.customer_phone) {
-    addressY += contactStep;
-    doc.text(String(order.customer_phone), contactX, addressY);
+    const phoneLines = doc.splitTextToSize(String(order.customer_phone), maxTextW);
+    phoneLines.forEach((ln) => {
+      addressY += contactStep;
+      doc.text(ln, contactX, addressY);
+    });
   }
   if (order.customer_address) {
-    const maxAddrW = pageWidth - contactX - margin - (isA6 ? 26 : 40);
-    const addrLines = doc.splitTextToSize(String(order.customer_address), maxAddrW);
+    const addrLines = doc.splitTextToSize(String(order.customer_address), maxTextW);
     addrLines.forEach((ln) => {
       addressY += contactStep;
       doc.text(ln, contactX, addressY);

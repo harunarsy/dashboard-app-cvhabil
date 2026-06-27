@@ -84,12 +84,14 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
 
       <div style={{ height: '1.5px', backgroundColor: 'var(--color-primary)', marginBottom: '8px', borderRadius: '2px' }} />
 
-      {/* Customer — v1.23.0: No. HP & Alamat berlabel di bawah nama */}
-      <div style={{ marginBottom: '8px' }}>
+      {/* Customer — v1.23.0: No. HP & Alamat berlabel di bawah nama.
+          v1.52.8: overflowWrap 'anywhere' supaya nama/HP/alamat panjang (mis. teks
+          tanpa spasi) membungkus ke bawah, tidak narik melebar ke kanan. */}
+      <div style={{ marginBottom: '8px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
         <span style={{ fontSize: '11px', color: subText }}>Kepada Yth: </span>
-        <span style={{ fontSize: '11px', fontWeight: '700', color: bodyText }}>{customer_name || '—'}</span>
-        {customer_phone && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px' }}>{customer_phone}</div>}
-        {customer_address && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px', lineHeight: '1.45' }}>{customer_address}</div>}
+        <span style={{ fontSize: '11px', fontWeight: '700', color: bodyText, overflowWrap: 'anywhere' }}>{customer_name || '—'}</span>
+        {customer_phone && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px', overflowWrap: 'anywhere' }}>{customer_phone}</div>}
+        {customer_address && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px', lineHeight: '1.45', overflowWrap: 'anywhere' }}>{customer_address}</div>}
       </div>
 
       {/* Items table */}

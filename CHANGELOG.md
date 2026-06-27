@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.52.8-stable] - 2026-06-27
+
+### Fixed (Nama/HP/alamat panjang melar di nota)
+- **Nama, No. HP, dan alamat customer panjang** kini membungkus ke baris berikutnya, tidak menarik melebar ke kanan / keluar area nota — di **preview live** maupun **PDF cetak**.
+  - `NotaPreview`: `overflowWrap: 'anywhere'` + `wordBreak` pada nama/HP/alamat.
+  - `generateNotaPDF`: nama & HP di-`splitTextToSize` (maxTextW konsisten dgn alamat), `addressY` mengikuti baris tambahan agar tidak tumpuk.
+
 ## [v1.52.7-stable] - 2026-06-27
 
 ### Added (Trash Nota info lengkap)

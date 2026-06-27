@@ -38,9 +38,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.52.7-stable",
+    version: "v1.52.8-stable",
     date: "27 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Nama, No. HP, dan alamat customer yang panjang di nota kini otomatis turun ke baris berikutnya — tidak lagi melar menarik ke kanan / keluar dari area nota (di preview live maupun PDF cetak).",
+        dev: "NotaPreview: overflowWrap 'anywhere'+wordBreak pada nama/HP/alamat. generateNotaPDF: nama & HP kini di-splitTextToSize (maxTextW konsisten dgn alamat), addressY mengikuti baris tambahan.",
+      },
+    ],
+  },
+  {
+    version: "v1.52.7-stable",
+    date: "27 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "new",
