@@ -346,9 +346,14 @@ router.delete('/draft/clear', auth, async (req, res) => {
 // Wajib di atas '/:id' supaya '/trash' tidak ketangkap sebagai id.
 router.get('/trash', auth, async (req, res) => {
   try {
+    // v1.52.7: sertakan items + telepon (sama spt list utama) supaya modal Trash
+    // bisa tampilkan detail lengkap (produk, batch/ED, margin, status bayar).
     const { rows } = await pool.query(
-      `SELECT s.*, COUNT(i.id) AS item_count
+      `SELECT s.*, COALESCE(s.customer_phone, MAX(c.phone)) AS customer_phone,
+        COUNT(i.id) AS item_count,
+        COALESCE(json_agg(i ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
        FROM sales_orders s
+       LEFT JOIN customers c ON s.customer_id = c.id
        LEFT JOIN sales_items i ON i.sales_order_id = s.id
        WHERE s.is_deleted = TRUE
        GROUP BY s.id

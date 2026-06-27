@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.52.7-stable] - 2026-06-27
+
+### Added (Trash Nota info lengkap)
+- **Modal Trash Nota** kini menampilkan detail lengkap (seperti baris nota yang di-expand): rincian produk (qty, satuan, HPP, harga, subtotal, margin), **No. Batch & ED**, **status bayar** (LUNAS + tanggal / BELUM BAYAR + jatuh tempo + sisa hari), tanggal nota, dan saluran.
+  - `GET /sales/trash`: tambah `json_agg(items)` + `customer_phone` (mirror list utama).
+  - `SalesOrderList` modal Trash dirombak: header + status bayar (`fmtDateDay`/`notaDaysDiff`) + daftar item (`hppIncFor`/`saleItemDisplayQty` → subtotal & margin, batch/ED).
+
 ## [v1.52.6-stable] - 2026-06-27
 
 ### Fixed (Nota/Faktur lama "hilang" dari daftar — limit list)

@@ -38,9 +38,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.52.6-stable",
+    version: "v1.52.7-stable",
     date: "27 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Trash Nota kini menampilkan info lengkap seperti nota biasa: rincian produk (qty, satuan, HPP, harga, subtotal, margin), No. Batch & ED, status bayar (LUNAS + tanggal / BELUM BAYAR + jatuh tempo), tanggal nota, dan saluran. Jadi bisa dicek detailnya sebelum dipulihkan.",
+        dev: "GET /sales/trash: tambah json_agg items + customer_phone (mirror list utama). SalesOrderList modal Trash dirombak: header (no/tanggal/channel/customer/total) + status bayar (paid_at/due_date pakai fmtDateDay + notaDaysDiff) + daftar item (hppIncFor/saleItemDisplayQty → subtotal & margin + batch/ED).",
+      },
+    ],
+  },
+  {
+    version: "v1.52.6-stable",
+    date: "27 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

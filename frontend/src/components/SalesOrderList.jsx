@@ -1998,58 +1998,152 @@ export default function SalesOrderList({
                   </p>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {trashItems.map((t) => (
-                      <div
-                        key={t.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "12px",
-                          padding: "12px 14px",
-                          borderRadius: "10px",
-                          border: `1px solid ${border}`,
-                          backgroundColor: "var(--color-surface-elevated)",
-                        }}
-                      >
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: "700", color: text, fontSize: "13.5px" }}>
-                            {t.order_number}
+                    {trashItems.map((t) => {
+                      const tItems = Array.isArray(t.items) ? t.items : [];
+                      const paid = t.payment_status === "paid";
+                      const dueDiff = !paid ? notaDaysDiff(t.due_date) : null;
+                      return (
+                        <div
+                          key={t.id}
+                          style={{
+                            padding: "12px 14px",
+                            borderRadius: "10px",
+                            border: `1px solid ${border}`,
+                            backgroundColor: "var(--color-surface-elevated)",
+                          }}
+                        >
+                          {/* Header: no nota + tanggal + customer + Pulihkan */}
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              justifyContent: "space-between",
+                              gap: "12px",
+                            }}
+                          >
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: "700", color: text, fontSize: "13.5px" }}>
+                                {t.order_number}
+                                <span style={{ fontWeight: "500", color: sub, fontSize: "11.5px" }}>
+                                  {"  "}· {fmtDate(t.sale_date)}
+                                  {t.channel ? ` · ${String(t.channel).toUpperCase()}` : ""}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: "12px", color: text, marginTop: "2px", fontWeight: 600 }}>
+                                {t.customer_name || "-"}
+                              </div>
+                              <div style={{ fontSize: "12px", color: sub, marginTop: "1px" }}>
+                                {fmtRp(t.total)} · {t.item_count || tItems.length || 0} item
+                              </div>
+                              {/* status bayar */}
+                              <div style={{ fontSize: "11px", marginTop: "3px" }}>
+                                {paid ? (
+                                  <span style={{ color: "var(--color-success)", fontWeight: 700 }}>
+                                    LUNAS{t.paid_at ? ` · ${fmtDateDay(t.paid_at)}` : ""}
+                                  </span>
+                                ) : (
+                                  <span style={{ color: "var(--color-danger)", fontWeight: 700 }}>
+                                    BELUM BAYAR
+                                    {t.due_date ? ` · jatuh tempo ${fmtDateDay(t.due_date)}` : ""}
+                                    {dueDiff !== null
+                                      ? dueDiff < 0
+                                        ? ` (telat ${Math.abs(dueDiff)} hari)`
+                                        : dueDiff === 0
+                                          ? " (hari ini)"
+                                          : ` (${dueDiff} hari lagi)`
+                                      : ""}
+                                  </span>
+                                )}
+                              </div>
+                              {t.updated_at && (
+                                <div style={{ fontSize: "11px", color: sub, marginTop: "1px" }}>
+                                  dihapus {formatRelativeTime(t.updated_at)}
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleRestore(t.id)}
+                              disabled={restoringId === t.id}
+                              className="ui-motion-button ui-focus-ring"
+                              style={{
+                                flexShrink: 0,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                padding: "8px 14px",
+                                backgroundColor: "var(--color-primary)",
+                                color: "#FFF",
+                                border: "none",
+                                borderRadius: "8px",
+                                cursor: restoringId === t.id ? "wait" : "pointer",
+                                fontWeight: "700",
+                                fontSize: "12.5px",
+                                opacity: restoringId === t.id ? 0.6 : 1,
+                              }}
+                            >
+                              <RotateCcw size={14} />
+                              {restoringId === t.id ? "Memulihkan…" : "Pulihkan"}
+                            </button>
                           </div>
-                          <div style={{ fontSize: "12px", color: sub, marginTop: "2px" }}>
-                            {t.customer_name} · {fmtRp(t.total)} · {t.item_count || 0} item
-                          </div>
-                          {t.updated_at && (
-                            <div style={{ fontSize: "11px", color: sub }}>
-                              dihapus {formatRelativeTime(t.updated_at)}
+                          {/* Detail item */}
+                          {tItems.length > 0 && (
+                            <div
+                              style={{
+                                marginTop: "10px",
+                                paddingTop: "8px",
+                                borderTop: `1px dashed ${border}`,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "6px",
+                              }}
+                            >
+                              {tItems.map((it, idx) => {
+                                const hppInc = hppIncFor(it);
+                                const qtyUnit = saleItemDisplayQty(it);
+                                const subtotal = (parseFloat(it.unit_price) || 0) * qtyUnit;
+                                const margin = ((parseFloat(it.unit_price) || 0) - hppInc) * qtyUnit;
+                                return (
+                                  <div key={idx} style={{ fontSize: "11.5px" }}>
+                                    <div style={{ color: text, fontWeight: 600 }}>
+                                      {it.product_name}
+                                    </div>
+                                    {(it.batch_no_snapshot || it.expired_date_snapshot) && (
+                                      <div style={{ color: sub, fontSize: "10px" }}>
+                                        {it.batch_no_snapshot
+                                          ? `Batch ${it.batch_no_snapshot}`
+                                          : "(tanpa no. batch)"}
+                                        {it.expired_date_snapshot
+                                          ? ` · ED ${fmtDate(it.expired_date_snapshot)}`
+                                          : ""}
+                                      </div>
+                                    )}
+                                    <div style={{ color: sub, marginTop: "1px" }}>
+                                      {qtyUnit} {it.unit} × {fmtRp(it.unit_price)} ={" "}
+                                      <span style={{ color: text, fontWeight: 600 }}>
+                                        {fmtRp(subtotal)}
+                                      </span>
+                                      {" · "}HPP {fmtRp(hppInc)}
+                                      {" · "}
+                                      <span
+                                        style={{
+                                          color:
+                                            margin >= 0
+                                              ? "var(--color-success)"
+                                              : "var(--color-danger)",
+                                          fontWeight: 600,
+                                        }}
+                                      >
+                                        margin {fmtRp(margin)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
-                        <button
-                          onClick={() => handleRestore(t.id)}
-                          disabled={restoringId === t.id}
-                          className="ui-motion-button ui-focus-ring"
-                          style={{
-                            flexShrink: 0,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            padding: "8px 14px",
-                            backgroundColor: "var(--color-primary)",
-                            color: "#FFF",
-                            border: "none",
-                            borderRadius: "8px",
-                            cursor: restoringId === t.id ? "wait" : "pointer",
-                            fontWeight: "700",
-                            fontSize: "12.5px",
-                            opacity: restoringId === t.id ? 0.6 : 1,
-                          }}
-                        >
-                          <RotateCcw size={14} />
-                          {restoringId === t.id ? "Memulihkan…" : "Pulihkan"}
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
