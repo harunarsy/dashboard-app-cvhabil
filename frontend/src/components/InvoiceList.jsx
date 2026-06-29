@@ -1744,9 +1744,9 @@ export default function InvoiceList({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "1rem",
-          marginBottom: "1.5rem",
+          gridTemplateColumns: "repeat(auto-fit, minmax(165px, 1fr))",
+          gap: "0.75rem",
+          marginBottom: "0.875rem",
         }}
       >
         {[
@@ -1778,9 +1778,9 @@ export default function InvoiceList({
           <div
             key={i}
             className="ui-stat-card-fluid ui-hover-delight ui-motion-card"
-            style={{ ...S.card, padding: "1.25rem" }}
+            style={{ ...S.card, padding: "0.85rem 1rem" }}
           >
-            <div style={{ fontSize: "1.5rem", marginBottom: "6px" }}>
+            <div style={{ fontSize: "1.05rem", marginBottom: "3px" }}>
               {m.icon}
             </div>
             <p
@@ -1819,8 +1819,8 @@ export default function InvoiceList({
         <div
           className="ui-panel ui-motion-card"
           style={{
-            padding: "1rem 1.25rem",
-            marginBottom: "1.25rem",
+            padding: "0.75rem 1rem",
+            marginBottom: "0.875rem",
           }}
         >
           <div
@@ -1828,7 +1828,7 @@ export default function InvoiceList({
               display: "flex",
               alignItems: "center",
               gap: "12px",
-              marginBottom: "10px",
+              marginBottom: "8px",
               flexWrap: "wrap",
             }}
           >
@@ -1906,8 +1906,8 @@ export default function InvoiceList({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: "8px",
+              gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))",
+              gap: "6px",
             }}
           >
             {distSummary.map((d, i) => {
@@ -2015,20 +2015,20 @@ export default function InvoiceList({
             className="btn-primary ui-motion-button ui-focus-ring"
             data-magnetic="true"
             style={{
-              padding: "10px 20px",
+              padding: "8px 14px",
               backgroundColor: "var(--color-primary)",
               color: "white",
               border: "none",
-              borderRadius: "10px",
+              borderRadius: "9px",
               cursor: "pointer",
-              fontWeight: "600",
-              fontSize: "14px",
+              fontWeight: "700",
+              fontSize: "13px",
               display: "flex",
               alignItems: "center",
               gap: "6px",
             }}
           >
-            <Plus size={16} /> Buat Faktur
+            <Plus size={15} /> Buat Faktur
           </button>
           <button
             onClick={() => {
@@ -2036,7 +2036,7 @@ export default function InvoiceList({
               if (!showTrash) fetchTrash();
             }}
             style={{
-              padding: "10px 16px",
+              padding: "8px 14px",
               backgroundColor: showTrash
                 ? "var(--color-danger)"
                 : isDarkMode
@@ -2044,10 +2044,10 @@ export default function InvoiceList({
                   : "var(--color-border)",
               color: showTrash ? "white" : isDarkMode ? "#FFF" : "#000",
               border: "none",
-              borderRadius: "10px",
+              borderRadius: "9px",
               cursor: "pointer",
-              fontWeight: "600",
-              fontSize: "14px",
+              fontWeight: "700",
+              fontSize: "13px",
               display: "flex",
               alignItems: "center",
               gap: "6px",

@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.53.6-stable] - 2026-06-29
+
+### Changed (UI density batch 3 — Faktur Pembelian)
+- KPI cards (HNA*Qty/PPN/HNA Final/Jumlah) lebih kecil & rapat (grid minmax 200→165, padding 1.25→0.85rem). Rekap per distributor dirapatkan (grid minmax 280→230). Tombol Buat Faktur/Trash diperkecil.
+
 ## [v1.53.5-stable] - 2026-06-29
 
 ### Changed (UI density batch 2 — Nota filter & Inventory)

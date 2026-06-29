@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.53.5-stable",
+    version: "v1.53.6-stable",
     date: "29 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Faktur Pembelian dirapatkan: kartu ringkasan (HNA*Qty, PPN, dll) & rekap per distributor lebih kecil dan rapat, tombol Buat Faktur/Trash diperkecil — biar tidak makan tempat.",
+        dev: "InvoiceList: KPI grid minmax 200→165, padding 1.25→0.85rem, icon 1.5→1.05rem; rekap padding/margin & grid minmax 280→230; tombol Buat Faktur/Trash 13px/9px radius.",
+      },
+    ],
+  },
+  {
+    version: "v1.53.5-stable",
+    date: "29 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
