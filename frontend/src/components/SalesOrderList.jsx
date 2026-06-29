@@ -1719,12 +1719,12 @@ export default function SalesOrderList({
 
   const inputStyle = {
     width: "100%",
-    padding: "10px 12px",
+    padding: "7px 10px",
     border: `1px solid ${border}`,
-    borderRadius: "10px",
+    borderRadius: "9px",
     backgroundColor: "var(--color-surface-elevated)",
     color: text,
-    fontSize: "14px",
+    fontSize: "13px",
     outline: "none",
     boxSizing: "border-box",
   };
@@ -1770,17 +1770,17 @@ export default function SalesOrderList({
               display: "flex",
               alignItems: "center",
               gap: "6px",
-              padding: "10px 18px",
+              padding: "8px 14px",
               backgroundColor: "var(--color-success)",
               color: "#FFF",
               border: "none",
-              borderRadius: "10px",
+              borderRadius: "9px",
               cursor: "pointer",
               fontWeight: "700",
-              fontSize: "14px",
+              fontSize: "13px",
             }}
           >
-            <Plus size={18} /> Buat Nota
+            <Plus size={15} /> Buat Nota
           </button>
           <button
             onClick={() => {
@@ -1801,13 +1801,13 @@ export default function SalesOrderList({
                   : "var(--color-border)",
               color: showTrash ? "#FFF" : isDarkMode ? "#FFF" : "#000",
               border: "none",
-              borderRadius: "10px",
+              borderRadius: "9px",
               cursor: "pointer",
               fontWeight: "700",
-              fontSize: "14px",
+              fontSize: "13px",
             }}
           >
-            <Trash2 size={16} /> Trash
+            <Trash2 size={15} /> Trash
           </button>
         </div>
         {/* Draft tersimpan — kompak di tengah baris aksi (kotak oren opaque, readable) */}
@@ -2179,11 +2179,11 @@ export default function SalesOrderList({
         className="ui-toolbar"
         style={{
           display: "flex",
-          gap: "12px",
-          marginBottom: "1.5rem",
+          gap: "8px",
+          marginBottom: "1rem",
           flexWrap: "wrap",
           alignItems: "center",
-          padding: "14px",
+          padding: "10px",
         }}
       >
         <SearchBox

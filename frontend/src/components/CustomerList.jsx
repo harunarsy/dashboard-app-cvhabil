@@ -71,6 +71,7 @@ export default function CustomerList({
   // Radar customer lama tak order (churn), rule-based best-effort
   const [churnList, setChurnList] = useState([]);
   const [churnLoading, setChurnLoading] = useState(true);
+  const [followUpOpen, setFollowUpOpen] = useState(true); // strip ringkas, bisa collapse
 
   const bg = "var(--color-bg)";
   const cardBg = "var(--color-surface)";
@@ -324,79 +325,137 @@ export default function CustomerList({
         </select>
       </div>
 
-      {/* 📡 Customer Lama Tak Order (churn radar) — tampil hanya saat ada data
-          (tanpa skeleton, supaya tidak "kedip" saat hasil kosong) */}
+      {/* 📡 Customer Lama Tak Order — strip ringkas + collapsible (hemat scroll) */}
       {!churnLoading && churnList.length > 0 && (
         <div
           className="ui-panel"
           style={{
             marginBottom: "1.5rem",
-            padding: "16px 18px",
+            padding: "12px 16px",
             borderRadius: "14px",
             border: `1px solid ${border}`,
             backgroundColor: cardBg,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: text }}>
-              📡 Customer Lama Tak Order
-            </span>
-            <span style={{ fontSize: 11, color: sub }}>
-              {churnList.length} perlu di-follow up
-            </span>
-          </div>
-          <div
+          <button
+            type="button"
+            onClick={() => setFollowUpOpen((o) => !o)}
+            className="ui-focus-ring"
             style={{
-              display: "grid",
-              gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: 12,
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
             }}
           >
-            {churnList.map((c) => {
-              const msg = `Halo ${c.name}, sudah ${c.days_silent} hari sejak order terakhir di CV Habil Sejahtera Bersama${c.median_interval_days ? ` (biasanya order tiap ${c.median_interval_days} hari)` : ""} — ada yang bisa kami bantu untuk restok? Terima kasih 🙏`;
-              const phone = normalizeIndonesianPhone(c.phone);
-              return (
-                <div
-                  key={c.customer_id}
-                  className="ui-surface-panel"
-                  style={{
-                    backgroundColor: surface,
-                    border: `1px solid ${border}`,
-                    borderRadius: 12,
-                    padding: "14px 16px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: text }}>{c.name}</div>
-                    <div style={{ marginTop: 4 }}>
-                      <span
+            <span style={{ fontSize: 15 }}>📡</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: text }}>
+              Customer Lama Tak Order
+            </span>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: 999,
+                backgroundColor: "var(--color-danger-soft)",
+                color: "var(--color-danger)",
+              }}
+            >
+              {churnList.length}
+            </span>
+            <span style={{ marginLeft: "auto", fontSize: 12, color: sub, fontWeight: 600 }}>
+              {followUpOpen ? "Sembunyikan ▴" : "Lihat ▾"}
+            </span>
+          </button>
+          {followUpOpen && (
+            <div
+              style={{
+                marginTop: 10,
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                maxHeight: 248,
+                overflowY: "auto",
+              }}
+            >
+              {churnList.map((c) => {
+                const msg = `Halo ${c.name}, sudah ${c.days_silent} hari sejak order terakhir di CV Habil Sejahtera Bersama${c.median_interval_days ? ` (biasanya order tiap ${c.median_interval_days} hari)` : ""} — ada yang bisa kami bantu untuk restok? Terima kasih 🙏`;
+                const phone = normalizeIndonesianPhone(c.phone);
+                const iconBtn = {
+                  flexShrink: 0,
+                  width: 32,
+                  height: 32,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  fontSize: 13,
+                  textDecoration: "none",
+                };
+                return (
+                  <div
+                    key={c.customer_id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      border: `1px solid ${border}`,
+                      backgroundColor: surface,
+                    }}
+                  >
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: text,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {c.name}
+                        </span>
+                        <span
+                          style={{
+                            flexShrink: 0,
+                            fontSize: 10.5,
+                            fontWeight: 700,
+                            padding: "2px 7px",
+                            borderRadius: 999,
+                            backgroundColor: "var(--color-danger-soft)",
+                            color: "var(--color-danger)",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {c.days_silent} hari
+                        </span>
+                      </div>
+                      <div
                         style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: "3px 8px",
-                          borderRadius: 999,
-                          backgroundColor: "var(--color-danger-soft)",
-                          color: "var(--color-danger)",
+                          fontSize: 10.5,
+                          color: sub,
+                          marginTop: 1,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
                         }}
                       >
-                        {c.days_silent} hari sepi
-                      </span>
+                        Terakhir {fmtDate(c.last_order_date)} · {c.order_count}× · {fmtRp(c.avg_total)}
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ fontSize: 11.5, color: sub, lineHeight: 1.6 }}>
-                    Biasanya order tiap {c.median_interval_days} hari · {c.order_count}× total
-                    <br />
-                    Terakhir {fmtDate(c.last_order_date)} · rata-rata {fmtRp(c.avg_total)}
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
                     <button
                       type="button"
+                      title="Salin pesan WA"
                       onClick={async () => {
                         try {
                           await copyTextToClipboard(msg);
@@ -406,48 +465,27 @@ export default function CustomerList({
                         }
                       }}
                       className="ui-motion-button ui-focus-ring"
-                      style={{
-                        flex: 1,
-                        padding: "8px 10px",
-                        borderRadius: 9,
-                        border: `1px solid ${border}`,
-                        backgroundColor: cardBg,
-                        color: text,
-                        cursor: "pointer",
-                        fontSize: 12,
-                        fontWeight: 700,
-                      }}
+                      style={{ ...iconBtn, border: `1px solid ${border}`, backgroundColor: cardBg, color: text }}
                     >
-                      📋 Salin WA
+                      📋
                     </button>
                     {phone && (
                       <a
                         href={`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`}
                         target="_blank"
                         rel="noopener noreferrer"
+                        title="Buka WA"
                         className="ui-motion-button ui-focus-ring"
-                        style={{
-                          flex: 1,
-                          padding: "8px 10px",
-                          borderRadius: 9,
-                          border: `1px solid var(--color-success)`,
-                          backgroundColor: "var(--color-success-soft)",
-                          color: "var(--color-success)",
-                          cursor: "pointer",
-                          fontSize: 12,
-                          fontWeight: 800,
-                          textAlign: "center",
-                          textDecoration: "none",
-                        }}
+                        style={{ ...iconBtn, border: `1px solid var(--color-success)`, backgroundColor: "var(--color-success-soft)", color: "var(--color-success)" }}
                       >
-                        Buka WA
+                        💬
                       </a>
                     )}
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

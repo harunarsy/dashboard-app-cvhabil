@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.53.2-stable] - 2026-06-29
+
+### Changed (UI density pass — batch 1)
+- **CustomerList**: radar "Customer Lama Tak Order" dari kartu 3-kolom besar → **strip ringkas collapsible** (baris tipis + max-height scroll, tombol Sembunyikan/Lihat). Hemat scroll banyak.
+- **index.css**: `.ui-toolbar` (padding/gap), `.ui-action-button` (min-height 2.5→2.25rem, padding/font), `.ui-search-box__input` (44→38px) dikompakkan → search bar & tombol app-wide lebih ramping.
+- **SalesOrderList** & **InventoryDashboard**: `inputStyle` (padding 10→7px, font 14→13, radius) + tombol header (Buat Nota/Trash, headerBtn) diperkecil.
+- Faktur (KPI/rekap distributor) & Daftar Harga redesign menyusul di batch berikut.
+
 ## [v1.53.1-stable] - 2026-06-29
 
 ### Fixed (CRM linkage nota ↔ customer)

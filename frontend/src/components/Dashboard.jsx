@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.53.1-stable",
+    version: "v1.53.2-stable",
     date: "29 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Tampilan dirapikan biar gak makan tempat: kotak follow-up customer jadi strip ringkas yang bisa disembunyikan, toolbar & tombol di Nota Penjualan dan Inventory dikecilin, search bar di seluruh halaman lebih ramping.",
+        dev: "Batch 1 UI density. CustomerList: radar follow-up → strip collapsible (state followUpOpen, baris tipis + max-h scroll). index.css: .ui-toolbar/.ui-action-button/.ui-search-box__input dikompakkan. SalesOrderList & InventoryDashboard: inputStyle (padding/font/radius) + tombol header diperkecil. Faktur (rekap/KPI) & Daftar Harga redesign menyusul.",
+      },
+    ],
+  },
+  {
+    version: "v1.53.1-stable",
+    date: "29 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

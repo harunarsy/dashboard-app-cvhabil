@@ -395,12 +395,12 @@ export default function InventoryDashboard({
 
   const inputStyle = {
     width: "100%",
-    padding: "10px 12px",
+    padding: "7px 10px",
     border: `1px solid ${border}`,
-    borderRadius: "10px",
+    borderRadius: "9px",
     backgroundColor: surface,
     color: text,
-    fontSize: "14px",
+    fontSize: "13px",
     outline: "none",
     boxSizing: "border-box",
     fontFamily: "inherit",
@@ -750,19 +750,19 @@ export default function InventoryDashboard({
         display: "flex",
         alignItems: "center",
         gap: "6px",
-        minHeight: "44px",
-        padding: "10px 16px",
+        minHeight: "36px",
+        padding: "7px 12px",
         backgroundColor: color,
         color: "#FFF",
         border: "none",
-        borderRadius: "10px",
+        borderRadius: "9px",
         cursor: "pointer",
         fontWeight: "700",
-        fontSize: "13px",
+        fontSize: "12.5px",
         boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
       }}
     >
-      <Icon size={UI_SIZE.icon.md} /> {label}
+      <Icon size={UI_SIZE.icon.sm} /> {label}
     </button>
   );
 
