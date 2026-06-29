@@ -83,9 +83,9 @@ export default function CustomerList({
   useEffect(() => {
     setChurnLoading(true);
     insightsAPI
-      .getChurn()
+      .getDormant(30)
       .then(({ data }) => setChurnList(data?.items || []))
-      .catch((e) => console.error("Failed to fetch churn radar:", e))
+      .catch((e) => console.error("Failed to fetch dormant radar:", e))
       .finally(() => setChurnLoading(false));
   }, []);
 
@@ -349,7 +349,7 @@ export default function CustomerList({
             }}
           >
             {churnList.map((c) => {
-              const msg = `Halo ${c.name}, sudah ${c.days_silent} hari sejak order terakhir di CV Habil. Biasanya order tiap ${c.median_interval_days} hari sekali — ada yang bisa kami bantu untuk restok? Terima kasih 🙏`;
+              const msg = `Halo ${c.name}, sudah ${c.days_silent} hari sejak order terakhir di CV Habil Sejahtera Bersama${c.median_interval_days ? ` (biasanya order tiap ${c.median_interval_days} hari)` : ""} — ada yang bisa kami bantu untuk restok? Terima kasih 🙏`;
               const phone = normalizeIndonesianPhone(c.phone);
               return (
                 <div

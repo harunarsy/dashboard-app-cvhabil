@@ -2,6 +2,20 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.53.0-stable] - 2026-06-29
+
+### Added (Pesan WA nota lengkap)
+- Sapaan WA pakai **nama customer + nomor nota + "CV Habil Sejahtera Bersama"**; tiap item +baris **No. Batch & ED**.
+  - `waMessage.buildNotaWaMessage`: param `orderNumber`, header nama PT lengkap, sub-baris `Batch X · ED Y`. `SalesOrderList.currentWaMessage` enrich item (batch_no/ED dari batch terpilih/snapshot) + kirim orderNumber.
+
+### Added (Rekomendasi harga per-customer)
+- Di form nota, chip **rekomendasi harga berdasarkan kebiasaan customer** (mis. "CV Surya Sakti biasanya Rp78.000") + banding **harga umum** + tombol "Pakai".
+  - `SalesOrderList`: `salesBaselines.price_mean` (per produk+customer, 180 hari) vs `product_master.sell_price`; apply ke `unit_price`. Data dari `/insights/baselines/sales`.
+
+### Added (Insight Dashboard + dormant)
+- Dashboard +2 kartu **"Saran Restock"** & **"Customer Lama Gak Order (>1 bulan)"** dengan tombol Chat WA, label **AI based**.
+  - Endpoint baru `GET /insights/dormant` (last order > `min_days`, default 30; CTE 2-step gap→median). `CustomerList` radar pindah `/churn` → `/dormant(30)`; pesan WA guard median null + nama PT lengkap.
+
 ## [v1.52.8-stable] - 2026-06-27
 
 ### Fixed (Nama/HP/alamat panjang melar di nota)

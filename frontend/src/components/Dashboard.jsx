@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspens
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import Icons from "./common/Icon";
-import api from "../services/api";
+import api, { insightsAPI } from "../services/api";
+import { normalizeIndonesianPhone } from "../utils/waMessage";
 import { useDashboardStats, useWeeklySummary } from "../hooks/useMasterData";
 import TasksKanban from "./TasksKanban";
 import Skeleton from "./common/Skeleton";
@@ -38,9 +39,31 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.53.0-stable",
+    date: "29 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Pesan WhatsApp nota lebih lengkap: sapaan pakai nama customer + nomor nota + 'CV Habil Sejahtera Bersama', dan tiap item sekarang menampilkan No. Batch & Expired Date.",
+        dev: "waMessage.buildNotaWaMessage: header pakai orderNumber + nama lengkap perusahaan; tiap item +baris 'Batch X · ED Y'. SalesOrderList.currentWaMessage enrich item dgn batch_no/ED dari batch terpilih + kirim orderNumber.",
+      },
+      {
+        type: "new",
+        text: "Saat buat nota, muncul rekomendasi harga berdasarkan kebiasaan customer itu (mis. 'CV Surya Sakti biasanya Rp78.000') beserta perbandingan harga umum, lengkap dengan tombol 'Pakai'. Sistem baca dari nota-nota sebelumnya per customer.",
+        dev: "SalesOrderList: chip harga dari salesBaselines.price_mean (per produk+customer, 180 hari) vs product_master.sell_price; tombol apply ke unit_price. Data dari /insights/baselines/sales (price_mean sudah ada).",
+      },
+      {
+        type: "new",
+        text: "Dashboard dapat 2 kartu insight baru: 'Saran Restock' (produk hampir habis) dan 'Customer Lama Gak Order' (belum order >1 bulan) dengan tombol Chat WA langsung — label AI based.",
+        dev: "Endpoint baru GET /insights/dormant (last order > min_days, default 30, 2-step CTE gap→median). Dashboard: fetch getRestock+getDormant, 2 kartu di bawah ringkasan mingguan. CustomerList radar pindah dari /churn ke /dormant(30); pesan WA guard median null + nama PT lengkap.",
+      },
+    ],
+  },
+  {
     version: "v1.52.8-stable",
     date: "27 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -3837,6 +3860,26 @@ export default function Dashboard({
   const [selectedDay, setSelectedDay] = useState(null);
   const [dayNotas, setDayNotas] = useState([]);
   const [dayNotasLoading, setDayNotasLoading] = useState(false);
+  // Insight: saran restock + customer lama gak order (rule-based / AI based)
+  const [restockList, setRestockList] = useState([]);
+  const [dormantList, setDormantList] = useState([]);
+  const [insightLoading, setInsightLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    setInsightLoading(true);
+    Promise.allSettled([insightsAPI.getRestock(), insightsAPI.getDormant(30)])
+      .then(([r, d]) => {
+        if (cancelled) return;
+        setRestockList(r.status === "fulfilled" ? r.value.data?.items || [] : []);
+        setDormantList(d.status === "fulfilled" ? d.value.data?.items || [] : []);
+      })
+      .finally(() => {
+        if (!cancelled) setInsightLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -4220,6 +4263,135 @@ export default function Dashboard({
         style={{ alignItems: "stretch" }}
       >
         {weeklySummary}
+      </div>
+
+      {/* Insight AI: Saran Restock + Customer Lama Gak Order */}
+      <div className="mb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Saran Restock */}
+        <div
+          className="ui-surface-panel ui-motion-card rounded-3xl border p-4 md:p-5"
+          style={{ backgroundColor: cardBg, borderColor: border }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span style={{ fontSize: "15px" }}>✨</span>
+              <h3 className="text-sm font-bold" style={{ color: text }}>
+                Saran Restock
+              </h3>
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                style={{ backgroundColor: "var(--color-primary-soft)", color: "var(--color-primary)" }}>
+                AI based
+              </span>
+            </div>
+            <button onClick={() => navigate("/inventory")} className="text-xs font-semibold"
+              style={{ color: "var(--color-primary)" }}>
+              Lihat semua →
+            </button>
+          </div>
+          {insightLoading ? (
+            <div className="space-y-2">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-10 rounded-xl animate-pulse" style={{ backgroundColor: "var(--color-bg-subtle)" }} />
+              ))}
+            </div>
+          ) : restockList.length === 0 ? (
+            <p className="text-xs" style={{ color: sub }}>Semua stok aman 👍</p>
+          ) : (
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {restockList.slice(0, 6).map((r) => (
+                <button
+                  key={r.product_id}
+                  onClick={() => navigate("/inventory")}
+                  className="w-full text-left px-3 py-2 rounded-xl border flex items-center justify-between gap-2"
+                  style={{ borderColor: border, backgroundColor: "var(--color-surface-elevated)" }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div className="text-xs font-semibold truncate" style={{ color: text }}>{r.name}</div>
+                    <div className="text-[10.5px]" style={{ color: sub }}>
+                      stok {r.stock} · laku ~{r.velocity_per_day}/hari
+                      {r.avg_order_qty ? ` · biasa order ${r.avg_order_qty} ${r.order_unit}` : ""}
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap"
+                    style={{
+                      backgroundColor: r.days_left <= 3 ? "var(--color-danger-soft)" : "var(--color-warning-soft)",
+                      color: r.days_left <= 3 ? "var(--color-danger)" : "var(--color-warning)",
+                    }}>
+                    ±{r.days_left} hari
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Customer Lama Gak Order */}
+        <div
+          className="ui-surface-panel ui-motion-card rounded-3xl border p-4 md:p-5"
+          style={{ backgroundColor: cardBg, borderColor: border }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span style={{ fontSize: "15px" }}>✨</span>
+              <h3 className="text-sm font-bold" style={{ color: text }}>
+                Customer Lama Gak Order
+              </h3>
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                style={{ backgroundColor: "var(--color-primary-soft)", color: "var(--color-primary)" }}>
+                AI based
+              </span>
+            </div>
+            <button onClick={() => navigate("/customers")} className="text-xs font-semibold"
+              style={{ color: "var(--color-primary)" }}>
+              Lihat semua →
+            </button>
+          </div>
+          {insightLoading ? (
+            <div className="space-y-2">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-10 rounded-xl animate-pulse" style={{ backgroundColor: "var(--color-bg-subtle)" }} />
+              ))}
+            </div>
+          ) : dormantList.length === 0 ? (
+            <p className="text-xs" style={{ color: sub }}>Semua customer aktif 👍</p>
+          ) : (
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {dormantList.slice(0, 6).map((d) => {
+                const phone = normalizeIndonesianPhone(d.phone);
+                const msg = `Halo ${d.name}, sudah ${d.days_silent} hari sejak order terakhir di CV Habil Sejahtera Bersama${d.median_interval_days ? ` (biasanya tiap ${d.median_interval_days} hari)` : ""}. Ada yang bisa kami bantu untuk restok? Terima kasih 🙏`;
+                return (
+                  <div
+                    key={d.customer_id}
+                    className="px-3 py-2 rounded-xl border flex items-center justify-between gap-2"
+                    style={{ borderColor: border, backgroundColor: "var(--color-surface-elevated)" }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div className="text-xs font-semibold truncate" style={{ color: text }}>{d.name}</div>
+                      <div className="text-[10.5px]" style={{ color: sub }}>
+                        {d.days_silent} hari gak order · {d.order_count}x · ~{formatRupiah(d.avg_total)}
+                      </div>
+                    </div>
+                    {phone ? (
+                      <a
+                        href={`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap"
+                        style={{ backgroundColor: "var(--color-success-soft)", color: "var(--color-success)" }}
+                      >
+                        Chat WA
+                      </a>
+                    ) : (
+                      <span className="text-[10px] px-2 py-1 rounded-full whitespace-nowrap" style={{ color: sub }}>
+                        no HP -
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* KPI ringkas — 1 kotak dibagi 4, ditaruh atas biar metrik penting langsung kebaca. v1.32.0 */}

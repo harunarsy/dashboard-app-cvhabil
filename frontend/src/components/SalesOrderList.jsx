@@ -1673,12 +1673,33 @@ export default function SalesOrderList({
     }
     return null;
   };
-  const currentWaMessage = () =>
-    buildNotaWaMessage({
+  const currentWaMessage = () => {
+    // enrich tiap item dgn batch_no + ED dari batch terpilih (atau snapshot saat edit)
+    const enriched = items
+      .map((item, idx) => {
+        if (!item.product_name?.trim()) return null;
+        const b = (itemBatches[idx] || []).find(
+          (x) => String(x.id) === String(item._selected_batch_id),
+        );
+        return {
+          ...item,
+          _batch_no: item.batch_no_snapshot || b?.batch_no || item._selected_batch || "",
+          _expired_date: item.expired_date_snapshot || b?.expired_date || "",
+        };
+      })
+      .filter(Boolean);
+    const orderNumber = editId
+      ? form.order_number
+      : isAutoNota
+        ? `${notaCounter.prefix || "HSB-NOTA-"}${String((notaCounter.month_max || 0) + 1).padStart(3, "0")}`
+        : `${notaCounter.prefix || "HSB-NOTA-"}${manualNumber}`;
+    return buildNotaWaMessage({
       form,
-      items: items.filter((item) => item.product_name?.trim()),
+      items: enriched,
       total: grandTotal,
+      orderNumber,
     });
+  };
   const handleCopyWaMessage = async () => {
     try {
       await copyTextToClipboard(currentWaMessage());
@@ -4253,6 +4274,69 @@ export default function SalesOrderList({
                               >
                                 Biasanya {Math.round(b.qty_mean)} {it.unit} (±
                                 {Math.round(b.qty_std)}), ini {qty} — yakin?
+                              </div>
+                            );
+                          })()}
+                          {/* rekomendasi harga per-customer (baca behavior nota lama) */}
+                          {(() => {
+                            const cust = (form.customer_name || "").trim();
+                            if (!cust) return null;
+                            const key = `${(it.product_name || "").trim().toLowerCase()}||${cust.toLowerCase()}`;
+                            const b = salesBaselines[key];
+                            if (!b || !b.n_samples || !b.price_mean || b.price_mean <= 0)
+                              return null;
+                            const prod =
+                              it._product ||
+                              products.find(
+                                (p) =>
+                                  p.name?.toLowerCase() === it.product_name?.toLowerCase(),
+                              );
+                            const sellUmum = parseFloat(prod?.sell_price) || 0;
+                            const cur = parseFloat(it.unit_price) || 0;
+                            const rec = Math.round(b.price_mean);
+                            if (rec === Math.round(cur)) return null;
+                            return (
+                              <div
+                                style={{
+                                  marginTop: "6px",
+                                  padding: "7px 10px",
+                                  borderRadius: "9px",
+                                  border: `1px solid var(--color-primary-border-strong)`,
+                                  backgroundColor: "var(--color-primary-soft)",
+                                  fontSize: "11px",
+                                  lineHeight: 1.45,
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  alignItems: "center",
+                                  gap: "6px",
+                                }}
+                              >
+                                <span style={{ color: "var(--color-primary)", fontWeight: 700 }}>
+                                  💡 {cust} biasanya Rp{rec.toLocaleString("id-ID")}
+                                </span>
+                                {sellUmum > 0 && (
+                                  <span style={{ color: sub }}>
+                                    · harga umum Rp{sellUmum.toLocaleString("id-ID")}
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => updateItem(idx, "unit_price", rec)}
+                                  className="ui-focus-ring"
+                                  style={{
+                                    marginLeft: "auto",
+                                    padding: "3px 10px",
+                                    borderRadius: "999px",
+                                    border: "none",
+                                    backgroundColor: "var(--color-primary)",
+                                    color: "#FFF",
+                                    fontSize: "10.5px",
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  Pakai Rp{rec.toLocaleString("id-ID")}
+                                </button>
                               </div>
                             );
                           })()}

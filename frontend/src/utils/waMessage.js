@@ -13,23 +13,47 @@ const formatRp = (value) =>
     maximumFractionDigits: 0,
   }).format(Number(value) || 0);
 
-export const buildNotaWaMessage = ({ form = {}, items = [], total = 0 } = {}) => {
+const fmtEd = (d) => {
+  if (!d) return "";
+  const dt = new Date(String(d).split("T")[0] + "T00:00:00");
+  if (Number.isNaN(dt.getTime())) return "";
+  return dt.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+export const buildNotaWaMessage = ({
+  form = {},
+  items = [],
+  total = 0,
+  orderNumber = "",
+} = {}) => {
   const customer = form.customer_name || "Kak";
-  const lines = [
-    `Halo ${customer}, berikut ringkasan nota dari CV Habil:`,
-    "",
-    ...items
-      .filter((item) => item?.product_name)
-      .map((item, idx) => {
-        const qty = Number(item.qty) || 0;
-        const unit = item.unit || "pcs";
-        const price = Number(item.unit_price) || 0;
-        return `${idx + 1}. ${item.product_name} — ${qty} ${unit} x ${formatRp(price)} = ${formatRp(qty * price)}`;
-      }),
-    "",
-    `Total: ${formatRp(total)}`,
-    "Terima kasih.",
-  ];
+  const notaRef = String(orderNumber || form.order_number || "").trim();
+  const header = notaRef
+    ? `Halo ${customer}, berikut ringkasan nota ${notaRef} dari CV Habil Sejahtera Bersama:`
+    : `Halo ${customer}, berikut ringkasan nota dari CV Habil Sejahtera Bersama:`;
+  const lines = [header, ""];
+  items
+    .filter((item) => item?.product_name)
+    .forEach((item, idx) => {
+      const qty = Number(item.qty ?? item.qty_in_unit) || 0;
+      const unit = item.unit || "pcs";
+      const price = Number(item.unit_price) || 0;
+      lines.push(
+        `${idx + 1}. ${item.product_name} — ${qty} ${unit} x ${formatRp(price)} = ${formatRp(qty * price)}`,
+      );
+      // v1.52.x: info batch + ED per item (kalau ada)
+      const batchNo = item._batch_no || item.batch_no_snapshot || "";
+      const ed = fmtEd(item._expired_date || item.expired_date_snapshot);
+      const meta = [];
+      if (batchNo) meta.push(`Batch ${batchNo}`);
+      if (ed) meta.push(`ED ${ed}`);
+      if (meta.length) lines.push(`   ${meta.join(" · ")}`);
+    });
+  lines.push("", `Total: ${formatRp(total)}`, "Terima kasih.");
   return lines.join("\n");
 };
 

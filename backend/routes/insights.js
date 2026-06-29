@@ -570,6 +570,68 @@ router.get('/churn', async (req, res) => {
   }
 });
 
+// ─── Customer lama gak order (dormant > 30 hari) ─────────────────────────
+// Lebih simpel dari /churn (yang butuh >=3 order & 2x median gap). Ini: customer
+// pernah order tapi sudah > N hari (default 30) tidak order. Untuk reminder AI di
+// Dashboard & Customer. days_silent + last_order utk pesan WA.
+router.get('/dormant', async (req, res) => {
+  try {
+    const minDays = Math.min(Math.max(Number.parseInt(req.query.min_days, 10) || 30, 1), 365);
+    const { rows } = await pool.query(
+      `
+        WITH orders AS (
+          SELECT
+            so.customer_id,
+            so.sale_date,
+            so.total,
+            so.sale_date - LAG(so.sale_date) OVER (PARTITION BY so.customer_id ORDER BY so.sale_date) AS gap
+          FROM sales_orders so
+          WHERE so.is_deleted = false
+            AND so.status = 'final'
+            AND so.customer_id IS NOT NULL
+        ),
+        agg AS (
+          SELECT
+            customer_id,
+            COUNT(*)::int AS order_count,
+            MAX(sale_date) AS last_order_date,
+            AVG(total) AS avg_total,
+            PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY gap) AS median_gap
+          FROM orders
+          GROUP BY customer_id
+        )
+        SELECT
+          a.customer_id, a.order_count, a.last_order_date, a.avg_total, a.median_gap,
+          (CURRENT_DATE - a.last_order_date)::int AS days_silent,
+          c.name, c.phone
+        FROM agg a
+        JOIN customers c ON c.id = a.customer_id
+        WHERE (CURRENT_DATE - a.last_order_date) > $1
+        ORDER BY days_silent DESC
+        LIMIT 50
+      `,
+      [minDays],
+    );
+    res.json({
+      generated_at: new Date().toISOString(),
+      min_days: minDays,
+      items: rows.map((r) => ({
+        customer_id: r.customer_id,
+        name: r.name,
+        phone: r.phone,
+        order_count: Number(r.order_count) || 0,
+        median_interval_days: r.median_gap === null ? null : Math.round(Number(r.median_gap) || 0),
+        days_silent: Number(r.days_silent) || 0,
+        last_order_date: r.last_order_date,
+        avg_total: Math.round(Number(r.avg_total) || 0),
+      })),
+    });
+  } catch (e) {
+    console.error('[insights.dormant] failed:', e.message);
+    res.status(500).json({ error: 'Gagal memuat customer dormant' });
+  }
+});
+
 // ─── #6 Fee marketplace belajar dari settlement nyata ────────────────────
 // Nota channel='online' hanya generik (bukan per-platform), jadi fee aktual = blended.
 // UI menawarkan apply ke profil online (shopee / tokopedia_tiktok) pilihan operator.

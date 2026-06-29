@@ -246,6 +246,8 @@ export const insightsAPI = {
   getPurchaseBaseline: (productId) =>
     api.get('/insights/baselines/purchase', { params: { product_id: productId } }),
   getChurn: () => api.get('/insights/churn'),
+  getDormant: (minDays) =>
+    api.get('/insights/dormant', { params: minDays ? { min_days: minDays } : {} }),
   getEffectiveFees: () => api.get('/insights/effective-fees'),
 };
 
