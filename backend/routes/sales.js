@@ -447,10 +447,20 @@ router.post('/', auth, async (req, res) => {
     if (pfMode === 'pass_on') total += paymentFee;
     else gross_profit -= paymentFee;
 
+    // v1.53.1: auto-link customer_id dari nama kalau tidak dikirim (nama diketik
+    // manual) & cocok TEPAT 1 customer → history/CRM (dormant, customer card) akurat.
+    let resolvedCustomerId = customer_id || null;
+    if (!resolvedCustomerId && customer_name?.trim()) {
+      const { rows: cm } = await client.query(
+        `SELECT id FROM customers WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) LIMIT 2`,
+        [customer_name],
+      );
+      if (cm.length === 1) resolvedCustomerId = cm[0].id;
+    }
     const { rows } = await client.query(
       `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms, ongkir, ongkir_cost, payment_fee_rate, payment_fee_mode, payment_fee, package_weight_gram, est_weight_gram, status)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,'final') RETURNING *`,
-      [orderNumber, customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, 0]
+      [orderNumber, resolvedCustomerId, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, 0]
     );
     const order = rows[0];
 
@@ -666,10 +676,19 @@ router.put('/:id', auth, async (req, res) => {
     if (pfMode === 'pass_on') total += paymentFee;
     else gross_profit -= paymentFee;
 
+    // v1.53.1: auto-link customer_id by name (mirror create) supaya history/CRM akurat.
+    let resolvedCustomerId = customer_id || null;
+    if (!resolvedCustomerId && customer_name?.trim()) {
+      const { rows: cm } = await client.query(
+        `SELECT id FROM customers WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) LIMIT 2`,
+        [customer_name],
+      );
+      if (cm.length === 1) resolvedCustomerId = cm[0].id;
+    }
     const { rowCount } = await client.query(
       `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, channel=$12, due_date=$13, payment_terms=$14, ongkir=$15, ongkir_cost=$16, payment_fee_rate=$17, payment_fee_mode=$18, payment_fee=$19, package_weight_gram=$20, est_weight_gram=0, updated_at=NOW()
        WHERE id=$21 AND is_deleted=FALSE`,
-      [customer_id || null, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'final', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, req.params.id]
+      [resolvedCustomerId, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'final', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, req.params.id]
     );
     if (!rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
 

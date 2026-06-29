@@ -84,7 +84,11 @@ export default function CustomerList({
     setChurnLoading(true);
     insightsAPI
       .getDormant(30)
-      .then(({ data }) => setChurnList(data?.items || []))
+      .then(({ data }) =>
+        // radar Customer fokus yg PERNAH order tapi sepi (never-order sudah tampil
+        // di grid bawah sbg "Belum ada transaksi") → hindari redundan.
+        setChurnList((data?.items || []).filter((i) => i.type !== "never")),
+      )
       .catch((e) => console.error("Failed to fetch dormant radar:", e))
       .finally(() => setChurnLoading(false));
   }, []);

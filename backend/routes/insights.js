@@ -612,19 +612,52 @@ router.get('/dormant', async (req, res) => {
       `,
       [minDays],
     );
+    const dormant = rows.map((r) => ({
+      customer_id: r.customer_id,
+      name: r.name,
+      phone: r.phone,
+      type: 'dormant',
+      order_count: Number(r.order_count) || 0,
+      median_interval_days: r.median_gap === null ? null : Math.round(Number(r.median_gap) || 0),
+      days_silent: Number(r.days_silent) || 0,
+      last_order_date: r.last_order_date,
+      avg_total: Math.round(Number(r.avg_total) || 0),
+    }));
+
+    // Customer yang BELUM PERNAH order (0 nota final) tapi punya HP → CRM follow-up.
+    // Tanpa HP di-skip (gak bisa di-approach). Bisa dimatikan via ?include_never=0.
+    let never = [];
+    if (req.query.include_never !== '0') {
+      const { rows: nRows } = await pool.query(
+        `SELECT c.id, c.name, c.phone
+         FROM customers c
+         WHERE NULLIF(TRIM(c.phone), '') IS NOT NULL
+           AND NOT EXISTS (
+             SELECT 1 FROM sales_orders so
+             WHERE so.customer_id = c.id AND so.is_deleted = false AND so.status = 'final'
+           )
+         ORDER BY LOWER(c.name)
+         LIMIT 100`,
+      );
+      never = nRows.map((r) => ({
+        customer_id: r.id,
+        name: r.name,
+        phone: r.phone,
+        type: 'never',
+        order_count: 0,
+        median_interval_days: null,
+        days_silent: null,
+        last_order_date: null,
+        avg_total: 0,
+      }));
+    }
+
     res.json({
       generated_at: new Date().toISOString(),
       min_days: minDays,
-      items: rows.map((r) => ({
-        customer_id: r.customer_id,
-        name: r.name,
-        phone: r.phone,
-        order_count: Number(r.order_count) || 0,
-        median_interval_days: r.median_gap === null ? null : Math.round(Number(r.median_gap) || 0),
-        days_silent: Number(r.days_silent) || 0,
-        last_order_date: r.last_order_date,
-        avg_total: Math.round(Number(r.avg_total) || 0),
-      })),
+      dormant_count: dormant.length,
+      never_count: never.length,
+      items: [...dormant, ...never],
     });
   } catch (e) {
     console.error('[insights.dormant] failed:', e.message);

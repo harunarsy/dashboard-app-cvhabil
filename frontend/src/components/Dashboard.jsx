@@ -39,9 +39,26 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.53.0-stable",
+    version: "v1.53.1-stable",
     date: "29 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Perbaikan penting CRM: 164 nota lama yang tidak ter-link ke customer (nama diketik manual) kini tersambung — riwayat order tiap customer & reminder 'lama tak order' jadi akurat (mis. CATUR LIMAS tadinya keliru '70 hari', padahal baru order 14 Jun). Ke depan nota otomatis nyambung ke customer.",
+        dev: "Backfill sales_orders.customer_id by exact name match (164 baris). sales.js create+update: auto-resolve customer_id dari nama kalau match tepat 1. Sisa 4 null = nota terhapus + nama tak ada di master (legacy/test).",
+      },
+      {
+        type: "new",
+        text: "Kartu insight (Saran Restock & Customer Perlu Follow-up) digabung ke satu zona 'AI based' di atas Dashboard. Customer Perlu Follow-up kini juga menampilkan customer yang BELUM pernah order (punya HP) untuk di-approach, bukan cuma yang lama tak order.",
+        dev: "Dashboard: 2 kartu insight dipindah ke dalam panel ringkasan mingguan (sub-card). /insights/dormant +tipe 'never' (customer 0 order final + punya phone, include_never toggle). Kartu type-aware (badge 'belum order' vs 'X hari'). CustomerList radar filter type!=never (never sudah di grid).",
+      },
+    ],
+  },
+  {
+    version: "v1.53.0-stable",
+    date: "29 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "new",
@@ -4263,15 +4280,14 @@ export default function Dashboard({
         style={{ alignItems: "stretch" }}
       >
         {weeklySummary}
-      </div>
 
-      {/* Insight AI: Saran Restock + Customer Lama Gak Order */}
-      <div className="mb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Saran Restock */}
-        <div
-          className="ui-surface-panel ui-motion-card rounded-3xl border p-4 md:p-5"
-          style={{ backgroundColor: cardBg, borderColor: border }}
-        >
+        {/* Insight AI: Saran Restock + Customer Lama Gak Order — satu zona dgn ringkasan */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Saran Restock */}
+          <div
+            className="ui-motion-card rounded-2xl border p-4"
+            style={{ backgroundColor: "var(--color-surface-elevated)", borderColor: border }}
+          >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span style={{ fontSize: "15px" }}>✨</span>
@@ -4325,72 +4341,87 @@ export default function Dashboard({
           )}
         </div>
 
-        {/* Customer Lama Gak Order */}
-        <div
-          className="ui-surface-panel ui-motion-card rounded-3xl border p-4 md:p-5"
-          style={{ backgroundColor: cardBg, borderColor: border }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span style={{ fontSize: "15px" }}>✨</span>
-              <h3 className="text-sm font-bold" style={{ color: text }}>
-                Customer Lama Gak Order
-              </h3>
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: "var(--color-primary-soft)", color: "var(--color-primary)" }}>
-                AI based
-              </span>
+          {/* Customer perlu follow-up (dormant + belum pernah order) */}
+          <div
+            className="ui-motion-card rounded-2xl border p-4"
+            style={{ backgroundColor: "var(--color-surface-elevated)", borderColor: border }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span style={{ fontSize: "15px" }}>✨</span>
+                <h3 className="text-sm font-bold" style={{ color: text }}>
+                  Customer Perlu Follow-up
+                </h3>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: "var(--color-primary-soft)", color: "var(--color-primary)" }}>
+                  AI based
+                </span>
+              </div>
+              <button onClick={() => navigate("/customers")} className="text-xs font-semibold"
+                style={{ color: "var(--color-primary)" }}>
+                Lihat semua →
+              </button>
             </div>
-            <button onClick={() => navigate("/customers")} className="text-xs font-semibold"
-              style={{ color: "var(--color-primary)" }}>
-              Lihat semua →
-            </button>
-          </div>
-          {insightLoading ? (
-            <div className="space-y-2">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="h-10 rounded-xl animate-pulse" style={{ backgroundColor: "var(--color-bg-subtle)" }} />
-              ))}
-            </div>
-          ) : dormantList.length === 0 ? (
-            <p className="text-xs" style={{ color: sub }}>Semua customer aktif 👍</p>
-          ) : (
-            <div className="space-y-1.5 max-h-64 overflow-y-auto">
-              {dormantList.slice(0, 6).map((d) => {
-                const phone = normalizeIndonesianPhone(d.phone);
-                const msg = `Halo ${d.name}, sudah ${d.days_silent} hari sejak order terakhir di CV Habil Sejahtera Bersama${d.median_interval_days ? ` (biasanya tiap ${d.median_interval_days} hari)` : ""}. Ada yang bisa kami bantu untuk restok? Terima kasih 🙏`;
-                return (
-                  <div
-                    key={d.customer_id}
-                    className="px-3 py-2 rounded-xl border flex items-center justify-between gap-2"
-                    style={{ borderColor: border, backgroundColor: "var(--color-surface-elevated)" }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div className="text-xs font-semibold truncate" style={{ color: text }}>{d.name}</div>
-                      <div className="text-[10.5px]" style={{ color: sub }}>
-                        {d.days_silent} hari gak order · {d.order_count}x · ~{formatRupiah(d.avg_total)}
+            {insightLoading ? (
+              <div className="space-y-2">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-10 rounded-xl animate-pulse" style={{ backgroundColor: "var(--color-bg-subtle)" }} />
+                ))}
+              </div>
+            ) : dormantList.length === 0 ? (
+              <p className="text-xs" style={{ color: sub }}>Semua customer aktif 👍</p>
+            ) : (
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                {dormantList.slice(0, 8).map((d) => {
+                  const isNever = d.type === "never";
+                  const phone = normalizeIndonesianPhone(d.phone);
+                  const msg = isNever
+                    ? `Halo ${d.name}, perkenalkan kami dari CV Habil Sejahtera Bersama. Ada kebutuhan yang bisa kami bantu? Terima kasih 🙏`
+                    : `Halo ${d.name}, sudah ${d.days_silent} hari sejak order terakhir di CV Habil Sejahtera Bersama${d.median_interval_days ? ` (biasanya tiap ${d.median_interval_days} hari)` : ""}. Ada yang bisa kami bantu untuk restok? Terima kasih 🙏`;
+                  return (
+                    <div
+                      key={`${d.type}-${d.customer_id}`}
+                      className="px-3 py-2 rounded-xl border flex items-center justify-between gap-2"
+                      style={{ borderColor: border, backgroundColor: cardBg }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div className="text-xs font-semibold truncate flex items-center gap-1.5" style={{ color: text }}>
+                          {d.name}
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap"
+                            style={{
+                              backgroundColor: isNever ? "var(--color-bg-subtle)" : "var(--color-warning-soft)",
+                              color: isNever ? "var(--color-text-subtle)" : "var(--color-warning)",
+                            }}>
+                            {isNever ? "belum order" : `${d.days_silent} hari`}
+                          </span>
+                        </div>
+                        <div className="text-[10.5px]" style={{ color: sub }}>
+                          {isNever
+                            ? "Belum ada order tercatat — follow-up baru"
+                            : `${d.order_count}x order · ~${formatRupiah(d.avg_total)}`}
+                        </div>
                       </div>
+                      {phone ? (
+                        <a
+                          href={`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap"
+                          style={{ backgroundColor: "var(--color-success-soft)", color: "var(--color-success)" }}
+                        >
+                          Chat WA
+                        </a>
+                      ) : (
+                        <span className="text-[10px] px-2 py-1 rounded-full whitespace-nowrap" style={{ color: sub }}>
+                          no HP
+                        </span>
+                      )}
                     </div>
-                    {phone ? (
-                      <a
-                        href={`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap"
-                        style={{ backgroundColor: "var(--color-success-soft)", color: "var(--color-success)" }}
-                      >
-                        Chat WA
-                      </a>
-                    ) : (
-                      <span className="text-[10px] px-2 py-1 rounded-full whitespace-nowrap" style={{ color: sub }}>
-                        no HP -
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.53.1-stable] - 2026-06-29
+
+### Fixed (CRM linkage nota ↔ customer)
+- **164 nota lama dengan `customer_id` NULL** (nama diketik manual) di-backfill by exact name match → riwayat order per customer, customer card count, dan dormant/churn akurat. Contoh: CATUR LIMAS keliru "70 hari sepi" → benar (order terakhir 14 Jun, tidak dormant).
+  - `sales.js` create+update: auto-resolve `customer_id` dari nama saat simpan kalau cocok tepat 1 customer (cegah recurrence). Sisa 4 null = nota terhapus + nama tak ada di master (legacy/test, diabaikan).
+
+### Changed (Dashboard insight 1 zona AI + follow-up customer baru)
+- Kartu **Saran Restock** & **Customer Perlu Follow-up** digabung ke dalam panel ringkasan mingguan (satu zona "AI based"), bukan 3 stack terpisah.
+- `/insights/dormant` +tipe **`never`**: customer belum pernah order (0 nota final) tapi punya HP → masuk follow-up CRM. Kartu type-aware (badge "belum order" vs "X hari"). `CustomerList` radar filter `type!=never` (never-order sudah tampil di grid).
+
 ## [v1.53.0-stable] - 2026-06-29
 
 ### Added (Pesan WA nota lengkap)
