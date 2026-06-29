@@ -352,9 +352,21 @@ export default function CustomerList({
               padding: 0,
             }}
           >
-            <span style={{ fontSize: 15 }}>📡</span>
+            <span style={{ fontSize: 15 }}>✨</span>
             <span style={{ fontSize: 14, fontWeight: 800, color: text }}>
               Customer Lama Tak Order
+            </span>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                padding: "2px 6px",
+                borderRadius: 999,
+                backgroundColor: "var(--color-primary-soft)",
+                color: "var(--color-primary)",
+              }}
+            >
+              AI based
             </span>
             <span
               style={{

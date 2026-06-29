@@ -83,7 +83,7 @@ export function generateNotaPDF(order, options = {}) {
     const dueStr = new Date(order.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
     doc.setTextColor(255, 59, 48);
     doc.setFont('helvetica', 'bold');
-    doc.text(`JT: ${dueStr}`, infoX, titleY + 13, { align: 'right' });
+    doc.text(`Jatuh Tempo: ${dueStr}`, infoX, titleY + 13, { align: 'right' });
     doc.setTextColor(60, 60, 60);
     doc.setFont('helvetica', 'normal');
   }
@@ -99,14 +99,17 @@ export function generateNotaPDF(order, options = {}) {
   doc.setFontSize(baseFontSize);
   doc.setTextColor(0);
   doc.setFont('helvetica', 'normal');
-  const contactX = margin + (isA6 ? 18 : 22);
+  // v1.53.3: nama/HP/alamat SATU kolom rata kiri (nameX) biar lurus.
+  const nameX = margin + (isA6 ? 16 : 22);
+  const contactX = nameX;
   const contactStep = isA6 ? 3.4 : 4.2;
-  // v1.52.8: nama/HP/alamat panjang WAJIB di-wrap — kalau tidak, teks tanpa spasi
-  // narik melebar ke kanan / nabrak kolom Metode. maxTextW konsisten utk ketiganya.
+  // sanitasi No. HP: buang karakter sampah (mis. "*", ",") → cuma digit/+/()-/spasi.
+  const cleanPhone = (p) =>
+    String(p || '').replace(/[^\d+()\-\s]/g, '').replace(/\s+/g, ' ').trim();
+  // v1.52.8: teks panjang WAJIB di-wrap biar tak nabrak kolom Metode kanan.
   const maxTextW = pageWidth - contactX - margin - (isA6 ? 26 : 40);
   doc.text('Kepada Yth:', margin, customerY);
   doc.setFont('helvetica', 'bold');
-  const nameX = margin + (isA6 ? 16 : 22);
   let addressY = customerY;
   const nameLines = doc.splitTextToSize(String(order.customer_name || '-'), maxTextW);
   nameLines.forEach((ln, i) => {
@@ -118,15 +121,16 @@ export function generateNotaPDF(order, options = {}) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize - 2);
   doc.setTextColor(40, 40, 40);
-  if (order.customer_phone) {
-    const phoneLines = doc.splitTextToSize(String(order.customer_phone), maxTextW);
+  const phoneClean = cleanPhone(order.customer_phone);
+  if (phoneClean) {
+    const phoneLines = doc.splitTextToSize(phoneClean, maxTextW);
     phoneLines.forEach((ln) => {
       addressY += contactStep;
       doc.text(ln, contactX, addressY);
     });
   }
   if (order.customer_address) {
-    const addrLines = doc.splitTextToSize(String(order.customer_address), maxTextW);
+    const addrLines = doc.splitTextToSize(String(order.customer_address).trim(), maxTextW);
     addrLines.forEach((ln) => {
       addressY += contactStep;
       doc.text(ln, contactX, addressY);

@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.53.3-stable] - 2026-06-29
+
+### Fixed (Nota PDF/preview + WA jatuh tempo)
+- **No. HP customer di nota** dibersihkan dari karakter sampah (`*`, `,`, spasi ganda) via `cleanPhone`; nama–HP–alamat **lurus satu kolom** (`contactX = nameX`).
+- **"JT:" → "Jatuh Tempo:"** di PDF header & live preview (NotaPreview). Preview juga sanitasi phone/address.
+- **Pesan WA nota** kini ada baris **"Jatuh tempo pembayaran: <tgl>"** di bawah Total (`buildNotaWaMessage` +`dueDate`).
+
+### Added (WA reminder per nota)
+- Daftar Nota Penjualan: tombol **"💬 WA reminder"** di nota belum bayar → kirim pengingat jatuh tempo (`buildDueReminderMessage`: no nota + total + tgl jatuh tempo). Muncul hanya bila customer punya No. HP.
+- CustomerList radar follow-up: ikon `📡` → `✨` + badge **"AI based"**.
+
 ## [v1.53.2-stable] - 2026-06-29
 
 ### Changed (UI density pass — batch 1)

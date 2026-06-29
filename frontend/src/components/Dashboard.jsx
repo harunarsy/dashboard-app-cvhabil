@@ -39,9 +39,26 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.53.2-stable",
+    version: "v1.53.3-stable",
     date: "29 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Nota: No. HP customer di PDF dirapikan (karakter sampah seperti '*'/',' dibersihkan, nama–HP–alamat lurus satu kolom). Tulisan 'JT' diganti 'Jatuh Tempo' di PDF & preview. Pesan WhatsApp nota kini ada baris 'Jatuh tempo pembayaran' di bawah Total.",
+        dev: "generateNotaPDF: cleanPhone (regex buang non [0-9+()-spasi]), contactX=nameX (alignment), 'JT:'→'Jatuh Tempo:'. NotaPreview: idem + sanitasi phone/address. waMessage.buildNotaWaMessage +dueDate line; +buildDueReminderMessage.",
+      },
+      {
+        type: "new",
+        text: "Di daftar Nota Penjualan, nota yang belum bayar punya tombol '💬 WA reminder' untuk kirim pengingat jatuh tempo ke customer (otomatis berisi no nota, total, & tanggal jatuh tempo).",
+        dev: "SalesOrderList: link WA reminder per row (buildDueReminderMessage + buildWaUrl, hanya jika ada phone). CustomerList radar: ikon 📡→✨ + badge 'AI based'.",
+      },
+    ],
+  },
+  {
+    version: "v1.53.2-stable",
+    date: "29 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

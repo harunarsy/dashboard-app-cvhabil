@@ -46,7 +46,9 @@ import ToastNotice from "./common/ToastNotice";
 import useDebouncedValue from "../hooks/useDebouncedValue";
 import {
   buildNotaWaMessage,
+  buildDueReminderMessage,
   buildWaUrl,
+  normalizeIndonesianPhone,
   copyTextToClipboard,
 } from "../utils/waMessage";
 import {
@@ -1698,6 +1700,7 @@ export default function SalesOrderList({
       items: enriched,
       total: grandTotal,
       orderNumber,
+      dueDate: form.payment_method !== "Tunai" ? form.due_date : "",
     });
   };
   const handleCopyWaMessage = async () => {
@@ -2764,6 +2767,38 @@ export default function SalesOrderList({
                                 >
                                   {relText}
                                 </p>
+                                {normalizeIndonesianPhone(o.customer_phone) && (
+                                  <a
+                                    href={buildWaUrl(
+                                      o.customer_phone,
+                                      buildDueReminderMessage({
+                                        customerName: o.customer_name,
+                                        orderNumber: o.order_number,
+                                        total: o.total,
+                                        dueDate: o.due_date,
+                                      }),
+                                    )}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    title="Kirim reminder jatuh tempo via WA"
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: "3px",
+                                      marginTop: "4px",
+                                      padding: "2px 8px",
+                                      borderRadius: "999px",
+                                      fontSize: "9px",
+                                      fontWeight: "700",
+                                      backgroundColor: "var(--color-success-soft)",
+                                      color: "var(--color-success)",
+                                      textDecoration: "none",
+                                    }}
+                                  >
+                                    💬 WA reminder
+                                  </a>
+                                )}
                               </div>
                             );
                           })()}

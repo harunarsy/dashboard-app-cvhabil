@@ -74,7 +74,7 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
           <div style={{ fontSize: '11px', color: mutedText }}>No: {displayNo}</div>
           <div style={{ fontSize: '11px', color: mutedText }}>{headerDate}</div>
           {due_date && !isCash && (
-            <div style={{ fontSize: '11px', color: 'var(--color-danger)', fontWeight: '700', marginTop: '2px' }}>JT: {fmtDate(due_date)}</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-danger)', fontWeight: '700', marginTop: '2px' }}>Jatuh Tempo: {fmtDate(due_date)}</div>
           )}
           {payment_method && (
             <div style={{ fontSize: '11px', color: subText, marginTop: '2px' }}>Metode: {payment_method}</div>
@@ -90,8 +90,8 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
       <div style={{ marginBottom: '8px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
         <span style={{ fontSize: '11px', color: subText }}>Kepada Yth: </span>
         <span style={{ fontSize: '11px', fontWeight: '700', color: bodyText, overflowWrap: 'anywhere' }}>{customer_name || '—'}</span>
-        {customer_phone && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px', overflowWrap: 'anywhere' }}>{customer_phone}</div>}
-        {customer_address && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px', lineHeight: '1.45', overflowWrap: 'anywhere' }}>{customer_address}</div>}
+        {customer_phone && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px', overflowWrap: 'anywhere' }}>{String(customer_phone).replace(/[^\d+()\-\s]/g, '').replace(/\s+/g, ' ').trim()}</div>}
+        {customer_address && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px', lineHeight: '1.45', overflowWrap: 'anywhere' }}>{String(customer_address).trim()}</div>}
       </div>
 
       {/* Items table */}

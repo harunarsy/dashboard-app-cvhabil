@@ -29,6 +29,7 @@ export const buildNotaWaMessage = ({
   items = [],
   total = 0,
   orderNumber = "",
+  dueDate = "",
 } = {}) => {
   const customer = form.customer_name || "Kak";
   const notaRef = String(orderNumber || form.order_number || "").trim();
@@ -53,7 +54,29 @@ export const buildNotaWaMessage = ({
       if (ed) meta.push(`ED ${ed}`);
       if (meta.length) lines.push(`   ${meta.join(" · ")}`);
     });
-  lines.push("", `Total: ${formatRp(total)}`, "Terima kasih.");
+  lines.push("", `Total: ${formatRp(total)}`);
+  const dueStr = fmtEd(dueDate || form.due_date);
+  if (dueStr) lines.push(`Jatuh tempo pembayaran: ${dueStr}`);
+  lines.push("Terima kasih.");
+  return lines.join("\n");
+};
+
+// Pesan reminder jatuh tempo (buat tombol "WA reminder" per nota di list)
+export const buildDueReminderMessage = ({
+  customerName = "Kak",
+  orderNumber = "",
+  total = 0,
+  dueDate = "",
+} = {}) => {
+  const dueStr = fmtEd(dueDate);
+  const ref = String(orderNumber || "").trim();
+  const lines = [
+    `Halo ${customerName}, mengingatkan untuk pembayaran nota ${ref} dari CV Habil Sejahtera Bersama.`,
+    "",
+    `Total: ${formatRp(total)}`,
+  ];
+  if (dueStr) lines.push(`Jatuh tempo pembayaran: ${dueStr}`);
+  lines.push("", "Mohon konfirmasi bila sudah transfer ya. Terima kasih 🙏");
   return lines.join("\n");
 };
 
