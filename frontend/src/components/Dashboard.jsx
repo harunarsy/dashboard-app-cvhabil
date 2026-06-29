@@ -4144,11 +4144,15 @@ export default function Dashboard({
         return (
           <div>
             <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Sparkles size={18} style={{ color: "var(--color-primary)" }} />
                 <h2 className="text-lg font-bold" style={{ color: text }}>
                   Ringkasan Minggu Ini
                 </h2>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: "var(--color-primary-soft)", color: "var(--color-primary)" }}>
+                  AI based
+                </span>
               </div>
               {/* Catatan Developer — pindah ke baris judul Ringkasan. v1.35.0 */}
               <button
