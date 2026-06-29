@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.53.4-stable] - 2026-06-29
+
+### Changed (penyeragaman teks)
+- Label tempo pembayaran → **"Jatuh Tempo Pembayaran"** di PDF nota (header), live preview, dan daftar nota.
+- Subjudul login → **"CV Habil Sejahtera Bersama"** (sebelumnya "CV Habil").
+
 ## [v1.53.3-stable] - 2026-06-29
 
 ### Fixed (Nota PDF/preview + WA jatuh tempo)

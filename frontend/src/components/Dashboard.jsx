@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.53.3-stable",
+    version: "v1.53.4-stable",
     date: "29 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Penyeragaman teks: label tempo pembayaran jadi 'Jatuh Tempo Pembayaran' di PDF nota, preview, dan daftar nota. Subjudul halaman login jadi 'CV Habil Sejahtera Bersama' (bukan 'CV Habil').",
+        dev: "generateNotaPDF 'Jatuh Tempo:'→'Jatuh Tempo Pembayaran:'; NotaPreview + SalesOrderList list idem. Login subtitle full PT name.",
+      },
+    ],
+  },
+  {
+    version: "v1.53.3-stable",
+    date: "29 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

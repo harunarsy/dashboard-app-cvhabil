@@ -2752,7 +2752,7 @@ export default function SalesOrderList({
                                     color: sub,
                                   }}
                                 >
-                                  Jatuh tempo: {fmtDateDay(o.due_date)}
+                                  Jatuh Tempo Pembayaran: {fmtDateDay(o.due_date)}
                                 </p>
                                 <p
                                   style={{

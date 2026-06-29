@@ -74,7 +74,7 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
           <div style={{ fontSize: '11px', color: mutedText }}>No: {displayNo}</div>
           <div style={{ fontSize: '11px', color: mutedText }}>{headerDate}</div>
           {due_date && !isCash && (
-            <div style={{ fontSize: '11px', color: 'var(--color-danger)', fontWeight: '700', marginTop: '2px' }}>Jatuh Tempo: {fmtDate(due_date)}</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-danger)', fontWeight: '700', marginTop: '2px' }}>Jatuh Tempo Pembayaran: {fmtDate(due_date)}</div>
           )}
           {payment_method && (
             <div style={{ fontSize: '11px', color: subText, marginTop: '2px' }}>Metode: {payment_method}</div>

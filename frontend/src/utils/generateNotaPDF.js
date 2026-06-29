@@ -83,7 +83,7 @@ export function generateNotaPDF(order, options = {}) {
     const dueStr = new Date(order.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
     doc.setTextColor(255, 59, 48);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Jatuh Tempo: ${dueStr}`, infoX, titleY + 13, { align: 'right' });
+    doc.text(`Jatuh Tempo Pembayaran: ${dueStr}`, infoX, titleY + 13, { align: 'right' });
     doc.setTextColor(60, 60, 60);
     doc.setFont('helvetica', 'normal');
   }

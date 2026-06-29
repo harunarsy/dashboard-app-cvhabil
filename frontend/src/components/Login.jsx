@@ -149,7 +149,7 @@ export default function Login({
             className="ui-over-media-copy mt-3 px-3 py-1 text-xs font-semibold"
             style={{ color: sub }}
           >
-            HABIL SUPERAPP v1.53.3-stable — 2026
+            HABIL SUPERAPP v1.53.4-stable — 2026
           </p>
         </div>
 
@@ -170,7 +170,7 @@ export default function Login({
             Sign In
           </h2>
           <p className="text-xs font-medium text-center mb-6" style={{ color: sub }}>
-            Masuk ke dashboard operasional CV Habil
+            Masuk ke dashboard operasional CV Habil Sejahtera Bersama
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
