@@ -2194,7 +2194,7 @@ export default function SalesOrderList({
           onChange={setSearch}
           placeholder="Cari nomor nota atau customer..."
           ariaLabel="Cari nota"
-          style={{ flex: 1, minWidth: isMobile ? "100%" : "300px" }}
+          style={{ flex: 1, minWidth: isMobile ? "100%" : "200px" }}
           inputStyle={{
             backgroundColor: inputStyle.backgroundColor,
             borderColor: border,
@@ -2249,7 +2249,7 @@ export default function SalesOrderList({
           onChange={(e) => setFilterMonth(e.target.value)}
           style={{
             ...inputStyle,
-            width: isMobile ? "100%" : "170px",
+            width: isMobile ? "100%" : "150px",
             flex: "0 0 auto",
             paddingRight: "32px",
             textOverflow: "ellipsis",
@@ -2283,7 +2283,7 @@ export default function SalesOrderList({
           onChange={(e) => setFilterYear(e.target.value)}
           style={{
             ...inputStyle,
-            width: isMobile ? "100%" : "130px",
+            width: isMobile ? "100%" : "110px",
             flex: "0 0 auto",
             paddingRight: "32px",
             textOverflow: "ellipsis",
@@ -2307,7 +2307,7 @@ export default function SalesOrderList({
           onChange={(e) => setFilterStatus(e.target.value)}
           style={{
             ...inputStyle,
-            width: isMobile ? "100%" : "170px",
+            width: isMobile ? "100%" : "150px",
             flex: "0 0 auto",
             paddingRight: "32px",
             textOverflow: "ellipsis",
@@ -2325,7 +2325,7 @@ export default function SalesOrderList({
           onChange={(e) => setFilterChannel(e.target.value)}
           style={{
             ...inputStyle,
-            width: isMobile ? "100%" : "170px",
+            width: isMobile ? "100%" : "150px",
             flex: "0 0 auto",
             paddingRight: "32px",
             textOverflow: "ellipsis",
@@ -2343,7 +2343,7 @@ export default function SalesOrderList({
           onChange={(e) => setFilterProfit(e.target.value)}
           style={{
             ...inputStyle,
-            width: isMobile ? "100%" : "190px",
+            width: isMobile ? "100%" : "150px",
             flex: "0 0 auto",
             paddingRight: "32px",
             textOverflow: "ellipsis",
@@ -2367,25 +2367,36 @@ export default function SalesOrderList({
             Rugi (&lt;{formatProfitPct(activeProfitThresholds.thin)})
           </option>
         </select>
-        <div
-          style={{
-            width: "100%",
-            gridColumn: "1 / -1",
-            fontSize: "11px",
-            color: sub,
-            marginTop: "-4px",
-            lineHeight: 1.5,
-          }}
-        >
-          Ambang aktif: tinggi &gt;{" "}
-          {formatProfitPct(activeProfitThresholds.high)} · normal{" "}
-          {formatProfitPct(activeProfitThresholds.normal)}–
-          {formatProfitPct(activeProfitThresholds.high)} · tipis{" "}
-          {formatProfitPct(activeProfitThresholds.thin)}–
-          {formatProfitPct(activeProfitThresholds.normal)} · rugi &lt;{" "}
-          {formatProfitPct(activeProfitThresholds.thin)}
         </div>
-        </div>
+      </div>
+
+      {/* Legend patokan untung — info kecil terpisah dari filter (v1.53.5) */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          flexWrap: "wrap",
+          margin: "-4px 2px 12px",
+          fontSize: "10.5px",
+          color: sub,
+          lineHeight: 1.5,
+        }}
+      >
+        <span style={{ fontWeight: 700 }}>Patokan untung:</span>
+        <span>tinggi &gt; {formatProfitPct(activeProfitThresholds.high)}</span>
+        <span>·</span>
+        <span>
+          normal {formatProfitPct(activeProfitThresholds.normal)}–
+          {formatProfitPct(activeProfitThresholds.high)}
+        </span>
+        <span>·</span>
+        <span>
+          tipis {formatProfitPct(activeProfitThresholds.thin)}–
+          {formatProfitPct(activeProfitThresholds.normal)}
+        </span>
+        <span>·</span>
+        <span>rugi &lt; {formatProfitPct(activeProfitThresholds.thin)}</span>
       </div>
 
       {/* v1.7.0 Multi-select action bar */}

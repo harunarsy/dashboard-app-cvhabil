@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.53.5-stable] - 2026-06-29
+
+### Changed (UI density batch 2 — Nota filter & Inventory)
+- **Nota Penjualan**: lebar search & dropdown filter dikecilkan biar muat satu baris (tak wrap). Legend persen untung dipisah jadi baris info kecil di bawah filter; istilah **"Ambang aktif" → "Patokan untung"**.
+- **Inventory**: `marginBottom` antar section `1.5/1.25rem → 0.875rem`, padding kartu Saran Restock dirapatkan.
+
 ## [v1.53.4-stable] - 2026-06-29
 
 ### Changed (penyeragaman teks)

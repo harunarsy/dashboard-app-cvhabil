@@ -800,7 +800,7 @@ export default function InventoryDashboard({
           justifyContent: "space-between",
           gap: "12px",
           flexWrap: "wrap",
-          marginBottom: "1.5rem",
+          marginBottom: "0.875rem",
         }}
       >
         <div
@@ -866,7 +866,7 @@ export default function InventoryDashboard({
           style={{
             display: "flex",
             gap: "8px",
-            marginBottom: "1.5rem",
+            marginBottom: "0.875rem",
             flexWrap: "wrap",
           }}
         >
@@ -901,8 +901,8 @@ export default function InventoryDashboard({
         <div
           className="ui-panel"
           style={{
-            marginBottom: "1.25rem",
-            padding: "14px 16px",
+            marginBottom: "0.875rem",
+            padding: "12px 14px",
             borderRadius: "14px",
             border: `1px solid ${border}`,
             backgroundColor: cardBg,

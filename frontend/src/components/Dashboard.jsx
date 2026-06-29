@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.53.4-stable",
+    version: "v1.53.5-stable",
     date: "29 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Filter Nota Penjualan dirapikan biar muat satu baris (search & dropdown lebih ramping). Keterangan persen untung dipisah jadi baris info kecil di bawah filter (istilah 'Ambang aktif' diganti 'Patokan untung'). Inventory: jarak antar bagian dirapatkan biar tidak makan tempat.",
+        dev: "SalesOrderList: lebar select/search dikecilkan; legend profit dipindah keluar toolbar + rename 'Patokan untung:'. InventoryDashboard: marginBottom section 1.5/1.25rem → 0.875rem + padding restock dikecilkan.",
+      },
+    ],
+  },
+  {
+    version: "v1.53.4-stable",
+    date: "29 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
