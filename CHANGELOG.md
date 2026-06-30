@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.53.8-stable] - 2026-06-30
+
+### Added (cari nota by total nominal)
+- Search Nota Penjualan kini juga cocokkan **total nominal** (mis. "236250" → nota Rp 236.250), selain no nota & customer. `qDigits>=3` includes `String(round(total))`.
+
 ## [v1.53.7-stable] - 2026-06-30
 
 ### Fixed (rekomendasi customer dobel)

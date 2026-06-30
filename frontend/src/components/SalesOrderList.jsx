@@ -854,9 +854,13 @@ export default function SalesOrderList({
     .filter((o) => {
       const orderDate = new Date(o.sale_date);
       const q = debouncedSearch.toLowerCase();
+      // angka di query → cari juga berdasarkan TOTAL nominal (mis. "236250").
+      const qDigits = q.replace(/\D/g, "");
+      const totalDigits = String(Math.round(parseFloat(o.total) || 0));
       const matchesSearch =
         o.order_number.toLowerCase().includes(q) ||
-        o.customer_name.toLowerCase().includes(q);
+        o.customer_name.toLowerCase().includes(q) ||
+        (qDigits.length >= 3 && totalDigits.includes(qDigits));
       const isAllMonth = String(filterMonth) === "all";
       const isAllYear = String(filterYear) === "all";
       const matchesMonth =
@@ -2192,7 +2196,7 @@ export default function SalesOrderList({
         <SearchBox
           value={search}
           onChange={setSearch}
-          placeholder="Cari nomor nota atau customer..."
+          placeholder="Cari no nota, customer, atau total nominal..."
           ariaLabel="Cari nota"
           style={{ flex: 1, minWidth: isMobile ? "100%" : "200px" }}
           inputStyle={{

@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.53.7-stable",
+    version: "v1.53.8-stable",
     date: "30 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Kolom pencarian Nota Penjualan sekarang juga bisa cari berdasarkan TOTAL nominal nota (mis. ketik '236250' untuk menemukan nota Rp 236.250) — selain nomor nota & nama customer.",
+        dev: "SalesOrderList filtered: matchesSearch +cek total digits (qDigits>=3 includes String(round(total))). Placeholder diperbarui.",
+      },
+    ],
+  },
+  {
+    version: "v1.53.7-stable",
+    date: "30 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
