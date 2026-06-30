@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.53.7-stable",
+    date: "30 Juni 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Rekomendasi 'Biasanya dibeli customer' tidak lagi memunculkan produk yang sama dua kali akibat beda penulisan nama (mis. Tropicana Slim Classic muncul versi lama & baru). Sekarang digabung jadi satu — mengurangi risiko salah pilih.",
+        dev: "insights /customer/:id: item_history group by nama canonical (product_master via product_aliases), mirror weekly-summary. 7x+2x → 1 entri.",
+      },
+    ],
+  },
+  {
     version: "v1.53.6-stable",
     date: "29 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",

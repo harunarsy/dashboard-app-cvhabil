@@ -37,8 +37,10 @@ router.get('/customer/:id', async (req, res) => {
             AND customer_id = $1
         ),
         item_history AS (
+          -- v1.53.7: grup by nama CANONICAL (master, via alias) supaya 1 produk
+          -- yang kerekam dgn ejaan beda tidak muncul dobel di rekomendasi.
           SELECT
-            si.product_name,
+            COALESCE(pm_direct.name, pm_alias.name, si.product_name) AS product_name,
             COUNT(DISTINCT cs.id) AS order_count,
             COALESCE(SUM(COALESCE(si.qty_in_unit, si.qty, 0)), 0) AS qty_user_total,
             COALESCE(SUM(COALESCE(si.qty, 0)), 0) AS qty_base_total,
@@ -48,8 +50,13 @@ router.get('/customer/:id', async (req, res) => {
             AVG(NULLIF(si.unit_price, 0)) AS avg_unit_price
           FROM customer_sales cs
           JOIN sales_items si ON si.sales_order_id = cs.id
+          LEFT JOIN product_master pm_direct
+            ON LOWER(TRIM(pm_direct.name)) = LOWER(TRIM(si.product_name))
+          LEFT JOIN product_aliases pa
+            ON LOWER(TRIM(pa.alias_name)) = LOWER(TRIM(si.product_name))
+          LEFT JOIN product_master pm_alias ON pm_alias.id = pa.product_id
           WHERE NULLIF(TRIM(COALESCE(si.product_name, '')), '') IS NOT NULL
-          GROUP BY si.product_name
+          GROUP BY COALESCE(pm_direct.name, pm_alias.name, si.product_name)
         )
         SELECT
           ih.product_name,

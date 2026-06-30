@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.53.7-stable] - 2026-06-30
+
+### Fixed (rekomendasi customer dobel)
+- Insight **"Biasanya dibeli customer"** tak lagi memunculkan produk sama 2x karena beda ejaan nama (snapshot lama vs master). `insights /customer/:id`: `item_history` group by nama **canonical** (`product_master` via `product_aliases`), mirror weekly-summary. Contoh: Tropicana Classic 7x + 2x → 1 entri 10x.
+
 ## [v1.53.6-stable] - 2026-06-29
 
 ### Changed (UI density batch 3 — Faktur Pembelian)
