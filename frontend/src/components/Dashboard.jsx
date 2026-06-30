@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.53.8-stable",
+    version: "v1.53.9-stable",
     date: "30 Juni 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Search Nota Penjualan sekarang juga bisa cari berdasarkan NAMA PRODUK di dalam nota (mis. ketik 'peptibren' untuk menemukan semua nota yang ada produk Peptibren). Lengkap: no nota, customer, produk, dan total nominal.",
+        dev: "SalesOrderList filtered.matchesSearch +o.items.some(product_name includes q) + guard !q. Placeholder diperbarui.",
+      },
+    ],
+  },
+  {
+    version: "v1.53.8-stable",
+    date: "30 Juni 2026",
+    status: "stable",
     changes: [
       {
         type: "new",

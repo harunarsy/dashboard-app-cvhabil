@@ -858,9 +858,15 @@ export default function SalesOrderList({
       const qDigits = q.replace(/\D/g, "");
       const totalDigits = String(Math.round(parseFloat(o.total) || 0));
       const matchesSearch =
+        !q ||
         o.order_number.toLowerCase().includes(q) ||
         o.customer_name.toLowerCase().includes(q) ||
-        (qDigits.length >= 3 && totalDigits.includes(qDigits));
+        (qDigits.length >= 3 && totalDigits.includes(qDigits)) ||
+        // cari berdasarkan NAMA PRODUK di dalam nota
+        (Array.isArray(o.items) &&
+          o.items.some((it) =>
+            (it.product_name || "").toLowerCase().includes(q),
+          ));
       const isAllMonth = String(filterMonth) === "all";
       const isAllYear = String(filterYear) === "all";
       const matchesMonth =
@@ -2196,7 +2202,7 @@ export default function SalesOrderList({
         <SearchBox
           value={search}
           onChange={setSearch}
-          placeholder="Cari no nota, customer, atau total nominal..."
+          placeholder="Cari no nota, customer, produk, atau total..."
           ariaLabel="Cari nota"
           style={{ flex: 1, minWidth: isMobile ? "100%" : "200px" }}
           inputStyle={{

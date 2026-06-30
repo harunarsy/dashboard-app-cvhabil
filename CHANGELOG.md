@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.53.9-stable] - 2026-06-30
+
+### Added (cari nota by nama produk)
+- Search Nota Penjualan kini juga cocokkan **nama produk** di dalam nota (mis. "peptibren" → semua nota berisi Peptibren). `matchesSearch` +`o.items.some(product_name includes q)`.
+
 ## [v1.53.8-stable] - 2026-06-30
 
 ### Added (cari nota by total nominal)
