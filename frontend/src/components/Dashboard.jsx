@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.54.0-stable",
+    version: "v1.54.1-stable",
     date: "2 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Tombol WA reminder di Nota Penjualan & Pinjaman sekarang MENYALIN teks pesan (tinggal paste di WhatsApp) — tidak lagi membuka halaman wa.me yang merusak emoji. Tombol juga muncul untuk SEMUA nota terlambat, termasuk yang belum punya No. HP customer.",
+        dev: "SalesOrderList & LoanList: buildWaUrl+window.open → copyTextToClipboard + toast. Gating normalizeIndonesianPhone(phone) dihapus (salin tidak butuh nomor).",
+      },
+    ],
+  },
+  {
+    version: "v1.54.0-stable",
+    date: "2 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "new",

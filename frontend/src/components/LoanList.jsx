@@ -20,8 +20,7 @@ import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import {
   buildLoanReminderMessage,
-  buildWaUrl,
-  normalizeIndonesianPhone,
+  copyTextToClipboard,
 } from "../utils/waMessage";
 
 // v1.54.0: Peminjaman produk — "nota gantung": stok sudah keluar saat pinjam,
@@ -456,7 +455,8 @@ export default function LoanList({ isDarkMode, isMobile }) {
       showToast("Gagal membuat PDF: " + e.message, "error");
     }
   };
-  const handleWaReminder = (loan) => {
+  // v1.54.1: SALIN teks reminder (bukan buka WA — wa.me ngerusak emoji & butuh No. HP)
+  const handleWaReminder = async (loan) => {
     const msg = buildLoanReminderMessage({
       customerName: loan.customer_name,
       loanNumber: loan.loan_number,
@@ -466,9 +466,13 @@ export default function LoanList({ isDarkMode, isMobile }) {
         outstanding: outstandingOf(it),
       })),
     });
-    const url = buildWaUrl(loan.customer_phone, msg);
-    if (!url) return showToast("Customer belum punya No. HP", "error");
-    window.open(url, "_blank", "noopener");
+    const ok = await copyTextToClipboard(msg);
+    showToast(
+      ok
+        ? `Pesan reminder ${loan.loan_number} disalin — tinggal paste di WA`
+        : "Gagal menyalin — coba lagi",
+      ok ? "success" : "error",
+    );
   };
 
   // ─── Derived ───────────────────────────────────────────────────────────
@@ -750,13 +754,13 @@ export default function LoanList({ isDarkMode, isMobile }) {
                       >
                         <FileText size={12} /> PDF Nota Pinjaman
                       </button>
-                      {normalizeIndonesianPhone(loan.customer_phone) && outstanding > 0 && (
+                      {outstanding > 0 && (
                         <button
                           onClick={() => handleWaReminder(loan)}
                           className="ui-motion-button"
                           style={smallBtn("#25D366")}
                         >
-                          <MessageCircle size={12} /> WA Reminder
+                          <MessageCircle size={12} /> Salin Reminder
                         </button>
                       )}
                       <div style={{ flex: 1 }} />

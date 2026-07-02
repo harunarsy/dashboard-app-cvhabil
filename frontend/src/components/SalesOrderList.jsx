@@ -49,7 +49,6 @@ import {
   buildNotaWaMessage,
   buildDueReminderMessage,
   buildWaUrl,
-  normalizeIndonesianPhone,
   copyTextToClipboard,
 } from "../utils/waMessage";
 import {
@@ -2865,38 +2864,44 @@ export default function SalesOrderList({
                                 >
                                   {relText}
                                 </p>
-                                {normalizeIndonesianPhone(o.customer_phone) && (
-                                  <a
-                                    href={buildWaUrl(
-                                      o.customer_phone,
+                                {/* v1.54.1: SALIN teks reminder (bukan buka WA — wa.me
+                                    ngerusak emoji & butuh No. HP; salin jalan utk semua nota) */}
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    const ok = await copyTextToClipboard(
                                       buildDueReminderMessage({
                                         customerName: o.customer_name,
                                         orderNumber: o.order_number,
                                         total: o.total,
                                         dueDate: o.due_date,
                                       }),
-                                    )}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    title="Kirim reminder jatuh tempo via WA"
-                                    style={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: "3px",
-                                      marginTop: "4px",
-                                      padding: "2px 8px",
-                                      borderRadius: "999px",
-                                      fontSize: "9px",
-                                      fontWeight: "700",
-                                      backgroundColor: "var(--color-success-soft)",
-                                      color: "var(--color-success)",
-                                      textDecoration: "none",
-                                    }}
-                                  >
-                                    💬 WA reminder
-                                  </a>
-                                )}
+                                    );
+                                    flash(
+                                      ok
+                                        ? `Pesan reminder ${o.order_number} disalin — tinggal paste di WA`
+                                        : "Gagal menyalin — coba lagi",
+                                      ok ? "success" : "error",
+                                    );
+                                  }}
+                                  title="Salin teks reminder jatuh tempo (paste manual di WA)"
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "3px",
+                                    marginTop: "4px",
+                                    padding: "2px 8px",
+                                    borderRadius: "999px",
+                                    fontSize: "9px",
+                                    fontWeight: "700",
+                                    backgroundColor: "var(--color-success-soft)",
+                                    color: "var(--color-success)",
+                                    border: "none",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  💬 Salin reminder
+                                </button>
                               </div>
                             );
                           })()}

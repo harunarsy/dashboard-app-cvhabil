@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.54.1-stable] - 2026-07-02
+
+### Fixed (WA reminder → salin teks)
+- Tombol WA reminder (Nota Penjualan & Pinjaman) sekarang **menyalin teks** pesan ke clipboard (paste manual di WA) — tidak buka `wa.me` lagi yang merusak emoji (� di URL). Tombol tampil untuk **semua** nota terlambat, termasuk customer tanpa No. HP (salin tidak butuh nomor). `buildWaUrl+window.open` → `copyTextToClipboard` + toast.
+
 ## [v1.54.0-stable] - 2026-07-02
 
 ### Added (fitur Peminjaman Produk)
