@@ -266,6 +266,15 @@ export const salesAPI = {
   updatePaymentStatus: (id, payment_status, paid_at) => api.patch(`/sales/${id}/payment-status`, { payment_status, ...(paid_at && { paid_at }) }),
 };
 
+// v1.54.0: peminjaman produk (nota pinjaman + retur + konversi jadi nota penjualan)
+export const loansAPI = {
+  getAll: () => api.get('/loans'),
+  create: (data) => api.post('/loans', data),
+  returnItems: (id, data) => api.post(`/loans/${id}/return`, data),
+  convert: (id, data) => api.post(`/loans/${id}/convert`, data),
+  remove: (id) => api.delete(`/loans/${id}`),
+};
+
 export const inventoryAPI = {
   getProducts: (params) => api.get('/inventory/products', { params }),
   getOpnameTemplate: () => api.get('/inventory/opname-template'),

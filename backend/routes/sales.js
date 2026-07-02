@@ -6,6 +6,7 @@ const tax = require('../utils/tax');
 const uom = require('../utils/uom');
 const { runOnce } = require('../utils/migrationOnce');
 const formDrafts = require('../utils/formDrafts');
+const { generateMonthlyDocNumber } = require('../utils/docNumbers');
 
 // ─── Auto-create tables ─────────────────────────────────────────────────────
 const ensureSchema = async () => {
@@ -137,66 +138,11 @@ const ensureSchema = async () => {
 };
 if (process.env.NODE_ENV !== 'test') ensureSchema().catch(e => console.error('sales ensureSchema:', e));
 
-const generateOrderNumber = async (client) => {
-  // v1.8.1: format HSB-NOTA-{YYMM}{NNN} dengan reset per bulan + sync to MAX per current month.
-  // Kalau bulan berubah dari last_yymm → reset last_number=0 + update last_yymm.
-  // Kalau nota terakhir bulan ini dihapus → MAX bergeser turun → re-use nomor (mirror v1.7.1 behavior).
-  const now = new Date();
-  const yy = String(now.getFullYear()).slice(-2);
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const currentYymm = `${yy}${mm}`;
-  const monthPrefix = `HSB-NOTA-${currentYymm}`;
-
-  // Sync counter ke MAX active nota YYMM bulan ini (NNN segment after monthPrefix)
-  // v1.8.3 fix: SUBSTRING(... FROM $param) treat param as REGEX (matches literal digits → MAX salah).
-  // Pakai REPLACE prefix yang safe + parameterized.
-  await client.query(
-    `UPDATE document_counters
-     SET last_number = COALESCE((
-       SELECT MAX(CAST(REPLACE(order_number, $1, '') AS INTEGER))
-       FROM sales_orders
-       WHERE is_deleted = FALSE AND order_number LIKE $2
-     ), 0)
-     WHERE doc_type = 'NOTA'`,
-    [monthPrefix, `${monthPrefix}%`]
-  );
-
-  // Cek apakah bulan berubah → reset counter
-  const { rows: [counter] } = await client.query(
-    `SELECT last_number, last_yymm FROM document_counters WHERE doc_type = 'NOTA'`
-  );
-  if (!counter) {
-    // Fallback kalau counter missing
-    await client.query(
-      `INSERT INTO document_counters (doc_type, prefix, last_number, last_yymm, is_active)
-       VALUES ('NOTA', 'HSB-NOTA-', 1, $1, TRUE)
-       ON CONFLICT (doc_type) DO UPDATE SET last_number = 1, last_yymm = EXCLUDED.last_yymm`,
-      [currentYymm]
-    );
-    return `${monthPrefix}001`;
-  }
-
-  let nextNumber;
-  if (counter.last_yymm && counter.last_yymm !== currentYymm) {
-    // Bulan baru → reset ke 1
-    nextNumber = 1;
-    await client.query(
-      `UPDATE document_counters SET last_number = $1, last_yymm = $2 WHERE doc_type = 'NOTA'`,
-      [nextNumber, currentYymm]
-    );
-  } else {
-    // Bulan sama (atau last_yymm NULL untuk row legacy) → increment + ensure last_yymm set
-    const { rows: [updated] } = await client.query(
-      `UPDATE document_counters SET last_number = last_number + 1, last_yymm = $1
-       WHERE doc_type = 'NOTA' RETURNING last_number`,
-      [currentYymm]
-    );
-    nextNumber = updated.last_number;
-  }
-
-  const padded = String(nextNumber).padStart(3, '0');
-  return `${monthPrefix}${padded}`;
-};
+// v1.8.1: format HSB-NOTA-{YYMM}{NNN} reset per bulan + sync ke MAX bulan berjalan.
+// v1.54.0: logic dipindah ke utils/docNumbers.js (dipakai juga nomor pinjaman HSB-PJM).
+const generateOrderNumber = (client) => generateMonthlyDocNumber(client, {
+  docType: 'NOTA', prefix: 'HSB-NOTA-', table: 'sales_orders', column: 'order_number',
+});
 
 // ─── resolveSelectedBatchForSale ──────────────────────────────────────────
 // Priority: selected_batch_id > batch_id_snapshot > batch_no_snapshot + expired_date > batch_no_snapshot only
@@ -657,6 +603,16 @@ router.put('/:id', auth, async (req, res) => {
   const itemError = validateSaleItems(items);
   if (itemError) return res.status(400).json({ error: itemError });
 
+  // v1.54.0: nota hasil konversi pinjaman TIDAK boleh diedit itemnya — PUT me-reverse
+  // mutasi 'nota' (yang tidak ada) lalu potong stok baru → stok kepotong DOBEL.
+  // Pelunasan tetap bisa via PATCH payment-status. Hapus nota → status balik dipinjam.
+  const { rows: [loanCheck] } = await pool.query(
+    'SELECT source_loan_id FROM sales_orders WHERE id = $1 AND is_deleted = FALSE', [req.params.id]
+  );
+  if (loanCheck?.source_loan_id) {
+    return res.status(400).json({ error: 'Nota hasil konversi pinjaman tidak bisa diedit. Hapus nota ini (item kembali berstatus dipinjam), lalu konversi ulang dari menu Pinjaman.' });
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -914,13 +870,48 @@ router.delete('/:id', auth, async (req, res) => {
       );
     }
 
+    // v1.54.0: nota hasil konversi pinjaman dihapus → stok TIDAK berubah (tidak ada
+    // mutasi 'nota'; barang masih di customer) — item kembali berstatus DIPINJAM.
+    // to_regclass guard: tabel loan belum ada (deploy lama) → jangan pecahin delete nota.
+    const { rows: [{ to_regclass: lcTable }] } = await client.query(`SELECT to_regclass('loan_conversions')`);
+    let revertedLoans = 0;
+    if (lcTable) {
+      const { rows: convs } = await client.query(
+        `UPDATE loan_conversions SET is_reverted = TRUE
+         WHERE sales_order_id = $1 AND is_reverted = FALSE
+         RETURNING loan_id, loan_item_id, qty`,
+        [req.params.id]
+      );
+      for (const cv of convs) {
+        await client.query(
+          'UPDATE loan_items SET qty_purchased = GREATEST(0, qty_purchased - $1) WHERE id = $2',
+          [cv.qty, cv.loan_item_id]
+        );
+      }
+      const loanIds = [...new Set(convs.map(cv => cv.loan_id))];
+      for (const loanId of loanIds) {
+        await client.query(
+          `UPDATE loans SET status = CASE
+             WHEN NOT EXISTS (SELECT 1 FROM loan_items li WHERE li.loan_id = loans.id
+                              AND li.qty - li.qty_returned - li.qty_purchased > 0)
+             THEN 'selesai' ELSE 'aktif' END,
+           updated_at = NOW()
+           WHERE id = $1 AND is_deleted = FALSE`,
+          [loanId]
+        );
+      }
+      revertedLoans = convs.length;
+    }
+
     // Soft-delete nota
     await client.query(
       'UPDATE sales_orders SET is_deleted = TRUE, updated_at = NOW() WHERE id = $1', [req.params.id]
     );
     await client.query('COMMIT');
     res.json({
-      message: `Nota ${existing.order_number} dihapus + ${outMutations.length} mutasi stok dikembalikan`,
+      message: revertedLoans
+        ? `Nota ${existing.order_number} dihapus — ${revertedLoans} item kembali berstatus dipinjam (stok tidak berubah)`
+        : `Nota ${existing.order_number} dihapus + ${outMutations.length} mutasi stok dikembalikan`,
       reverted_mutations: outMutations.length,
     });
   } catch (err) {
@@ -988,6 +979,44 @@ router.put('/:id/restore', auth, async (req, res) => {
         [r.product_id, r.batch_id, r.qty, req.params.id,
          `Restore nota ${existing.order_number} dari trash`, req.user?.id || null]
       );
+    }
+
+    // v1.54.0: restore nota hasil konversi pinjaman → re-apply qty_purchased di loan.
+    // Guard: kalau sisa pinjaman sudah diretur/dikonversi lain sementara nota di trash,
+    // re-apply bakal bikin qty dobel → tolak restore dengan pesan jelas.
+    const { rows: [{ to_regclass: lcTable }] } = await client.query(`SELECT to_regclass('loan_conversions')`);
+    if (lcTable) {
+      const { rows: convs } = await client.query(
+        `SELECT lc.id, lc.loan_id, lc.loan_item_id, lc.qty, li.product_name,
+                li.qty AS item_qty, li.qty_returned, li.qty_purchased
+         FROM loan_conversions lc JOIN loan_items li ON li.id = lc.loan_item_id
+         WHERE lc.sales_order_id = $1 AND lc.is_reverted = TRUE FOR UPDATE OF lc, li`,
+        [req.params.id]
+      );
+      for (const cv of convs) {
+        const room = Number(cv.item_qty) - Number(cv.qty_returned) - Number(cv.qty_purchased);
+        if (Number(cv.qty) > room) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({
+            error: `Tidak bisa restore: sisa pinjaman ${cv.product_name} sudah diretur/dikonversi lain (butuh ${cv.qty}, sisa ${room}). Void nota ini permanen atau koreksi pinjamannya dulu.`,
+          });
+        }
+      }
+      for (const cv of convs) {
+        await client.query('UPDATE loan_items SET qty_purchased = qty_purchased + $1 WHERE id = $2', [cv.qty, cv.loan_item_id]);
+        await client.query('UPDATE loan_conversions SET is_reverted = FALSE WHERE id = $1', [cv.id]);
+      }
+      for (const loanId of [...new Set(convs.map(cv => cv.loan_id))]) {
+        await client.query(
+          `UPDATE loans SET status = CASE
+             WHEN NOT EXISTS (SELECT 1 FROM loan_items li WHERE li.loan_id = loans.id
+                              AND li.qty - li.qty_returned - li.qty_purchased > 0)
+             THEN 'selesai' ELSE 'aktif' END,
+           updated_at = NOW()
+           WHERE id = $1 AND is_deleted = FALSE`,
+          [loanId]
+        );
+      }
     }
 
     await client.query(

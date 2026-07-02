@@ -86,6 +86,7 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/bugs', require('./routes/bugs'));
 app.use('/api/customers', require('./routes/customers'));
 app.use('/api/sales', require('./routes/sales'));
+app.use('/api/loans', require('./routes/loans'));
 app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/purchase-orders', require('./routes/purchaseOrders'));
 app.use('/api/online-store', require('./routes/onlineStore'));

@@ -61,8 +61,11 @@ export function generateNotaPDF(order, options = {}) {
   doc.text(String(settings.phone || '-'), margin, headY);
 
   // Doc Info (Top Right)
+  // v1.54.0: type 'pinjaman' — Nota Pinjaman (bukan tagihan): tanpa breakdown PPN,
+  // tanpa metode bayar/bank, total = nilai barang, jatuh tempo = batas pengembalian.
+  const isLoan = type === 'pinjaman';
   const infoX = pageWidth - margin;
-  const docTitle = type === 'terima' ? 'TANDA TERIMA' : 'NOTA PENJUALAN';
+  const docTitle = type === 'terima' ? 'TANDA TERIMA' : (isLoan ? 'NOTA PINJAMAN' : 'NOTA PENJUALAN');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(baseFontSize + 2);
@@ -79,11 +82,12 @@ export function generateNotaPDF(order, options = {}) {
     : '-';
   doc.text(saleDateStr, infoX, titleY + 9, { align: 'right' });
   // v1.8.1: tampilkan Jatuh Tempo di header kalau ada AND non-cash
-  if (order.due_date && order.payment_method !== 'Tunai' && type !== 'terima') {
+  // v1.54.0: nota pinjaman → label "Batas Pengembalian" (selalu tampil kalau ada due_date)
+  if (order.due_date && (isLoan || (order.payment_method !== 'Tunai' && type !== 'terima'))) {
     const dueStr = new Date(order.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
     doc.setTextColor(255, 59, 48);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Jatuh Tempo Pembayaran: ${dueStr}`, infoX, titleY + 13, { align: 'right' });
+    doc.text(`${isLoan ? 'Batas Pengembalian' : 'Jatuh Tempo Pembayaran'}: ${dueStr}`, infoX, titleY + 13, { align: 'right' });
     doc.setTextColor(60, 60, 60);
     doc.setFont('helvetica', 'normal');
   }
@@ -138,7 +142,7 @@ export function generateNotaPDF(order, options = {}) {
   }
 
   // Payment Method info — pindah ke bawah divider (clear dari JT row)
-  if (type !== 'terima') {
+  if (type !== 'terima' && !isLoan) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(baseFontSize);
     doc.text(`Metode: ${String(order.payment_method || 'Tunai')}`, infoX, margin + (isA6 ? 23 : 30), { align: 'right' });
@@ -241,7 +245,33 @@ export function generateNotaPDF(order, options = {}) {
   const tableEndY = (doc.lastAutoTable?.finalY || 0);
   let finalY = tableEndY > 0 ? tableEndY + (compactPaper ? 3.5 : 5) : margin + (isA6 ? 28 : 50);
 
-  if (type !== 'terima') {
+  if (isLoan) {
+    // v1.54.0: pinjaman = bukan tagihan → total nilai barang saja (tanpa DPP/PPN),
+    // plus keterangan status barang supaya dokumen tidak disalahartikan sebagai nota jual.
+    const totalValue = parseFloat(order.total) || 0;
+    const rightX = pageWidth - margin;
+    doc.setFontSize(baseFontSize + 1);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0);
+    doc.text(`TOTAL NILAI BARANG: ${fmtRp(totalValue)}`, rightX, finalY, { align: 'right' });
+    finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
+    doc.setFontSize(baseFontSize - 2);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100);
+    doc.text(`Terbilang: ${(angkaKeTerbilang(totalValue) + ' Rupiah').trim()}`, margin, finalY);
+    finalY += (isA6 ? 2.6 : (isA5 ? 4 : 6));
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(255, 59, 48);
+    const loanNote = doc.splitTextToSize(
+      'Barang berstatus PINJAMAN — belum termasuk penjualan. Mohon dikembalikan atau dikonfirmasi pembelian sebelum batas pengembalian.',
+      pageWidth - margin * 2
+    );
+    doc.text(loanNote, margin, finalY);
+    finalY += loanNote.length * (isA6 ? 2.6 : (isA5 ? 3.3 : 4.2));
+    doc.setTextColor(0);
+  }
+
+  if (type !== 'terima' && !isLoan) {
     // v1.8.1: tax-friendly breakdown — DPP (subtotal exc PPN) + PPN 11% + Grand Total
     // Indo practice: harga jual customer = gross (inc PPN). Decompose: GT = DPP + PPN.
     // v1.21.14: ongkir baris terpisah, TIDAK kena PPN. DPP/PPN dihitung dari nilai produk saja.
@@ -310,7 +340,7 @@ export function generateNotaPDF(order, options = {}) {
   const footerGap = isA6 ? 1.5 : (isA5 ? 2.5 : 4);
 
   let bankH = 0;
-  if (bankInfo && type !== 'terima') {
+  if (bankInfo && type !== 'terima' && !isLoan) {
     bankH = isA6 ? 7 : (isA5 ? 8 : 10);
     if (qrisText) bankH += isA6 ? 2.5 : (isA5 ? 3.5 : 5);
   }
@@ -331,7 +361,7 @@ export function generateNotaPDF(order, options = {}) {
 
   // ─── Ketentuan / Notes (adaptive line-by-line) ────────────────────────
   // v1.8.5.4: A6 include ketentuan kembali. Kalau overflow → fallback addPage acceptable.
-  if (ketentuan && type !== 'terima') {
+  if (ketentuan && type !== 'terima' && !isLoan) {
     const ketentuanLines = ketentuan.split('\n').filter(l => l.trim());
     finalY += isA6 ? 1.2 : (isA5 ? 2 : 3);
     ensureSpace(isA6 ? 2.5 : (isA5 ? 3 : 4));
@@ -357,7 +387,7 @@ export function generateNotaPDF(order, options = {}) {
   }
 
   // ─── Bank Info ────────────────────────────────────────────────────────
-  if (bankInfo && type !== 'terima') {
+  if (bankInfo && type !== 'terima' && !isLoan) {
     finalY += isA6 ? 2.5 : (isA5 ? 3.5 : 5);
     doc.setFontSize(baseFontSize - 1);
     doc.setTextColor(0);
@@ -383,8 +413,8 @@ export function generateNotaPDF(order, options = {}) {
   doc.setTextColor(0);
   doc.setFont('helvetica', 'normal');
 
-  // Left: Customer (Penerima)
-  doc.text('Penerima,', margin + sigCenter, sigY, { align: 'center' });
+  // Left: Customer (Penerima) — pinjaman: Peminjam
+  doc.text(isLoan ? 'Peminjam,' : 'Penerima,', margin + sigCenter, sigY, { align: 'center' });
   doc.line(margin, sigY + sigLineOffset, margin + sigHalfWidth, sigY + sigLineOffset);
   doc.text('(                          )', margin + sigCenter, sigY + sigNameOffset, { align: 'center' });
 

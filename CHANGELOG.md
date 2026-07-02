@@ -2,6 +2,20 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.54.0-stable] - 2026-07-02
+
+### Added (fitur Peminjaman Produk)
+- **Tab "Pinjaman"** di halaman Nota Penjualan: catat barang yang dipinjam customer lengkap dengan **batch & ED** (1 item = 1 batch), stok langsung terpotong (`inventory_mutations` `reference_type='loan'`). Nomor dokumen **HSB-PJM-{YYMM}{NNN}** — counter `document_counters` terpisah dari NOTA (tidak nabrak). Batas pengembalian 7/14/30 hari atau custom.
+- **Kembalikan barang**: qty balik ke **batch asal** atau masuk **batch baru** (input No. Batch + ED; HNA/tax ikut snapshot asal). Mutasi `loan-return`.
+- **Jadikan Nota**: item pinjaman (sebagian/semua, bisa multi-item → 1 nota) dikonversi jadi nota penjualan resmi bernomor HSB-NOTA. Harga & HPP pakai **snapshot saat pinjam**; stok **TIDAK dipotong lagi** (sudah keluar saat pinjam). Link `sales_orders.source_loan_id` + tabel `loan_conversions`.
+- **PDF Nota Pinjaman** (`generateNotaPDF` type `pinjaman`): judul NOTA PINJAMAN, batas pengembalian merah, total nilai barang tanpa breakdown PPN/bank, keterangan "barang berstatus PINJAMAN".
+- **Warning overdue**: badge "TERLAMBAT X HARI" di list, banner merah di Dashboard (klik → tab Pinjaman), tombol **WA Reminder** (`buildLoanReminderMessage`).
+
+### Changed (proteksi integritas stok)
+- Nota hasil konversi pinjaman **dikunci dari edit** (PUT diblok backend + tombol Edit di list kasih toast) — edit akan reverse mutasi kosong lalu potong stok baru = dobel. Pelunasan tetap bisa (PATCH payment-status).
+- **Hapus nota konversi** → stok TIDAK berubah (barang masih di customer), `qty_purchased` di-revert → item balik berstatus **dipinjam**; restore nota → re-apply (dengan guard sisa pinjaman). **Void pinjaman** → sisa outstanding balik ke stok batch asal (`loan-void`); item yang sudah diretur/jadi nota tidak disentuh.
+- `generateOrderNumber` nota dipindah ke util bersama `utils/docNumbers.js` (`generateMonthlyDocNumber`) — dipakai NOTA + PJM, logic identik (sync MAX + reset bulanan).
+
 ## [v1.53.9-stable] - 2026-06-30
 
 ### Added (cari nota by nama produk)

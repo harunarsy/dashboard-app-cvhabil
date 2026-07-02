@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspens
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import Icons from "./common/Icon";
-import api, { insightsAPI } from "../services/api";
+import api, { insightsAPI, loansAPI } from "../services/api";
 import { normalizeIndonesianPhone } from "../utils/waMessage";
 import { useDashboardStats, useWeeklySummary } from "../hooks/useMasterData";
 import TasksKanban from "./TasksKanban";
@@ -39,9 +39,31 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.54.0-stable",
+    date: "2 Juli 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Fitur PEMINJAMAN PRODUK: tab baru 'Pinjaman' di halaman Nota Penjualan. Catat barang yang dipinjam customer (lengkap dengan batch & ED), stok langsung terpotong, dan bisa cetak Nota Pinjaman (PDF). Pilih batas pengembalian 7/14/30 hari atau custom.",
+        dev: "Tabel loans/loan_items/loan_conversions + nomor dokumen HSB-PJM (counter terpisah, tidak nabrak HSB-NOTA). Stok out via inventory_mutations reference_type='loan'.",
+      },
+      {
+        type: "new",
+        text: "Barang pinjaman bisa DIKEMBALIKAN (masuk stok lagi — ke batch yang sama atau batch baru dengan No. Batch + ED berbeda) atau DIJADIKAN NOTA penjualan resmi sebagian/semuanya (harga pakai harga saat pinjam, stok tidak dipotong dua kali).",
+        dev: "POST /loans/:id/return (mode same/new batch) & /convert (insert sales_orders+sales_items dari snapshot loan TANPA mutasi stok; sales_orders.source_loan_id link). Nota konversi dikunci dari edit (PUT diblok) — hapus nota = item balik berstatus dipinjam.",
+      },
+      {
+        type: "new",
+        text: "Pinjaman yang lewat batas pengembalian otomatis dapat badge merah 'TERLAMBAT X HARI', banner peringatan di Dashboard (klik → langsung ke tab Pinjaman), dan tombol WA Reminder ke customer.",
+        dev: "Dashboard: banner overdue loans (klik navigate /sales state.loanTab). buildLoanReminderMessage di waMessage.js. PDF: generateNotaPDF type 'pinjaman' (judul NOTA PINJAMAN, batas pengembalian, tanpa PPN/bank).",
+      },
+    ],
+  },
+  {
     version: "v1.53.9-stable",
     date: "30 Juni 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "new",
@@ -3981,15 +4003,40 @@ export default function Dashboard({
   // Insight: saran restock + customer lama gak order (rule-based / AI based)
   const [restockList, setRestockList] = useState([]);
   const [dormantList, setDormantList] = useState([]);
+  // v1.54.0: pinjaman lewat batas pengembalian → banner warning
+  const [overdueLoans, setOverdueLoans] = useState([]);
   const [insightLoading, setInsightLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
     setInsightLoading(true);
-    Promise.allSettled([insightsAPI.getRestock(), insightsAPI.getDormant(30)])
-      .then(([r, d]) => {
+    Promise.allSettled([
+      insightsAPI.getRestock(),
+      insightsAPI.getDormant(30),
+      loansAPI.getAll(),
+    ])
+      .then(([r, d, l]) => {
         if (cancelled) return;
         setRestockList(r.status === "fulfilled" ? r.value.data?.items || [] : []);
         setDormantList(d.status === "fulfilled" ? d.value.data?.items || [] : []);
+        const loans = l.status === "fulfilled" ? l.value.data || [] : [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        setOverdueLoans(
+          loans.filter((loan) => {
+            if (loan.status === "selesai" || !loan.due_date) return false;
+            const sisa = (loan.items || []).reduce(
+              (s, it) =>
+                s +
+                ((parseInt(it.qty) || 0) -
+                  (parseInt(it.qty_returned) || 0) -
+                  (parseInt(it.qty_purchased) || 0)),
+              0,
+            );
+            if (sisa <= 0) return false;
+            const due = new Date(String(loan.due_date).split("T")[0] + "T00:00:00");
+            return due < today;
+          }),
+        );
       })
       .finally(() => {
         if (!cancelled) setInsightLoading(false);
@@ -4385,6 +4432,34 @@ export default function Dashboard({
         style={{ alignItems: "stretch" }}
       >
         {weeklySummary}
+
+        {/* v1.54.0: pinjaman lewat batas pengembalian — banner warning klik → tab Pinjaman */}
+        {overdueLoans.length > 0 && (
+          <button
+            onClick={() => navigate("/sales", { state: { loanTab: true } })}
+            className="ui-motion-card w-full text-left rounded-2xl border p-3 flex items-center gap-3 flex-wrap"
+            style={{
+              backgroundColor: "var(--color-danger-soft)",
+              borderColor: "var(--color-danger)",
+              cursor: "pointer",
+            }}
+          >
+            <span style={{ fontSize: "15px" }}>⚠️</span>
+            <span className="text-xs font-bold" style={{ color: "var(--color-danger)" }}>
+              {overdueLoans.length} pinjaman lewat batas pengembalian
+            </span>
+            <span className="text-[11px] truncate" style={{ color: "var(--color-danger)", opacity: 0.85 }}>
+              {overdueLoans
+                .slice(0, 3)
+                .map((l) => `${l.customer_name} (${l.loan_number})`)
+                .join(" · ")}
+              {overdueLoans.length > 3 ? ` · +${overdueLoans.length - 3} lagi` : ""}
+            </span>
+            <span className="text-[11px] font-semibold ml-auto whitespace-nowrap" style={{ color: "var(--color-danger)" }}>
+              Kelola →
+            </span>
+          </button>
+        )}
 
         {/* Insight AI: Saran Restock + Customer Lama Gak Order — satu zona dgn ringkasan */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

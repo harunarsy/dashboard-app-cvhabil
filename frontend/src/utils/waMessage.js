@@ -80,6 +80,40 @@ export const buildDueReminderMessage = ({
   return lines.join("\n");
 };
 
+// v1.54.0: reminder pinjaman lewat/mendekati batas pengembalian — list sisa barang
+// yang masih dipinjam + batas pengembalian.
+export const buildLoanReminderMessage = ({
+  customerName = "Kak",
+  loanNumber = "",
+  dueDate = "",
+  items = [],
+} = {}) => {
+  const ref = String(loanNumber || "").trim();
+  const lines = [
+    `Halo ${customerName}, mengingatkan pinjaman barang ${ref} dari CV Habil Sejahtera Bersama:`,
+    "",
+  ];
+  items
+    .filter((it) => it?.product_name && Number(it.outstanding) > 0)
+    .forEach((it, idx) => {
+      lines.push(
+        `${idx + 1}. ${it.product_name} — sisa ${it.outstanding} ${it.unit || "pcs"}`,
+      );
+      const meta = [];
+      if (it.batch_no_snapshot) meta.push(`Batch ${it.batch_no_snapshot}`);
+      const ed = fmtEd(it.expired_date_snapshot);
+      if (ed) meta.push(`ED ${ed}`);
+      if (meta.length) lines.push(`   ${meta.join(" · ")}`);
+    });
+  const dueStr = fmtEd(dueDate);
+  if (dueStr) lines.push("", `Batas pengembalian: ${dueStr}`);
+  lines.push(
+    "",
+    "Mohon dikembalikan atau konfirmasi bila mau diambil (kami buatkan notanya). Terima kasih 🙏",
+  );
+  return lines.join("\n");
+};
+
 export const buildWaUrl = (phone, message) => {
   const normalized = normalizeIndonesianPhone(phone);
   if (!normalized) return "";

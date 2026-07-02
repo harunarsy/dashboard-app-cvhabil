@@ -32,6 +32,7 @@ import {
 } from "../constants/units";
 import { hppFromHna, hnaFromHpp } from "../utils/rupiah";
 import MasterSelect from "./MasterSelect";
+import LoanList from "./LoanList";
 import Skeleton from "./common/Skeleton";
 import ConfirmModal from "./common/ConfirmModal";
 import Breadcrumb from "./common/Breadcrumb";
@@ -253,6 +254,8 @@ export default function SalesOrderList({
   );
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
+  // v1.54.0: tab Penjualan | Pinjaman — peminjaman produk (LoanList) numpang halaman ini
+  const [pageTab, setPageTab] = useState("nota");
   const [showModal, setShowModal] = useState(false);
   // Auto-buka modal create saat datang dari Akses Cepat Dashboard (state quickCreate).
   const location = useLocation();
@@ -260,6 +263,11 @@ export default function SalesOrderList({
     if (location.state?.quickCreate) {
       setShowModal(true);
       window.history.replaceState({}, document.title); // cegah re-open saat reload/back
+    }
+    // v1.54.0: banner pinjaman overdue di Dashboard → langsung buka tab Pinjaman
+    if (location.state?.loanTab) {
+      setPageTab("pinjaman");
+      window.history.replaceState({}, document.title);
     }
   }, [location.state]);
   // Mobile: form & preview tidak muat berdampingan → tab; filter dilipat default
@@ -1742,6 +1750,74 @@ export default function SalesOrderList({
     boxSizing: "border-box",
   };
 
+  // v1.54.0: segmented tab Penjualan | Pinjaman — dipakai kedua branch render
+  const pageTabBar = (
+    <div
+      style={{
+        display: "inline-flex",
+        gap: "4px",
+        padding: "4px",
+        borderRadius: "10px",
+        backgroundColor: isDarkMode
+          ? "var(--color-surface-raised)"
+          : "var(--color-border)",
+        marginBottom: "1rem",
+      }}
+    >
+      {[
+        { key: "nota", label: "Penjualan" },
+        { key: "pinjaman", label: "Pinjaman" },
+      ].map((t) => (
+        <button
+          key={t.key}
+          onClick={() => setPageTab(t.key)}
+          className="ui-motion-button"
+          style={{
+            padding: "6px 16px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: 700,
+            fontSize: "13px",
+            backgroundColor:
+              pageTab === t.key ? "var(--color-primary)" : "transparent",
+            color: pageTab === t.key ? "#FFF" : isDarkMode ? "#FFF" : "#000",
+          }}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (pageTab === "pinjaman") {
+    return (
+      <div
+        className="ui-page ui-motion-page"
+        style={{
+          padding: isMobile ? "1rem" : "2rem",
+          paddingTop: isMobile ? "4rem" : "2rem",
+          backgroundColor: isVantaMode ? "transparent" : bg,
+          minHeight: "100vh",
+          transition: uiTransition(
+            "margin-left",
+            UI_MOTION.duration.page,
+            UI_MOTION.easing.standard,
+          ),
+        }}
+      >
+        <Breadcrumb
+          title="Peminjaman Produk"
+          count="barang dipinjam — belum dihitung penjualan"
+          isMobile={isMobile}
+          isDarkMode={isDarkMode}
+        />
+        {pageTabBar}
+        <LoanList isDarkMode={isDarkMode} isMobile={isMobile} />
+      </div>
+    );
+  }
+
   return (
     <div
       className="ui-page ui-motion-page"
@@ -1763,6 +1839,7 @@ export default function SalesOrderList({
         isMobile={isMobile}
         isDarkMode={isDarkMode}
       />
+      {pageTabBar}
 
       {/* Toolbar aksi — mirror Faktur: tombol kiri · draft tengah · badge kanan */}
       <div
@@ -2860,10 +2937,23 @@ export default function SalesOrderList({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+                              // v1.54.0: nota hasil konversi pinjaman dikunci dari edit
+                              // (stok sudah keluar saat pinjam — edit bakal motong dobel).
+                              if (o.source_loan_id) {
+                                flash(
+                                  "Nota hasil konversi pinjaman tidak bisa diedit. Hapus nota (item balik berstatus dipinjam) lalu konversi ulang dari tab Pinjaman.",
+                                  "error",
+                                );
+                                return;
+                              }
                               openEdit(o);
                             }}
                             aria-label={`Edit nota ${o.order_number}`}
-                            title="Edit"
+                            title={
+                              o.source_loan_id
+                                ? "Terkunci — nota hasil konversi pinjaman"
+                                : "Edit"
+                            }
                           style={{
                               background: "var(--color-surface-elevated)",
                               border: `1px solid ${border}`,
