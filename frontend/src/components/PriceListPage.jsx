@@ -39,11 +39,31 @@ const fmtDate = (d) =>
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 // HPP referensi per pcs (inc PPN): batch pembelian terbaru; fallback HNA master.
+// v1.55.0: sadar ppn_rate per-batch (11%/12%) — jangan pukul rata 11%.
 const lastHppFor = (row) => {
   if (row.last_hna != null) {
-    return hppForBatch({ hna: row.last_hna, tax_type: row.last_tax_type });
+    return hppForBatch({ hna: row.last_hna, tax_type: row.last_tax_type, ppn_rate: row.last_ppn_rate });
   }
   return hppFromHna(parseFloat(row.master_hna) || 0);
+};
+
+// v1.55.0: deteksi JUAL RUGI per saluran — harga efektif (net setelah fee marketplace)
+// ≤ HPP referensi. Offline pakai sell_price (satu sumber dgn inventory); marketplace
+// hanya dicek kalau harganya memang di-set.
+const lossChannelsFor = (row, feeRateFor) => {
+  const hpp = lastHppFor(row);
+  if (!(hpp > 0)) return [];
+  const out = [];
+  CHANNELS.forEach((ch) => {
+    const price =
+      ch.key === "offline"
+        ? parseFloat(row.sell_price) || 0
+        : row[ch.field] != null
+          ? parseFloat(row[ch.field])
+          : 0;
+    if (price > 0 && price * (1 - (feeRateFor[ch.platform] || 0)) <= hpp) out.push(ch);
+  });
+  return out;
 };
 
 // Tiga saluran jual — field mengikuti respons GET /api/price-list
@@ -758,6 +778,8 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
   const [historyFor, setHistoryFor] = useState(null);
   const [showFees, setShowFees] = useState(false);
   const [onlyUnset, setOnlyUnset] = useState(false);
+  // v1.55.0: filter produk jual rugi (harga efektif ≤ HPP)
+  const [onlyLoss, setOnlyLoss] = useState(false);
 
   const text = "var(--color-text)";
   const sub = "var(--color-text-muted)";
@@ -837,15 +859,16 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
     // v1.52.3: "belum di-set" = belum ada harga inventory (sell_price), karena
     // offline kini SATU sumber dgn sell_price (bukan override price_list lagi).
     if (onlyUnset) out = out.filter((r) => !(parseFloat(r.sell_price) > 0));
+    if (onlyLoss) out = out.filter((r) => lossChannelsFor(r, feeRateFor).length > 0);
     return out;
-  }, [rows, search, onlyUnset]);
+  }, [rows, search, onlyUnset, onlyLoss, feeRateFor]);
 
   // v1.50.0: pagination (default 20) — slice flat dulu, baru di-group per kategori.
   const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, onlyUnset, pageSize]);
+  }, [search, onlyUnset, onlyLoss, pageSize]);
   const pagedFiltered = useMemo(
     () =>
       pageSize === -1
@@ -866,8 +889,9 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
 
   const stats = useMemo(() => {
     const setCount = rows.filter((r) => parseFloat(r.sell_price) > 0).length;
-    return { set: setCount, unset: rows.length - setCount };
-  }, [rows]);
+    const lossCount = rows.filter((r) => lossChannelsFor(r, feeRateFor).length > 0).length;
+    return { set: setCount, unset: rows.length - setCount, loss: lossCount };
+  }, [rows, feeRateFor]);
 
   const latestEffectiveDate = useMemo(() => {
     const dates = rows.map((r) => r.effective_date).filter(Boolean).sort();
@@ -987,12 +1011,12 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "6px",
-          minWidth: isMobile ? 0 : "196px",
+          gap: "4px",
+          minWidth: isMobile ? 0 : "172px",
           width: "100%",
         }}
       >
-        <div style={{ display: "grid", gridTemplateColumns: hpp > 0 ? "minmax(0, 1fr) 40px" : "minmax(0, 1fr)", gap: "6px", alignItems: "center" }}>
+        <div style={{ display: "grid", gridTemplateColumns: hpp > 0 ? "minmax(0, 1fr) 32px" : "minmax(0, 1fr)", gap: "5px", alignItems: "center" }}>
           <input
             type="number"
             min="0"
@@ -1015,13 +1039,13 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
             }}
             style={{
               width: "100%",
-              minHeight: "44px",
-              padding: "9px 11px",
-              borderRadius: "10px",
-              border: `1.5px solid ${dirty ? "var(--color-primary)" : border}`,
+              minHeight: "34px",
+              padding: "6px 9px",
+              borderRadius: "8px",
+              border: `1.5px solid ${dirty ? "var(--color-primary)" : margin != null && margin <= 0 ? "var(--color-danger)" : border}`,
               backgroundColor: "var(--color-surface-elevated)",
               color: text,
-              fontSize: "14px",
+              fontSize: "13px",
               fontWeight: 750,
               opacity: saving ? 0.5 : 1,
               fontVariantNumeric: "tabular-nums",
@@ -1034,14 +1058,14 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
               aria-label={`Saran harga ${ch.label} untuk ${r.name}`}
               className="ui-motion-button"
               style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "10px",
+                width: "32px",
+                height: "32px",
+                borderRadius: "8px",
                 border: `1px solid ${dirty ? "var(--color-primary)" : "transparent"}`,
                 backgroundColor: "var(--color-primary-soft)",
                 color: "var(--color-primary)",
                 cursor: "pointer",
-                fontSize: "14px",
+                fontSize: "13px",
                 lineHeight: 1,
               }}
             >
@@ -1049,7 +1073,7 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
             </button>
           )}
         </div>
-        <div style={{ fontSize: "11px", color: sub, lineHeight: 1.35, minHeight: "30px" }}>
+        <div style={{ fontSize: "11px", color: sub, lineHeight: 1.35, minHeight: "16px" }}>
           {dirty ? (
             <span style={{ color: "var(--color-primary)", fontWeight: 800 }}>
               {saving ? "Menyimpan..." : "Enter = simpan ↵"}
@@ -1063,8 +1087,14 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
           ) : cur != null && r[ch.dateField] ? (
             <span>sejak {fmtDate(r[ch.dateField])}</span>
           ) : inheriting ? (
-            <span style={{ color: sub, fontWeight: 600 }}>
+            <span
+              style={{
+                color: hpp > 0 && inheritPrice * (1 - rate) <= hpp ? "var(--color-danger)" : sub,
+                fontWeight: hpp > 0 && inheritPrice * (1 - rate) <= hpp ? 800 : 600,
+              }}
+            >
               ↩ ikut inventory · Rp {fmtRpShort(inheritPrice)}
+              {hpp > 0 && inheritPrice * (1 - rate) <= hpp ? " · ⚠ rugi" : ""}
             </span>
           ) : (
             <span> </span>
@@ -1094,21 +1124,21 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "1.25rem",
+          marginBottom: "0.875rem",
           flexWrap: "wrap",
-          gap: "12px",
-          padding: isMobile ? "16px" : "20px 22px",
-          borderRadius: "18px",
+          gap: "10px",
+          padding: isMobile ? "12px" : "12px 16px",
+          borderRadius: "14px",
           backgroundColor: "var(--color-surface)",
           border: `1px solid ${border}`,
           boxShadow: "var(--shadow-card)",
         }}
       >
         <div>
-          <h1 style={{ fontSize: isMobile ? "1.5rem" : "2rem", fontWeight: "700", margin: 0, color: text }}>
+          <h1 style={{ fontSize: isMobile ? "1.1rem" : "1.3rem", fontWeight: "700", margin: 0, color: text }}>
             🏷️ Daftar Harga
           </h1>
-          <div style={{ margin: "8px 0 0", display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ margin: "6px 0 0", display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
             {loading ? (
               <Skeleton width="220px" height="20px" />
             ) : (
@@ -1137,6 +1167,34 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
                     ⏳ {stats.unset} belum di-set{onlyUnset ? " ✕" : ""}
                   </button>
                 )}
+                {stats.loss > 0 && (
+                  <button
+                    onClick={() => setOnlyLoss((v) => !v)}
+                    title="Harga jual (bersih setelah fee) ≤ HPP pembelian terakhir — klik untuk filter"
+                    style={{
+                      ...pillStyle(
+                        onlyLoss
+                          ? "var(--color-danger)"
+                          : "color-mix(in srgb, var(--color-danger) 14%, transparent)",
+                        onlyLoss ? "#FFF" : "var(--color-danger)",
+                      ),
+                    }}
+                  >
+                    ⚠️ {stats.loss} jual rugi{onlyLoss ? " ✕" : ""}
+                  </button>
+                )}
+                <span
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    padding: "2px 7px",
+                    borderRadius: "999px",
+                    backgroundColor: "var(--color-primary-soft)",
+                    color: "var(--color-primary)",
+                  }}
+                >
+                  AI based
+                </span>
               </>
             )}
           </div>
@@ -1146,12 +1204,12 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
             onClick={() => setShowFees(true)}
             className="ui-motion-button ui-focus-ring"
             style={{
-              minHeight: "44px",
-              padding: "10px 14px",
+              minHeight: "36px",
+              padding: "7px 12px",
               backgroundColor: "var(--color-surface-elevated)",
               color: text,
               border: `1px solid ${border}`,
-              borderRadius: "12px",
+              borderRadius: "9px",
               cursor: "pointer",
               fontWeight: 700,
               fontSize: "13px",
@@ -1168,12 +1226,12 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
               display: "flex",
               alignItems: "center",
               gap: "6px",
-              minHeight: "44px",
-              padding: "10px 18px",
+              minHeight: "36px",
+              padding: "7px 14px",
               backgroundColor: "var(--color-primary)",
               color: "#FFF",
               border: "none",
-              borderRadius: "12px",
+              borderRadius: "9px",
               cursor: exporting ? "wait" : "pointer",
               fontWeight: "700",
               fontSize: "13px",
@@ -1191,14 +1249,14 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
         className="ui-toolbar"
         style={{
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "minmax(320px, 1fr) auto",
-          gap: "12px",
-          marginBottom: "1.25rem",
-          padding: "14px",
+          gridTemplateColumns: isMobile ? "1fr" : "minmax(280px, 1fr) auto",
+          gap: "10px",
+          marginBottom: "0.875rem",
+          padding: "10px",
           alignItems: "center",
           backgroundColor: "var(--color-surface)",
           border: `1px solid ${border}`,
-          borderRadius: "16px",
+          borderRadius: "12px",
         }}
       >
         <SearchBox
@@ -1211,16 +1269,16 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
         />
         <span
           style={{
-            fontSize: "12px",
+            fontSize: "11.5px",
             color: sub,
             backgroundColor: "var(--color-bg-subtle)",
             border: `1px solid ${border}`,
             borderRadius: "999px",
-            padding: "8px 12px",
+            padding: "6px 10px",
             whiteSpace: isMobile ? "normal" : "nowrap",
           }}
         >
-          Ketik harga di kolom saluran lalu tekan <strong>Enter</strong> — tanggal berlaku otomatis hari ini.
+          Ketik harga → <strong>Enter</strong> = simpan (berlaku hari ini)
         </span>
       </div>
 
@@ -1254,7 +1312,23 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
                     <div key={r.id} className="ui-panel" style={{ borderRadius: "14px", padding: "14px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: "14px", color: text }}>{r.name}</div>
+                          <div style={{ fontWeight: 700, fontSize: "14px", color: text, display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                            {r.name}
+                            {lossChannelsFor(r, feeRateFor).length > 0 && (
+                              <span
+                                style={{
+                                  fontSize: "9.5px",
+                                  fontWeight: 800,
+                                  padding: "2px 7px",
+                                  borderRadius: "999px",
+                                  backgroundColor: "var(--color-danger)",
+                                  color: "#FFF",
+                                }}
+                              >
+                                ⚠ RUGI
+                              </span>
+                            )}
+                          </div>
                           <div style={{ fontSize: "11px", color: "var(--color-primary)", fontFamily: "monospace", margin: "2px 0 4px" }}>
                             {r.code}
                           </div>
@@ -1303,9 +1377,9 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
         <div
           className="ui-panel"
           style={{
-            borderRadius: "18px",
+            borderRadius: "14px",
             overflow: "auto",
-            maxHeight: "calc(100dvh - 300px)",
+            maxHeight: "calc(100dvh - 230px)",
             backgroundColor: "var(--color-surface)",
             border: `1px solid ${border}`,
             boxShadow: "var(--shadow-card)",
@@ -1326,7 +1400,7 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
                   <th
                     key={i}
                     style={{
-                      padding: "12px 14px",
+                      padding: "9px 12px",
                       textAlign: "left",
                       fontSize: "11px",
                       fontWeight: "700",
@@ -1377,11 +1451,29 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
                       const hpp = lastHppFor(r);
                       return (
                         <tr key={r.id} className="ui-row">
-                          <td style={{ padding: "12px 14px", color: text, minWidth: "260px", borderBottom: `1px solid ${border}`, verticalAlign: "middle" }}>
-                            <div style={{ fontWeight: "750", lineHeight: 1.35 }}>{r.name}</div>
+                          <td style={{ padding: "9px 12px", color: text, minWidth: "240px", borderBottom: `1px solid ${border}`, verticalAlign: "middle" }}>
+                            <div style={{ fontWeight: "750", lineHeight: 1.35, display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                              {r.name}
+                              {lossChannelsFor(r, feeRateFor).length > 0 && (
+                                <span
+                                  title={`Jual rugi di: ${lossChannelsFor(r, feeRateFor).map((c) => c.label).join(", ")} (harga bersih ≤ HPP ${fmtRp(lastHppFor(r))})`}
+                                  style={{
+                                    fontSize: "9.5px",
+                                    fontWeight: 800,
+                                    padding: "2px 7px",
+                                    borderRadius: "999px",
+                                    backgroundColor: "var(--color-danger)",
+                                    color: "#FFF",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  ⚠ RUGI {lossChannelsFor(r, feeRateFor).map((c) => c.icon).join("")}
+                                </span>
+                              )}
+                            </div>
                             <div style={{ fontSize: "11px", color: "var(--color-primary)", fontFamily: "monospace", marginTop: "3px" }}>{r.code || "tanpa kode"}</div>
                           </td>
-                          <td style={{ padding: "12px 14px", color: sub, whiteSpace: "nowrap", borderBottom: `1px solid ${border}`, verticalAlign: "middle" }}>
+                          <td style={{ padding: "9px 12px", color: sub, whiteSpace: "nowrap", borderBottom: `1px solid ${border}`, verticalAlign: "middle" }}>
                             {hpp > 0 ? (
                               <>
                                 <span style={{ color: text, fontWeight: 600 }}>{fmtRp(hpp)}</span>
@@ -1395,19 +1487,19 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
                             )}
                           </td>
                           {CHANNELS.map((ch) => (
-                            <td key={ch.key} style={{ padding: "12px 10px", borderBottom: `1px solid ${border}`, verticalAlign: "middle" }}>
+                            <td key={ch.key} style={{ padding: "8px 8px", borderBottom: `1px solid ${border}`, verticalAlign: "middle" }}>
                               {priceCell(r, ch)}
                             </td>
                           ))}
-                          <td style={{ padding: "12px 12px", borderBottom: `1px solid ${border}`, verticalAlign: "middle" }}>
+                          <td style={{ padding: "8px 10px", borderBottom: `1px solid ${border}`, verticalAlign: "middle" }}>
                             <button
                               onClick={() => setHistoryFor(r)}
                               title="Riwayat harga"
                               aria-label={`Riwayat harga ${r.name}`}
                               className="ui-motion-button"
                               style={{
-                                width: "40px",
-                                height: "40px",
+                                width: "32px",
+                                height: "32px",
                                 borderRadius: "10px",
                                 border: `1px solid ${border}`,
                                 backgroundColor: "var(--color-surface-elevated)",

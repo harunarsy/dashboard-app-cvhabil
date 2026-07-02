@@ -1524,6 +1524,35 @@ export default function InvoiceList({
     0,
   );
 
+  // v1.55.0: ringkasan tempo bayar — faktur Pending dgn jatuh tempo, dikelompokkan
+  // lewat tempo / ≤7 hari / nanti. Rule-based dari data yang sudah dimuat.
+  const [tempoOpen, setTempoOpen] = useState(false);
+  const tempoBuckets = useMemo(() => {
+    const pending = invoices.filter((i) => i.status !== "Paid" && i.due_date);
+    const val = (i) => parseFloat(i.hna_final || i.final_hna || i.total_hna || 0);
+    const overdue = [];
+    const week = [];
+    const later = [];
+    pending.forEach((i) => {
+      const d = daysDiff(i.due_date);
+      if (d < 0) overdue.push(i);
+      else if (d <= 7) week.push(i);
+      else later.push(i);
+    });
+    const byDue = (arr) =>
+      [...arr].sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+    const sum = (arr) => arr.reduce((s, i) => s + val(i), 0);
+    return {
+      overdue: byDue(overdue),
+      week: byDue(week),
+      later: byDue(later),
+      overdueTotal: sum(overdue),
+      weekTotal: sum(week),
+      laterTotal: sum(later),
+      val,
+    };
+  }, [invoices]);
+
   // Per-distributor summary — always show ALL known distributors, 0 if none in period
   const rekapSource =
     selectedMonth === "all"
@@ -1813,6 +1842,128 @@ export default function InvoiceList({
           </div>
         ))}
       </div>
+
+      {/* v1.55.0: Ringkasan Tempo Bayar — faktur Pending per jatuh tempo */}
+      {(tempoBuckets.overdue.length > 0 ||
+        tempoBuckets.week.length > 0 ||
+        tempoBuckets.later.length > 0) && (
+        <div
+          className="ui-panel ui-motion-card"
+          style={{
+            padding: "0.65rem 1rem",
+            marginBottom: "0.875rem",
+            border: tempoBuckets.overdue.length
+              ? "1px solid var(--color-danger)"
+              : undefined,
+          }}
+        >
+          <button
+            onClick={() => setTempoOpen((v) => !v)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              flexWrap: "wrap",
+              width: "100%",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+              textAlign: "left",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                color: "var(--color-text-subtle)",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              ⏰ Tempo Bayar
+            </span>
+            <span
+              style={{
+                fontSize: "10px",
+                fontWeight: 700,
+                padding: "2px 7px",
+                borderRadius: "999px",
+                backgroundColor: "var(--color-primary-soft)",
+                color: "var(--color-primary)",
+              }}
+            >
+              AI based
+            </span>
+            {tempoBuckets.overdue.length > 0 && (
+              <span style={{ fontSize: "12px", fontWeight: 800, color: "var(--color-danger)" }}>
+                🔴 {tempoBuckets.overdue.length} lewat tempo · {formatRp(tempoBuckets.overdueTotal)}
+              </span>
+            )}
+            {tempoBuckets.week.length > 0 && (
+              <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--color-warning)" }}>
+                🟠 {tempoBuckets.week.length} jatuh tempo ≤7 hari · {formatRp(tempoBuckets.weekTotal)}
+              </span>
+            )}
+            {tempoBuckets.later.length > 0 && (
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-text-muted)" }}>
+                ⚪ {tempoBuckets.later.length} nanti · {formatRp(tempoBuckets.laterTotal)}
+              </span>
+            )}
+            <span style={{ marginLeft: "auto", fontSize: "11px", color: "var(--color-text-muted)" }}>
+              {tempoOpen ? "Tutup ▲" : "Detail ▼"}
+            </span>
+          </button>
+          {tempoOpen && (
+            <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "5px" }}>
+              {[...tempoBuckets.overdue, ...tempoBuckets.week, ...tempoBuckets.later].map(
+                (i) => {
+                  const d = daysDiff(i.due_date);
+                  return (
+                    <div
+                      key={i.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        flexWrap: "wrap",
+                        fontSize: "12px",
+                        padding: "5px 8px",
+                        borderRadius: "8px",
+                        backgroundColor: "var(--color-surface-elevated)",
+                        border: "1px solid var(--color-border)",
+                      }}
+                    >
+                      <span style={{ fontWeight: 700, color: "var(--color-text)" }}>
+                        {i.invoice_number}
+                      </span>
+                      <span style={{ color: "var(--color-text-muted)" }}>{i.distributor_name}</span>
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          color:
+                            d < 0
+                              ? "var(--color-danger)"
+                              : d <= 7
+                                ? "var(--color-warning)"
+                                : "var(--color-text-muted)",
+                        }}
+                      >
+                        {new Date(String(i.due_date).split("T")[0] + "T00:00:00").toLocaleDateString("id-ID", { weekday: "long", day: "2-digit", month: "short" })}
+                        {" · "}
+                        {d < 0 ? `terlambat ${Math.abs(d)} hari` : d === 0 ? "hari ini" : `${d} hari lagi`}
+                      </span>
+                      <span style={{ marginLeft: "auto", fontWeight: 700, color: "var(--color-text)" }}>
+                        {formatRp(tempoBuckets.val(i))}
+                      </span>
+                    </div>
+                  );
+                },
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Per-distributor summary */}
       {distSummary.length > 1 && (
@@ -4968,6 +5119,35 @@ function InvoiceModal({
                           ⚠️ Harga beli biasanya ±{formatRp(b.hna_median, true)}, ini{" "}
                           {formatRp(hna, true)} —{" "}
                           {hna < b.hna_median ? "kurang" : "kelebihan"} nol?
+                        </p>
+                      );
+                    })()}
+                    {/* v1.55.0: alert HNA NAIK vs pembelian terakhir (rule-based) */}
+                    {(() => {
+                      const b = hnaBaselines[item.product_id];
+                      const hna = parseNum(item.hna);
+                      if (!b?.last_hna || !(hna > 0)) return null;
+                      const last = Number(b.last_hna);
+                      const riseP = ((hna - last) / last) * 100;
+                      if (riseP < 1) return null; // naik <1% = pembulatan, jangan berisik
+                      return (
+                        <p
+                          style={{
+                            margin: "5px 0 0",
+                            fontSize: "10.5px",
+                            fontWeight: 700,
+                            color: "var(--color-danger)",
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          📈 HNA naik +{riseP.toFixed(1).replace(".", ",")}% dari pembelian
+                          terakhir: {formatRp(last, true)} → {formatRp(hna, true)}
+                          {b.last_distributor ? ` (${b.last_distributor}` : ""}
+                          {b.last_date
+                            ? `${b.last_distributor ? ", " : "("}${new Date(b.last_date).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })})`
+                            : b.last_distributor
+                              ? ")"
+                              : ""}
                         </p>
                       );
                     })()}

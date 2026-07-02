@@ -142,7 +142,8 @@ router.get('/restock', async (req, res) => {
           COALESCE(st.stock, 0) AS stock,
           COALESCE(sd.pcs30, 0) AS pcs30,
           COALESCE(sd.pcs90, 0) AS pcs90,
-          ord.avg_order_qty, ord.order_unit
+          ord.avg_order_qty, ord.order_unit,
+          cheap.cheapest_distributor, cheap.cheapest_hna, cheap.cheapest_date, cheap.n_distributors
         FROM product_master pm
         LEFT JOIN sold sd ON sd.nname = LOWER(TRIM(pm.name))
         LEFT JOIN stock st ON st.product_id = pm.id
@@ -159,6 +160,41 @@ router.get('/restock', async (req, res) => {
             LIMIT 3
           ) t
         ) ord ON true
+        -- v1.55.0: distributor TERMURAH per produk — HNA terakhir per distributor
+        -- (dinormalisasi per base unit; harga karton dibagi pack_size), ambil yang termurah.
+        LEFT JOIN LATERAL (
+          SELECT d.distributor_name AS cheapest_distributor,
+                 d.hna_base AS cheapest_hna,
+                 d.purchase_date AS cheapest_date,
+                 (SELECT COUNT(*) FROM (
+                    SELECT DISTINCT iv2.distributor_name
+                    FROM invoice_items ii2
+                    JOIN invoices iv2 ON iv2.id = ii2.invoice_id
+                      AND iv2.deleted_at IS NULL AND COALESCE(iv2.is_draft, FALSE) = FALSE
+                    WHERE ii2.product_id = pm.id
+                      AND COALESCE(ii2.hna_per_item, ii2.hna, 0) > 0
+                      AND iv2.purchase_date >= CURRENT_DATE - INTERVAL '365 days'
+                 ) dd)::int AS n_distributors
+          FROM (
+            SELECT DISTINCT ON (iv.distributor_name)
+              iv.distributor_name,
+              COALESCE(ii.hna_per_item, ii.hna)
+                / CASE WHEN pm.pack_unit IS NOT NULL
+                        AND LOWER(TRIM(ii.unit)) = LOWER(TRIM(pm.pack_unit))
+                        AND COALESCE(pm.pack_size, 1) > 0
+                       THEN pm.pack_size ELSE 1 END AS hna_base,
+              iv.purchase_date
+            FROM invoice_items ii
+            JOIN invoices iv ON iv.id = ii.invoice_id
+              AND iv.deleted_at IS NULL AND COALESCE(iv.is_draft, FALSE) = FALSE
+            WHERE ii.product_id = pm.id
+              AND COALESCE(ii.hna_per_item, ii.hna, 0) > 0
+              AND iv.purchase_date >= CURRENT_DATE - INTERVAL '365 days'
+            ORDER BY iv.distributor_name, iv.purchase_date DESC, ii.id DESC
+          ) d
+          ORDER BY d.hna_base ASC
+          LIMIT 1
+        ) cheap ON true
         WHERE pm.is_active = TRUE
       `,
     );
@@ -185,6 +221,10 @@ router.get('/restock', async (req, res) => {
           days_left: daysLeft === null ? null : Math.round(daysLeft),
           avg_order_qty: r.avg_order_qty === null ? null : Math.round((Number(r.avg_order_qty) || 0) * 100) / 100,
           order_unit: r.order_unit || r.pack_unit || r.base_unit || 'pcs',
+          cheapest_distributor: r.cheapest_distributor || null,
+          cheapest_hna: r.cheapest_hna === null || r.cheapest_hna === undefined ? null : Math.round(Number(r.cheapest_hna) || 0),
+          cheapest_date: r.cheapest_date || null,
+          n_distributors: Number(r.n_distributors) || 0,
         };
       })
       .filter((r) => r.velocity_per_day > 0 && r.days_left !== null && r.days_left < 21)
@@ -507,10 +547,27 @@ router.get('/baselines/purchase', async (req, res) => {
       [productId],
     );
     const r = rows[0] || {};
+    // v1.55.0: pembelian TERAKHIR (per unit input, setelah disc) — buat alert
+    // "HNA naik vs pembelian terakhir" di form faktur.
+    const { rows: [last] } = await pool.query(
+      `SELECT NULLIF(COALESCE(ii.hna_per_item, ii.hna, 0), 0) AS last_hna,
+              iv.purchase_date AS last_date, iv.invoice_number AS last_invoice,
+              iv.distributor_name AS last_distributor
+       FROM invoice_items ii
+       JOIN invoices iv ON iv.id = ii.invoice_id
+         AND iv.deleted_at IS NULL AND COALESCE(iv.is_draft, FALSE) = FALSE
+       WHERE ii.product_id = $1 AND COALESCE(ii.hna_per_item, ii.hna, 0) > 0
+       ORDER BY iv.purchase_date DESC, ii.id DESC LIMIT 1`,
+      [productId],
+    );
     res.json({
       n_samples: Number(r.n) || 0,
       hna_mean: r.hna_mean === null ? null : Math.round(Number(r.hna_mean) || 0),
       hna_median: r.hna_median === null ? null : Math.round(Number(r.hna_median) || 0),
+      last_hna: last?.last_hna != null ? Number(last.last_hna) : null,
+      last_date: last?.last_date || null,
+      last_invoice: last?.last_invoice || null,
+      last_distributor: last?.last_distributor || null,
     });
   } catch (e) {
     console.error('[insights.baselines.purchase] failed:', e.message);

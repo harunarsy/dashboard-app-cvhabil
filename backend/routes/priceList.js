@@ -70,7 +70,7 @@ router.get('/', auth, async (req, res) => {
   try {
     const { rows } = await pool.query(`
       WITH last_batch AS (
-        SELECT DISTINCT ON (product_id) product_id, hna, tax_type, created_at
+        SELECT DISTINCT ON (product_id) product_id, hna, tax_type, ppn_rate, created_at
         FROM inventory_batches
         WHERE COALESCE(is_active, TRUE) = TRUE
         ORDER BY product_id, created_at DESC NULLS LAST, id DESC
@@ -82,7 +82,8 @@ router.get('/', auth, async (req, res) => {
       )
       SELECT p.id, p.code, p.name, p.category, p.base_unit, p.pack_unit, p.pack_size,
              p.sell_price, p.sell_price_pack, p.hna AS master_hna,
-             lb.hna AS last_hna, lb.tax_type AS last_tax_type, lb.created_at AS last_purchase_at,
+             lb.hna AS last_hna, lb.tax_type AS last_tax_type, lb.ppn_rate AS last_ppn_rate,
+             lb.created_at AS last_purchase_at,
              -- v1.52.3: offline = harga inventory (sell_price), SATU sumber. Tidak lagi
              -- pakai override price_list_entries 'offline' (selalu ikut sell_price).
              NULL::numeric AS list_price, NULL::date AS effective_date,

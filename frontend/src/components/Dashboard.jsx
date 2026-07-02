@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspens
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import Icons from "./common/Icon";
-import api, { insightsAPI, loansAPI } from "../services/api";
+import api, { insightsAPI, loansAPI, purchaseOrdersAPI } from "../services/api";
 import { normalizeIndonesianPhone } from "../utils/waMessage";
 import { useDashboardStats, useWeeklySummary } from "../hooks/useMasterData";
 import TasksKanban from "./TasksKanban";
@@ -39,9 +39,31 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.54.1-stable",
+    version: "v1.55.0-stable",
     date: "2 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Daftar Harga: deteksi JUAL RUGI otomatis — produk yang harga jualnya (bersih setelah fee marketplace) di bawah/sama dengan HPP pembelian terakhir dapat badge merah '⚠ RUGI' + pill filter '⚠ N jual rugi' di header. HPP kini sadar PPN per-batch (11%/12%). Layout halaman juga dirapatkan.",
+        dev: "priceList GET +lb.ppn_rate; PriceListPage lossChannelsFor (net = price×(1−fee) ≤ HPP), filter onlyLoss, border merah input, hint '⚠ rugi' di sel ikut-inventory. Density: header/toolbar/tabel/input compact.",
+      },
+      {
+        type: "new",
+        text: "Faktur Pembelian: alert '📈 HNA naik +X%' saat harga beli produk lebih mahal dari pembelian terakhir (tampil distributor & tanggal pembanding), plus strip 'Tempo Bayar' — faktur belum lunas dikelompokkan: lewat tempo / ≤7 hari / nanti, lengkap total & detail per faktur.",
+        dev: "insights /baselines/purchase +last_hna/last_date/last_invoice/last_distributor; InvoiceList: alert rise ≥1% di bawah anomali-median; tempoBuckets useMemo + strip collapsible.",
+      },
+      {
+        type: "new",
+        text: "Saran Restock di Dashboard sekarang menampilkan DISTRIBUTOR TERMURAH per produk (harga terakhir per pcs, dibandingkan antar distributor setahun terakhir) + tombol 'Draft SP otomatis': satu klik membuat Surat Pesanan draft per distributor termurah, qty ikut kebiasaan order.",
+        dev: "insights /restock +LATERAL cheapest (DISTINCT ON distributor, hna per base unit sadar pack_size, MIN) + n_distributors; Dashboard handleAutoSp → purchaseOrdersAPI.create per grup distributor (status draft, harga 0 sesuai aturan SP).",
+      },
+    ],
+  },
+  {
+    version: "v1.54.1-stable",
+    date: "2 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -4018,6 +4040,42 @@ export default function Dashboard({
   // v1.54.0: pinjaman lewat batas pengembalian → banner warning
   const [overdueLoans, setOverdueLoans] = useState([]);
   const [insightLoading, setInsightLoading] = useState(true);
+  // v1.55.0: auto-draft SP dari Saran Restock — grup per distributor termurah.
+  // idle → confirm (tampil ringkasan) → saving → done/error
+  const [spDraft, setSpDraft] = useState({ state: "idle", msg: "" });
+  const handleAutoSp = async () => {
+    const withDist = restockList.filter((r) => r.cheapest_distributor);
+    if (!withDist.length) return;
+    setSpDraft({ state: "saving", msg: "" });
+    try {
+      const groups = new Map();
+      withDist.forEach((r) => {
+        if (!groups.has(r.cheapest_distributor)) groups.set(r.cheapest_distributor, []);
+        groups.get(r.cheapest_distributor).push(r);
+      });
+      const made = [];
+      for (const [dist, items] of groups) {
+        const { data } = await purchaseOrdersAPI.create({
+          distributor_name: dist,
+          notes: "Auto-draft dari Saran Restock (AI based) — cek qty sebelum dikirim",
+          items: items.map((r) => ({
+            product_name: r.name,
+            qty: Math.max(1, Math.round(r.avg_order_qty || 1)),
+            unit: r.order_unit || "pcs",
+            unit_price: 0,
+          })),
+        });
+        made.push(data?.po_number || dist);
+      }
+      setSpDraft({ state: "done", msg: `${made.length} SP draft dibuat` });
+      setTimeout(() => navigate("/orders"), 1200);
+    } catch (e) {
+      setSpDraft({
+        state: "error",
+        msg: e.response?.data?.error || e.message || "Gagal membuat SP",
+      });
+    }
+  };
   useEffect(() => {
     let cancelled = false;
     setInsightLoading(true);
@@ -4480,7 +4538,7 @@ export default function Dashboard({
             className="ui-motion-card rounded-2xl border p-4"
             style={{ backgroundColor: "var(--color-surface-elevated)", borderColor: border }}
           >
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <span style={{ fontSize: "15px" }}>✨</span>
               <h3 className="text-sm font-bold" style={{ color: text }}>
@@ -4491,10 +4549,46 @@ export default function Dashboard({
                 AI based
               </span>
             </div>
-            <button onClick={() => navigate("/inventory")} className="text-xs font-semibold"
-              style={{ color: "var(--color-primary)" }}>
-              Lihat semua →
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* v1.55.0: auto-draft SP — grup produk per distributor termurah */}
+              {restockList.some((r) => r.cheapest_distributor) &&
+                (spDraft.state === "idle" || spDraft.state === "error" ? (
+                  <button
+                    onClick={() => setSpDraft({ state: "confirm", msg: "" })}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                    style={{ backgroundColor: "var(--color-success-soft)", color: "var(--color-success)" }}
+                  >
+                    📝 Draft SP otomatis
+                  </button>
+                ) : spDraft.state === "confirm" ? (
+                  <span className="text-[11px] font-semibold flex items-center gap-1.5" style={{ color: text }}>
+                    Buat SP draft utk{" "}
+                    {new Set(restockList.filter((r) => r.cheapest_distributor).map((r) => r.cheapest_distributor)).size}{" "}
+                    distributor?
+                    <button onClick={handleAutoSp} className="px-2 py-0.5 rounded-full font-bold"
+                      style={{ backgroundColor: "var(--color-success)", color: "#FFF" }}>
+                      ✓ Ya
+                    </button>
+                    <button onClick={() => setSpDraft({ state: "idle", msg: "" })} className="px-2 py-0.5 rounded-full font-bold"
+                      style={{ backgroundColor: "var(--color-bg-subtle)", color: text }}>
+                      ✕
+                    </button>
+                  </span>
+                ) : spDraft.state === "saving" ? (
+                  <span className="text-[11px] font-semibold" style={{ color: sub }}>Membuat SP…</span>
+                ) : (
+                  <span className="text-[11px] font-bold" style={{ color: "var(--color-success)" }}>
+                    ✓ {spDraft.msg} → Surat Pesanan
+                  </span>
+                ))}
+              {spDraft.state === "error" && (
+                <span className="text-[10.5px]" style={{ color: "var(--color-danger)" }}>{spDraft.msg}</span>
+              )}
+              <button onClick={() => navigate("/inventory")} className="text-xs font-semibold"
+                style={{ color: "var(--color-primary)" }}>
+                Lihat semua →
+              </button>
+            </div>
           </div>
           {insightLoading ? (
             <div className="space-y-2">
@@ -4519,6 +4613,12 @@ export default function Dashboard({
                       stok {r.stock} · laku ~{r.velocity_per_day}/hari
                       {r.avg_order_qty ? ` · biasa order ${r.avg_order_qty} ${r.order_unit}` : ""}
                     </div>
+                    {r.cheapest_distributor && (
+                      <div className="text-[10.5px] font-semibold truncate" style={{ color: "var(--color-success)" }}>
+                        🏷 termurah: {r.cheapest_distributor} · {formatRupiah(r.cheapest_hna)}/{r.base_unit || "pcs"}
+                        {r.n_distributors > 1 ? ` (dari ${r.n_distributors} distributor)` : ""}
+                      </div>
+                    )}
                   </div>
                   <span className="text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap"
                     style={{

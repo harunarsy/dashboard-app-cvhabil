@@ -2,6 +2,20 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.55.0-stable] - 2026-07-02
+
+### Added (Daftar Harga: deteksi jual rugi + redesign)
+- **Deteksi JUAL RUGI** rule-based: harga jual efektif (net setelah `safe_effective_fee_rate` marketplace; offline tanpa fee) **≤ HPP pembelian terakhir** → badge merah `⚠ RUGI` per produk (tooltip: saluran mana + HPP), pill filter `⚠ N jual rugi` di header, border merah di input harga, hint `⚠ rugi` di sel "ikut inventory". HPP referensi kini **sadar ppn_rate per-batch** (`priceList GET` +`lb.ppn_rate`).
+- Redesign density: header card, toolbar, tabel (padding 12→8-9px), input harga (44→34px), tombol ✨/riwayat (40→32px), `maxHeight` tabel lebih tinggi — lebih banyak baris terlihat.
+
+### Added (Faktur: alert HNA naik + ringkasan tempo bayar)
+- Alert **📈 HNA naik +X%** di form item faktur bila harga beli > pembelian terakhir (≥1%), tampil harga lama → baru + distributor & tanggal pembanding. Backend `insights /baselines/purchase` +`last_hna/last_date/last_invoice/last_distributor`.
+- Strip **⏰ Tempo Bayar** di halaman Faktur: faktur Pending ber-due-date dikelompokkan 🔴 lewat tempo / 🟠 ≤7 hari / ⚪ nanti + total per grup; expand → detail per faktur (hari + nominal), urut jatuh tempo.
+
+### Added (Distributor termurah + auto-draft SP)
+- `insights /restock` per produk kini bawa **distributor termurah** (harga terakhir per distributor 365 hari, dinormalisasi per base unit — harga karton ÷ pack_size — ambil termurah) + `n_distributors`.
+- Kartu Saran Restock Dashboard: baris `🏷 termurah: {distributor} · Rp/pcs` per produk + tombol **📝 Draft SP otomatis** (konfirmasi inline) → 1 SP draft per distributor termurah via `purchaseOrdersAPI.create` (qty = kebiasaan order, tanpa harga sesuai aturan SP), lalu redirect ke Surat Pesanan.
+
 ## [v1.54.1-stable] - 2026-07-02
 
 ### Fixed (WA reminder → salin teks)
