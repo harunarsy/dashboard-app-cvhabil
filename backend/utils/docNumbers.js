@@ -29,9 +29,11 @@ const generateMonthlyDocNumber = async (client, { docType, prefix, table, column
     [docType]
   );
   if (!counter) {
+    // NB: tanpa kolom is_active — document_counters prod (legacy neon_migration) tidak
+    // punya kolom itu; jalur INSERT baru pertama kali kena saat doc_type baru (PJM).
     await client.query(
-      `INSERT INTO document_counters (doc_type, prefix, last_number, last_yymm, is_active)
-       VALUES ($1, $2, 1, $3, TRUE)
+      `INSERT INTO document_counters (doc_type, prefix, last_number, last_yymm)
+       VALUES ($1, $2, 1, $3)
        ON CONFLICT (doc_type) DO UPDATE SET last_number = 1, last_yymm = EXCLUDED.last_yymm`,
       [docType, prefix, currentYymm]
     );
