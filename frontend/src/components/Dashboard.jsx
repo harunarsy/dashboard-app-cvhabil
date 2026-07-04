@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.56.3-stable",
+    version: "v1.56.4-stable",
     date: "4 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Cetak A4 Daftar Harga sekarang ada pilihan format: 🏪 Tanpa HPP (untuk customer) atau 🔒 Dengan HPP (internal — ada kolom HPP, header merah, dan watermark peringatan supaya tidak tersebar ke customer).",
+        dev: "generatePriceListPDF +includeHpp (kolom HPP splice, head merah, watermark, filename -INTERNAL-HPP). PriceListPage: popup showPrintChoice, printable +hpp lastHppFor.",
+      },
+    ],
+  },
+  {
+    version: "v1.56.3-stable",
+    date: "4 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "new",

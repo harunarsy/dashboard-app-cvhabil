@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.56.4-stable] - 2026-07-04
+
+### Added (Cetak A4 Daftar Harga: dengan/tanpa HPP)
+- Tombol **Cetak A4** kini memunculkan popup pilihan: **🏪 Tanpa HPP** (versi customer, format lama) atau **🔒 Dengan HPP** (internal: + kolom HPP per pcs, header tabel merah, watermark "DOKUMEN INTERNAL — JANGAN DIBERIKAN KE CUSTOMER", nama file `-INTERNAL-HPP`). HPP dari batch pembelian terakhir (sadar PPN per-batch).
+
 ## [v1.56.3-stable] - 2026-07-04
 
 ### Changed (pembulatan harga 3 arah + stepper persen)

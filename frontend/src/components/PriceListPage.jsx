@@ -941,9 +941,12 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
     }
   };
 
-  const handleExportPDF = async () => {
+  // v1.56.4: pilihan format cetak — tanpa HPP (customer) / dengan HPP (internal)
+  const [showPrintChoice, setShowPrintChoice] = useState(false);
+  const handleExportPDF = async (includeHpp = false) => {
     if (exporting) return;
     setExporting(true);
+    setShowPrintChoice(false);
     try {
       const printable = filtered
         .filter((r) => effectivePrice(r) > 0)
@@ -955,6 +958,7 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
           pack_unit: r.pack_unit,
           pack_size: parseInt(r.pack_size) || 1,
           pack_price: parseFloat(r.sell_price_pack) || 0,
+          hpp: includeHpp ? lastHppFor(r) : 0,
         }));
       if (!printable.length) {
         flash("Tidak ada produk dengan harga untuk dicetak", "error");
@@ -964,9 +968,16 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
       const doc = generatePriceListPDF(printable, {
         settings,
         effectiveDate: latestEffectiveDate || todayStr(),
+        includeHpp,
       });
-      doc.save(`Daftar-Harga-HABIL-${(latestEffectiveDate || todayStr()).slice(0, 10)}.pdf`);
-      flash("PDF daftar harga dibuat — siap dicetak A4");
+      doc.save(
+        `Daftar-Harga-HABIL${includeHpp ? "-INTERNAL-HPP" : ""}-${(latestEffectiveDate || todayStr()).slice(0, 10)}.pdf`,
+      );
+      flash(
+        includeHpp
+          ? "PDF INTERNAL (dengan HPP) dibuat — jangan diberikan ke customer"
+          : "PDF daftar harga dibuat — siap dicetak A4",
+      );
     } catch (e) {
       flash("Gagal membuat PDF: " + e.message, "error");
     } finally {
@@ -1218,7 +1229,7 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
             ⚙️ Biaya Admin
           </button>
           <button
-            onClick={handleExportPDF}
+            onClick={() => setShowPrintChoice(true)}
             disabled={exporting}
             className="btn-primary ui-motion-button ui-focus-ring"
             data-magnetic="true"
@@ -1566,6 +1577,100 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
           onSaved={fetchFees}
           flash={flash}
         />
+      )}
+
+      {/* v1.56.4: popup pilih format cetak — tanpa HPP (customer) / dengan HPP (internal) */}
+      {showPrintChoice && (
+        <div
+          onClick={() => setShowPrintChoice(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1rem",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="ui-motion-modal"
+            style={{
+              backgroundColor: "var(--color-surface)",
+              border: `1px solid ${border}`,
+              borderRadius: "14px",
+              padding: "1.25rem",
+              width: "100%",
+              maxWidth: "400px",
+              color: text,
+            }}
+          >
+            <h3 style={{ margin: "0 0 4px", fontSize: "15px" }}>🖨️ Cetak Daftar Harga A4</h3>
+            <p style={{ margin: "0 0 14px", fontSize: "12px", color: sub }}>
+              Pilih format — versi customer tidak memuat HPP.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <button
+                onClick={() => handleExportPDF(false)}
+                className="ui-motion-button ui-focus-ring"
+                style={{
+                  padding: "12px",
+                  borderRadius: "10px",
+                  border: "none",
+                  backgroundColor: "var(--color-primary)",
+                  color: "#FFF",
+                  fontWeight: 700,
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                🏪 Tanpa HPP — untuk customer
+                <div style={{ fontSize: "11px", fontWeight: 500, opacity: 0.85, marginTop: "2px" }}>
+                  Kode, nama, harga eceran & karton
+                </div>
+              </button>
+              <button
+                onClick={() => handleExportPDF(true)}
+                className="ui-motion-button ui-focus-ring"
+                style={{
+                  padding: "12px",
+                  borderRadius: "10px",
+                  border: "1px solid var(--color-danger)",
+                  backgroundColor: "var(--color-danger-soft)",
+                  color: "var(--color-danger)",
+                  fontWeight: 700,
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                🔒 Dengan HPP — internal
+                <div style={{ fontSize: "11px", fontWeight: 500, opacity: 0.85, marginTop: "2px" }}>
+                  + kolom HPP & watermark peringatan. Jangan disebar ke customer.
+                </div>
+              </button>
+              <button
+                onClick={() => setShowPrintChoice(false)}
+                className="ui-motion-button"
+                style={{
+                  padding: "9px",
+                  borderRadius: "10px",
+                  border: `1px solid ${border}`,
+                  backgroundColor: "var(--color-surface-elevated)",
+                  color: text,
+                  fontWeight: 600,
+                  fontSize: "12px",
+                  cursor: "pointer",
+                }}
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {toast && <ToastNotice message={toast} type={toastType} />}
