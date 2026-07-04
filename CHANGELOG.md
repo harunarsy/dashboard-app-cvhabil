@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.56.0-stable] - 2026-07-04
+
+### Added (rekomendasi harga dari HPP + pembulatan)
+- Di tiap baris produk form nota (kalau HPP > 0) ada baris **💰 dari HPP**: chip **+5% / +10% / +15%** (klik → harga jual langsung di-set = HPP × (1+p%)) + **custom %** (input persen sendiri, diingat antar sesi via localStorage `habil_markup_custom`, apply via Enter/klik chip).
+- Tombol **⬆ Bulatkan** ke atas: harga ≥10rb dibulatkan ke ribuan (75.632 → 76.000), <10rb ke ratusan (1.362 → 1.400). Muncul hanya kalau harga belum bulat; label menampilkan hasil pembulatannya.
+
 ## [v1.55.1-stable] - 2026-07-04
 
 ### Fixed (form nota mobile)

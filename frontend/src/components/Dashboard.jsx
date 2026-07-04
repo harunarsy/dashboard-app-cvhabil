@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.55.1-stable",
+    version: "v1.56.0-stable",
     date: "4 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Rekomendasi harga dari HPP di form nota: tiap produk ber-HPP punya chip +5% / +10% / +15% (klik → harga jual langsung terisi) + input persen custom yang diingat sistem. Plus tombol '⬆ Bulatkan' — harga 75.632 sekali klik jadi 76.000 (di bawah 10rb dibulatkan ke ratusan).",
+        dev: "SalesOrderList: roundUpPrice (≥10rb ceil ribuan, <10rb ceil ratusan), customMarkupPct persist localStorage habil_markup_custom, chips priceFor(p)=round(hppIncFor×(1+p/100)).",
+      },
+    ],
+  },
+  {
+    version: "v1.55.1-stable",
+    date: "4 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

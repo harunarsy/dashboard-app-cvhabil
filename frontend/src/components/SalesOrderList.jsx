@@ -335,6 +335,25 @@ export default function SalesOrderList({
   const [customerInsights, setCustomerInsights] = useState([]);
   const [customerInsightsLoading, setCustomerInsightsLoading] = useState(false);
   const [addingInsightProduct, setAddingInsightProduct] = useState("");
+  // v1.56.0: markup harga dari HPP (+5/+10/+15/custom %) — custom % diingat antar sesi
+  const [customMarkupPct, setCustomMarkupPct] = useState(() => {
+    try {
+      return localStorage.getItem("habil_markup_custom") || "";
+    } catch (e) {
+      return "";
+    }
+  });
+  const saveCustomMarkup = (v) => {
+    setCustomMarkupPct(v);
+    try {
+      localStorage.setItem("habil_markup_custom", v);
+    } catch (e) {
+      /* private mode — abaikan */
+    }
+  };
+  // Pembulatan ke atas yang "cantik": ≥10rb → ribuan (75.632 → 76.000); <10rb → ratusan.
+  const roundUpPrice = (v) =>
+    v >= 10000 ? Math.ceil(v / 1000) * 1000 : Math.ceil(v / 100) * 100;
   // v1.28.0: #10 sering dibeli bersama + #3 anomali qty + #1 save-guard rugi
   const [copurchaseMap, setCopurchaseMap] = useState({}); // lowername -> [{name,confidence}]
   const [salesBaselines, setSalesBaselines] = useState({}); // name||cust -> {n_samples,qty_mean,qty_std}
@@ -4428,6 +4447,124 @@ export default function SalesOrderList({
                               {removeBtnEl}
                             </div>
                           )}
+                          {/* v1.56.0: harga dari HPP — chip +5/+10/+15/custom % + pembulatan ke atas */}
+                          {(() => {
+                            const hppNow = hppIncFor(it);
+                            if (!(hppNow > 0)) return null;
+                            const cur = parseFloat(it.unit_price) || 0;
+                            const rounded = cur > 0 ? roundUpPrice(cur) : 0;
+                            const customP = parseFloat(customMarkupPct);
+                            const chipStyle = (active) => ({
+                              padding: "3px 9px",
+                              borderRadius: "999px",
+                              border: `1px solid var(--color-primary)`,
+                              backgroundColor: active
+                                ? "var(--color-primary)"
+                                : "var(--color-primary-soft)",
+                              color: active ? "#FFF" : "var(--color-primary)",
+                              fontSize: "10.5px",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                            });
+                            const priceFor = (p) => Math.round(hppNow * (1 + p / 100));
+                            return (
+                              <div
+                                style={{
+                                  marginTop: "6px",
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: "6px",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <span style={{ fontSize: "11px", color: sub, fontWeight: 600 }}>
+                                  💰 dari HPP:
+                                </span>
+                                {[5, 10, 15].map((p) => (
+                                  <button
+                                    key={p}
+                                    type="button"
+                                    onClick={() => updateItem(idx, "unit_price", priceFor(p))}
+                                    title={`Set harga = HPP + ${p}% = Rp${priceFor(p).toLocaleString("id-ID")}`}
+                                    className="ui-focus-ring"
+                                    style={chipStyle(cur === priceFor(p))}
+                                  >
+                                    +{p}%
+                                  </button>
+                                ))}
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "3px",
+                                  }}
+                                >
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    value={customMarkupPct}
+                                    onChange={(e) => saveCustomMarkup(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && customP > 0)
+                                        updateItem(idx, "unit_price", priceFor(customP));
+                                    }}
+                                    placeholder="%"
+                                    aria-label="Markup custom persen dari HPP"
+                                    style={{
+                                      ...inputStyle,
+                                      width: "56px",
+                                      padding: "3px 6px",
+                                      fontSize: "11px",
+                                      textAlign: "center",
+                                      borderRadius: "999px",
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    disabled={!(customP > 0)}
+                                    onClick={() =>
+                                      customP > 0 &&
+                                      updateItem(idx, "unit_price", priceFor(customP))
+                                    }
+                                    title={
+                                      customP > 0
+                                        ? `Set harga = HPP + ${customP}% = Rp${priceFor(customP).toLocaleString("id-ID")}`
+                                        : "Isi persen dulu"
+                                    }
+                                    className="ui-focus-ring"
+                                    style={{
+                                      ...chipStyle(customP > 0 && cur === priceFor(customP)),
+                                      opacity: customP > 0 ? 1 : 0.45,
+                                      cursor: customP > 0 ? "pointer" : "not-allowed",
+                                    }}
+                                  >
+                                    +{customP > 0 ? customP : "…"}%
+                                  </button>
+                                </span>
+                                {cur > 0 && rounded !== cur && (
+                                  <button
+                                    type="button"
+                                    onClick={() => updateItem(idx, "unit_price", rounded)}
+                                    title={`Bulatkan ke atas: Rp${cur.toLocaleString("id-ID")} → Rp${rounded.toLocaleString("id-ID")}`}
+                                    className="ui-focus-ring"
+                                    style={{
+                                      padding: "3px 9px",
+                                      borderRadius: "999px",
+                                      border: `1px solid var(--color-success)`,
+                                      backgroundColor: "var(--color-success-soft)",
+                                      color: "var(--color-success)",
+                                      fontSize: "10.5px",
+                                      fontWeight: 700,
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    ⬆ Bulatkan → Rp{rounded.toLocaleString("id-ID")}
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
                           {showConversion && (
                             <p
                               style={{
