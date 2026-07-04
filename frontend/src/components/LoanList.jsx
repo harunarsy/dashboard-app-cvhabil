@@ -574,7 +574,19 @@ export default function LoanList({ isDarkMode, isMobile }) {
           <Plus size={15} /> Pinjam Barang
         </button>
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: "12px", color: sub, fontWeight: 600 }}>
+        {/* v1.56.5: chip ber-background — teks muted polos tak kebaca di atas vanta */}
+        <span
+          style={{
+            fontSize: "12px",
+            color: sub,
+            fontWeight: 600,
+            padding: "5px 10px",
+            borderRadius: "999px",
+            backgroundColor: cardBg,
+            border: `1px solid ${border}`,
+            whiteSpace: "nowrap",
+          }}
+        >
           {activeLoans.length} pinjaman aktif
           {overdueLoans.length > 0 && (
             <span style={{ color: "var(--color-danger)", fontWeight: 800 }}>
@@ -648,14 +660,24 @@ export default function LoanList({ isDarkMode, isMobile }) {
                       sisa {outstanding} unit
                     </div>
                   </div>
-                  <div style={{ minWidth: "130px", textAlign: "right" }}>
+                  {/* v1.56.5: mobile — badge tempo + chevron rata kanan (bukan ngambang tengah) */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      marginLeft: isMobile ? "auto" : undefined,
+                      minWidth: isMobile ? undefined : "130px",
+                      justifyContent: "flex-end",
+                    }}
+                  >
                     {dueBadge(loan)}
+                    {isOpen ? (
+                      <ChevronUp size={16} color={sub} />
+                    ) : (
+                      <ChevronDown size={16} color={sub} />
+                    )}
                   </div>
-                  {isOpen ? (
-                    <ChevronUp size={16} color={sub} />
-                  ) : (
-                    <ChevronDown size={16} color={sub} />
-                  )}
                 </div>
 
                 {isOpen && (

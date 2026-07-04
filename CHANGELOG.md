@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.56.5-stable] - 2026-07-04
+
+### Fixed (audit mobile tahap 2 — polish dari temuan Harun)
+- **Global**: padding `.ui-page`/`.ui-toolbar` mobile diseragamkan (0.75rem/0.6rem — jarak antar blok tidak makan tempat, konsisten antar fitur); **tooltip dimatikan di layar sentuh** (`@media (hover:none)`) — tooltip "Buka menu" nempel setelah tap dan nutupin judul modal.
+- **Nota**: tab Penjualan|Pinjaman centered di HP; Buat Nota kiri + Trash kanan; draft banner 1 baris compact (jam disembunyikan di HP); legend "Patokan untung" dikasih background surface (dulu teks muted tak terbaca di atas vanta); modal form: baris Tanggal/Metode & Ongkir/Biaya kurir stack 1 kolom di HP (input date iOS nabrak select).
+- **Pinjaman**: chip "N pinjaman aktif" ber-background (terbaca); badge tempo + chevron rata kanan di HP.
+- **Inventory**: 5 tombol aksi jadi grid 2 kolom rapi di HP.
+- **Daftar Harga**: hint "Ketik harga → Enter" disembunyikan di HP; kartu produk dirapatkan (padding 14→10); label saluran 92→64px.
+
 ## [v1.56.4-stable] - 2026-07-04
 
 ### Added (Cetak A4 Daftar Harga: dengan/tanpa HPP)

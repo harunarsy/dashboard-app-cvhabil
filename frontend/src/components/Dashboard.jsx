@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.56.4-stable",
+    version: "v1.56.5-stable",
     date: "4 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Rapi-rapi tampilan HP tahap 2: tab Penjualan|Pinjaman di tengah, Trash pindah kanan, banner draft 1 baris, 'Patokan untung' sekarang terbaca (dikasih latar), tooltip tidak lagi nutupin judul, tombol Inventory jadi 2 kolom rapi, kartu Daftar Harga lebih padat, form nota tidak ada lagi kolom yang saling tabrak, dan padding antar blok konsisten di semua halaman.",
+        dev: "index.css: .ui-page/.ui-toolbar mobile override + @media(hover:none) .ui-tooltip off. SalesOrderList: tabbar center, toolbar space-between, draft banner compact, legend surface-bg, grid Tanggal/Metode & Ongkir stack. LoanList chip+badge kanan. InventoryDashboard grid 2 kol. PriceListPage hint hidden + card 10px + label 64px.",
+      },
+    ],
+  },
+  {
+    version: "v1.56.4-stable",
+    date: "4 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "new",

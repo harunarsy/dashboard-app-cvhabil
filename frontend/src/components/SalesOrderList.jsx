@@ -1795,7 +1795,9 @@ export default function SalesOrderList({
   };
 
   // v1.54.0: segmented tab Penjualan | Pinjaman — dipakai kedua branch render
+  // v1.56.5: mobile centered + full-width biar seimbang
   const pageTabBar = (
+    <div style={{ textAlign: isMobile ? "center" : "left" }}>
     <div
       style={{
         display: "inline-flex",
@@ -1805,7 +1807,7 @@ export default function SalesOrderList({
         backgroundColor: isDarkMode
           ? "var(--color-surface-raised)"
           : "var(--color-border)",
-        marginBottom: "1rem",
+        marginBottom: "0.875rem",
       }}
     >
       {[
@@ -1831,6 +1833,7 @@ export default function SalesOrderList({
           {t.label}
         </button>
       ))}
+    </div>
     </div>
   );
 
@@ -1896,7 +1899,16 @@ export default function SalesOrderList({
           justifyContent: "space-between",
         }}
       >
-        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "0.75rem",
+            flexWrap: "wrap",
+            // v1.56.5: mobile — Buat Nota kiri, Trash kanan (full row)
+            width: isMobile ? "100%" : undefined,
+            justifyContent: isMobile ? "space-between" : "flex-start",
+          }}
+        >
           <button
             onClick={openAdd}
             className="ui-motion-button"
@@ -1951,25 +1963,30 @@ export default function SalesOrderList({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "10px",
-              padding: "8px 12px",
+              gap: isMobile ? "6px" : "10px",
+              padding: isMobile ? "6px 10px" : "8px 12px",
               borderRadius: "10px",
               backgroundColor: isDarkMode
                 ? "color-mix(in srgb, var(--color-warning) 25%, var(--color-surface))"
                 : "color-mix(in srgb, var(--color-warning) 30%, white)",
               border: "1px solid var(--color-warning)",
-              flexWrap: "wrap",
+              flexWrap: "nowrap",
+              // v1.56.5: mobile 1 baris rapi (jam disembunyikan, tombol rapat)
+              width: isMobile ? "100%" : undefined,
+              justifyContent: isMobile ? "space-between" : "flex-start",
             }}
           >
-            <FileText size={15} color="var(--color-warning)" />
-            <span style={{ fontSize: "12px", fontWeight: 700, color: text }}>
+            <FileText size={15} color="var(--color-warning)" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: "12px", fontWeight: 700, color: text, whiteSpace: "nowrap" }}>
               Draft tersimpan
             </span>
+            {!isMobile && (
             <span style={{ fontSize: "11px", color: sub }}>
               {savedDraftUpdatedAt
                 ? formatRelativeTime(savedDraftUpdatedAt)
                 : "otomatis"}
             </span>
+            )}
             <button
               onClick={loadDraft}
               className="btn-primary ui-motion-button ui-focus-ring"
@@ -2501,14 +2518,19 @@ export default function SalesOrderList({
         </div>
       </div>
 
-      {/* Legend patokan untung — info kecil terpisah dari filter (v1.53.5) */}
+      {/* Legend patokan untung — v1.56.5: dikasih background surface biar KEBACA
+          di atas background berwarna (dulu teks muted ngambang di vanta) */}
       <div
         style={{
-          display: "flex",
+          display: "inline-flex",
           alignItems: "center",
           gap: "6px",
           flexWrap: "wrap",
-          margin: "-4px 2px 12px",
+          margin: "-4px 0 10px",
+          padding: "5px 10px",
+          borderRadius: "9px",
+          backgroundColor: "var(--color-surface)",
+          border: `1px solid ${border}`,
           fontSize: "10.5px",
           color: sub,
           lineHeight: 1.5,
@@ -3828,7 +3850,9 @@ export default function SalesOrderList({
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
+                      // v1.56.5: mobile stack — input date iOS punya lebar minimum,
+                      // 2 kolom di 375px bikin tanggal nabrak select metode
+                      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
                       gap: "12px",
                     }}
                   >
@@ -5016,7 +5040,7 @@ export default function SalesOrderList({
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
+                      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
                       gap: "12px",
                       padding: "10px 0",
                       borderTop: `1px solid ${border}`,

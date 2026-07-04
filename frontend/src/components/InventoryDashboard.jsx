@@ -839,7 +839,14 @@ export default function InventoryDashboard({
             </button>
           ))}
         </div>
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <div
+          style={
+            // v1.56.5: mobile grid 2 kolom rapi — flex wrap bikin baris tombol penceng
+            isMobile
+              ? { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", width: "100%" }
+              : { display: "flex", gap: "8px", flexWrap: "wrap" }
+          }
+        >
           {headerBtn("var(--color-primary)", Plus, "Produk", openAddProduct)}
           {headerBtn("var(--color-success)", ArrowDownCircle, "Stok Masuk", () =>
             openStockIn(null),

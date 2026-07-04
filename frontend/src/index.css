@@ -1198,4 +1198,24 @@ a,
   textarea {
     font-size: 16px !important;
   }
+
+  /* v1.56.5: padding halaman & toolbar konsisten di semua fitur — layar HP
+     sempit, jarak antar blok jangan makan tempat. */
+  .ui-page {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  .ui-toolbar {
+    padding: 0.6rem !important;
+    gap: 0.5rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+}
+
+/* v1.56.5: device layar sentuh tidak punya hover — tooltip nempel setelah tap
+   (mis. "Buka menu" nutupin judul modal). Matikan di touch device. */
+@media (hover: none) {
+  .ui-tooltip {
+    display: none !important;
+  }
 }

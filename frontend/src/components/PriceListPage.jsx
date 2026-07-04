@@ -1278,6 +1278,7 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
           style={{ width: "100%" }}
           inputStyle={{ borderColor: border, color: text }}
         />
+        {!isMobile && (
         <span
           style={{
             fontSize: "11.5px",
@@ -1286,11 +1287,12 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
             border: `1px solid ${border}`,
             borderRadius: "999px",
             padding: "6px 10px",
-            whiteSpace: isMobile ? "normal" : "nowrap",
+            whiteSpace: "nowrap",
           }}
         >
           Ketik harga → <strong>Enter</strong> = simpan (berlaku hari ini)
         </span>
+        )}
       </div>
 
       {/* ── MOBILE: kartu per produk ── */}
@@ -1320,7 +1322,7 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
                 {items.map((r) => {
                   const hpp = lastHppFor(r);
                   return (
-                    <div key={r.id} className="ui-panel" style={{ borderRadius: "14px", padding: "14px" }}>
+                    <div key={r.id} className="ui-panel" style={{ borderRadius: "12px", padding: "10px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
                         <div>
                           <div style={{ fontWeight: 700, fontSize: "14px", color: text, display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
@@ -1367,7 +1369,7 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
                       <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
                         {CHANNELS.map((ch) => (
                           <div key={ch.key} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontSize: "11px", fontWeight: 700, color: sub, width: "92px", flexShrink: 0 }}>
+                            <span style={{ fontSize: "10.5px", fontWeight: 700, color: sub, width: "64px", flexShrink: 0, lineHeight: 1.25 }}>
                               {ch.icon} {ch.label}
                             </span>
                             {priceCell(r, ch)}
