@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.56.3-stable] - 2026-07-04
+
+### Changed (pembulatan harga 3 arah + stepper persen)
+- Tombol bulatkan di form nota jadi **3 pilihan**: ⬇ bawah (76.123 → 76.000), ½ setengah (→ 76.500), ⬆ atas (→ 77.000). Harga <10rb pakai step ratusan (setengah = 50). Pilihan yang sama dengan harga sekarang otomatis disembunyikan.
+- Persen custom markup dari HPP dapat tombol **− / +** (step 1%) — tap-friendly di HP, tidak perlu ketik.
+
 ## [v1.56.2-stable] - 2026-07-04
 
 ### Fixed (audit mobile lanjutan — iPad + Toko Online)

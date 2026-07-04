@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.56.2-stable",
+    version: "v1.56.3-stable",
     date: "4 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Pembulatan harga di form nota sekarang 3 arah: ⬇ ke bawah (76.123 → 76.000), ½ ke setengah (→ 76.500), ⬆ ke atas (→ 77.000). Plus persen markup custom dari HPP kini punya tombol − / + (step 1%) biar gampang di HP tanpa ngetik.",
+        dev: "SalesOrderList: roundDownPrice/roundHalfPrice/roundUpPrice (step ribuan ≥10rb, ratusan <10rb; half=step/2 ceil), dedup opsi; stepper −/+ saveCustomMarkup ±1.",
+      },
+    ],
+  },
+  {
+    version: "v1.56.2-stable",
+    date: "4 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

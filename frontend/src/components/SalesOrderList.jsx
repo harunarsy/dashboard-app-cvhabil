@@ -364,9 +364,17 @@ export default function SalesOrderList({
       /* private mode — abaikan */
     }
   };
-  // Pembulatan ke atas yang "cantik": ≥10rb → ribuan (75.632 → 76.000); <10rb → ratusan.
+  // v1.56.3: pembulatan 3 arah — bawah / setengah / atas. Step: ≥10rb → ribuan
+  // (setengah = 500), <10rb → ratusan (setengah = 50).
+  // Contoh 76.123 → ⬇76.000 · ½76.500 · ⬆77.000.
+  const roundStepFor = (v) => (v >= 10000 ? 1000 : 100);
+  const roundDownPrice = (v) => Math.floor(v / roundStepFor(v)) * roundStepFor(v);
+  const roundHalfPrice = (v) => {
+    const half = roundStepFor(v) / 2;
+    return Math.ceil(v / half) * half;
+  };
   const roundUpPrice = (v) =>
-    v >= 10000 ? Math.ceil(v / 1000) * 1000 : Math.ceil(v / 100) * 100;
+    Math.ceil(v / roundStepFor(v)) * roundStepFor(v);
   // v1.28.0: #10 sering dibeli bersama + #3 anomali qty + #1 save-guard rugi
   const [copurchaseMap, setCopurchaseMap] = useState({}); // lowername -> [{name,confidence}]
   const [salesBaselines, setSalesBaselines] = useState({}); // name||cust -> {n_samples,qty_mean,qty_std}
@@ -4470,7 +4478,6 @@ export default function SalesOrderList({
                             const hppNow = hppIncFor(it);
                             if (!(hppNow > 0)) return null;
                             const cur = parseFloat(it.unit_price) || 0;
-                            const rounded = cur > 0 ? roundUpPrice(cur) : 0;
                             const customP = parseFloat(customMarkupPct);
                             const chipStyle = (active) => ({
                               padding: "3px 9px",
@@ -4517,6 +4524,31 @@ export default function SalesOrderList({
                                     gap: "3px",
                                   }}
                                 >
+                                  {/* v1.56.3: stepper −/+ — tap-friendly, mulai 1% */}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      saveCustomMarkup(
+                                        String(Math.max(0, (parseFloat(customMarkupPct) || 0) - 1)),
+                                      )
+                                    }
+                                    aria-label="Kurangi persen markup"
+                                    className="ui-focus-ring"
+                                    style={{
+                                      width: "24px",
+                                      height: "24px",
+                                      borderRadius: "999px",
+                                      border: `1px solid ${border}`,
+                                      backgroundColor: "var(--color-surface-elevated)",
+                                      color: text,
+                                      fontSize: "13px",
+                                      fontWeight: 800,
+                                      lineHeight: 1,
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    −
+                                  </button>
                                   <input
                                     type="number"
                                     min="0"
@@ -4531,13 +4563,37 @@ export default function SalesOrderList({
                                     aria-label="Markup custom persen dari HPP"
                                     style={{
                                       ...inputStyle,
-                                      width: "56px",
+                                      width: "52px",
                                       padding: "3px 6px",
                                       fontSize: "11px",
                                       textAlign: "center",
                                       borderRadius: "999px",
                                     }}
                                   />
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      saveCustomMarkup(
+                                        String((parseFloat(customMarkupPct) || 0) + 1),
+                                      )
+                                    }
+                                    aria-label="Tambah persen markup"
+                                    className="ui-focus-ring"
+                                    style={{
+                                      width: "24px",
+                                      height: "24px",
+                                      borderRadius: "999px",
+                                      border: `1px solid ${border}`,
+                                      backgroundColor: "var(--color-surface-elevated)",
+                                      color: text,
+                                      fontSize: "13px",
+                                      fontWeight: 800,
+                                      lineHeight: 1,
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    +
+                                  </button>
                                   <button
                                     type="button"
                                     disabled={!(customP > 0)}
@@ -4560,26 +4616,56 @@ export default function SalesOrderList({
                                     +{customP > 0 ? customP : "…"}%
                                   </button>
                                 </span>
-                                {cur > 0 && rounded !== cur && (
-                                  <button
-                                    type="button"
-                                    onClick={() => updateItem(idx, "unit_price", rounded)}
-                                    title={`Bulatkan ke atas: Rp${cur.toLocaleString("id-ID")} → Rp${rounded.toLocaleString("id-ID")}`}
-                                    className="ui-focus-ring"
-                                    style={{
-                                      padding: "3px 9px",
-                                      borderRadius: "999px",
-                                      border: `1px solid var(--color-success)`,
-                                      backgroundColor: "var(--color-success-soft)",
-                                      color: "var(--color-success)",
-                                      fontSize: "10.5px",
-                                      fontWeight: 700,
-                                      cursor: "pointer",
-                                    }}
-                                  >
-                                    ⬆ Bulatkan → Rp{rounded.toLocaleString("id-ID")}
-                                  </button>
-                                )}
+                                {cur > 0 &&
+                                  (() => {
+                                    // v1.56.3: 3 arah pembulatan — tampilkan yang beda dari harga sekarang saja
+                                    const opts = [
+                                      { icon: "⬇", label: "bawah", val: roundDownPrice(cur) },
+                                      { icon: "½", label: "setengah", val: roundHalfPrice(cur) },
+                                      { icon: "⬆", label: "atas", val: roundUpPrice(cur) },
+                                    ].filter(
+                                      (o, i, arr) =>
+                                        o.val > 0 &&
+                                        o.val !== cur &&
+                                        arr.findIndex((x) => x.val === o.val) === i,
+                                    );
+                                    if (!opts.length) return null;
+                                    return (
+                                      <span
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: "4px",
+                                          flexWrap: "wrap",
+                                        }}
+                                      >
+                                        <span style={{ fontSize: "11px", color: sub, fontWeight: 600 }}>
+                                          · bulatkan:
+                                        </span>
+                                        {opts.map((o) => (
+                                          <button
+                                            key={o.label}
+                                            type="button"
+                                            onClick={() => updateItem(idx, "unit_price", o.val)}
+                                            title={`Bulatkan ke ${o.label}: Rp${cur.toLocaleString("id-ID")} → Rp${o.val.toLocaleString("id-ID")}`}
+                                            className="ui-focus-ring"
+                                            style={{
+                                              padding: "3px 9px",
+                                              borderRadius: "999px",
+                                              border: `1px solid var(--color-success)`,
+                                              backgroundColor: "var(--color-success-soft)",
+                                              color: "var(--color-success)",
+                                              fontSize: "10.5px",
+                                              fontWeight: 700,
+                                              cursor: "pointer",
+                                            }}
+                                          >
+                                            {o.icon} {o.val.toLocaleString("id-ID")}
+                                          </button>
+                                        ))}
+                                      </span>
+                                    );
+                                  })()}
                               </div>
                             );
                           })()}
