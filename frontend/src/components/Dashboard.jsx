@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.56.1-stable",
+    version: "v1.56.2-stable",
     date: "4 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Form nota di iPad/tablet (768–1023px) ikut diperbaiki — kolom Nama Produk sempat kegencet karena form tampil berdampingan dengan preview. Tabel transaksi Toko Online kini bisa digeser horizontal di HP (tidak kegencet 8 kolom).",
+        dev: "SalesOrderList: stackedItems = isMobile || viewportW<1024 (resize listener). OnlineStoreDashboard: wrapper overflowX auto + table minWidth 760px.",
+      },
+    ],
+  },
+  {
+    version: "v1.56.1-stable",
+    date: "4 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

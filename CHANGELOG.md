@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.56.2-stable] - 2026-07-04
+
+### Fixed (audit mobile lanjutan — iPad + Toko Online)
+- **iPad/tablet 768–1023px**: form nota tampil berdampingan dgn preview → kolom form ~360px, grid item 6 kolom desktop collapse lagi (bug yang sama spt HP). Layout item bertumpuk kini dipakai bila `isMobile ATAU viewport < 1024px` (state `viewportW` + resize listener), bukan cuma <768.
+- **Toko Online**: tabel transaksi 8 kolom dibungkus `overflowX: auto` + `minWidth 760px` — di HP bisa digeser horizontal, tidak lagi kegencet.
+
 ## [v1.56.1-stable] - 2026-07-04
 
 ### Fixed (audit mobile tahap 1 — semua device Android/iOS/iPadOS)

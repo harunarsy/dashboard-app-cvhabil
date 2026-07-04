@@ -335,6 +335,19 @@ export default function SalesOrderList({
   const [customerInsights, setCustomerInsights] = useState([]);
   const [customerInsightsLoading, setCustomerInsightsLoading] = useState(false);
   const [addingInsightProduct, setAddingInsightProduct] = useState("");
+  // v1.56.2: di 768–1023px (iPad portrait) form & preview berdampingan → kolom form
+  // cuma ~360px; grid item 6-kolom desktop tidak muat. Layout item bertumpuk dipakai
+  // bila isMobile ATAU viewport < 1024 (bukan cuma <768).
+  const [viewportW, setViewportW] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : 1440,
+  );
+  useEffect(() => {
+    const onResize = () => setViewportW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const stackedItems = isMobile || viewportW < 1024;
+
   // v1.56.0: markup harga dari HPP (+5/+10/+15/custom %) — custom % diingat antar sesi
   const [customMarkupPct, setCustomMarkupPct] = useState(() => {
     try {
@@ -4162,8 +4175,8 @@ export default function SalesOrderList({
                       Produk
                     </label>
 
-                    {/* Column Headers — mobile pakai label per field (v1.55.1) */}
-                    {!isMobile && (
+                    {/* Column Headers — layout sempit pakai label per field (v1.55.1) */}
+                    {!stackedItems && (
                     <div
                       style={{
                         display: "grid",
@@ -4379,7 +4392,7 @@ export default function SalesOrderList({
                         <div
                           key={idx}
                           style={
-                            isMobile
+                            stackedItems
                               ? {
                                   marginBottom: "12px",
                                   padding: "10px",
@@ -4390,7 +4403,7 @@ export default function SalesOrderList({
                               : { marginBottom: "10px" }
                           }
                         >
-                          {isMobile ? (
+                          {stackedItems ? (
                             <>
                               <div
                                 style={{
