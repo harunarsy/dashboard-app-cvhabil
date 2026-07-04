@@ -56,9 +56,11 @@ export function generatePriceListPDF(rows, options = {}) {
     doc.setFont('helvetica', 'normal');
   }
 
-  doc.setDrawColor(...accentColor);
+  // includeHpp: divider turun — jangan menimpa teks watermark internal
+  const dividerY = margin + (includeHpp ? 36.5 : 33);
+  doc.setDrawColor(...(includeHpp ? [255, 59, 48] : accentColor));
   doc.setLineWidth(0.5);
-  doc.line(margin, margin + 33, pageWidth - margin, margin + 33);
+  doc.line(margin, dividerY, pageWidth - margin, dividerY);
 
   const tableData = rows.map((r, i) => {
     const base = r.base_unit || 'pcs';
@@ -76,7 +78,7 @@ export function generatePriceListPDF(rows, options = {}) {
   if (includeHpp) head.splice(3, 0, 'HPP');
 
   autoTable(doc, {
-    startY: margin + (includeHpp ? 39 : 37),
+    startY: margin + (includeHpp ? 40 : 37),
     head: [head],
     body: tableData,
     theme: 'striped',
