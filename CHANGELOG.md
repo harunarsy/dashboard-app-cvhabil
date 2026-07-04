@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.56.1-stable] - 2026-07-04
+
+### Fixed (audit mobile tahap 1 — semua device Android/iOS/iPadOS)
+- **Global CSS**: input/select/textarea `font-size ≥16px` di layar ≤767px (hilangkan auto-zoom iOS Safari saat fokus input — layar tidak "loncat" saat ngetik); `touch-action: manipulation` di elemen interaktif (hapus delay double-tap); modal `overscroll-behavior: contain` (scroll modal tidak tembus halaman belakang).
+- **Pinjaman (LoanList)**: form item di HP jadi kartu berlabel (Nama/Batch-ED/Qty/Harga) — sebelumnya stacked polos tanpa label; modal retur batch-baru stack 1 kolom di HP.
+- **Faktur (InvoiceModal)**: grid item Qty/Satuan/Harga/Disc 4 kolom → 2×2 di HP (prop `isMobile` diteruskan ke modal).
+- **Surat Pesanan**: baris item `minmax(0,2fr)+fixed` dirampingkan di HP (nama produk dapat lebar layak); baris PIC/tanggal 3 kolom → stack.
+- **Inventory**: baris tier harga grosir 5 kolom fixed → wrap 2 kolom di HP.
+- **Nota**: nomor preview di pesan WA form kini ikut format asli `{prefix}{YYMM}{NNN}` (sebelumnya "HSB-NOTA-011" padahal tersimpan "HSB-NOTA-2607011").
+
 ## [v1.56.0-stable] - 2026-07-04
 
 ### Added (rekomendasi harga dari HPP + pembulatan)

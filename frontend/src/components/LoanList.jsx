@@ -877,67 +877,150 @@ export default function LoanList({ isDarkMode, isMobile }) {
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {items.map((it, idx) => {
                   const batches = itemBatches[idx] || [];
+                  // v1.56.1: mobile pakai label mini per field (stacked tanpa label bikin
+                  // qty/harga membingungkan) + qty/harga sebaris; desktop grid 5 kolom tetap.
+                  const mini = (t) =>
+                    isMobile ? (
+                      <span
+                        style={{
+                          display: "block",
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          color: sub,
+                          marginBottom: "3px",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {t}
+                      </span>
+                    ) : null;
+                  const productEl = (
+                    <MasterSelect
+                      value={it.product_name}
+                      onChange={(v) => handleProductChange(idx, v)}
+                      options={products.map((p) => ({ name: p.name }))}
+                      isDarkMode={isDarkMode}
+                      placeholder="Nama produk"
+                    />
+                  );
+                  const batchEl = (
+                    <select
+                      style={inputStyle}
+                      value={it.selected_batch_id}
+                      onChange={(e) => updateItem(idx, "selected_batch_id", e.target.value)}
+                      aria-label="Batch"
+                    >
+                      <option value="">Pilih batch…</option>
+                      {batches.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.batch_no || "(tanpa no)"} · sisa {b.qty_current}
+                          {b.expired_date ? ` · ED ${fmtDate(b.expired_date)}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  );
+                  const qtyEl = (
+                    <input
+                      type="number"
+                      min="1"
+                      style={inputStyle}
+                      value={it.qty}
+                      onChange={(e) => updateItem(idx, "qty", e.target.value)}
+                      placeholder="Qty"
+                      aria-label="Qty"
+                    />
+                  );
+                  const priceEl = (
+                    <input
+                      type="number"
+                      min="0"
+                      style={inputStyle}
+                      value={it.unit_price}
+                      onChange={(e) => updateItem(idx, "unit_price", e.target.value)}
+                      placeholder="Harga"
+                      aria-label="Harga"
+                    />
+                  );
+                  const removeEl = (
+                    <button
+                      onClick={() => removeItemRow(idx)}
+                      disabled={items.length === 1}
+                      aria-label="Hapus baris"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: items.length === 1 ? "not-allowed" : "pointer",
+                        color: "var(--color-danger)",
+                        opacity: items.length === 1 ? 0.4 : 1,
+                      }}
+                    >
+                      <X size={15} />
+                    </button>
+                  );
+                  if (isMobile) {
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          padding: "10px",
+                          border: `1px solid ${border}`,
+                          borderRadius: "10px",
+                          backgroundColor: "var(--color-surface)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "minmax(0, 1fr) 26px",
+                            gap: "6px",
+                            alignItems: "center",
+                          }}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            {mini("Nama Produk")}
+                            {productEl}
+                          </div>
+                          {removeEl}
+                        </div>
+                        <div style={{ marginTop: "8px" }}>
+                          {mini("Batch / ED")}
+                          {batchEl}
+                        </div>
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: "8px",
+                            marginTop: "8px",
+                          }}
+                        >
+                          <div>
+                            {mini("Qty")}
+                            {qtyEl}
+                          </div>
+                          <div>
+                            {mini("Harga")}
+                            {priceEl}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
                   return (
                     <div
                       key={idx}
                       style={{
                         display: "grid",
-                        gridTemplateColumns: isMobile
-                          ? "1fr"
-                          : "2fr 140px 90px 130px 28px",
+                        gridTemplateColumns: "2fr 140px 90px 130px 28px",
                         gap: "8px",
                         alignItems: "center",
                       }}
                     >
-                      <MasterSelect
-                        value={it.product_name}
-                        onChange={(v) => handleProductChange(idx, v)}
-                        options={products.map((p) => ({ name: p.name }))}
-                        isDarkMode={isDarkMode}
-                        placeholder="Nama produk"
-                      />
-                      <select
-                        style={inputStyle}
-                        value={it.selected_batch_id}
-                        onChange={(e) => updateItem(idx, "selected_batch_id", e.target.value)}
-                      >
-                        <option value="">Pilih batch…</option>
-                        {batches.map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {b.batch_no || "(tanpa no)"} · sisa {b.qty_current}
-                            {b.expired_date ? ` · ED ${fmtDate(b.expired_date)}` : ""}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        min="1"
-                        style={inputStyle}
-                        value={it.qty}
-                        onChange={(e) => updateItem(idx, "qty", e.target.value)}
-                        placeholder="Qty"
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        style={inputStyle}
-                        value={it.unit_price}
-                        onChange={(e) => updateItem(idx, "unit_price", e.target.value)}
-                        placeholder="Harga"
-                      />
-                      <button
-                        onClick={() => removeItemRow(idx)}
-                        disabled={items.length === 1}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: items.length === 1 ? "not-allowed" : "pointer",
-                          color: "var(--color-danger)",
-                          opacity: items.length === 1 ? 0.4 : 1,
-                        }}
-                      >
-                        <X size={15} />
-                      </button>
+                      {productEl}
+                      {batchEl}
+                      {qtyEl}
+                      {priceEl}
+                      {removeEl}
                     </div>
                   );
                 })}
@@ -1055,7 +1138,7 @@ export default function LoanList({ isDarkMode, isMobile }) {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
+                  gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
                   gap: "8px",
                   marginTop: "10px",
                 }}

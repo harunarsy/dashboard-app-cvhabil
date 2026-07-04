@@ -3792,6 +3792,7 @@ export default function InvoiceList({
       {showModal && renderPortal(
         <InvoiceModal
           isDarkMode={isDarkMode}
+          isMobile={isMobile}
           form={form}
           items={items}
           totals={totals}
@@ -4399,6 +4400,7 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 function InvoiceModal({
   isDarkMode,
+  isMobile,
   form,
   items,
   totals,
@@ -4997,7 +4999,11 @@ function InvoiceModal({
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "0.7fr 0.8fr 1.35fr 1fr",
+                    // v1.56.1: mobile 2 kolom wrap — 4 kolom (qty/satuan/harga/disc)
+                    // kesempitan di layar 375px
+                    gridTemplateColumns: isMobile
+                      ? "1fr 1fr"
+                      : "0.7fr 0.8fr 1.35fr 1fr",
                     gap: "10px",
                     marginBottom: "10px",
                   }}

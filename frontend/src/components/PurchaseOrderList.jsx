@@ -1365,7 +1365,7 @@ export default function PurchaseOrderList({
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "1fr 1fr 1fr",
+                      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr",
                       gap: "12px",
                     }}
                   >
@@ -1426,8 +1426,11 @@ export default function PurchaseOrderList({
                           <div
                             style={{
                               display: "grid",
-                              gridTemplateColumns:
-                                "minmax(0, 2fr) 70px 110px 30px",
+                              // v1.56.1: mobile — kolom fixed dirampingkan supaya nama
+                              // produk tetap kebagian lebar layak di layar 375px.
+                              gridTemplateColumns: isMobile
+                                ? "minmax(0, 1fr) 54px 82px 24px"
+                                : "minmax(0, 2fr) 70px 110px 30px",
                               gap: "6px",
                               alignItems: "center",
                             }}

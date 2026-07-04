@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.56.0-stable",
+    version: "v1.56.1-stable",
     date: "4 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Optimasi tampilan HP tahap 1 (semua device Android/iOS/iPad): layar tidak lagi zoom sendiri saat mengetik di input, tap tombol lebih responsif, scroll di dalam popup tidak menembus halaman belakang. Form item di Pinjaman/Faktur/Surat Pesanan/tier Inventory dirapikan untuk layar kecil. Nomor nota di pesan WA (draft form) kini sesuai nomor asli.",
+        dev: "index.css: input ≥16px @≤767px (anti iOS auto-zoom), touch-action manipulation, overscroll-behavior contain. LoanList item card+label, InvoiceModal +isMobile grid 2x2, PO item/PIC grid, Inventory tier wrap. currentWaMessage: preview nomor +YYMM.",
+      },
+    ],
+  },
+  {
+    version: "v1.56.0-stable",
+    date: "4 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "new",

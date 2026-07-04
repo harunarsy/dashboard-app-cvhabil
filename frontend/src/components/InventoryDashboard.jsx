@@ -2261,7 +2261,10 @@ export default function InventoryDashboard({
                         key={idx}
                         style={{
                           display: "grid",
-                          gridTemplateColumns: "1.1fr 70px 70px 1fr 28px",
+                          // v1.56.1: mobile 2 kolom wrap — grid fixed 5 kolom kesempitan di HP
+                          gridTemplateColumns: isMobile
+                            ? "1fr 1fr"
+                            : "1.1fr 70px 70px 1fr 28px",
                           gap: "6px",
                           marginBottom: "6px",
                           alignItems: "center",

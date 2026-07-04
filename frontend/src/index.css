@@ -1171,3 +1171,31 @@ tr.ui-row.ui-hover-delight:focus-within {
     transform: none !important;
   }
 }
+
+/* ─── v1.56.1: Mobile web optimization (semua device: Android/iOS/iPadOS) ──
+   1. touch-action manipulation: hapus delay/zoom double-tap saat tap elemen
+      interaktif (Android & iOS).
+   2. Input font ≥16px di layar HP: font <16px bikin iOS Safari AUTO-ZOOM saat
+      fokus input (layar "loncat" saat ngetik); di Android juga lebih terbaca.
+      !important perlu karena mayoritas input pakai inline style 12–13px.
+   3. Modal overscroll containment: scroll di dalam modal tidak "tembus"
+      men-scroll halaman di belakangnya. */
+button,
+select,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+.ui-motion-modal,
+.ui-dialog-shell {
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

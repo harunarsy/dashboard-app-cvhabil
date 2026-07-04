@@ -1726,10 +1726,15 @@ export default function SalesOrderList({
         };
       })
       .filter(Boolean);
+    // v1.56.1: preview nomor auto WAJIB ikut format asli {prefix}{YYMM}{NNN} —
+    // sebelumnya tanpa YYMM sehingga pesan WA bilang "HSB-NOTA-011" padahal
+    // nota tersimpan jadi "HSB-NOTA-2607011".
+    const now = new Date();
+    const yymm = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, "0")}`;
     const orderNumber = editId
       ? form.order_number
       : isAutoNota
-        ? `${notaCounter.prefix || "HSB-NOTA-"}${String((notaCounter.month_max || 0) + 1).padStart(3, "0")}`
+        ? `${notaCounter.prefix || "HSB-NOTA-"}${yymm}${String((notaCounter.month_max || 0) + 1).padStart(3, "0")}`
         : `${notaCounter.prefix || "HSB-NOTA-"}${manualNumber}`;
     return buildNotaWaMessage({
       form,
