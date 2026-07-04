@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.55.1-stable",
+    date: "4 Juli 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Form Buat Nota di HP diperbaiki: kolom Nama Produk yang tadinya kegencet sampai tidak bisa dipakai sekarang tampil penuh — tiap produk jadi kartu sendiri (Nama full-width, lalu Qty/Unit/HPP/Harga rapi 2 kolom). Pilih batch/ED & rekomendasi harga customer tetap jalan normal di HP.",
+        dev: "SalesOrderList item row: grid fixed 340px → isMobile stacked card (elemen input dibuat sekali, disusun ulang). Header kolom desktop-only.",
+      },
+    ],
+  },
+  {
     version: "v1.55.0-stable",
     date: "2 Juli 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "new",

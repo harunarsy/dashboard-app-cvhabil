@@ -4138,7 +4138,8 @@ export default function SalesOrderList({
                       Produk
                     </label>
 
-                    {/* Column Headers */}
+                    {/* Column Headers — mobile pakai label per field (v1.55.1) */}
+                    {!isMobile && (
                     <div
                       style={{
                         display: "grid",
@@ -4200,6 +4201,7 @@ export default function SalesOrderList({
                       </div>
                       <div></div>
                     </div>
+                    )}
 
                     {items.map((it, idx) => {
                       const batches = itemBatches[idx] || [];
@@ -4214,131 +4216,218 @@ export default function SalesOrderList({
                       const showConversion =
                         product && isPackUnit(it.unit, product) && it.qty > 0;
                       const marginWarning = getItemMarginWarning(it);
-                      return (
-                        <div key={idx} style={{ marginBottom: "10px" }}>
-                          <div
+                      // v1.55.1: elemen input dibuat SEKALI, disusun beda per layar —
+                      // desktop grid 6 kolom; mobile bertumpuk (grid fixed 340px bikin
+                      // input Nama collapse jadi 0px di layar 375px).
+                      const productSelectEl = (
+                        <MasterSelect
+                          value={it.product_name}
+                          onChange={(v) => updateItem(idx, "product_name", v)}
+                          options={products.map((p) => ({ name: p.name }))}
+                          onAdd={handleAddProduct}
+                          onRemove={handleRemoveProduct}
+                          onRename={handleRenameProduct}
+                          isDarkMode={isDarkMode}
+                          placeholder="Nama produk"
+                        />
+                      );
+                      const qtyInputEl = (
+                        <input
+                          type="number"
+                          value={it.qty}
+                          onChange={(e) =>
+                            updateItem(idx, "qty", parseInt(e.target.value) || 0)
+                          }
+                          min="1"
+                          aria-label="Qty"
+                          style={{
+                            ...inputStyle,
+                            fontSize: "13px",
+                            padding: "8px 6px",
+                            textAlign: "center",
+                          }}
+                        />
+                      );
+                      const unitSelectEl = (
+                        <select
+                          value={it.unit}
+                          onChange={(e) => updateItem(idx, "unit", e.target.value)}
+                          aria-label="Unit"
+                          style={{
+                            ...inputStyle,
+                            fontSize: "12px",
+                            padding: "8px 4px",
+                          }}
+                        >
+                          {unitOptions.map((u, i) => (
+                            <option key={`${u.value}-${i}`} value={u.value}>
+                              {u.value}
+                            </option>
+                          ))}
+                        </select>
+                      );
+                      const hppInputEl = (
+                        <input
+                          type="number"
+                          value={Math.round(hppIncFor(it))}
+                          onChange={(e) =>
+                            updateItem(
+                              idx,
+                              "unit_hpp",
+                              it.unit_hpp_tax_type === "nota"
+                                ? parseFloat(e.target.value) || 0
+                                : hnaFromHpp(parseFloat(e.target.value) || 0),
+                            )
+                          }
+                          min="0"
+                          placeholder="0"
+                          aria-label="HPP"
+                          title={
+                            it.unit_hpp_tax_type === "nota"
+                              ? "HPP dari pembelian nota (tanpa PPN) — disimpan apa adanya"
+                              : "HPP inc PPN 11% (disimpan sebagai HNA exc PPN)"
+                          }
+                          style={{
+                            ...inputStyle,
+                            fontSize: "12px",
+                            padding: "8px 6px",
+                            backgroundColor: isDarkMode
+                              ? "var(--color-surface-elevated)"
+                              : "#EBEBEB",
+                            border: `1px dashed ${border}`,
+                            textAlign: "center",
+                          }}
+                        />
+                      );
+                      const priceInputEl = (
+                        <input
+                          type="number"
+                          value={it.unit_price}
+                          onChange={(e) =>
+                            updateItem(
+                              idx,
+                              "unit_price",
+                              parseFloat(e.target.value) || 0,
+                            )
+                          }
+                          min="0"
+                          placeholder="0"
+                          aria-label="Harga"
+                          style={{
+                            ...inputStyle,
+                            fontSize: "13px",
+                            padding: "8px 6px",
+                            textAlign: "center",
+                          }}
+                        />
+                      );
+                      const removeBtnEl =
+                        items.length > 1 ? (
+                          <button
+                            onClick={() => removeItem(idx)}
+                            aria-label="Hapus baris produk"
+                            title="Hapus baris produk"
                             style={{
-                              display: "grid",
-                              gridTemplateColumns:
-                                "minmax(0, 2fr) 60px 70px 80px 100px 30px",
-                              gap: "6px",
-                              alignItems: "center",
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: 0,
                             }}
                           >
-                            <MasterSelect
-                              value={it.product_name}
-                              onChange={(v) =>
-                                updateItem(idx, "product_name", v)
-                              }
-                              options={products.map((p) => ({ name: p.name }))}
-                              onAdd={handleAddProduct}
-                              onRemove={handleRemoveProduct}
-                              onRename={handleRenameProduct}
-                              isDarkMode={isDarkMode}
-                              placeholder="Nama produk"
-                            />
-                            <input
-                              type="number"
-                              value={it.qty}
-                              onChange={(e) =>
-                                updateItem(
-                                  idx,
-                                  "qty",
-                                  parseInt(e.target.value) || 0,
-                                )
-                              }
-                              min="1"
-                              style={{
-                                ...inputStyle,
-                                fontSize: "13px",
-                                padding: "8px 6px",
-                                textAlign: "center",
-                              }}
-                            />
-                            <select
-                              value={it.unit}
-                              onChange={(e) =>
-                                updateItem(idx, "unit", e.target.value)
-                              }
-                              style={{
-                                ...inputStyle,
-                                fontSize: "12px",
-                                padding: "8px 4px",
-                              }}
-                            >
-                              {unitOptions.map((u, i) => (
-                                <option key={`${u.value}-${i}`} value={u.value}>
-                                  {u.value}
-                                </option>
-                              ))}
-                            </select>
-                            <input
-                              type="number"
-                              value={Math.round(hppIncFor(it))}
-                              onChange={(e) =>
-                                updateItem(
-                                  idx,
-                                  "unit_hpp",
-                                  it.unit_hpp_tax_type === "nota"
-                                    ? parseFloat(e.target.value) || 0
-                                    : hnaFromHpp(
-                                        parseFloat(e.target.value) || 0,
-                                      ),
-                                )
-                              }
-                              min="0"
-                              placeholder="0"
-                              title={
-                                it.unit_hpp_tax_type === "nota"
-                                  ? "HPP dari pembelian nota (tanpa PPN) — disimpan apa adanya"
-                                  : "HPP inc PPN 11% (disimpan sebagai HNA exc PPN)"
-                              }
-                              style={{
-                                ...inputStyle,
-                                fontSize: "12px",
-                                padding: "8px 6px",
-                                backgroundColor: isDarkMode
-                                  ? "var(--color-surface-elevated)"
-                                  : "#EBEBEB",
-                                border: `1px dashed ${border}`,
-                                textAlign: "center",
-                              }}
-                            />
-                            <input
-                              type="number"
-                              value={it.unit_price}
-                              onChange={(e) =>
-                                updateItem(
-                                  idx,
-                                  "unit_price",
-                                  parseFloat(e.target.value) || 0,
-                                )
-                              }
-                              min="0"
-                              placeholder="0"
-                              style={{
-                                ...inputStyle,
-                                fontSize: "13px",
-                                padding: "8px 6px",
-                                textAlign: "center",
-                              }}
-                            />
-                            {items.length > 1 && (
-                              <button
-                                onClick={() => removeItem(idx)}
-                                aria-label="Hapus baris produk"
-                                title="Hapus baris produk"
+                            <Trash2 size={14} color="var(--color-danger)" />
+                          </button>
+                        ) : null;
+                      const miniLabel = (t) => (
+                        <span
+                          style={{
+                            display: "block",
+                            fontSize: "10px",
+                            fontWeight: 700,
+                            color: sub,
+                            marginBottom: "3px",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {t}
+                        </span>
+                      );
+                      return (
+                        <div
+                          key={idx}
+                          style={
+                            isMobile
+                              ? {
+                                  marginBottom: "12px",
+                                  padding: "10px",
+                                  border: `1px solid ${border}`,
+                                  borderRadius: "12px",
+                                  backgroundColor: "var(--color-surface)",
+                                }
+                              : { marginBottom: "10px" }
+                          }
+                        >
+                          {isMobile ? (
+                            <>
+                              <div
                                 style={{
-                                  background: "none",
-                                  border: "none",
-                                  cursor: "pointer",
-                                  padding: 0,
+                                  display: "grid",
+                                  gridTemplateColumns: removeBtnEl
+                                    ? "minmax(0, 1fr) 28px"
+                                    : "minmax(0, 1fr)",
+                                  gap: "6px",
+                                  alignItems: "center",
                                 }}
                               >
-                                <Trash2 size={14} color="var(--color-danger)" />
-                              </button>
-                            )}
-                          </div>
+                                <div style={{ minWidth: 0 }}>
+                                  {miniLabel("Nama Produk")}
+                                  {productSelectEl}
+                                </div>
+                                {removeBtnEl}
+                              </div>
+                              <div
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns: "1fr 1fr",
+                                  gap: "8px",
+                                  marginTop: "8px",
+                                }}
+                              >
+                                <div>
+                                  {miniLabel("Qty")}
+                                  {qtyInputEl}
+                                </div>
+                                <div>
+                                  {miniLabel("Unit")}
+                                  {unitSelectEl}
+                                </div>
+                                <div>
+                                  {miniLabel("HPP")}
+                                  {hppInputEl}
+                                </div>
+                                <div>
+                                  {miniLabel("Harga")}
+                                  {priceInputEl}
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns:
+                                  "minmax(0, 2fr) 60px 70px 80px 100px 30px",
+                                gap: "6px",
+                                alignItems: "center",
+                              }}
+                            >
+                              {productSelectEl}
+                              {qtyInputEl}
+                              {unitSelectEl}
+                              {hppInputEl}
+                              {priceInputEl}
+                              {removeBtnEl}
+                            </div>
+                          )}
                           {showConversion && (
                             <p
                               style={{

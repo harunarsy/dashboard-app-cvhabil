@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.55.1-stable] - 2026-07-04
+
+### Fixed (form nota mobile)
+- Baris item PRODUK di form Buat/Edit Nota **rusak di HP** (grid fixed `2fr 60px 70px 80px 100px 30px` = 340px+ → input Nama produk collapse ~0px di layar 375px, header numpuk). Sekarang mobile pakai **layout bertumpuk per kartu item**: Nama produk full-width + tombol hapus, lalu grid 2×2 Qty/Unit/HPP/Harga dengan label mini. Desktop tidak berubah. Batch/ED picker & rekomendasi harga per-customer aman (sudah full-width) — diverifikasi visual 375px.
+
 ## [v1.55.0-stable] - 2026-07-02
 
 ### Added (Daftar Harga: deteksi jual rugi + redesign)
