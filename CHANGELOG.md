@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.57.0-stable] - 2026-07-05
+
+### Added (halaman Pajak + akses konsultan)
+- **Halaman Pajak** (`/tax`, route `/api/tax`, guard role `direktur`+`pajak`): rekap PPN per masa pajak — PPN keluaran (DPP = porsi produk/(1+11%), porsi = total − ongkir − fee pass-on, mirror breakdown PDF nota) vs pajak masukan (faktur `tax_type='faktur'`), perkiraan kurang bayar, dan omzet barang **sumber-nota** (tanpa kredit masukan → PPN beban penuh).
+- **Penandaan per nota**: toggle "Masuk / Dikecualikan" dari PPN keluaran — hanya direktur & konsultan, tercatat `ppn_marked_by`+`ppn_marked_at` (audit). Default semua nota MASUK (posisi aman). Banner peringatan bila ada yang dikecualikan. Badge `SUMBER-NOTA` per nota.
+- **Role baru `pajak`** (akun konsultan): sidebar hanya menu Pajak, route lain redirect ke `/tax`, Buku Besar tetap 403.
+- **Export CSV** rekap per masa pajak (separator `;`, BOM) buat kertas kerja lapor.
+- Isolasi: hanya 3 kolom penanda baru di `sales_orders` (`ppn_excluded/ppn_marked_by/ppn_marked_at`) — TIDAK dibaca/ditulis jalur nota, stok, faktur, inventory mana pun (diaudit grep).
+
 ## [v1.56.5-stable] - 2026-07-04
 
 ### Fixed (audit mobile tahap 2 — polish dari temuan Harun)

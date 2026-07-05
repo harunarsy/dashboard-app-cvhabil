@@ -96,8 +96,11 @@ export default function Sidebar({
 
   const role = user?.role || "admin";
 
-  // Role-based menu: admin gets operations, direktur gets everything
-  const menuItems = [
+  // Role-based menu: admin gets operations, direktur gets everything.
+  // v1.57.0: role 'pajak' (konsultan) HANYA lihat halaman Pajak.
+  const menuItems = role === "pajak"
+    ? [{ icon: ReceiptText, label: "Pajak", path: "/tax", active: true }]
+    : [
     { icon: Home, label: "Dashboard", path: "/dashboard", active: true },
     { icon: FileText, label: "Nota Penjualan", path: "/sales", active: true },
     { icon: Users, label: "Customer", path: "/customers", active: true },
@@ -140,6 +143,12 @@ export default function Sidebar({
             icon: DollarSign,
             label: "Finance",
             path: "/finance",
+            active: true,
+          },
+          {
+            icon: ReceiptText,
+            label: "Pajak",
+            path: "/tax",
             active: true,
           },
           {
@@ -195,7 +204,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.56.5-stable";
+  const appVersion = "v1.57.0-stable";
   const TooltipButton = ({
     label,
     children,

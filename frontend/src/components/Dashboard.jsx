@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.57.0-stable",
+    date: "5 Juli 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Halaman PAJAK baru (khusus Direktur + akun Konsultan Pajak): rekap PPN per bulan — PPN keluaran vs pajak masukan, perkiraan kurang bayar, dan omzet barang sumber-nota (yang PPN-nya jadi beban penuh). Konsultan bisa menandai nota mana yang masuk/dikecualikan dari PPN keluaran — setiap penandaan tercatat siapa & kapan. Ada export CSV buat bahan lapor.",
+        dev: "routes/tax.js (roleGuard direktur+pajak): /summary /notas PATCH /notas/:id/ppn /export. 3 kolom baru sales_orders (ppn_excluded/marked_by/marked_at) — terisolasi, tidak dibaca jalur nota/stok/faktur. Role 'pajak': sidebar 1 menu, redirect paksa /tax, ledger tetap 403.",
+      },
+    ],
+  },
+  {
     version: "v1.56.5-stable",
     date: "4 Juli 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",

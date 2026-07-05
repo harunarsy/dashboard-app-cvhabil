@@ -266,6 +266,14 @@ export const salesAPI = {
   updatePaymentStatus: (id, payment_status, paid_at) => api.patch(`/sales/${id}/payment-status`, { payment_status, ...(paid_at && { paid_at }) }),
 };
 
+// v1.57.0: pajak — rekap PPN + penandaan PPN keluaran (role direktur/pajak)
+export const taxAPI = {
+  getSummary: (month) => api.get('/tax/summary', { params: { month } }),
+  getNotas: (month) => api.get('/tax/notas', { params: { month } }),
+  setPpn: (id, excluded) => api.patch(`/tax/notas/${id}/ppn`, { excluded }),
+  exportCsv: (month) => api.get('/tax/export', { params: { month }, responseType: 'blob' }),
+};
+
 // v1.54.0: peminjaman produk (nota pinjaman + retur + konversi jadi nota penjualan)
 export const loansAPI = {
   getAll: () => api.get('/loans'),

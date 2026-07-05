@@ -35,6 +35,7 @@ const LedgerPage = lazy(() => import("./components/LedgerPage"));
 const PriceListPage = lazy(() => import("./components/PriceListPage"));
 const PrintSettings = lazy(() => import("./components/PrintSettings"));
 const FinancePage = lazy(() => import("./components/FinancePage"));
+const TaxPage = lazy(() => import("./components/TaxPage"));
 
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint);
@@ -67,8 +68,12 @@ function ProtectedRoute({
   setIsSidebarOpen,
   isMobile,
 }) {
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
   if (!token) return <Navigate to="/login" />;
+  // v1.57.0: role 'pajak' (konsultan) dikunci hanya ke halaman Pajak
+  if (user?.role === "pajak" && window.location.pathname !== "/tax") {
+    return <Navigate to="/tax" />;
+  }
   return (
     <div className="flex min-h-screen">
       <Sidebar
@@ -218,6 +223,7 @@ function AppRoutes({
           element={wrap(PrintSettings, "Settings")}
         />
         <Route path="/finance" element={wrap(FinancePage, "Keuangan")} />
+        <Route path="/tax" element={wrap(TaxPage, "Pajak")} />
         <Route path="/bugs" element={wrap(BugReports, "Bug Reports")} />
         <Route
           path="/"

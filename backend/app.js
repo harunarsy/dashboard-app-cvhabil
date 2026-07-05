@@ -98,6 +98,7 @@ app.use('/api/price-list', require('./routes/priceList'));
 app.use('/api/insights', require('./routes/insights'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/finance', require('./routes/finance'));
+app.use('/api/tax', require('./routes/tax'));
 
 // Error handler
 app.use((err, req, res, next) => {
