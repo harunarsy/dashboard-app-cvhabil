@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.58.0-stable] - 2026-07-10
+
+### Added (dashboard per-bulan)
+- **Dashboard ikut bulan terpilih** di kalender Aktivitas Nota. Geser ke bulan lain → Total Penjualan, Laba Kotor (+delta vs bulan sebelumnya), Margin per Channel, Top Kategori, Top 5 Customer, dan grafik Pergerakan Stok semuanya menampilkan bulan itu. Kartu Surat Pesanan Aktif & Stok Low tetap kondisi terkini.
+  - Backend `GET /dashboard/stats?month=YYYY-MM` (regex-validated → literal SQL aman, no injection); query bulanan pakai `monthStart/prevMonthStart/monthEnd`, query state-terkini tetap.
+  - Frontend `useDashboardStats(month)`: `queryKey` per-bulan + `keepPreviousData` (no kedip saat pindah bulan). Label KPI/kartu dinamis. `buildStockMovementSeries` pakai bulan terpilih (bukan 30d rolling).
+
+### Fixed
+- **Salin reminder / Salin pesan WA** tidak lagi salah menampilkan "Gagal menyalin" padahal teks sudah tersalin. `copyTextToClipboard` sekarang return boolean (dulu `undefined` → semua pemanggil kira gagal); 4 pemanggil (SalesOrderList, LoanList, CustomerList) cek return; fallback `execCommand` aman.
+- **Popup "Catat Pembayaran / Tandai Lunas"** di Faktur Pembelian kini selalu di tengah layar (dibungkus `renderPortal` → lepas dari ancestor ber-`transform`). Tombol Reset filter dibuat lebih kontras.
+
 ## [v1.57.0-stable] - 2026-07-05
 
 ### Added (halaman Pajak + akses konsultan)

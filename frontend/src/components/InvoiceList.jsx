@@ -2978,7 +2978,7 @@ export default function InvoiceList({
       </div>
 
       {/* Duplicate Confirm */}
-      {paymentModal.open && (
+      {paymentModal.open && renderPortal(
         <div
           onClick={() => !paymentSaving && setPaymentModal({ open: false, inv: null, date: "" })}
           style={{

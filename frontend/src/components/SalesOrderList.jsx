@@ -1766,12 +1766,11 @@ export default function SalesOrderList({
     });
   };
   const handleCopyWaMessage = async () => {
-    try {
-      await copyTextToClipboard(currentWaMessage());
-      flash("Draft pesan WA disalin");
-    } catch (e) {
-      flash(e.message || "Gagal menyalin draft WA", "error");
-    }
+    const ok = await copyTextToClipboard(currentWaMessage());
+    flash(
+      ok ? "Draft pesan WA disalin" : "Gagal menyalin draft WA — coba lagi",
+      ok ? "success" : "error",
+    );
   };
   const handleOpenWaMessage = () => {
     const url = buildWaUrl(form.customer_phone, currentWaMessage());
@@ -2086,18 +2085,19 @@ export default function SalesOrderList({
               type="button"
               onClick={() => setFilterDue("all")}
               className="ui-motion-button ui-focus-ring"
+              title="Reset filter jatuh tempo / terlambat"
               style={{
                 cursor: "pointer",
-                padding: "8px 12px",
-                backgroundColor: "transparent",
+                padding: "8px 14px",
+                backgroundColor: "var(--color-surface-elevated)",
                 border: `1px solid ${border}`,
                 borderRadius: "10px",
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
-                color: sub,
+                color: text,
                 fontSize: "13px",
-                fontWeight: "600",
+                fontWeight: "700",
               }}
             >
               <X size={14} /> Reset

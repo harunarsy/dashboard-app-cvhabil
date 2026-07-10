@@ -1,7 +1,7 @@
 // v1.41.0: hook data master via TanStack Query — di-cache & dibagi antar halaman.
 // v1.45.0: diperluas ke semua data list per-domain (nota, faktur, SP, inventory,
 //   daftar harga, dashboard) supaya kunjungan ulang halaman tampil instan dari cache.
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import {
   inventoryAPI,
   customersAPI,
@@ -127,11 +127,15 @@ export function useWeeklySummary(options = {}) {
 }
 
 // dashboardAPI mungkin belum ada → guard supaya tidak crash kalau API absen.
-export function useDashboardStats(options = {}) {
+// v1.58.0: statistik dashboard bisa difilter per bulan (YYYY-MM). queryKey memuat
+// month → tiap bulan cache sendiri (tidak silang). keepPreviousData → angka bulan
+// sebelumnya tetap tampil saat pindah bulan (no kedip/blank).
+export function useDashboardStats(month, options = {}) {
   return useQuery({
-    queryKey: qk.dashboardStats,
-    queryFn: async () => (await dashboardAPI.getStats()).data,
+    queryKey: [...qk.dashboardStats, month || "current"],
+    queryFn: async () => (await dashboardAPI.getStats(month)).data,
     staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
     ...options,
   });
 }

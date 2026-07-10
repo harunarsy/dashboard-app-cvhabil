@@ -120,19 +120,30 @@ export const buildWaUrl = (phone, message) => {
   return `https://wa.me/${normalized}?text=${encodeURIComponent(message || "")}`;
 };
 
+// v1.57.x: WAJIB return boolean (true=sukses, false=gagal). Dulu return undefined →
+// pemanggil menganggap gagal padahal teks sudah tersalin (notif "Gagal menyalin" palsu).
 export const copyTextToClipboard = async (text) => {
   if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (_) {
+      // izin clipboard ditolak / konteks non-secure → fallback ke execCommand
+    }
   }
 
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  document.body.removeChild(textarea);
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return ok;
+  } catch (_) {
+    return false;
+  }
 };

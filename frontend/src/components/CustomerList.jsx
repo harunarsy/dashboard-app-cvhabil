@@ -469,12 +469,8 @@ export default function CustomerList({
                       type="button"
                       title="Salin pesan WA"
                       onClick={async () => {
-                        try {
-                          await copyTextToClipboard(msg);
-                          flash("Pesan WA disalin");
-                        } catch {
-                          flash("Gagal menyalin pesan");
-                        }
+                        const ok = await copyTextToClipboard(msg);
+                        flash(ok ? "Pesan WA disalin" : "Gagal menyalin pesan");
                       }}
                       className="ui-motion-button ui-focus-ring"
                       style={{ ...iconBtn, border: `1px solid ${border}`, backgroundColor: cardBg, color: text }}

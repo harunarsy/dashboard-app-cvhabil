@@ -39,9 +39,31 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.58.0-stable",
+    date: "10 Juli 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "new",
+        text: "Dashboard sekarang ikut bulan yang dipilih di kalender Aktivitas Nota. Geser ke bulan lain (mis. Juni) → Total Penjualan, Laba Kotor, Margin per Channel, Top Kategori, Top 5 Customer, dan grafik Pergerakan Stok semuanya menampilkan bulan itu. Kartu Surat Pesanan Aktif & Stok Low tetap kondisi terkini.",
+        dev: "dashboard.js /stats ?month=YYYY-MM (regex-validated → literal SQL aman, no injection). Query bulanan pakai monthStart/prevMonthStart/monthEnd; state-terkini (PO/stok/customer) tetap. useDashboardStats(month): queryKey per-bulan + keepPreviousData (no kedip). Label KPI/kartu dinamis (monthScopeShort/Long). buildStockMovementSeries pakai bulan terpilih (bukan 30d rolling; bulan berjalan dipotong sampai hari ini).",
+      },
+      {
+        type: "fix",
+        text: "Tombol 'Salin reminder' & 'Salin pesan WA' tidak lagi salah menampilkan 'Gagal menyalin' padahal teksnya sudah tersalin — notifikasi hijau muncul saat berhasil.",
+        dev: "copyTextToClipboard return boolean (dulu undefined → pemanggil kira gagal). SalesOrderList/LoanList/CustomerList cek return; fallback execCommand aman saat izin clipboard ditolak.",
+      },
+      {
+        type: "fix",
+        text: "Popup 'Catat Pembayaran / Tandai Lunas' di Faktur Pembelian sekarang selalu di tengah layar (tidak lagi menggantung ke atas & perlu di-scroll). Tombol Reset filter dibuat lebih kontras/jelas.",
+        dev: "paymentModal dibungkus renderPortal(document.body) → lepas dari ancestor ber-transform. Reset btn: color muted → text penuh + bg surface-elevated.",
+      },
+    ],
+  },
+  {
     version: "v1.57.0-stable",
     date: "5 Juli 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "new",
@@ -4012,8 +4034,15 @@ export default function Dashboard({
   const [showModal, setShowModal] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false); // v1.32.0: Manajemen Tugas default tutup (jarang dipakai)
   const [showDevNotes, setShowDevNotes] = useState(false);
+  // v1.58.0: bulan aktif dashboard (dipilih via kalender Aktivitas Nota). Didefinisikan
+  // di sini agar bisa dipakai useDashboardStats (KPI + kartu bawah ikut bulan ini).
+  const [heatmapMonth, setHeatmapMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
   // v1.46.0: stats & weekly via TanStack Query — instan saat balik ke Dashboard.
-  const { data: statsRaw, isLoading: loading } = useDashboardStats();
+  // v1.58.0: stats ikut bulan terpilih (heatmapMonth).
+  const { data: statsRaw, isLoading: loading } = useDashboardStats(heatmapMonth);
   const { data: weekly } = useWeeklySummary();
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   const onboarding = useOnboarding(true);
@@ -4121,10 +4150,6 @@ export default function Dashboard({
   );
 
   // Heatmap calendar state
-  const [heatmapMonth, setHeatmapMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  });
   const [heatmapData, setHeatmapData] = useState([]);
   const [heatmapLoading, setHeatmapLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
@@ -4366,16 +4391,20 @@ export default function Dashboard({
       : channel === "offline"
         ? "var(--color-text-subtle)"
         : "var(--color-warning)";
-  const toLocalYmd = (date) =>
-    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  const buildStockMovementSeries = (rows = []) => {
+  // v1.58.0: sumbu grafik ikut BULAN terpilih (bukan 30-hari-terakhir hardcoded), biar
+  // data bulan lama tampil benar. Bulan berjalan → dipotong sampai hari ini (tak ada
+  // tanggal masa depan yg kosong menggantung).
+  const buildStockMovementSeries = (rows = [], monthStr) => {
     const map = new Map(rows.map((row) => [String(row.day).slice(0, 10), row]));
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return Array.from({ length: 30 }, (_, index) => {
-      const date = new Date(today);
-      date.setDate(today.getDate() - (29 - index));
-      const key = toLocalYmd(date);
+    const [y, m] = monthStr.split("-").map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const now = new Date();
+    const isCur = y === now.getFullYear() && m === now.getMonth() + 1;
+    const lastDay = isCur ? now.getDate() : daysInMonth;
+    return Array.from({ length: lastDay }, (_, index) => {
+      const d = index + 1;
+      const date = new Date(y, m - 1, d);
+      const key = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
       const row = map.get(key) || {};
       return {
         day: key,
@@ -4420,8 +4449,12 @@ export default function Dashboard({
     const now = new Date();
     return heatmapMonth === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   })();
+  // v1.58.0: label scope bulan — "bln ini" saat bulan berjalan (default, familiar utk
+  // operator harian), atau nama bulan ("Juni 2026") saat kalender digeser ke bulan lain.
+  const monthScopeShort = isCurrentMonth ? "bln ini" : heatmapMonthLabel;
+  const monthScopeLong = isCurrentMonth ? "bulan ini" : heatmapMonthLabel;
 
-  const stockMovementSeries = buildStockMovementSeries(stockMovementRows);
+  const stockMovementSeries = buildStockMovementSeries(stockMovementRows, heatmapMonth);
   const weeklySummary = weekly
     ? (() => {
         const revThis = Number(weekly?.revenue?.this_week) || 0;
@@ -4821,22 +4854,24 @@ export default function Dashboard({
       >
         {[
           {
-            label: "Total Penjualan bln ini",
+            metric: "penjualan",
+            label: `Total Penjualan ${monthScopeShort}`,
             value: stats.totalPenjualan,
             previousValue: stats.prevTotalPenjualan,
             type: "currency",
             tint: "green",
             icon: <Activity size={24} className="text-green-500" />,
-            emptyHint: "Belum ada nota lunas bulan ini.",
+            emptyHint: `Belum ada nota lunas ${monthScopeLong}.`,
           },
           {
-            label: "Laba Kotor bln ini",
+            metric: "laba",
+            label: `Laba Kotor ${monthScopeShort}`,
             value: stats.totalLaba,
             previousValue: stats.prevTotalLaba,
             type: "currency",
             tint: "blue",
             icon: <Activity size={24} className="text-blue-500" />,
-            emptyHint: "Belum ada nota lunas bulan ini.",
+            emptyHint: `Belum ada nota lunas ${monthScopeLong}.`,
           },
           {
             label: "Surat Pesanan Aktif",
@@ -4853,8 +4888,7 @@ export default function Dashboard({
             icon: <Package size={24} className="text-red-500" />,
           },
         ].map((stat, i) => {
-          const delta =
-            stat.label === "Laba Kotor bln ini" ? labaDelta : penjualanDelta;
+          const delta = stat.metric === "laba" ? labaDelta : penjualanDelta;
           const showDelta = typeof stat.previousValue !== "undefined" && delta;
           return (
             <div
@@ -5198,7 +5232,7 @@ export default function Dashboard({
                 Margin per Channel
               </h2>
               <p className="text-xs font-medium mt-1" style={{ color: sub }}>
-                Nota lunas bulan ini
+                Nota lunas {monthScopeLong}
               </p>
             </div>
             <div
@@ -5305,7 +5339,7 @@ export default function Dashboard({
                 Top Kategori Margin
               </h2>
               <p className="text-xs font-medium mt-1" style={{ color: sub }}>
-                Urutan kontribusi laba bulan ini
+                Urutan kontribusi laba {monthScopeLong}
               </p>
             </div>
             <div
@@ -5396,7 +5430,7 @@ export default function Dashboard({
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
               <h2 className="text-lg font-bold" style={{ color: text }}>
-                Top 5 Customer Bulan Ini
+                Top 5 Customer {isCurrentMonth ? "Bulan Ini" : heatmapMonthLabel}
               </h2>
               <p className="text-xs font-medium mt-1" style={{ color: sub }}>
                 Berdasarkan total pembelian nota lunas
@@ -5505,7 +5539,7 @@ export default function Dashboard({
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>
               <h2 className="text-lg font-bold" style={{ color: text }}>
-                Pergerakan Stok 30 Hari
+                Pergerakan Stok {isCurrentMonth ? "Bulan Ini" : heatmapMonthLabel}
               </h2>
               <p className="text-xs font-medium mt-1" style={{ color: sub }}>
                 Ringkasan stok masuk dan keluar harian

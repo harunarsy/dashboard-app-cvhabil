@@ -11,6 +11,13 @@ router.get('/stats', auth, async (req, res) => {
     // bukan rate global. NULL → fallback PPN_RATE (stok lama 11%).
     const unitHppCostSql = tax.hppSqlForSalesItem('si');
 
+    // v1.58.0: dashboard bisa difilter per bulan (?month=YYYY-MM). Absen/invalid -> bulan berjalan.
+    // monthParam divalidasi regex (hanya digit+strip) -> aman disisipkan sbg literal SQL.
+    const monthParam = /^\d{4}-\d{2}$/.test(String(req.query.month || "")) ? req.query.month : null;
+    const monthStart = monthParam ? `DATE '${monthParam}-01'` : "${monthStart}";
+    const monthEnd = `(${monthStart} + INTERVAL '1 month')`;
+    const prevMonthStart = `(${monthStart} - INTERVAL '1 month')`;
+
     // v1.22.3 (AUDIT-CA-02): semua query independen → jalan paralel via Promise.all.
     // Serverless Vercel → Neon Singapore: 13 query serial = 13× RTT di endpoint
     // pertama yang dibuka operator tiap login. SQL tidak berubah.
@@ -20,7 +27,7 @@ router.get('/stats', auth, async (req, res) => {
       FROM sales_orders
       WHERE is_deleted = false
         AND status = 'final'
-        AND DATE_TRUNC('month', sale_date) = DATE_TRUNC('month', CURRENT_DATE)
+        AND DATE_TRUNC('month', sale_date) = ${monthStart}
     `);
 
     const qPrevPenjualan = pool.query(`
@@ -28,8 +35,8 @@ router.get('/stats', auth, async (req, res) => {
       FROM sales_orders
       WHERE is_deleted = false
         AND status = 'final'
-        AND sale_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
-        AND sale_date < DATE_TRUNC('month', CURRENT_DATE)
+        AND sale_date >= ${prevMonthStart}
+        AND sale_date < ${monthStart}
     `);
 
     // 1b. Laba Kotor bln ini (Paid only) — v1.11.12 fix: pakai HPP inc PPN.
@@ -47,14 +54,14 @@ router.get('/stats', auth, async (req, res) => {
               - CASE WHEN so2.payment_fee_mode = 'absorb' THEN COALESCE(so2.payment_fee, 0) ELSE 0 END)
             FROM sales_orders so2
             WHERE so2.is_deleted = false AND so2.payment_status = 'paid' AND so2.status = 'final'
-              AND DATE_TRUNC('month', so2.sale_date) = DATE_TRUNC('month', CURRENT_DATE)
+              AND DATE_TRUNC('month', so2.sale_date) = ${monthStart}
           ), 0) AS total_laba
       FROM sales_orders so
       JOIN sales_items si ON si.sales_order_id = so.id
       WHERE so.is_deleted = false
         AND so.payment_status = 'paid'
         AND so.status = 'final'
-        AND DATE_TRUNC('month', so.sale_date) = DATE_TRUNC('month', CURRENT_DATE)
+        AND DATE_TRUNC('month', so.sale_date) = ${monthStart}
     `);
 
     const qPrevLaba = pool.query(`
@@ -64,16 +71,16 @@ router.get('/stats', auth, async (req, res) => {
               - CASE WHEN so2.payment_fee_mode = 'absorb' THEN COALESCE(so2.payment_fee, 0) ELSE 0 END)
             FROM sales_orders so2
             WHERE so2.is_deleted = false AND so2.payment_status = 'paid' AND so2.status = 'final'
-              AND so2.sale_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
-              AND so2.sale_date < DATE_TRUNC('month', CURRENT_DATE)
+              AND so2.sale_date >= ${prevMonthStart}
+              AND so2.sale_date < ${monthStart}
           ), 0) AS prev_total_laba
       FROM sales_orders so
       JOIN sales_items si ON si.sales_order_id = so.id
       WHERE so.is_deleted = false
         AND so.payment_status = 'paid'
         AND so.status = 'final'
-        AND so.sale_date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
-        AND so.sale_date < DATE_TRUNC('month', CURRENT_DATE)
+        AND so.sale_date >= ${prevMonthStart}
+        AND so.sale_date < ${monthStart}
     `);
 
     // 1c. Margin by channel bln ini (Paid + Final only) — same formula as total_laba.
@@ -95,7 +102,7 @@ router.get('/stats', auth, async (req, res) => {
         WHERE so.is_deleted = false
           AND so.payment_status = 'paid'
           AND so.status = 'final'
-          AND DATE_TRUNC('month', so.sale_date) = DATE_TRUNC('month', CURRENT_DATE)
+          AND DATE_TRUNC('month', so.sale_date) = ${monthStart}
       )
       SELECT
         channel,
@@ -138,7 +145,7 @@ router.get('/stats', auth, async (req, res) => {
       WHERE so.is_deleted = false
         AND so.payment_status = 'paid'
         AND so.status = 'final'
-        AND DATE_TRUNC('month', so.sale_date) = DATE_TRUNC('month', CURRENT_DATE)
+        AND DATE_TRUNC('month', so.sale_date) = ${monthStart}
       GROUP BY COALESCE(NULLIF(TRIM(pm.category), ''), '(tanpa kategori)')
       ORDER BY margin DESC
       LIMIT 5
@@ -154,7 +161,7 @@ router.get('/stats', auth, async (req, res) => {
       WHERE is_deleted = false
         AND payment_status = 'paid'
         AND status = 'final'
-        AND DATE_TRUNC('month', sale_date) = DATE_TRUNC('month', CURRENT_DATE)
+        AND DATE_TRUNC('month', sale_date) = ${monthStart}
         AND customer_name IS NOT NULL
         AND TRIM(customer_name) != ''
       GROUP BY COALESCE(NULLIF(TRIM(customer_name), ''), '(tanpa customer)')
@@ -171,7 +178,7 @@ router.get('/stats', auth, async (req, res) => {
       WHERE is_deleted = false
         AND payment_status = 'paid'
         AND status = 'final'
-        AND sale_date >= CURRENT_DATE - INTERVAL '30 days'
+        AND sale_date >= ${monthStart} AND sale_date < ${monthEnd}
       GROUP BY DATE(sale_date)
       ORDER BY day ASC
     `);
@@ -212,7 +219,7 @@ router.get('/stats', auth, async (req, res) => {
       FROM inventory_mutations im
       JOIN product_master pm ON pm.id = im.product_id
         AND pm.code IS NOT NULL AND pm.code != ''
-      WHERE im.created_at >= CURRENT_DATE - INTERVAL '30 days'
+      WHERE im.created_at >= ${monthStart} AND im.created_at < ${monthEnd}
       GROUP BY DATE(im.created_at)
       ORDER BY day ASC
     `);
