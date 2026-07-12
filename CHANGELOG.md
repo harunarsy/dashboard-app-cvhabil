@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.59.0-stable] - 2026-07-12
+
+### Fixed (bug HPP mental saat edit nota — KRITIS)
+- **HPP nota menggelembung ~11% tiap disimpan saat diedit.** Contoh: Dianeral HPP 33.407 jadi 37.082, Diabtx 81.141 jadi 90.067 → margin tampil rugi palsu.
+  - Akar: `resolveItemHppTaxType(item, batch)` memakai `batch.tax_type || item.unit_hpp_tax_type` → saat update, backend re-resolve batch (FEFO) faktur dan **override tag 'nota' item jadi 'faktur'**; `unit_hpp` yang sudah inc-PPN lalu di-`hppSqlForSalesItem` × (1+ppn) LAGI → **PPN dobel**.
+  - Fix: hormati tag item 'nota' lebih dulu (`item.unit_hpp_tax_type==='nota' ? 'nota' : batch||item`). Item 'faktur' tidak berubah perilakunya.
+  - Catatan: batch pada item tanpa snapshot masih di-FEFO ulang saat edit (belum di-lock ke batch saat penjualan) — untuk item 'nota' dampaknya ternetralkan karena HPP dipakai apa adanya (tanpa gross-up). Lock batch penuh = perbaikan lanjutan.
+
 ## [v1.58.0-stable] - 2026-07-10
 
 ### Added (dashboard per-bulan)

@@ -201,8 +201,15 @@ const validateSaleItems = (items = []) => {
   return null;
 };
 
+// v1.59.0: item yang eksplisit di-tag 'nota' (HPP disimpan SUDAH inc-PPN — mis. produk
+// tanpa batch / koreksi manual) TIDAK boleh di-override jadi 'faktur' oleh batch. Kalau
+// di-flip ke 'faktur', hppSqlForSalesItem akan meng-gross-up ×1.11 LAGI → PPN DOBEL
+// (bug: edit nota bikin HPP mental naik 11% tiap kali disimpan). Hormati tag item dulu;
+// batch hanya menentukan tax utk item 'faktur' (HNA exc yang memang perlu gross-up).
 const resolveItemHppTaxType = (item = {}, batch = null) => (
-  tax.normalizeTaxType(batch?.tax_type || item.unit_hpp_tax_type)
+  tax.normalizeTaxType(item.unit_hpp_tax_type) === tax.TAX_TYPE_NOTA
+    ? tax.TAX_TYPE_NOTA
+    : tax.normalizeTaxType(batch?.tax_type || item.unit_hpp_tax_type)
 );
 
 const getItemUnitCost = (item = {}) => (

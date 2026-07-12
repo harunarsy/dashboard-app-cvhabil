@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.59.0-stable",
+    date: "12 Juli 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Bug penting HPP: saat mengedit & menyimpan nota, HPP produk tertentu bisa 'mental' naik ~11% tiap kali disimpan (mis. Dianeral 33.407 jadi 37.082) sehingga margin tampil rugi palsu. Sekarang HPP nota terkunci benar dan tidak menggelembung lagi saat diedit.",
+        dev: "Akar: resolveItemHppTaxType(item,batch) pakai batch.tax_type||item → saat update, backend re-FEFO batch faktur dan meng-override tag 'nota' item jadi 'faktur'; unit_hpp yang sudah inc-PPN lalu di-gross-up ×1.11 lagi (dobel). Fix: hormati tag item 'nota' dulu (item.unit_hpp_tax_type==='nota' ? 'nota' : batch||item). Item 'faktur' tak berubah. Catatan: batch pada item no-snapshot masih di-FEFO ulang saat edit (belum di-lock ke batch saat jual) — dampak ternetralkan utk item 'nota' karena HPP dipakai apa-adanya.",
+      },
+    ],
+  },
+  {
     version: "v1.58.0-stable",
     date: "10 Juli 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "new",
