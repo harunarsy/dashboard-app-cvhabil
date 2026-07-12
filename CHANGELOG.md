@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.59.1-stable] - 2026-07-12
+
+### Fixed (batch/HPP terkunci saat edit — lanjutan bug HPP)
+- **Edit nota tidak lagi memindahkan batch/HPP ke yang terbaru.** Handler update kini menangkap snapshot lama sebelum re-insert, lalu mengunci ulang `unit_hpp_tax_type`/`ppn_rate`/batch untuk item yang tidak di-reprice (match produk+unit+unit_hpp), dan `gross_profit` di-recompute dari snapshot final. Item baru atau yang sengaja di-reprice ("Perbarui HPP dari batch terkini") tetap memakai snapshot fresh.
+
 ## [v1.59.0-stable] - 2026-07-12
 
 ### Fixed (bug HPP mental saat edit nota — KRITIS)

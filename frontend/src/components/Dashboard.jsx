@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.59.0-stable",
+    version: "v1.59.1-stable",
     date: "12 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Lanjutan perbaikan HPP: saat mengedit nota, batch & HPP produk kini dikunci ke kondisi saat penjualan — tidak lagi 'mental' pindah ke batch/harga terbaru tiap kali disimpan. Kalau memang mau refresh HPP, pakai tombol 'Perbarui HPP dari batch terkini'.",
+        dev: "Update handler: tangkap snapshot lama sebelum DELETE items, lalu setelah re-insert kunci ulang (unit_hpp_tax_type/ppn_rate/batch snapshot) utk item yg tidak di-reprice (match produk+unit+unit_hpp). Recompute gross_profit dgn snapshot final. Item baru/di-reprice tetap pakai snapshot fresh.",
+      },
+    ],
+  },
+  {
+    version: "v1.59.0-stable",
+    date: "12 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

@@ -675,6 +675,15 @@ router.put('/:id', auth, async (req, res) => {
     );
 
     // Replace items
+    // v1.59.1 (bug B): tangkap snapshot HPP lama SEBELUM delete → dikunci ulang setelah
+    // re-insert utk item yang TIDAK di-reprice, biar batch/rate/tax tak "mental" pindah
+    // batch FEFO baru tiap kali nota diedit (HPP terkunci ke kondisi saat penjualan).
+    const { rows: oldSnapRows } = await client.query(
+      `SELECT product_name, unit, unit_hpp, unit_hpp_tax_type, unit_hpp_ppn_rate,
+              batch_no_snapshot, batch_id_snapshot, expired_date_snapshot
+       FROM sales_items WHERE sales_order_id = $1`,
+      [req.params.id]
+    );
     await client.query('DELETE FROM sales_items WHERE sales_order_id = $1', [req.params.id]);
     // v1.6.0 multi-unit + v1.7.0 batch snapshot + v1.16.2 selected_batch safety
     // v1.8.1: re-snapshot batch_no/expired_date on edit (sebelumnya PUT gak update snapshot)
@@ -765,6 +774,31 @@ router.put('/:id', auth, async (req, res) => {
          snapshotBatchId, snapshotBatchNo, snapshotExpiredDate, snapshotPpnRate]
       );
     }
+
+    // v1.59.1 (bug B): kunci ulang snapshot HPP item yg TIDAK di-reprice ke nilai saat jual.
+    // Item di-reprice (unit_hpp berubah, mis. via "Perbarui HPP dari batch terkini") atau item
+    // baru → dibiarkan pakai snapshot fresh. Cocok by produk+unit+unit_hpp-sama.
+    for (const o of oldSnapRows) {
+      await client.query(
+        `UPDATE sales_items SET unit_hpp_tax_type = $1, unit_hpp_ppn_rate = $2,
+              batch_no_snapshot = $3, batch_id_snapshot = $4, expired_date_snapshot = $5
+         WHERE sales_order_id = $6
+           AND LOWER(TRIM(product_name)) = LOWER(TRIM($7))
+           AND LOWER(TRIM(COALESCE(unit,''))) = LOWER(TRIM(COALESCE($8,'')))
+           AND ABS(COALESCE(unit_hpp,0) - $9) < 0.005`,
+        [tax.normalizeTaxType(o.unit_hpp_tax_type), o.unit_hpp_ppn_rate,
+         o.batch_no_snapshot, o.batch_id_snapshot, o.expired_date_snapshot,
+         req.params.id, o.product_name, o.unit, parseFloat(o.unit_hpp) || 0]
+      );
+    }
+    // Recompute gross_profit produk dgn snapshot FINAL (setelah lock) supaya konsisten.
+    const _hppSqlLock = tax.hppSqlForSalesItem('si');
+    const { rows: [_gpLock] } = await client.query(
+      `SELECT COALESCE(SUM(COALESCE(si.qty_in_unit, si.qty, 0) * (COALESCE(si.unit_price,0) - (${_hppSqlLock}))), 0) AS g
+       FROM sales_items si WHERE si.sales_order_id = $1`,
+      [req.params.id]
+    );
+    actualItemGross = parseFloat(_gpLock.g) || 0;
 
     // AUDIT-LS-06: simpan gross_profit versi snapshot (konsisten dgn recompute Dashboard)
     // v1.25.1: fee absorb ikut motong snapshot (pass_on netral — fee dibayar customer)
