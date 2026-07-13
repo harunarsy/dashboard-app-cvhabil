@@ -198,6 +198,17 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
     flash(`${templatesRef.current.length} file diunduh — upload ke marketplace`);
   };
 
+  const handleAutoApply = async () => {
+    if (!storeId) return;
+    setSaving(true);
+    try {
+      const { data } = await marketplaceAPI.autoApply(storeId);
+      flash(`${data.applied} saran diterapkan${data.skipped ? `, ${data.skipped} dilewati (kurang yakin)` : ''} — cek & koreksi ya`);
+      await openStore({ id: storeId });
+    } catch (e) { flash(e.response?.data?.error || e.message); }
+    finally { setSaving(false); }
+  };
+
   const channel = platform === 'tiktok' ? 'tokopedia_tiktok' : 'shopee';
   const handleSavePrices = async () => {
     const entries = rows.filter((r) => r.matched && finals[keyOf(r)]?.price)
@@ -279,6 +290,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
               {statChip('HPP kosong', stats.noHpp, stats.noHpp ? '#F59E0B' : sub)}
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {stats.unmatched > 0 && btn(<><Sparkles size={15} /> Apply semua saran ({stats.unmatched})</>, handleAutoApply, { disabled: saving })}
               {btn(<><Save size={15} /> Simpan harga ke HABIL</>, handleSavePrices, { disabled: saving })}
               {btn(<><Download size={15} /> Download template terisi</>, handleDownload, { primary: true, disabled: !hasBuffer })}
             </div>

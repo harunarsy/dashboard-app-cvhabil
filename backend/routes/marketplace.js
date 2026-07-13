@@ -403,6 +403,40 @@ router.get('/stores/:id/listings', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Bulk auto-apply saran teratas utk SEMUA listing belum dipetakan di toko (hemat klik).
+// Tentatif (auto — cek), tidak masuk kamus sku_map. Body: { min_score? } default 0.3.
+router.post('/stores/:id/auto-apply', auth, async (req, res) => {
+  try {
+    const storeId = parseInt(req.params.id, 10);
+    if (!Number.isFinite(storeId)) return res.status(400).json({ error: 'ID toko tidak valid.' });
+    const minScore = Number.isFinite(Number(req.body?.min_score)) ? Number(req.body.min_score) : 0.3;
+    const { rows: [store] } = await pool.query('SELECT * FROM marketplace_stores WHERE id=$1', [storeId]);
+    if (!store) return res.status(404).json({ error: 'Toko tidak ditemukan.' });
+    const [products, { rows: fp }, { rows: listings }] = await Promise.all([
+      loadProducts(), pool.query('SELECT * FROM marketplace_fee_profiles WHERE active = TRUE'),
+      pool.query('SELECT * FROM marketplace_listings WHERE store_id=$1 AND matched_product_id IS NULL', [storeId]),
+    ]);
+    const feeParsed = fp.map((p) => ({ ...p, admin_rate: parseFloat(p.admin_rate), service_rate: parseFloat(p.service_rate), fixed_order_fee: parseFloat(p.fixed_order_fee), safe_effective_fee_rate: parseFloat(p.safe_effective_fee_rate) }));
+    const byId = new Map(products.map((p) => [p.id, p]));
+    let applied = 0; let skipped = 0;
+    for (const l of listings) {
+      const scored = scoreProducts(l, products);
+      const top = scored[0];
+      if (!top || top.score < minScore || !byId.get(top.product_id)) { skipped += 1; continue; }
+      const prod = byId.get(top.product_id);
+      const bundle = l.bundle_qty ? parseFloat(l.bundle_qty) : 1;
+      const anchor = l.market_price != null ? l.market_price : l.current_price;
+      const m = buildMatched(prod, bundle, store.platform, null, feeParsed, true, l.hpp_override, anchor);
+      await pool.query(
+        `UPDATE marketplace_listings SET matched_product_id=$1, matched_auto=TRUE, hpp_incl=$2,
+           recommended_price=$3, final_price=$3, price_source=$4, updated_at=NOW() WHERE id=$5`,
+        [prod.id, m.no_hpp ? null : m.hpp_incl, m.no_hpp ? null : m.recommended_price, m.no_hpp ? null : m.price_source, l.id]);
+      applied += 1;
+    }
+    res.json({ applied, skipped, total: listings.length });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.delete('/stores/:id', auth, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);

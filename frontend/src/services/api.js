@@ -229,6 +229,7 @@ export const marketplaceAPI = {
   getStoreListings: (id) => api.get(`/marketplace/stores/${id}/listings`),
   getStoreTemplates: (id) => api.get(`/marketplace/stores/${id}/templates`),
   updateListing: (data) => api.post('/marketplace/listing-update', data),
+  autoApply: (id, minScore) => api.post(`/marketplace/stores/${id}/auto-apply`, minScore ? { min_score: minScore } : {}),
   deleteStore: (id) => api.delete(`/marketplace/stores/${id}`),
   getSkuMap: (platform) => api.get('/marketplace/sku-map', { params: platform ? { platform } : {} }),
   saveSkuMap: (data) => api.post('/marketplace/sku-map', data),

@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.63.0-stable",
+    version: "v1.63.1-stable",
     date: "13 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "feature",
+        text: "Tombol 'Apply semua saran' di tab Produk & Harga — sekali klik memetakan semua produk yang punya saran sekaligus (tidak perlu klik satu-satu untuk ratusan produk), lengkap dengan harga otomatis. Yang kurang yakin dilewati. Tetap ditandai 'auto — cek' supaya bisa kamu koreksi.",
+        dev: "POST /stores/:id/auto-apply (min_score 0.3): fuzzy top match utk semua listing unmatched → set matched_auto + buildMatched (market-anchored) → recommended/final_price. Frontend tombol handleAutoApply lalu reload store.",
+      },
+    ],
+  },
+  {
+    version: "v1.63.0-stable",
+    date: "13 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "feature",

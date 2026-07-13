@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.63.1-stable] - 2026-07-13
+
+### Ditambahkan
+- **Apply semua saran** (bulk): `POST /marketplace/stores/:id/auto-apply` (min_score 0.3) memetakan semua listing belum-dipetakan yang punya saran sekaligus + isi harga (market-anchored), tandai `auto — cek`. Tombol di header tab. Semua toko sudah diproses (matched 145→259).
+
 ## [v1.63.0-stable] - 2026-07-13
 
 ### Ditambahkan (Harga market-anchored)
