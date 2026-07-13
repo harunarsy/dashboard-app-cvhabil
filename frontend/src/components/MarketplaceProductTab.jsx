@@ -11,6 +11,13 @@ import { parseFile, downloadFilled, PLATFORM_LABEL } from '../utils/marketplaceT
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Math.round(n || 0));
 const shopIdFromName = (fn = '') => { const m = String(fn).match(/sales_info_(\d+)_/); return m ? m[1] : null; };
+const base64ToArrayBuffer = (b64) => {
+  const bin = atob(b64);
+  const len = bin.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i += 1) bytes[i] = bin.charCodeAt(i);
+  return bytes.buffer;
+};
 const PLAT_COLOR = { tiktok: '#000000', shopee: '#EE4D2D' };
 
 export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
@@ -34,7 +41,9 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
   const [mapRow, setMapRow] = useState(null);
   const [products, setProducts] = useState([]);
   const [pending, setPending] = useState(null); // {parsed} menunggu nama toko sebelum analyze
-  const hasBuffer = !!bufferRef.current;
+  const [bufferReady, setBufferReady] = useState(false); // ada file utk di-download?
+  const saveTimers = useRef({});
+  const hasBuffer = bufferReady;
 
   const loadStores = () => marketplaceAPI.getStores().then(({ data }) => setStores(Array.isArray(data) ? data : [])).catch(() => {});
   useEffect(() => {
@@ -62,7 +71,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
     setLoading(true);
     try {
       const parsed = await parseFile(file);
-      bufferRef.current = parsed.buffer;
+      bufferRef.current = parsed.buffer; setBufferReady(true);
       const guess = stores.find((s) => s.platform === parsed.platform)?.name || '';
       setPending({ parsed, suggestedName: guess });
       setStoreName(guess);
@@ -91,18 +100,24 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
     finally { setLoading(false); }
   };
 
-  // Buka toko tersimpan dari DB (tanpa upload; download perlu upload file terbaru)
+  // Buka toko tersimpan dari DB. Kalau file template-nya tersimpan di server, ambil supaya
+  // tombol Download aktif tanpa upload ulang.
   const openStore = async (s) => {
     setLoading(true);
-    bufferRef.current = null;
+    bufferRef.current = null; setBufferReady(false);
     try {
       const { data } = await marketplaceAPI.getStoreListings(s.id);
       setPlatform(data.store.platform); setFilename(data.store.last_filename || '');
       setStoreId(data.store.id); setStoreName(data.store.name);
-      // baris dari DB tak punya excelRow → pakai match_key sbg key
       const mapped = data.rows.map((r, i) => ({ ...r, excelRow: null, _key: r.match_key || i }));
       applyRows(mapped);
       flash(`Toko ${data.store.name} · ${data.total} produk (${data.matched} cocok)`);
+      if (data.store.has_template) {
+        try {
+          const { data: t } = await marketplaceAPI.getStoreTemplate(s.id);
+          if (t.b64) { bufferRef.current = base64ToArrayBuffer(t.b64); setBufferReady(true); }
+        } catch (_) { /* biarkan; download tetap butuh upload */ }
+      }
     } catch (e) { flash(e.response?.data?.error || e.message); }
     finally { setLoading(false); }
   };
@@ -132,7 +147,30 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
   };
 
   const keyOf = (r) => r.excelRow ?? r._key ?? r.match_key;
-  const setFinal = (r, field, val) => setFinals((f) => ({ ...f, [keyOf(r)]: { ...f[keyOf(r)], [field]: val } }));
+
+  // Autosave 1 baris (debounce 600ms) → simpan ke DB + hitung ulang matched (laba/rekomendasi).
+  const autosave = (row, patch) => {
+    if (!storeId) return;
+    const key = row.match_key;
+    clearTimeout(saveTimers.current[key]);
+    saveTimers.current[key] = setTimeout(async () => {
+      try {
+        const { data } = await marketplaceAPI.updateListing({ store_id: storeId, match_key: row.match_key, ...patch });
+        if (data.matched) setRows((prev) => prev.map((r) => r.match_key === row.match_key ? { ...r, matched: data.matched } : r));
+      } catch (_) { /* diam; tetap tersimpan lokal */ }
+    }, 600);
+  };
+
+  const setFinal = (r, field, val) => {
+    setFinals((f) => ({ ...f, [keyOf(r)]: { ...f[keyOf(r)], [field]: val } }));
+    autosave(r, field === 'price' ? { final_price: val } : { final_stock: val });
+  };
+
+  // HPP override per-listing (koreksi manual / batch baru) — autosave + recompute.
+  const setHppOverride = (r, val) => {
+    setRows((prev) => prev.map((x) => x.match_key === r.match_key && x.matched ? { ...x, matched: { ...x.matched, hpp_incl: val === '' ? x.matched.hpp_incl : Math.round(Number(val)) } } : x));
+    autosave(r, { hpp_override: val });
+  };
 
   // Laba live pada harga yang diketik (mode fee efektif: net = harga×(1−fee), fixed fee = 0).
   const liveProfit = (price, m) => {
@@ -270,11 +308,26 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
                             </span>
                             <button onClick={() => setMapRow(r)} style={{ alignSelf: 'flex-start', fontSize: 11, color: m.auto ? '#8B5CF6' : sub, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>{m.auto ? 'auto — cek / ganti' : 'ganti'}</button>
                           </div>
+                        ) : (r.suggestions && r.suggestions.length ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <span style={{ fontSize: 12, color: sub }}>saran: <span style={{ color: text, fontWeight: 600 }}>{r.suggestions[0].name}</span> <span style={{ color: sub }}>({Math.round(r.suggestions[0].score * 100)}%)</span></span>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button onClick={() => doMap(r.suggestions[0].product_id, r.bundle_qty)} className="ui-motion-button ui-focus-ring" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', border: 'none', color: '#fff', background: 'var(--color-success)', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 11 }}><CheckCircle2 size={12} /> Apply</button>
+                              <button onClick={() => setMapRow(r)} style={{ fontSize: 11, color: sub, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>ganti</button>
+                            </div>
+                          </div>
                         ) : (
                           <button onClick={() => setMapRow(r)} className="ui-motion-button ui-focus-ring" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', border: '1px solid #F59E0B', color: '#F59E0B', background: 'transparent', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 12 }}><Link2 size={13} /> Petakan…</button>
-                        )}
+                        ))}
                       </td>
-                      <td style={{ padding: '9px 12px', color: m?.no_hpp ? '#F59E0B' : text, whiteSpace: 'nowrap' }}>{m ? (m.no_hpp ? 'kosong' : fmtRp(m.hpp_bundle)) : '—'}</td>
+                      <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
+                        {m ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <input type="number" value={m.hpp_incl ?? ''} onChange={(e) => setHppOverride(r, e.target.value)} title="HPP per unit (bisa dikoreksi manual)" style={{ ...inputStyle, width: 92, color: m.hpp_source === 'override' ? '#8B5CF6' : text, fontWeight: m.hpp_source === 'override' ? 700 : 400 }} />
+                            <span style={{ fontSize: 9, color: sub }}>{m.hpp_source === 'override' ? 'manual' : (m.hpp_source === 'master' ? 'dari master' : 'dari batch')}{m.bundle_qty && m.bundle_qty !== 1 ? ` · ×${m.bundle_qty} = ${fmtRp(m.hpp_bundle)}` : ''}</span>
+                          </div>
+                        ) : '—'}
+                      </td>
                       <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
                         {m ? <span style={{ color: m.stock_habil <= 0 ? 'var(--color-danger)' : text, fontWeight: stockMismatch ? 700 : 400 }}>{m.stock_habil}{stockMismatch ? ` (toko: ${r.current_stock})` : ''}</span> : '—'}
                       </td>
@@ -297,7 +350,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
               </tbody>
             </table>
           </div>
-          <p style={{ fontSize: 11, color: sub, marginTop: 10 }}>💜 "Auto — cek" = tebakan otomatis, pastikan benar sebelum pakai. Kolom stok upload default dari stok HABIL; download TIDAK mengubah inventory (stok opname tetap sumber kebenaran).</p>
+          <p style={{ fontSize: 11, color: sub, marginTop: 10 }}>💾 Semua perubahan (harga final, stok, HPP) <b>otomatis tersimpan</b> — tak perlu pencet apa-apa. "Simpan harga ke HABIL" hanya untuk mendorong harga ke Daftar Harga HABIL. 💜 "Auto — cek" = tebakan otomatis, pastikan benar. HPP bisa dikoreksi manual di kolomnya. Download TIDAK mengubah inventory (stok opname tetap sumber kebenaran).</p>
         </div>
       )}
 
@@ -317,7 +370,11 @@ function MapModal({ row, products, isDarkMode, onClose, onMap }) {
   const sub = 'var(--color-text-subtle)';
   const [q, setQ] = useState('');
   const [bundle, setBundle] = useState(row.bundle_qty || 1);
+  const [ecer, setEcer] = useState((row.bundle_qty || 1) < 1);
+  const [isi, setIsi] = useState(150); // isi produk HABIL (mis. 150 sachet/box)
+  const [qtyJual, setQtyJual] = useState(50); // qty di listing ini (mis. 50 sachet ecer)
   const inputStyle = { width: '100%', padding: '10px 12px', border: `1px solid ${border}`, borderRadius: 10, backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, fontSize: 14, outline: 'none', boxSizing: 'border-box' };
+  const effBundle = ecer ? (isi > 0 ? +(qtyJual / isi).toFixed(4) : 1) : bundle;
   const list = useMemo(() => {
     const base = row.suggestions?.length ? row.suggestions.map((s) => ({ id: s.product_id, name: s.name, code: s.code, score: s.score })) : [];
     const term = q.trim().toLowerCase();
@@ -334,20 +391,38 @@ function MapModal({ row, products, isDarkMode, onClose, onMap }) {
           </div>
           <button onClick={onClose} aria-label="Tutup" className="ui-motion-button ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} color={sub} /></button>
         </div>
-        <div style={{ padding: '14px 20px', display: 'flex', gap: 10, alignItems: 'center', borderBottom: `1px solid ${border}` }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Search size={15} color={sub} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama / kode produk…" style={{ ...inputStyle, paddingLeft: 32 }} />
+        <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 10, borderBottom: `1px solid ${border}` }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search size={15} color={sub} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+              <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama / kode produk…" style={{ ...inputStyle, paddingLeft: 32 }} />
+            </div>
+            {!ecer && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <label style={{ fontSize: 11, color: sub, fontWeight: 700 }}>Bundle ×</label>
+                <input type="number" min={1} value={bundle} onChange={(e) => setBundle(Math.max(1, parseInt(e.target.value, 10) || 1))} style={{ ...inputStyle, width: 60 }} />
+              </div>
+            )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <label style={{ fontSize: 11, color: sub, fontWeight: 700 }}>Bundle ×</label>
-            <input type="number" min={1} value={bundle} onChange={(e) => setBundle(Math.max(1, parseInt(e.target.value, 10) || 1))} style={{ ...inputStyle, width: 60 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: text, cursor: 'pointer' }}>
+              <input type="checkbox" checked={ecer} onChange={(e) => setEcer(e.target.checked)} /> Barang ecer / repack (porsi dari produk lebih besar)
+            </label>
+            {ecer && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: sub }}>
+                <span>Isi produk HABIL</span>
+                <input type="number" min={1} value={isi} onChange={(e) => setIsi(Math.max(1, parseInt(e.target.value, 10) || 1))} style={{ ...inputStyle, width: 70, padding: '6px 8px' }} />
+                <span>→ jual</span>
+                <input type="number" min={1} value={qtyJual} onChange={(e) => setQtyJual(Math.max(1, parseInt(e.target.value, 10) || 1))} style={{ ...inputStyle, width: 70, padding: '6px 8px' }} />
+                <span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>= HPP ×{effBundle}</span>
+              </div>
+            )}
           </div>
         </div>
         <div style={{ overflowY: 'auto', padding: '8px 12px' }}>
           {!list.length && <p style={{ padding: 20, textAlign: 'center', color: sub, fontSize: 13 }}>{q ? 'Tidak ada produk cocok.' : 'Ketik untuk mencari produk.'}</p>}
           {list.map((p) => (
-            <button key={p.id} onClick={() => onMap(p.id, bundle)} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', padding: '11px 12px', border: `1px solid ${border}`, borderRadius: 10, background: 'transparent', color: text, cursor: 'pointer', marginBottom: 6, fontSize: 13 }}>
+            <button key={p.id} onClick={() => onMap(p.id, effBundle)} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', padding: '11px 12px', border: `1px solid ${border}`, borderRadius: 10, background: 'transparent', color: text, cursor: 'pointer', marginBottom: 6, fontSize: 13 }}>
               <span style={{ fontWeight: 600 }}>{p.name}</span>
               <span style={{ fontSize: 11, color: sub, fontFamily: 'monospace' }}>{p.code || ''}{p.score ? ` · ${Math.round(p.score * 100)}%` : ''}</span>
             </button>

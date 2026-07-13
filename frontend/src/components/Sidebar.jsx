@@ -101,20 +101,20 @@ export default function Sidebar({
   const menuItems = role === "pajak"
     ? [{ icon: ReceiptText, label: "Pajak", path: "/tax", active: true }]
     : [
-    { icon: Home, label: "Dashboard", path: "/dashboard", active: true },
-    { icon: FileText, label: "Nota Penjualan", path: "/sales", active: true },
-    { icon: Users, label: "Customer", path: "/customers", active: true },
-    { icon: Truck, label: "Distributor", path: "/distributors", active: true },
-    {
-      icon: ReceiptText,
-      label: "Faktur Pembelian",
-      path: "/invoices",
-      active: true,
-    },
+    // Urutan by workflow: intake pesanan → overview → transaksi harian → master data → setting.
+    // Surat Pesanan paling atas (permintaan Ayah), Dashboard di bawahnya.
     {
       icon: ClipboardList,
       label: "Surat Pesanan",
       path: "/orders",
+      active: true,
+    },
+    { icon: Home, label: "Dashboard", path: "/dashboard", active: true },
+    { icon: FileText, label: "Nota Penjualan", path: "/sales", active: true },
+    {
+      icon: ReceiptText,
+      label: "Faktur Pembelian",
+      path: "/invoices",
       active: true,
     },
     { icon: Boxes, label: "Inventory", path: "/inventory", active: true },
@@ -125,6 +125,8 @@ export default function Sidebar({
       path: "/online-store",
       active: true,
     },
+    { icon: Users, label: "Customer", path: "/customers", active: true },
+    { icon: Truck, label: "Distributor", path: "/distributors", active: true },
     {
       icon: Settings,
       label: "Pengaturan",
@@ -204,7 +206,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.61.1-stable";
+  const appVersion = "v1.62.0-stable";
   const TooltipButton = ({
     label,
     children,

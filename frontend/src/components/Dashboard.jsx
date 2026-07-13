@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.61.1-stable",
+    version: "v1.62.0-stable",
     date: "13 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "feature",
+        text: "Tab Produk & Harga jauh lebih pintar & hemat klik: (1) HPP tiap produk kini bisa dikoreksi manual langsung di kolomnya (buat kasus HPP batch lama vs harga kulak baru) — laba & rekomendasi ikut berubah, tanpa merusak data inventory. (2) Semua editan (harga, stok, HPP) OTOMATIS tersimpan — tak perlu pencet tombol lagi. (3) Produk yang belum dipetakan menampilkan saran + tombol Apply satu klik. (4) Barang ecer/repack (mis. 50 sachet dari box 150) bisa dipetakan dengan HPP pecahan yang benar. (5) Toko yang sudah tersimpan (Shopee) bisa langsung Download template tanpa upload ulang. Toko Semesta, Zi Shop, Nabila, Gizi sudah masuk.",
+        dev: "Backend: kolom hpp_override/final_stock/template_b64, bundle_qty→NUMERIC (ecer pecahan, HPP di-fold ke total agar lolos clamp qty≥1). Endpoint /listing-update (autosave+recompute), /stores/:id/template (download dari DB). buildMatched(hppOverride) + hpp_source. Frontend: autosave debounce 600ms, HPP editable per baris, inline suggestion Apply, MapModal mode ecer (isi→jual=bundle pecahan), base64→ArrayBuffer utk download. Sidebar: Surat Pesanan dipindah paling atas (permintaan Ayah), urut ulang by workflow.",
+      },
+    ],
+  },
+  {
+    version: "v1.61.1-stable",
+    date: "13 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",

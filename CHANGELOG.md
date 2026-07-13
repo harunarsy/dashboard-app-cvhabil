@@ -2,6 +2,19 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.62.0-stable] - 2026-07-13
+
+### Ditambahkan (Tab Produk & Harga)
+- **HPP override manual per-listing**: koreksi HPP langsung di kolomnya (kasus batch lama vs harga kulak baru, atau HPP=0). Laba & rekomendasi ikut, tanpa mengubah data inventory HABIL. `marketplace_listings.hpp_override`, `hpp_source` (batch/master/override).
+- **Autosave**: harga final, stok upload, HPP override tersimpan otomatis (debounce 600ms) via `POST /marketplace/listing-update` yang juga menghitung ulang matched. Tombol "Simpan harga ke HABIL" kini hanya untuk mendorong ke Daftar Harga.
+- **Barang ecer/repack**: `bundle_qty` jadi NUMERIC → mendukung pengali PECAHAN (mis. 50 sachet dari box 150 = ×0.333). HPP di-fold ke total agar lolos clamp qty≥1 pricingEngine. Mode ecer di modal Petakan (isi produk → qty jual = bundle).
+- **Saran + Apply**: baris belum dipetakan menampilkan saran teratas + tombol Apply satu klik.
+- **Download dari DB**: file template Shopee disimpan (`template_b64`) → tombol Download aktif tanpa upload ulang. Endpoint `GET /marketplace/stores/:id/template`. (TikTok multi-file tetap per-file.)
+- Toko **Semesta, Zi Shop, Nabila, Gizi** diimpor (Shopee + TikTok) ke DB.
+
+### Diubah
+- **Urutan sidebar**: Surat Pesanan dipindah paling atas (permintaan Ayah), Dashboard di bawahnya, lalu urut by workflow (transaksi harian → master data → setting).
+
 ## [v1.61.1-stable] - 2026-07-13
 
 ### Diperbaiki (UX tab Produk & Harga)
