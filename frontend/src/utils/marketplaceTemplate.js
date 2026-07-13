@@ -207,6 +207,26 @@ export const fillWorkbook = (arrayBuffer, updates) => {
   return XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
 };
 
+// Kunci pencocokan baris (sama persis dgn backend rowMatchKey): SKU (uppercase) atau nama+varian.
+export const matchKeyForRow = (row) => {
+  if (row.sku && String(row.sku).trim()) return String(row.sku).trim().toUpperCase();
+  return String(`${row.product_name || ''} ${row.variation || ''}`).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
+};
+
+// Isi template lalu download DENGAN mencocokkan baris via match_key (bukan excelRow) — dipakai
+// saat toko dibuka dari DB (baris tak punya excelRow). keyMap: { [match_key]: {price, stock} }.
+// Parse file utk dapat excelRow tiap baris, cocokkan by key, baru isi.
+export const downloadFilledByKey = (arrayBuffer, keyMap, filename) => {
+  const parsed = parseWorkbook(arrayBuffer);
+  const updates = parsed.rows.map((r) => {
+    const u = keyMap[matchKeyForRow(r)];
+    if (!u) return null;
+    return { excelRow: r.excelRow, price: u.price, stock: u.stock };
+  }).filter(Boolean);
+  downloadFilled(arrayBuffer, updates, filename);
+  return updates.length;
+};
+
 // Trigger download di browser.
 export const downloadFilled = (arrayBuffer, updates, filename) => {
   const out = fillWorkbook(arrayBuffer, updates);

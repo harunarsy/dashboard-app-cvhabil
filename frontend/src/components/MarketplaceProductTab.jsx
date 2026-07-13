@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Upload, Download, Save, Link2, AlertTriangle, CheckCircle2, X, Search, Store, Sparkles } from 'lucide-react';
 import { marketplaceAPI, inventoryAPI } from '../services/api';
-import { parseFile, downloadFilled, PLATFORM_LABEL } from '../utils/marketplaceTemplate';
+import { parseFile, downloadFilledByKey, PLATFORM_LABEL } from '../utils/marketplaceTemplate';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Math.round(n || 0));
 const shopIdFromName = (fn = '') => { const m = String(fn).match(/sales_info_(\d+)_/); return m ? m[1] : null; };
@@ -29,6 +29,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
 
   const fileRef = useRef(null);
   const bufferRef = useRef(null); // ArrayBuffer template asli utk isi ulang (hanya saat upload)
+  const templatesRef = useRef([]); // [{filename, buffer}] semua file template toko (utk download)
   const [stores, setStores] = useState([]);
   const [filename, setFilename] = useState('');
   const [platform, setPlatform] = useState(null);
@@ -71,7 +72,9 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
     setLoading(true);
     try {
       const parsed = await parseFile(file);
-      bufferRef.current = parsed.buffer; setBufferReady(true);
+      bufferRef.current = parsed.buffer;
+      templatesRef.current = [{ filename: parsed.filename, buffer: parsed.buffer }];
+      setBufferReady(true);
       const guess = stores.find((s) => s.platform === parsed.platform)?.name || '';
       setPending({ parsed, suggestedName: guess });
       setStoreName(guess);
@@ -104,7 +107,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
   // tombol Download aktif tanpa upload ulang.
   const openStore = async (s) => {
     setLoading(true);
-    bufferRef.current = null; setBufferReady(false);
+    bufferRef.current = null; templatesRef.current = []; setBufferReady(false);
     try {
       const { data } = await marketplaceAPI.getStoreListings(s.id);
       setPlatform(data.store.platform); setFilename(data.store.last_filename || '');
@@ -114,8 +117,9 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
       flash(`Toko ${data.store.name} · ${data.total} produk (${data.matched} cocok)`);
       if (data.store.has_template) {
         try {
-          const { data: t } = await marketplaceAPI.getStoreTemplate(s.id);
-          if (t.b64) { bufferRef.current = base64ToArrayBuffer(t.b64); setBufferReady(true); }
+          const { data: t } = await marketplaceAPI.getStoreTemplates(s.id);
+          const files = (t.files || []).map((f) => ({ filename: f.filename, buffer: base64ToArrayBuffer(f.b64) }));
+          if (files.length) { templatesRef.current = files; bufferRef.current = files[0].buffer; setBufferReady(true); }
         } catch (_) { /* biarkan; download tetap butuh upload */ }
       }
     } catch (e) { flash(e.response?.data?.error || e.message); }
@@ -123,21 +127,22 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
   };
 
   // Simpan mapping lalu PATCH baris di tempat (tanpa reload penuh → tidak "mecah fokus").
-  const doMap = async (productId, bundleQty) => {
-    if (!mapRow) return;
-    const targetKey = mapRow.match_key;
+  // Dipakai baik dari modal Petakan maupun tombol Apply inline → butuh `row` eksplisit.
+  const doMap = async (row, productId, bundleQty) => {
+    if (!row) return;
+    const targetKey = row.match_key;
     try {
       const { data } = await marketplaceAPI.saveSkuMap({
-        platform, match_key: mapRow.match_key, key_type: mapRow.key_type, product_id: productId,
-        bundle_qty: bundleQty || mapRow.bundle_qty || 1, listing_name: mapRow.product_name, variation: mapRow.variation, store_id: storeId,
+        platform, match_key: row.match_key, key_type: row.key_type, product_id: productId,
+        bundle_qty: bundleQty || row.bundle_qty || 1, listing_name: row.product_name, variation: row.variation, store_id: storeId,
       });
       setMapRow(null);
       setRows((prev) => prev.map((r) => r.match_key === targetKey
         ? { ...r, matched: data.matched || r.matched, bundle_qty: data.bundle_qty || r.bundle_qty, suggestions: [] } : r));
       if (data.matched && data.matched.recommended_price) {
         setFinals((f) => {
-          const cur = f[targetKey] || f[mapRow.excelRow] || {};
-          const kk = mapRow.excelRow ?? mapRow._key ?? targetKey;
+          const kk = row.excelRow ?? row._key ?? targetKey;
+          const cur = f[kk] || {};
           return { ...f, [kk]: { price: cur.price || data.matched.recommended_price, stock: cur.stock ?? data.matched.stock_habil } };
         });
       }
@@ -181,11 +186,16 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
   };
 
   const handleDownload = () => {
-    if (!bufferRef.current) return flash('Upload file template terbaru dulu untuk download');
-    const updates = rows.map((r) => ({ excelRow: r.excelRow, price: finals[keyOf(r)]?.price, stock: finals[keyOf(r)]?.stock }));
-    const base = (filename || 'template').replace(/\.xlsx$/i, '');
-    downloadFilled(bufferRef.current, updates, `${base}-HABIL.xlsx`);
-    flash('Template terisi diunduh — upload ke marketplace');
+    if (!templatesRef.current.length) return flash('Belum ada file template. Upload file untuk download.');
+    // keyMap: match_key → harga/stok final yang mau ditulis (cocok utk baris dari DB tanpa excelRow).
+    const keyMap = {};
+    rows.forEach((r) => { const f = finals[keyOf(r)] || {}; keyMap[r.match_key] = { price: f.price, stock: f.stock }; });
+    templatesRef.current.forEach((t, i) => {
+      const base = (t.filename || 'template').replace(/\.xlsx$/i, '');
+      // stagger sedikit supaya browser tidak blokir multiple download
+      setTimeout(() => downloadFilledByKey(t.buffer, keyMap, `${base}-HABIL.xlsx`), i * 350);
+    });
+    flash(`${templatesRef.current.length} file diunduh — upload ke marketplace`);
   };
 
   const channel = platform === 'tiktok' ? 'tokopedia_tiktok' : 'shopee';
@@ -312,7 +322,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                             <span style={{ fontSize: 12, color: sub }}>saran: <span style={{ color: text, fontWeight: 600 }}>{r.suggestions[0].name}</span> <span style={{ color: sub }}>({Math.round(r.suggestions[0].score * 100)}%)</span></span>
                             <div style={{ display: 'flex', gap: 8 }}>
-                              <button onClick={() => doMap(r.suggestions[0].product_id, r.bundle_qty)} className="ui-motion-button ui-focus-ring" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', border: 'none', color: '#fff', background: 'var(--color-success)', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 11 }}><CheckCircle2 size={12} /> Apply</button>
+                              <button onClick={() => doMap(r, r.suggestions[0].product_id, r.bundle_qty)} className="ui-motion-button ui-focus-ring" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', border: 'none', color: '#fff', background: 'var(--color-success)', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 11 }}><CheckCircle2 size={12} /> Apply</button>
                               <button onClick={() => setMapRow(r)} style={{ fontSize: 11, color: sub, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>ganti</button>
                             </div>
                           </div>
@@ -422,7 +432,7 @@ function MapModal({ row, products, isDarkMode, onClose, onMap }) {
         <div style={{ overflowY: 'auto', padding: '8px 12px' }}>
           {!list.length && <p style={{ padding: 20, textAlign: 'center', color: sub, fontSize: 13 }}>{q ? 'Tidak ada produk cocok.' : 'Ketik untuk mencari produk.'}</p>}
           {list.map((p) => (
-            <button key={p.id} onClick={() => onMap(p.id, effBundle)} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', padding: '11px 12px', border: `1px solid ${border}`, borderRadius: 10, background: 'transparent', color: text, cursor: 'pointer', marginBottom: 6, fontSize: 13 }}>
+            <button key={p.id} onClick={() => onMap(row, p.id, effBundle)} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', padding: '11px 12px', border: `1px solid ${border}`, borderRadius: 10, background: 'transparent', color: text, cursor: 'pointer', marginBottom: 6, fontSize: 13 }}>
               <span style={{ fontWeight: 600 }}>{p.name}</span>
               <span style={{ fontSize: 11, color: sub, fontFamily: 'monospace' }}>{p.code || ''}{p.score ? ` · ${Math.round(p.score * 100)}%` : ''}</span>
             </button>

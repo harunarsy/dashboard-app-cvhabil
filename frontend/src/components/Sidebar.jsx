@@ -101,36 +101,31 @@ export default function Sidebar({
   const menuItems = role === "pajak"
     ? [{ icon: ReceiptText, label: "Pajak", path: "/tax", active: true }]
     : [
-    // Urutan by workflow: intake pesanan → overview → transaksi harian → master data → setting.
-    // Surat Pesanan paling atas (permintaan Ayah), Dashboard di bawahnya.
+    // Urutan final (permintaan Harun): Dashboard paling atas, lalu SP → Faktur → Nota →
+    // Inventory → Customer → Distributor → Daftar Harga → Toko Online → (direktur: Buku Besar
+    // → Finance → Pajak → Karyawan) → Pengaturan paling bawah.
+    { icon: Home, label: "Dashboard", path: "/dashboard", active: true },
     {
       icon: ClipboardList,
       label: "Surat Pesanan",
       path: "/orders",
       active: true,
     },
-    { icon: Home, label: "Dashboard", path: "/dashboard", active: true },
-    { icon: FileText, label: "Nota Penjualan", path: "/sales", active: true },
     {
       icon: ReceiptText,
       label: "Faktur Pembelian",
       path: "/invoices",
       active: true,
     },
+    { icon: FileText, label: "Nota Penjualan", path: "/sales", active: true },
     { icon: Boxes, label: "Inventory", path: "/inventory", active: true },
+    { icon: Users, label: "Customer", path: "/customers", active: true },
+    { icon: Truck, label: "Distributor", path: "/distributors", active: true },
     { icon: Tags, label: "Daftar Harga", path: "/price-list", active: true },
     {
       icon: ShoppingCart,
       label: "Toko Online",
       path: "/online-store",
-      active: true,
-    },
-    { icon: Users, label: "Customer", path: "/customers", active: true },
-    { icon: Truck, label: "Distributor", path: "/distributors", active: true },
-    {
-      icon: Settings,
-      label: "Pengaturan",
-      path: "/print-settings",
       active: true,
     },
     ...(role === "direktur"
@@ -161,6 +156,12 @@ export default function Sidebar({
           },
         ]
       : []),
+    {
+      icon: Settings,
+      label: "Pengaturan",
+      path: "/print-settings",
+      active: true,
+    },
   ];
 
   const handleSubmitBug = async () => {
@@ -206,7 +207,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.62.0-stable";
+  const appVersion = "v1.62.1-stable";
   const TooltipButton = ({
     label,
     children,

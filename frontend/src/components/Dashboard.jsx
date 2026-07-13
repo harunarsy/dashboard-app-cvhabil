@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.62.0-stable",
+    version: "v1.62.1-stable",
     date: "13 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Perbaikan tab Produk & Harga: (1) tombol 'Apply' saran produk sekarang berfungsi (sebelumnya diam saja). (2) Download template dari toko tersimpan kini BENAR mengisi harga & stok — termasuk TikTok yang templatenya banyak file (tiap file terunduh terisi). (3) Urutan sidebar dibetulkan: Dashboard paling atas, lalu Surat Pesanan, Faktur, Nota, Inventory, Customer, Distributor, Daftar Harga, Toko Online, (Buku Besar/Finance/Pajak/Karyawan), Pengaturan paling bawah.",
+        dev: "doMap(row,productId,bundle) — hapus dependency pada mapRow supaya Apply inline jalan. Download match-by-key: downloadFilledByKey parse template → matchKeyForRow → isi excelRow (baris DB tak punya excelRow). Tabel marketplace_store_files simpan SEMUA file/toko + GET /stores/:id/templates. templatesRef unduh tiap file.",
+      },
+    ],
+  },
+  {
+    version: "v1.62.0-stable",
+    date: "13 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "feature",

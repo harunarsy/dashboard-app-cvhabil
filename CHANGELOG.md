@@ -2,6 +2,13 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.62.1-stable] - 2026-07-13
+
+### Diperbaiki
+- **Tombol Apply** (saran produk inline) tidak berfungsi → `doMap(row, productId, bundle)` tak lagi bergantung pada `mapRow`.
+- **Download template dari toko tersimpan** kini benar mengisi harga/stok via `downloadFilledByKey` (cocokkan `match_key` → parse template utk dapat `excelRow`; baris dari DB tak punya excelRow). Tabel `marketplace_store_files` menyimpan SEMUA file per toko + `GET /stores/:id/templates` → **TikTok multi-file terunduh terisi** (bukan lagi per-upload).
+- **Urutan sidebar** dibetulkan sesuai permintaan: Dashboard → Surat Pesanan → Faktur → Nota → Inventory → Customer → Distributor → Daftar Harga → Toko Online → (Buku Besar/Finance/Pajak/Karyawan) → Pengaturan.
+
 ## [v1.62.0-stable] - 2026-07-13
 
 ### Ditambahkan (Tab Produk & Harga)

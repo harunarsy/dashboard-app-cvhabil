@@ -85,6 +85,17 @@ const ensureSchema = async () => {
   await pool.query(`ALTER TABLE marketplace_listings ADD COLUMN IF NOT EXISTS final_stock INT`).catch(() => {});
   await pool.query(`ALTER TABLE marketplace_listings ALTER COLUMN bundle_qty TYPE NUMERIC(8,3)`).catch(() => {});
   await pool.query(`ALTER TABLE marketplace_stores ADD COLUMN IF NOT EXISTS template_b64 TEXT`).catch(() => {});
+  // v1.62.1: simpan SEMUA file template per toko (TikTok bisa 5 file) → download utuh dari DB.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS marketplace_store_files (
+      id SERIAL PRIMARY KEY,
+      store_id INT REFERENCES marketplace_stores(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      file_b64 TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE (store_id, filename)
+    );
+  `).catch(() => {});
 };
 ensureSchema().catch((e) => console.error('marketplace ensureSchema:', e.message));
 
@@ -365,7 +376,9 @@ router.get('/stores/:id/listings', auth, async (req, res) => {
       return out;
     });
     const matched = rows.filter((r) => r.matched).length;
-    res.json({ store: { id: store.id, name: store.name, platform: store.platform, last_filename: store.last_filename, has_template: !!store.template_b64 },
+    const { rows: [fc] } = await pool.query('SELECT COUNT(*)::int n FROM marketplace_store_files WHERE store_id = $1', [store.id]);
+    const hasTemplate = (fc && fc.n > 0) || !!store.template_b64;
+    res.json({ store: { id: store.id, name: store.name, platform: store.platform, last_filename: store.last_filename, has_template: hasTemplate, file_count: fc ? fc.n : 0 },
       channel: PLATFORM_CHANNEL[store.platform], total: rows.length, matched, unmatched: rows.length - matched, rows });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -380,14 +393,19 @@ router.delete('/stores/:id', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// File template tersimpan (base64) → download saat toko dibuka dari DB tanpa upload ulang.
-router.get('/stores/:id/template', auth, async (req, res) => {
+// SEMUA file template tersimpan → download utuh dari DB (Shopee 1 file, TikTok bisa banyak).
+router.get('/stores/:id/templates', auth, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'ID tidak valid.' });
-    const { rows: [s] } = await pool.query('SELECT template_b64, last_filename FROM marketplace_stores WHERE id = $1', [id]);
-    if (!s) return res.status(404).json({ error: 'Toko tidak ditemukan.' });
-    res.json({ b64: s.template_b64 || null, filename: s.last_filename || null });
+    const { rows } = await pool.query('SELECT filename, file_b64 FROM marketplace_store_files WHERE store_id = $1 ORDER BY filename', [id]);
+    // fallback ke kolom lama template_b64 kalau tabel file belum terisi
+    if (!rows.length) {
+      const { rows: [s] } = await pool.query('SELECT template_b64, last_filename FROM marketplace_stores WHERE id = $1', [id]);
+      if (s && s.template_b64) return res.json({ files: [{ filename: s.last_filename || 'template.xlsx', b64: s.template_b64 }] });
+      return res.json({ files: [] });
+    }
+    res.json({ files: rows.map((r) => ({ filename: r.filename, b64: r.file_b64 })) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
