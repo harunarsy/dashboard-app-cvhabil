@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.60.0-stable",
+    date: "13 Juli 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "feature",
+        text: "Toko Online punya tab baru 'Produk & Harga'. Upload template edit-massal dari TikTok Seller Center atau Shopee, lalu HABIL otomatis cocokkan tiap produk ke stok & HPP terkini, dan menyarankan harga jual per platform (sudah hitung fee marketplace + margin aman, pembulatan rapi ...900). Sekali sebuah produk dipetakan, toko lain dengan kode yang sama ikut otomatis. Tinggal download template terisi → upload balik ke marketplace. Harga bisa langsung disimpan ke Daftar Harga HABIL, dan stok upload diisi dari inventory (stok opname tidak terganggu).",
+        dev: "Client-side: frontend/src/utils/marketplaceTemplate.js parse+fill xlsx via SheetJS di browser (template TikTok 2.7MB tak di-upload; ensureFullRange perbaiki !ref TikTok yg terpotong A1:AL5). Backend: routes/marketplace.js (/analyze, /sku-map CRUD, /save-prices) + tabel marketplace_sku_map (platform,match_key→product_id,bundle_qty). Rekomendasi pakai utils/pricingEngine.recommendPrice + marketplace_fee_profiles, floor laba 5rb. HPP incl-PPN dari batch FEFO. Match by seller_sku→fallback nama+varian; unmatched dapat saran fuzzy (Jaccard token).",
+      },
+    ],
+  },
+  {
     version: "v1.59.1-stable",
     date: "12 Juli 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",

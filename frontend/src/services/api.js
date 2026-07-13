@@ -223,6 +223,14 @@ export const priceListAPI = {
   recommend: (data) => api.post('/price-list/recommend', data),
 };
 
+export const marketplaceAPI = {
+  analyze: (data) => api.post('/marketplace/analyze', data),
+  getSkuMap: (platform) => api.get('/marketplace/sku-map', { params: platform ? { platform } : {} }),
+  saveSkuMap: (data) => api.post('/marketplace/sku-map', data),
+  deleteSkuMap: (id) => api.delete(`/marketplace/sku-map/${id}`),
+  savePrices: (entries) => api.post('/marketplace/save-prices', { entries }),
+};
+
 export const insightsAPI = {
   getCustomer: (id, params) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : '';

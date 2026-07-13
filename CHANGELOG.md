@@ -2,6 +2,20 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.60.0-stable] - 2026-07-13
+
+### Ditambahkan
+- **Toko Online — tab "Produk & Harga"**: alat mini-AI untuk mengelola harga & stok listing marketplace dari HABIL.
+  - Upload template batch-edit **TikTok Seller Center** (All Information) atau **Shopee** (mass-update). File diproses di browser (SheetJS) — template TikTok ~2.7MB tidak di-upload mentah ke server.
+  - Tiap listing dicocokkan ke produk HABIL via `marketplace_sku_map` (kunci `seller_sku`, fallback nama+varian). Sekali dipetakan, toko lain dengan SKU sama otomatis cocok.
+  - Rekomendasi harga per platform pakai `pricingEngine.recommendPrice` + `marketplace_fee_profiles` (fee TikTok vs Shopee beda), floor laba Rp5.000, pembulatan psikologis ...900. HPP incl-PPN diambil dari batch FEFO.
+  - Menandai listing yang **di bawah BEP (rugi)** dan **selisih stok** HABIL vs marketplace.
+  - Download template terisi (harga + stok) untuk di-upload balik ke marketplace. Opsi simpan harga ke Daftar Harga HABIL (channel `shopee`/`tokopedia_tiktok`).
+  - Mengunduh template **tidak** mengubah inventory HABIL (stok opname tetap sumber kebenaran).
+
+### Teknis
+- Backend: `routes/marketplace.js` (`/analyze`, `/sku-map` CRUD, `/save-prices`), tabel `marketplace_sku_map`. Frontend: `utils/marketplaceTemplate.js` (parse/fill xlsx di browser), komponen `MarketplaceProductTab.jsx`. `ensureFullRange` memperbaiki `!ref` xlsx yang terpotong (TikTok deklarasi A1:AL5 padahal ada puluhan produk). Dependency `xlsx` ditambah di frontend.
+
 ## [v1.59.1-stable] - 2026-07-12
 
 ### Fixed (batch/HPP terkunci saat edit — lanjutan bug HPP)
