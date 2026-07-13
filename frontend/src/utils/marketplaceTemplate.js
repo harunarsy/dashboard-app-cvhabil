@@ -88,16 +88,26 @@ const resolveColIdx = (header, cols) => {
   return idx;
 };
 
-// Deteksi pengali bundle dari nama listing marketplace (pre-fill qty_bundle saat mapping).
-// KARTON / 12 BOX → 12, 10 BOX → 10, 5 BOX → 5, 3 BOX → 3, BUNDLE N → N, ISI N BOX → N.
-// Konservatif: kalau ragu, kembalikan 1 (user bisa koreksi manual).
-const detectBundleQty = (name = '') => {
-  const s = String(name).toUpperCase();
+// Deteksi pengali bundle dari nama + VARIASI listing marketplace (pre-fill qty_bundle).
+// KARTON→12, N BOX→N, N POUCH→N, BUNDLE N→N, ISI N BOX/POUCH→N.
+// Variasi diprioritaskan: sering pengali ada di varian (mis. HOTTO nama "1 Pouch", varian "2 POUCH").
+// SACHET SENGAJA TIDAK dijadikan pengali — "160 Sachet"/"25s" itu UKURAN pack beda (bukan kelipatan
+// produk yg sama); itu urusan pemetaan per-varian, bukan bundle. Konservatif: ragu → 1.
+const parseBundleStr = (str = '') => {
+  const s = String(str).toUpperCase();
   let m;
-  if ((m = s.match(/BUNDLE[\s-]*(\d{1,2})/))) return Math.max(1, parseInt(m[1], 10));
-  if ((m = s.match(/ISI\s*(\d{1,2})\s*BOX/))) return Math.max(1, parseInt(m[1], 10));
-  if ((m = s.match(/(\d{1,2})\s*BOX\b/))) return Math.max(1, parseInt(m[1], 10));
+  if ((m = s.match(/BUNDLE[\s-]*(\d{1,2})/))) return parseInt(m[1], 10);
+  if ((m = s.match(/ISI\s*(\d{1,2})\s*(?:BOX|POUCH)/))) return parseInt(m[1], 10);
+  if ((m = s.match(/(\d{1,2})\s*BOX\b/))) return parseInt(m[1], 10);
+  if ((m = s.match(/(\d{1,2})\s*POUCH\b/))) return parseInt(m[1], 10);
   if (/\bKARTON\b/.test(s) && !/KARTONAN/.test(s)) return 12;
+  return null;
+};
+const detectBundleQty = (name = '', variation = '') => {
+  const v = parseBundleStr(variation); // varian dulu (mis. "2 POUCH")
+  if (v && v >= 1) return Math.max(1, v);
+  const n = parseBundleStr(name);
+  if (n && n >= 1) return Math.max(1, n);
   return 1;
 };
 
@@ -151,7 +161,7 @@ export const parseWorkbook = (arrayBuffer) => {
       sku_id: colIdx.skuId >= 0 && !isBlank(r[colIdx.skuId]) ? String(r[colIdx.skuId]).trim() : null,
       price: priceInt,
       stock: colIdx.stock >= 0 ? toInt(r[colIdx.stock]) : null,
-      bundle_qty: detectBundleQty(nm),
+      bundle_qty: detectBundleQty(nm, variation),
     });
   }
   return { platform, sheetName, rowCount: rows.length, rows };

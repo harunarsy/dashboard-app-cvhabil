@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.61.0-stable",
+    version: "v1.61.1-stable",
     date: "13 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Tab Produk & Harga makin enak dipakai: (1) saat kamu ubah 'Harga final', estimasi laba & margin langsung berubah live tanpa refresh; (2) setelah 'Petakan' produk, barisnya update di tempat — tidak lagi reload penuh yang bikin buyar fokus; (3) pop-up pemetaan sekarang benar-benar di tengah layar; (4) deteksi bundle lebih pintar untuk '2 Pouch' dll (mis. HOTTO 2 Pouch dihitung ×2, tidak lagi disamakan 1 pouch).",
+        dev: "Frontend: liveProfit(price) = price×(1−fee)−hpp_bundle di render (fee_rate & hpp_bundle dari matched). doMap patch 1 baris pakai matched dari response /sku-map (bukan reAnalyze). MapModal dibungkus createPortal(document.body) → fixed relatif viewport (fix sama spt paymentModal). detectBundleQty(name,variation) + pola POUCH, variasi diprioritaskan; SACHET sengaja bukan multiplier. Backend /sku-map balikin objek matched. Semesta re-import sku_map-aware (mapping manual tidak ketimpa).",
+      },
+    ],
+  },
+  {
+    version: "v1.61.0-stable",
+    date: "13 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "feature",

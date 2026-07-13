@@ -4,6 +4,7 @@
 // (ditandai "auto — cek"), user tinggal koreksi. Stok template diisi dari inventory HABIL
 // (selisih ditandai) tanpa mengubah inventory (stok opname tetap sumber kebenaran).
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Upload, Download, Save, Link2, AlertTriangle, CheckCircle2, X, Search, Store, Sparkles } from 'lucide-react';
 import { marketplaceAPI, inventoryAPI } from '../services/api';
 import { parseFile, downloadFilled, PLATFORM_LABEL } from '../utils/marketplaceTemplate';
@@ -26,7 +27,6 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
   const [platform, setPlatform] = useState(null);
   const [storeId, setStoreId] = useState(null);
   const [storeName, setStoreName] = useState('');
-  const [rawRows, setRawRows] = useState([]);
   const [rows, setRows] = useState([]);
   const [finals, setFinals] = useState({});
   const [loading, setLoading] = useState(false);
@@ -83,7 +83,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
         external_shop_id: shopIdFromName(parsed.filename), filename: parsed.filename, rows: parsed.rows,
       });
       setPlatform(parsed.platform); setFilename(parsed.filename);
-      setStoreId(data.store.id); setStoreName(data.store.name); setRawRows(parsed.rows);
+      setStoreId(data.store.id); setStoreName(data.store.name);
       applyRows(data.rows);
       loadStores();
       flash(`${data.total} produk · ${data.matched} cocok (${data.matched_auto} auto), ${data.unmatched} perlu dipetakan`);
@@ -94,7 +94,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
   // Buka toko tersimpan dari DB (tanpa upload; download perlu upload file terbaru)
   const openStore = async (s) => {
     setLoading(true);
-    bufferRef.current = null; setRawRows([]);
+    bufferRef.current = null;
     try {
       const { data } = await marketplaceAPI.getStoreListings(s.id);
       setPlatform(data.store.platform); setFilename(data.store.last_filename || '');
@@ -107,28 +107,40 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
     finally { setLoading(false); }
   };
 
-  const reAnalyze = async () => {
-    if (bufferRef.current && rawRows.length) {
-      const { data } = await marketplaceAPI.analyze({ platform, store_name: storeName, filename, rows: rawRows });
-      applyRows(data.rows); loadStores();
-    } else if (storeId) { openStore({ id: storeId }); }
-  };
-
+  // Simpan mapping lalu PATCH baris di tempat (tanpa reload penuh → tidak "mecah fokus").
   const doMap = async (productId, bundleQty) => {
     if (!mapRow) return;
+    const targetKey = mapRow.match_key;
     try {
-      await marketplaceAPI.saveSkuMap({
+      const { data } = await marketplaceAPI.saveSkuMap({
         platform, match_key: mapRow.match_key, key_type: mapRow.key_type, product_id: productId,
         bundle_qty: bundleQty || mapRow.bundle_qty || 1, listing_name: mapRow.product_name, variation: mapRow.variation, store_id: storeId,
       });
       setMapRow(null);
-      flash('Mapping disimpan, menghitung ulang…');
-      await reAnalyze();
+      setRows((prev) => prev.map((r) => r.match_key === targetKey
+        ? { ...r, matched: data.matched || r.matched, bundle_qty: data.bundle_qty || r.bundle_qty, suggestions: [] } : r));
+      if (data.matched && data.matched.recommended_price) {
+        setFinals((f) => {
+          const cur = f[targetKey] || f[mapRow.excelRow] || {};
+          const kk = mapRow.excelRow ?? mapRow._key ?? targetKey;
+          return { ...f, [kk]: { price: cur.price || data.matched.recommended_price, stock: cur.stock ?? data.matched.stock_habil } };
+        });
+      }
+      loadStores(); // segarkan hitungan di kartu toko (ringan, tak ganggu tabel)
+      flash('Mapping disimpan');
     } catch (e) { flash(e.response?.data?.error || e.message); }
   };
 
   const keyOf = (r) => r.excelRow ?? r._key ?? r.match_key;
   const setFinal = (r, field, val) => setFinals((f) => ({ ...f, [keyOf(r)]: { ...f[keyOf(r)], [field]: val } }));
+
+  // Laba live pada harga yang diketik (mode fee efektif: net = harga×(1−fee), fixed fee = 0).
+  const liveProfit = (price, m) => {
+    const p = Number(price);
+    if (!m || m.no_hpp || !Number.isFinite(p) || p <= 0) return null;
+    const laba = Math.round(p * (1 - (m.fee_rate || 0) / 100) - (m.hpp_bundle || 0));
+    return { laba, margin: p > 0 ? +(laba / p * 100).toFixed(1) : 0 };
+  };
 
   const handleDownload = () => {
     if (!bufferRef.current) return flash('Upload file template terbaru dulu untuk download');
@@ -274,7 +286,10 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
                           <div><div style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{fmtRp(m.recommended_price)}</div><div style={{ fontSize: 10, color: sub }}>laba {fmtRp(m.estimasi_laba)} · {m.margin_laba}%</div></div>
                         )) : '—'}
                       </td>
-                      <td style={{ padding: '9px 12px' }}><input type="number" value={finals[k]?.price ?? ''} onChange={(e) => setFinal(r, 'price', e.target.value)} style={{ ...inputStyle, width: 100 }} /></td>
+                      <td style={{ padding: '9px 12px' }}>
+                        <input type="number" value={finals[k]?.price ?? ''} onChange={(e) => setFinal(r, 'price', e.target.value)} style={{ ...inputStyle, width: 100 }} />
+                        {(() => { const lp = liveProfit(finals[k]?.price, m); return lp ? <div style={{ fontSize: 10, marginTop: 3, color: lp.laba < 0 ? 'var(--color-danger)' : 'var(--color-success)', whiteSpace: 'nowrap' }}>laba {fmtRp(lp.laba)} · {lp.margin}%</div> : null; })()}
+                      </td>
                       <td style={{ padding: '9px 12px' }}><input type="number" value={finals[k]?.stock ?? ''} onChange={(e) => setFinal(r, 'stock', e.target.value)} style={{ ...inputStyle, width: 76 }} /></td>
                     </tr>
                   );
@@ -309,7 +324,7 @@ function MapModal({ row, products, isDarkMode, onClose, onMap }) {
     return term ? products.filter((p) => p.name?.toLowerCase().includes(term) || p.code?.toLowerCase().includes(term)).slice(0, 30) : base;
   }, [q, products, row]);
 
-  return (
+  return createPortal((
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 16 }}>
       <div onClick={(e) => e.stopPropagation()} className="ui-motion-modal" style={{ backgroundColor: cardBg, borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 32px 64px rgba(0,0,0,0.35)' }}>
         <div style={{ padding: '16px 20px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
@@ -340,5 +355,5 @@ function MapModal({ row, products, isDarkMode, onClose, onMap }) {
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }

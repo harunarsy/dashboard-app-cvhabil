@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.61.1-stable] - 2026-07-13
+
+### Diperbaiki (UX tab Produk & Harga)
+- **Laba live**: ubah "Harga final" → estimasi laba & margin dihitung ulang seketika (frontend `liveProfit` = harga×(1−fee)−hpp_bundle), tanpa refresh.
+- **Petakan tanpa reload penuh**: setelah map, baris di-patch di tempat pakai objek `matched` dari response `/sku-map` (bukan re-analyze) — tidak lagi "mecah fokus".
+- **Modal pemetaan di-portal** ke `document.body` (`createPortal`) → benar-benar center (fix pola sama seperti paymentModal InvoiceList).
+- **Deteksi bundle Pouch**: `detectBundleQty(name, variation)` + pola `N POUCH` / `ISI N POUCH`, variasi diprioritaskan (HOTTO "2 Pouch" → ×2). SACHET sengaja bukan multiplier (ukuran pack, bukan kelipatan). Semesta di-import ulang (sku_map-aware, mapping manual dipertahankan).
+
 ## [v1.61.0-stable] - 2026-07-13
 
 ### Ditambahkan / Diubah

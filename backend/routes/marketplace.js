@@ -389,7 +389,19 @@ router.post('/sku-map', auth, async (req, res) => {
          WHERE store_id=$3 AND match_key=$4`,
         [parseInt(b.product_id, 10), bundleQty, parseInt(b.store_id, 10), matchKey]);
     }
-    res.status(201).json(row);
+    // Hitung objek matched utk baris ini → frontend patch 1 baris tanpa reload (no "mecah fokus").
+    let matched = null;
+    try {
+      const [products, { rows: feeProfiles }] = await Promise.all([
+        loadProducts(), pool.query('SELECT * FROM marketplace_fee_profiles WHERE active = TRUE'),
+      ]);
+      const product = products.find((p) => p.id === parseInt(b.product_id, 10));
+      if (product) {
+        const feeParsed = feeProfiles.map((p) => ({ ...p, admin_rate: parseFloat(p.admin_rate), service_rate: parseFloat(p.service_rate), fixed_order_fee: parseFloat(p.fixed_order_fee), safe_effective_fee_rate: parseFloat(p.safe_effective_fee_rate) }));
+        matched = buildMatched(product, bundleQty, b.platform, null, feeParsed, false);
+      }
+    } catch (_) { /* patch opsional; abaikan kalau gagal */ }
+    res.status(201).json({ ...row, matched, bundle_qty: bundleQty });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
