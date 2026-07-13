@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.60.0-stable",
+    version: "v1.61.0-stable",
     date: "13 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "feature",
+        text: "Tab 'Produk & Harga' jadi per-Toko: sekarang ada daftar toko (mis. Semesta · Shopee / TikTok) yang tersimpan di database — buka lagi tanpa upload ulang. Saat upload template, sistem otomatis menebak produk HABIL yang cocok (ditandai ungu 'auto — cek') lengkap dengan HPP, stok, dan harga rekomendasi, jadi tidak perlu petakan ratusan produk satu-satu. Tinggal koreksi yang salah, harga bisa disimpan ke Daftar Harga HABIL, lalu download template terisi untuk di-upload balik ke marketplace. Menambah toko baru cukup upload file-nya.",
+        dev: "Backend: tabel marketplace_stores + marketplace_listings (katalog snapshot per toko), endpoint /stores & /stores/:id/listings. /analyze upsert toko + katalog + auto-match (fuzzy Jaccard: auto bila skor≥0.6, atau ≥0.4 & unggul ≥0.15 dari kandidat ke-2). buildMatched guard HPP=0 → tak kasih rekomendasi ngawur, flag 'lengkapi HPP'. save-prices tulis final_price ke katalog + price_list_entries. Frontend: MarketplaceProductTab v2 (store selector, badge auto, load dari DB). Toko Semesta (Shopee 207 + TikTok 87) sudah diimpor.",
+      },
+    ],
+  },
+  {
+    version: "v1.60.0-stable",
+    date: "13 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "feature",

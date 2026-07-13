@@ -225,10 +225,13 @@ export const priceListAPI = {
 
 export const marketplaceAPI = {
   analyze: (data) => api.post('/marketplace/analyze', data),
+  getStores: () => api.get('/marketplace/stores'),
+  getStoreListings: (id) => api.get(`/marketplace/stores/${id}/listings`),
+  deleteStore: (id) => api.delete(`/marketplace/stores/${id}`),
   getSkuMap: (platform) => api.get('/marketplace/sku-map', { params: platform ? { platform } : {} }),
   saveSkuMap: (data) => api.post('/marketplace/sku-map', data),
   deleteSkuMap: (id) => api.delete(`/marketplace/sku-map/${id}`),
-  savePrices: (entries) => api.post('/marketplace/save-prices', { entries }),
+  savePrices: (payload) => api.post('/marketplace/save-prices', payload),
 };
 
 export const insightsAPI = {

@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.61.0-stable] - 2026-07-13
+
+### Ditambahkan / Diubah
+- **Tab "Produk & Harga" → per-Toko**: konsep Toko tersimpan di DB.
+  - Tabel `marketplace_stores` (toko: nama + platform + shop id) & `marketplace_listings` (snapshot katalog per toko: produk, harga, stok, hasil match, rekomendasi, harga final).
+  - Daftar toko di UI (mis. Semesta · Shopee / TikTok) → buka lagi tanpa upload ulang ("lengket"). Tambah toko baru = upload file.
+  - **Auto-match**: sistem menebak produk HABIL yang cocok (fuzzy Jaccard; auto bila skor ≥0.6, atau ≥0.4 & unggul ≥0.15 dari kandidat ke-2), ditandai "auto — cek". User tinggal koreksi, bukan petakan ratusan manual.
+  - Guard **HPP = 0**: produk tanpa HNA/batch tidak diberi harga rekomendasi (dulu keluar angka ngawur ~Rp6.900), diganti flag "lengkapi HPP dulu".
+  - `save-prices` menyimpan `final_price` ke katalog toko + `price_list_entries`. Endpoint `/stores`, `/stores/:id/listings`.
+- Data toko **Semesta** (Shopee 207 + TikTok 87 listing) sudah diimpor ke DB.
+
 ## [v1.60.0-stable] - 2026-07-13
 
 ### Ditambahkan
