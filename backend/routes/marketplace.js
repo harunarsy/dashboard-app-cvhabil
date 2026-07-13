@@ -17,7 +17,7 @@ const auth = require('../middleware/auth');
 const { recommendPrice } = require('../utils/pricingEngine');
 
 const PPN_RATE = 0.11;
-const FLOOR_PROFIT = 5000; // laba minimum per listing (Rp)
+const FLOOR_PROFIT = 3000; // laba operasional minimum per listing (Rp) — kompetitif > margin gemuk
 const AUTO_STRONG = 0.6;   // skor kemiripan cukup tinggi → auto-match walau tak ada pesaing dekat
 const AUTO_MIN = 0.4;      // skor minimum utk auto-match kalau unggul jelas dari kandidat ke-2
 const AUTO_MARGIN = 0.15;  // selisih skor top vs ke-2 supaya tak ambigu
@@ -85,6 +85,8 @@ const ensureSchema = async () => {
   await pool.query(`ALTER TABLE marketplace_listings ADD COLUMN IF NOT EXISTS final_stock INT`).catch(() => {});
   await pool.query(`ALTER TABLE marketplace_listings ALTER COLUMN bundle_qty TYPE NUMERIC(8,3)`).catch(() => {});
   await pool.query(`ALTER TABLE marketplace_stores ADD COLUMN IF NOT EXISTS template_b64 TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE marketplace_listings ADD COLUMN IF NOT EXISTS market_price NUMERIC(14,2)`).catch(() => {}); // harga jual historis (jangkar pasar)
+  await pool.query(`ALTER TABLE marketplace_listings ADD COLUMN IF NOT EXISTS price_source TEXT`).catch(() => {});
   // v1.62.1: simpan SEMUA file template per toko (TikTok bisa 5 file) → download utuh dari DB.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS marketplace_store_files (
@@ -164,27 +166,41 @@ const loadProducts = async () => {
   return rows;
 };
 
-const recommendWithFloor = (hppIncl, bundleQty, platform, categoryKey, feeProfiles) => {
+// Rekomendasi MARKET-ANCHORED: harga kompetitif = jangkar pasar (harga jual historis yg terbukti
+// laku, atau harga listing sekarang). Kalau jangkar itu masih untung ≥ FLOOR operasional → pakai
+// (jangan naikin, biar bersaing). Kalau jangkar rugi/di bawah floor → baru naik ke harga floor.
+// anchorPrice = market_price (historis) atau current_price.
+const recommendMarket = (hppTotal, platform, categoryKey, feeProfiles, anchorPrice, bundleQty) => {
   const base = {
-    hpp_per_unit: hppIncl,
-    qty_bundle: Math.max(1, bundleQty || 1),
+    hpp_per_unit: hppTotal, qty_bundle: 1,
     platform: PRICING_PLATFORM[platform] || 'shopee',
     category_key: categoryKey || DEFAULT_CATEGORY[platform] || 'default',
     fee_profiles: feeProfiles,
   };
-  let rec = recommendPrice({ ...base, target_profit_mode: 'healthy' });
-  if (rec.estimasi && rec.estimasi.estimasi_laba < FLOOR_PROFIT) {
-    const floored = recommendPrice({ ...base, target_profit_mode: 'custom', custom_target_profit: FLOOR_PROFIT });
-    if (floored.harga_rekomendasi_psikologis && floored.harga_rekomendasi_psikologis > (rec.harga_rekomendasi_psikologis || 0)) rec = floored;
-  }
-  return rec;
+  // Bundle boleh untung lebih tebal (buyer dapat voucher) → target laba 12% dari HPP atau FLOOR,
+  // ambil yang lebih besar. Non-bundle cukup FLOOR operasional.
+  const isBundle = Number(bundleQty) > 1;
+  const targetProfit = isBundle ? Math.max(FLOOR_PROFIT, Math.round(hppTotal * 0.12)) : FLOOR_PROFIT;
+  const floorRes = recommendPrice({ ...base, target_profit_mode: 'custom', custom_target_profit: targetProfit });
+  const rate = (floorRes.total_variable_fee_rate || 0) / 100;
+  const floorPrice = floorRes.harga_rekomendasi_psikologis;
+  const bep = floorRes.pembulatan_psikologis ? floorRes.pembulatan_psikologis.bep : null;
+  const a = Math.round(Number(anchorPrice) || 0);
+  let price; let source;
+  if (a > 0 && floorPrice != null && a >= floorPrice) { price = a; source = 'pasar'; } // sudah untung → kompetitif, pakai
+  else if (a > 0 && bep && a >= bep * 0.6) { price = floorPrice; source = 'floor'; }     // rugi tipis → naikkan ke batas untung
+  else if (a > 0) { price = a; source = 'cek'; }                                          // jauh di bawah modal → curiga ecer/salah match, jangan dinaikkan
+  else { price = floorPrice; source = 'floor'; }
+  const laba = price != null ? Math.round(price * (1 - rate) - hppTotal) : null;
+  const margin = price ? +(laba / price * 100).toFixed(2) : 0;
+  return { price, source, laba, margin, rate: +(rate * 100).toFixed(2), bep, floorPrice, warnings: floorRes.warnings || [] };
 };
 
 // Bentuk objek "matched" utk sebuah produk + rekomendasi.
 // hppOverride: HPP manual per-listing (mis. koreksi batch/harga kulak baru, atau HPP=0 di HABIL).
 // bundleQty boleh PECAHAN (ecer/repack, mis. 50 sachet dari box 150 → 0.333). Bundle di-fold ke
 // HPP total (qty_bundle=1 ke engine) supaya pecahan tak terkena clamp qty≥1 di pricingEngine.
-const buildMatched = (product, bundleQty, platform, categoryKey, feeParsed, auto, hppOverride) => {
+const buildMatched = (product, bundleQty, platform, categoryKey, feeParsed, auto, hppOverride, anchorPrice) => {
   const ov = parseFloat(hppOverride);
   const usingOverride = Number.isFinite(ov) && ov > 0;
   const effectiveHpp = usingOverride ? ov : hppInclFromProduct(product);
@@ -192,7 +208,7 @@ const buildMatched = (product, bundleQty, platform, categoryKey, feeParsed, auto
   const hppTotal = effectiveHpp * qty;
   // HPP nol → rekomendasi tak bisa dipercaya (harga sampah). Suruh lengkapi/override HPP dulu.
   const noHpp = !(hppTotal > 0);
-  const rec = recommendWithFloor(hppTotal, 1, platform, categoryKey, feeParsed);
+  const rec = recommendMarket(hppTotal, platform, categoryKey, feeParsed, anchorPrice, qty);
   return {
     product_id: product.id,
     name: product.name,
@@ -205,12 +221,13 @@ const buildMatched = (product, bundleQty, platform, categoryKey, feeParsed, auto
     hpp_bundle: Math.round(hppTotal),
     bundle_qty: qty,
     stock_habil: parseInt(product.stock, 10) || 0,
-    recommended_price: noHpp ? null : rec.harga_rekomendasi_psikologis,
-    estimasi_laba: noHpp ? null : (rec.estimasi ? rec.estimasi.estimasi_laba : null),
-    margin_laba: noHpp ? null : (rec.estimasi ? rec.estimasi.margin_laba : null),
-    fee_rate: rec.total_variable_fee_rate,
-    harga_bep: noHpp ? null : (rec.pembulatan_psikologis ? rec.pembulatan_psikologis.bep : null),
-    harga_laba_sehat: noHpp ? null : (rec.pembulatan_psikologis ? rec.pembulatan_psikologis.laba_sehat : null),
+    recommended_price: noHpp ? null : rec.price,
+    price_source: noHpp ? null : rec.source, // 'pasar' (kompetitif) | 'floor' (dinaikkan biar untung)
+    estimasi_laba: noHpp ? null : rec.laba,
+    margin_laba: noHpp ? null : rec.margin,
+    fee_rate: rec.rate,
+    harga_bep: noHpp ? null : rec.bep,
+    harga_floor: noHpp ? null : rec.floorPrice,
     warnings: noHpp ? ['HPP kosong — isi HNA/faktur produk di HABIL, atau set HPP manual di kolom HPP.'] : (rec.warnings || []),
   };
 };
@@ -259,7 +276,7 @@ router.post('/analyze', auth, async (req, res) => {
     }
     // Listing lama toko ini → pertahankan hpp_override & final_price/final_stock yg sudah diisi user.
     const { rows: existingListings } = await pool.query(
-      'SELECT match_key, hpp_override, final_price, final_stock, bundle_qty FROM marketplace_listings WHERE store_id = $1', [store.id]);
+      'SELECT match_key, hpp_override, final_price, final_stock, bundle_qty, market_price FROM marketplace_listings WHERE store_id = $1', [store.id]);
     const exByKey = new Map(existingListings.map((l) => [l.match_key, l]));
 
     let auto = 0; let confirmed = 0;
@@ -270,6 +287,8 @@ router.post('/analyze', auth, async (req, res) => {
       // bundle: mapping (kamus) > override lama listing > deteksi dari file
       const bundleQty = mapping ? (mapping.bundle_qty || 1) : (ex && ex.bundle_qty ? parseFloat(ex.bundle_qty) : (row.bundle_qty || 1));
       const hppOverride = ex ? ex.hpp_override : null;
+      // jangkar harga: market_price (historis) tersimpan > harga listing sekarang
+      const anchor = (ex && ex.market_price != null) ? ex.market_price : (row.price ?? null);
       const out = {
         excelRow: row.excelRow, product_name: row.product_name, variation: row.variation || null,
         sku: row.sku || null, match_key: key, key_type: type,
@@ -280,13 +299,13 @@ router.post('/analyze', auth, async (req, res) => {
       };
 
       if (mapping && productById.get(mapping.product_id)) {
-        out.matched = buildMatched(productById.get(mapping.product_id), bundleQty, platform, req.body?.category_key, feeParsed, false, hppOverride);
+        out.matched = buildMatched(productById.get(mapping.product_id), bundleQty, platform, req.body?.category_key, feeParsed, false, hppOverride, anchor);
         confirmed += 1;
       } else {
         const scored = scoreProducts(row, products);
         const auto1 = pickAuto(scored);
         if (auto1 && productById.get(auto1.product_id)) {
-          out.matched = buildMatched(productById.get(auto1.product_id), bundleQty, platform, req.body?.category_key, feeParsed, true, hppOverride);
+          out.matched = buildMatched(productById.get(auto1.product_id), bundleQty, platform, req.body?.category_key, feeParsed, true, hppOverride, anchor);
           auto += 1;
         } else {
           out.suggestions = scored.slice(0, 5).map((s) => ({ product_id: s.product_id, name: s.name, code: s.code, score: +s.score.toFixed(2) }));
@@ -369,7 +388,8 @@ router.get('/stores/:id/listings', auth, async (req, res) => {
         matched: null, suggestions: [],
       };
       if (l.matched_product_id && productById.get(l.matched_product_id)) {
-        out.matched = buildMatched(productById.get(l.matched_product_id), out.bundle_qty, store.platform, null, feeParsed, l.matched_auto, l.hpp_override);
+        const anchor = l.market_price != null ? l.market_price : l.current_price;
+        out.matched = buildMatched(productById.get(l.matched_product_id), out.bundle_qty, store.platform, null, feeParsed, l.matched_auto, l.hpp_override, anchor);
       } else {
         out.suggestions = scoreProducts(l, products).slice(0, 5).map((s) => ({ product_id: s.product_id, name: s.name, code: s.code, score: +s.score.toFixed(2) }));
       }
@@ -439,7 +459,8 @@ router.post('/listing-update', auth, async (req, res) => {
       const prod = products.find((p) => p.id === l.matched_product_id);
       if (prod && store) {
         const feeParsed = fp.map((p) => ({ ...p, admin_rate: parseFloat(p.admin_rate), service_rate: parseFloat(p.service_rate), fixed_order_fee: parseFloat(p.fixed_order_fee), safe_effective_fee_rate: parseFloat(p.safe_effective_fee_rate) }));
-        matched = buildMatched(prod, l.bundle_qty ? parseFloat(l.bundle_qty) : 1, store.platform, null, feeParsed, l.matched_auto, l.hpp_override);
+        const anchor = l.market_price != null ? l.market_price : l.current_price;
+        matched = buildMatched(prod, l.bundle_qty ? parseFloat(l.bundle_qty) : 1, store.platform, null, feeParsed, l.matched_auto, l.hpp_override, anchor);
       }
     }
     res.json({ ok: true, final_price: l.final_price != null ? Math.round(l.final_price) : null, final_stock: l.final_stock, hpp_override: l.hpp_override != null ? Math.round(l.hpp_override) : null, matched });
@@ -491,14 +512,15 @@ router.post('/sku-map', auth, async (req, res) => {
       ]);
       const product = products.find((p) => p.id === parseInt(b.product_id, 10));
       // pakai hpp_override listing kalau ada (mis. user sudah koreksi HPP sebelum petakan)
-      let hppOverride = null;
+      let hppOverride = null; let anchor = null;
       if (b.store_id) {
-        const { rows: [l] } = await pool.query('SELECT hpp_override FROM marketplace_listings WHERE store_id=$1 AND match_key=$2', [parseInt(b.store_id, 10), matchKey]);
+        const { rows: [l] } = await pool.query('SELECT hpp_override, market_price, current_price FROM marketplace_listings WHERE store_id=$1 AND match_key=$2', [parseInt(b.store_id, 10), matchKey]);
         hppOverride = l ? l.hpp_override : null;
+        anchor = l ? (l.market_price != null ? l.market_price : l.current_price) : null;
       }
       if (product) {
         const feeParsed = feeProfiles.map((p) => ({ ...p, admin_rate: parseFloat(p.admin_rate), service_rate: parseFloat(p.service_rate), fixed_order_fee: parseFloat(p.fixed_order_fee), safe_effective_fee_rate: parseFloat(p.safe_effective_fee_rate) }));
-        matched = buildMatched(product, bundleQty, b.platform, null, feeParsed, false, hppOverride);
+        matched = buildMatched(product, bundleQty, b.platform, null, feeParsed, false, hppOverride, anchor);
       }
     } catch (_) { /* patch opsional; abaikan kalau gagal */ }
     res.status(201).json({ ...row, matched, bundle_qty: bundleQty });

@@ -346,7 +346,15 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
                       </td>
                       <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
                         {m ? (m.no_hpp ? <span style={{ fontSize: 11, color: '#F59E0B' }}>lengkapi HPP dulu</span> : (
-                          <div><div style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{fmtRp(m.recommended_price)}</div><div style={{ fontSize: 10, color: sub }}>laba {fmtRp(m.estimasi_laba)} · {m.margin_laba}%</div></div>
+                          <div>
+                            <div style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{fmtRp(m.recommended_price)}</div>
+                            <div style={{ fontSize: 10, color: sub }}>laba {fmtRp(m.estimasi_laba)} · {m.margin_laba}%</div>
+                            {m.price_source && (
+                              <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 5, color: '#fff', background: m.price_source === 'pasar' ? 'var(--color-success)' : (m.price_source === 'cek' ? '#F59E0B' : 'var(--color-primary)') }}>
+                                {m.price_source === 'pasar' ? 'harga pasar' : (m.price_source === 'cek' ? 'CEK (mungkin ecer)' : 'batas untung')}
+                              </span>
+                            )}
+                          </div>
                         )) : '—'}
                       </td>
                       <td style={{ padding: '9px 12px' }}>

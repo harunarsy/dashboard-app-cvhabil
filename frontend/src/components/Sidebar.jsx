@@ -207,7 +207,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.62.1-stable";
+  const appVersion = "v1.63.0-stable";
   const TooltipButton = ({
     label,
     children,

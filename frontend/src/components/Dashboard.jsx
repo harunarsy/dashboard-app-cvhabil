@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.62.1-stable",
+    version: "v1.63.0-stable",
     date: "13 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "feature",
+        text: "Harga jual sekarang berbasis PASAR + riset penarikan: sistem menambang harga jual aktual dari semua penarikan Shopee & TikTok (April–Juli) sebagai jangkar 'harga yang terbukti laku', lalu menyarankan harga yang kompetitif TAPI tetap untung. Untung minimal diturunkan jadi ~3rb (operasional) supaya harga bisa bersaing (bukan margin gemuk). Bundle boleh untung lebih tebal (ada voucher). Tiap saran ditandai sumbernya: 'harga pasar' (kompetitif, sudah untung), 'batas untung' (dinaikkan karena rugi), atau 'CEK (mungkin ecer)' untuk yang harganya jauh di bawah modal (biasanya varian ecer/salah match — jangan langsung dipakai). Semua toko sudah diisi otomatis.",
+        dev: "Backend recommendMarket(anchor, bundleQty): anchor = market_price (median harga jual historis per SKU) atau current_price. anchor≥floor→'pasar'; anchor≥bep×0.6→'floor' (target laba FLOOR 3rb, bundle 12%); else 'cek' (pertahankan anchor). Kolom market_price/price_source. Script mining Order.all[18] + Semua pesanan (SubtotalAfterDisc/qty) → 80 SKU. Excel per-toko diregenerate.",
+      },
+    ],
+  },
+  {
+    version: "v1.62.1-stable",
+    date: "13 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

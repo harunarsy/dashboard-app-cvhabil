@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.63.0-stable] - 2026-07-13
+
+### Ditambahkan (Harga market-anchored)
+- **Riset harga dari penarikan**: tambang harga jual aktual semua export Shopee `Order.all` (kolom Harga Setelah Diskon) + TikTok `Semua pesanan` (SKU Subtotal After Discount / qty), April–Juli, semua toko → median per SKU (`market_price`) sebagai jangkar "harga terbukti laku".
+- **Rekomendasi kompetitif**: `recommendMarket(anchor, bundleQty)` — anchor≥floor → pakai harga pasar (jangan naikkan); anchor≥BEP×0.6 → naikkan ke `floor`; else `cek` (pertahankan, curiga ecer/salah match). Floor laba operasional diturunkan **5rb → 3rb**; bundle target 12% (boleh margin tebal karena voucher).
+- **Label sumber harga** di UI + Excel: `pasar` / `floor` (batas untung) / `cek` (mungkin ecer).
+- Kolom `market_price`, `price_source`. Semua toko diisi otomatis (`recommended_price` + `final_price`). Excel per-toko diregenerate dengan kolom Harga Historis + Sumber.
+
 ## [v1.62.1-stable] - 2026-07-13
 
 ### Diperbaiki
