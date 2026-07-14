@@ -357,6 +357,20 @@ export const ledgerAPI = {
   create: (data) => api.post('/ledger', data),
   update: (id, data) => api.put(`/ledger/${id}`, data),
   remove: (id) => api.delete(`/ledger/${id}`),
+  // v1.64.0 Buku Besar 2.0
+  importRows: (rows) => api.post('/ledger/import', { rows }),
+  bulkCategory: (data) => api.patch('/ledger/bulk-category', data),
+  getMonthlyReport: (month) => api.get('/ledger/monthly-report', { params: { month } }),
+  getTargets: () => api.get('/ledger/targets'),
+  saveTarget: (data) => api.post('/ledger/targets', data),
+  getEmployees: () => api.get('/ledger/employees'),
+  saveEmployee: (data) => api.post('/ledger/employees', data),
+  getSalaries: (month) => api.get('/ledger/salaries', { params: month ? { month } : {} }),
+  saveSalary: (data) => api.post('/ledger/salaries', data),
+  removeSalary: (id) => api.delete(`/ledger/salaries/${id}`),
+  getLoans: () => api.get('/ledger/loans'),
+  saveLoan: (data) => api.post('/ledger/loans', data),
+  removeLoan: (id) => api.delete(`/ledger/loans/${id}`),
 };
 
 export const printSettingsAPI = {

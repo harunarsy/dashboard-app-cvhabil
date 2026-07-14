@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.63.2-stable",
+    version: "v1.64.0-stable",
     date: "14 Juli 2026",
     status: "latest",
+    changes: [
+      {
+        type: "feature",
+        text: "Buku Besar 2.0 + menu Karyawan aktif (khusus Direktur) — pembukuan Excel pindah ke aplikasi. (1) 1.218 mutasi rekening BCA Jan–Juni 2026 sudah diimpor; 782 terkategori otomatis (belajar dari catatan lamamu + aturan pintar), sisanya tinggal dipilih kategorinya di Jurnal (ada filter 'Perlu review' + centang banyak baris sekaligus). (2) Tab Laporan Bulanan: laba kotor otomatis dialokasikan ke amplop (GAJI/MODAL/BENSIN/OPERASIONAL/LISTRIK/DARURAT) sesuai persen target, dikurangi pengeluaran aktual, sisa nyambung berantai ke bulan berikutnya — persis metode Excel, terpisah PPN vs Non-PPN (dus lipat), plus pembanding laba versi sistem. (3) Tab Hutang Piutang di luar transaksi per orang dengan saldo berjalan (36 catatan terimpor). (4) Menu Karyawan: 8 karyawan + 464 riwayat gaji terimpor, bisa catat gaji harian.",
+        dev: "backend/routes/ledger.js: kolom tax_scope/source/bank_ref(unique)/needs_review/auto_cat; tabel ledger_budget_targets, salary_payments, personal_loans; employees lama ditambal ALTER (role/daily_wage/active) + fix sequence. Endpoint /import (dedup bank_ref + autoCategorize rules), /bulk-category, /monthly-report (rantai carry-over per amplop, scope ppn/non_ppn, pembanding recompute nota via hppSqlForSalesItem), CRUD targets/employees/salaries/loans. Backfill: pdfplumber parse 6 e-statement (1.218 mutasi), label learning dari Excel L-S (402 label), LABA rows Excel + synthetic engine Apr–Jun. Frontend: LedgerPage 4 tab + EmployeesPage baru + route /employees + sidebar Karyawan aktif.",
+      },
+    ],
+  },
+  {
+    version: "v1.63.2-stable",
+    date: "14 Juli 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",

@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.64.0-stable] - 2026-07-14
+
+### Ditambahkan — Buku Besar 2.0 + Karyawan (Direktur-only)
+- **Import mutasi bank**: `POST /ledger/import` (dedup `bank_ref` unique, auto-kategori rules: AIRPAY→KULAK, ENSEVAL/ANTARMITRA→KULAK, GAJI/BENSIN/PLN/INTERNET/PAJAK/ADM dst; gagal tebak → `needs_review`). Backfill 1.218 mutasi e-statement BCA Jan–Jun 2026 (parse pdfplumber): 180 kategori dari label Excel user (match tanggal+nominal), 602 dari rules, 436 review.
+- **Jurnal**: filter bulan / cari / "Perlu review", kategori inline per baris, bulk-select → `PATCH /ledger/bulk-category`. Kolom baru `tax_scope` (ppn/non_ppn), `source`, `auto_cat`.
+- **Laporan Bulanan (amplop)**: `GET /ledger/monthly-report?month=` — laba kotor (entri LABA KOTOR PENJUALAN) × pct per amplop (`ledger_budget_targets`, seed dari blok April Excel: GAJI 60%, MODAL 11%, BENSIN 4%, OPERASIONAL 11%, LISTRIK AIR INTERNET 4%, DARURAT 10%) − pengeluaran aktual + carry-over berantai antar bulan; scope PPN vs Non-PPN (dus lipat); pembanding laba nota sistem (recompute `hppSqlForSalesItem`). LABA Apr–Jun disuntik dari engine marketplace (ditandai, bisa dikoreksi).
+- **Hutang Piutang di luar transaksi** (`personal_loans`): per orang, + pinjam / − cicil, saldo berjalan; 36 baris Excel terimpor. Tab di Buku Besar.
+- **Karyawan** (menu aktif, route `/employees`): master karyawan + `salary_payments`; 8 karyawan + 464 pembayaran gaji 2025–2026 terimpor dari sheet GAJI KARYAWAN. Tabel `employees` lama ditambal (role/daily_wage/active + fix sequence + unique name); dummy lama dinonaktifkan.
+
 ## [v1.63.2-stable] - 2026-07-14
 
 ### Ditambahkan / Diperbaiki (tab Produk & Harga)

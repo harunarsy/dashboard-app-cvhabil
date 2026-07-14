@@ -32,6 +32,7 @@ const OnlineStoreDashboard = lazy(
   () => import("./components/OnlineStoreDashboard"),
 );
 const LedgerPage = lazy(() => import("./components/LedgerPage"));
+const EmployeesPage = lazy(() => import("./components/EmployeesPage"));
 const PriceListPage = lazy(() => import("./components/PriceListPage"));
 const PrintSettings = lazy(() => import("./components/PrintSettings"));
 const FinancePage = lazy(() => import("./components/FinancePage"));
@@ -214,6 +215,7 @@ function AppRoutes({
           element={wrap(OnlineStoreDashboard, "Toko Online")}
         />
         <Route path="/ledger" element={wrap(LedgerPage, "Buku Besar")} />
+        <Route path="/employees" element={wrap(EmployeesPage, "Karyawan")} />
         <Route
           path="/price-list"
           element={wrap(PriceListPage, "Daftar Harga")}
