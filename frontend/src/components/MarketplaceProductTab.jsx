@@ -153,28 +153,53 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
 
   const keyOf = (r) => r.excelRow ?? r._key ?? r.match_key;
 
-  // Autosave 1 baris (debounce 600ms) → simpan ke DB + hitung ulang matched (laba/rekomendasi).
-  const autosave = (row, patch) => {
+  // Autosave 1 baris (debounce 600ms). updateMatched=true HANYA saat HPP berubah (perlu hitung ulang);
+  // edit harga/stok tidak me-render ulang tabel → ketik lancar, tak lag/"gabisa diedit".
+  const autosave = (row, patch, updateMatched = false) => {
     if (!storeId) return;
     const key = row.match_key;
     clearTimeout(saveTimers.current[key]);
     saveTimers.current[key] = setTimeout(async () => {
       try {
         const { data } = await marketplaceAPI.updateListing({ store_id: storeId, match_key: row.match_key, ...patch });
-        if (data.matched) setRows((prev) => prev.map((r) => r.match_key === row.match_key ? { ...r, matched: data.matched } : r));
-      } catch (_) { /* diam; tetap tersimpan lokal */ }
+        if (updateMatched && data.matched) setRows((prev) => prev.map((r) => r.match_key === row.match_key ? { ...r, matched: data.matched } : r));
+      } catch (_) { /* diam; nilai tetap tersimpan lokal */ }
     }, 600);
   };
 
   const setFinal = (r, field, val) => {
     setFinals((f) => ({ ...f, [keyOf(r)]: { ...f[keyOf(r)], [field]: val } }));
-    autosave(r, field === 'price' ? { final_price: val } : { final_stock: val });
+    autosave(r, field === 'price' ? { final_price: val } : { final_stock: val }, false);
   };
 
-  // HPP override per-listing (koreksi manual / batch baru) — autosave + recompute.
+  // HPP override per-listing (koreksi manual / batch baru) — autosave + recompute matched.
   const setHppOverride = (r, val) => {
     setRows((prev) => prev.map((x) => x.match_key === r.match_key && x.matched ? { ...x, matched: { ...x.matched, hpp_incl: val === '' ? x.matched.hpp_incl : Math.round(Number(val)) } } : x));
-    autosave(r, { hpp_override: val });
+    autosave(r, { hpp_override: val }, true);
+  };
+
+  // Pembulatan psikologis (mirror pricingEngine) — ke atas, berakhiran …900.
+  const psychoRound = (p) => {
+    let v = Math.max(0, Math.round(p)); if (v <= 0) return 0;
+    if (v <= 100) return Math.ceil(v / 100) * 100;
+    let step; let end;
+    if (v <= 20000) { step = 1000; end = 900; } else if (v <= 100000) { step = 5000; end = 4900; } else { step = 10000; end = 9900; }
+    let c = Math.floor(v / step) * step + end; while (c < v) c += step; return c;
+  };
+  // Set harga final dari target margin % (kayak di nota): harga = HPP / (1 − fee% − margin%), lalu
+  // dibulatkan psikologis biar rapi (…900) — "auto pendekatan" kalau angkanya random.
+  const applyMargin = (r, pct) => {
+    const m = r.matched; if (!m || m.no_hpp) return;
+    const fee = (m.fee_rate || 0) / 100; const marg = (parseFloat(pct) || 0) / 100;
+    const denom = 1 - fee - marg; if (denom <= 0.02) return flash('Margin terlalu besar untuk fee ini');
+    setFinal(r, 'price', psychoRound(m.hpp_bundle / denom));
+  };
+  // Band cepat: bawah=batas untung (floor), tengah=rekomendasi, atas=margin sehat (~18%).
+  const applyBand = (r, band) => {
+    const m = r.matched; if (!m || m.no_hpp) return;
+    if (band === 'bawah') setFinal(r, 'price', m.harga_floor || m.recommended_price);
+    else if (band === 'tengah') setFinal(r, 'price', m.recommended_price);
+    else applyMargin(r, 18);
   };
 
   // Laba live pada harga yang diketik (mode fee efektif: net = harga×(1−fee), fixed fee = 0).
@@ -372,6 +397,14 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
                       <td style={{ padding: '9px 12px' }}>
                         <input type="number" value={finals[k]?.price ?? ''} onChange={(e) => setFinal(r, 'price', e.target.value)} style={{ ...inputStyle, width: 100 }} />
                         {(() => { const lp = liveProfit(finals[k]?.price, m); return lp ? <div style={{ fontSize: 10, marginTop: 3, color: lp.laba < 0 ? 'var(--color-danger)' : 'var(--color-success)', whiteSpace: 'nowrap' }}>laba {fmtRp(lp.laba)} · {lp.margin}%</div> : null; })()}
+                        {m && !m.no_hpp && (
+                          <div style={{ display: 'flex', gap: 3, marginTop: 4, alignItems: 'center' }}>
+                            <input type="number" placeholder="%" title="Ketik target margin %, Enter → harga otomatis (dibulatkan rapi)" defaultValue="" onKeyDown={(e) => { if (e.key === 'Enter') { applyMargin(r, e.target.value); } }} onBlur={(e) => { if (e.target.value !== '') applyMargin(r, e.target.value); }} style={{ ...inputStyle, width: 40, padding: '4px 5px', fontSize: 11 }} />
+                            <button onClick={() => applyBand(r, 'bawah')} title="Batas untung (paling murah, masih untung)" className="ui-focus-ring" style={{ width: 22, height: 24, borderRadius: 6, border: `1px solid ${border}`, background: 'transparent', color: sub, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>↧</button>
+                            <button onClick={() => applyBand(r, 'tengah')} title="Harga rekomendasi" className="ui-focus-ring" style={{ width: 22, height: 24, borderRadius: 6, border: `1px solid ${border}`, background: 'transparent', color: 'var(--color-primary)', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>=</button>
+                            <button onClick={() => applyBand(r, 'atas')} title="Margin sehat (~18%)" className="ui-focus-ring" style={{ width: 22, height: 24, borderRadius: 6, border: `1px solid ${border}`, background: 'transparent', color: 'var(--color-success)', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>↥</button>
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '9px 12px' }}><input type="number" value={finals[k]?.stock ?? ''} onChange={(e) => setFinal(r, 'stock', e.target.value)} style={{ ...inputStyle, width: 76 }} /></td>
                     </tr>

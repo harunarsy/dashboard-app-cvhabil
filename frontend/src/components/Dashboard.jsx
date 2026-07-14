@@ -39,9 +39,21 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.63.2-stable",
+    date: "14 Juli 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Set harga jauh lebih cepat di tab Produk & Harga: (1) di bawah Harga Final ada kotak '%' — ketik target margin (mis. 5), tekan Enter, harga langsung dihitung & dibulatkan rapi (…900). (2) 3 tombol cepat: ↧ batas untung (paling murah tapi masih untung), = harga rekomendasi, ↥ margin sehat ~18%. (3) Mengetik harga/stok kini lancar tanpa nge-lag — sebelumnya tiap ketik berat & bikin input serasa 'gabisa diedit'.",
+        dev: "Backend /listing-update: recompute matched HANYA saat hpp_override berubah, pakai loadOneProduct(id) (bukan loadProducts) → ringan. Frontend autosave harga/stok tak setRows (no re-render tabel). applyMargin(pct)=HPP/(1−fee−margin) + psychoRound; applyBand(bawah=harga_floor/tengah=recommended/atas=18%).",
+      },
+    ],
+  },
+  {
     version: "v1.63.1-stable",
     date: "13 Juli 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "feature",

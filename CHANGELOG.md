@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.63.2-stable] - 2026-07-14
+
+### Ditambahkan / Diperbaiki (tab Produk & Harga)
+- **Input margin % + band cepat** di kolom Harga Final (seperti nota): ketik target margin → `harga = HPP/(1−fee−margin)` lalu `psychoRound` (…900). Tombol ↧ (batas untung/`harga_floor`) · = (rekomendasi) · ↥ (margin sehat ~18%).
+- **Fix lag "gabisa diedit" + timeout saat simpan**: `/listing-update` kini recompute hanya saat HPP override berubah, pakai `loadOneProduct(id)` (bukan `loadProducts` semua produk). Autosave harga/stok tidak me-render ulang tabel → ketik lancar.
+
 ## [v1.63.1-stable] - 2026-07-13
 
 ### Ditambahkan

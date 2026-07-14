@@ -170,6 +170,18 @@ const loadProducts = async () => {
 // laku, atau harga listing sekarang). Kalau jangkar itu masih untung ≥ FLOOR operasional → pakai
 // (jangan naikin, biar bersaing). Kalau jangkar rugi/di bawah floor → baru naik ke harga floor.
 // anchorPrice = market_price (historis) atau current_price.
+// Ambil SATU produk + stok + batch FEFO (buat autosave HPP — jauh lebih ringan dari loadProducts).
+const loadOneProduct = async (id) => {
+  const { rows: [p] } = await pool.query(`
+    SELECT pm.id, pm.name, pm.code, pm.hna, pm.base_unit, pm.pack_size,
+           COALESCE(st.stock, 0) AS stock, fefo.hna AS fefo_hna, fefo.tax_type AS fefo_tax, fefo.ppn_rate AS fefo_ppn
+    FROM product_master pm
+    LEFT JOIN (SELECT product_id, SUM(qty_current) AS stock FROM inventory_batches WHERE is_active = TRUE AND qty_current > 0 GROUP BY product_id) st ON st.product_id = pm.id
+    LEFT JOIN LATERAL (SELECT hna, tax_type, ppn_rate FROM inventory_batches WHERE product_id = pm.id AND is_active = TRUE AND qty_current > 0 ORDER BY expired_date ASC NULLS LAST, id ASC LIMIT 1) fefo ON TRUE
+    WHERE pm.id = $1`, [id]);
+  return p || null;
+};
+
 const recommendMarket = (hppTotal, platform, categoryKey, feeProfiles, anchorPrice, bundleQty) => {
   const base = {
     hpp_per_unit: hppTotal, qty_bundle: 1,
@@ -484,13 +496,15 @@ router.post('/listing-update', auth, async (req, res) => {
       `UPDATE marketplace_listings SET ${sets.join(', ')} WHERE store_id=$${storeIdx} AND match_key=$${keyIdx} RETURNING *`, vals);
     if (!l) return res.status(404).json({ error: 'Listing tidak ditemukan.' });
 
+    // Recompute matched HANYA saat HPP override berubah (butuh hitung ulang harga). Edit harga/stok
+    // saja tidak perlu — hemat query & tak me-render ulang tabel di frontend (fix lag "gabisa diedit").
     let matched = null;
-    if (l.matched_product_id) {
-      const [products, { rows: fp }, { rows: [store] }] = await Promise.all([
-        loadProducts(), pool.query('SELECT * FROM marketplace_fee_profiles WHERE active = TRUE'),
+    const hppChanged = Object.prototype.hasOwnProperty.call(b, 'hpp_override');
+    if (hppChanged && l.matched_product_id) {
+      const [prod, { rows: fp }, { rows: [store] }] = await Promise.all([
+        loadOneProduct(l.matched_product_id), pool.query('SELECT * FROM marketplace_fee_profiles WHERE active = TRUE'),
         pool.query('SELECT platform FROM marketplace_stores WHERE id = $1', [storeId]),
       ]);
-      const prod = products.find((p) => p.id === l.matched_product_id);
       if (prod && store) {
         const feeParsed = fp.map((p) => ({ ...p, admin_rate: parseFloat(p.admin_rate), service_rate: parseFloat(p.service_rate), fixed_order_fee: parseFloat(p.fixed_order_fee), safe_effective_fee_rate: parseFloat(p.safe_effective_fee_rate) }));
         const anchor = l.market_price != null ? l.market_price : l.current_price;
