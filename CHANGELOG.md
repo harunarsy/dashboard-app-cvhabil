@@ -2,6 +2,22 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.64.1-stable] - 2026-07-27
+
+### Diperbaiki — nomor batch di nota tidak ikut terupdate
+- **Akar masalah ganda.** (1) `PUT /inventory/batches/:id` hanya meng-update `inventory_batches.batch_no`; nota menyimpan salinan teks sendiri di `sales_items.batch_no_snapshot` dan query GET nota (`json_agg(i)`) mengembalikannya tanpa join ke batch hidup. (2) Lebih parah: di `PUT /sales/:id`, loop "kunci HPP" v1.59.1 me-restore `batch_no_snapshot`/`expired_date_snapshot` LAMA setelah re-insert — jadi menyimpan ulang nota justru **mengembalikan** typo, dan nota lama ber-snapshot `NULL` dipaksa `NULL` terus.
+- **Fix**: loop kunci HPP sekarang hanya mengunci `batch_id_snapshot` + field HPP; teks batch/ED diambil ulang dari batch hidup lewat `batch_id`. Ditambah propagasi di `PUT /inventory/batches/:id` → `sales_items` yang `batch_id_snapshot`-nya cocok, jadi pembetulan typo batch langsung menyembuhkan semua nota lama.
+- **Data**: 17 dari 315 baris `sales_items` terlanjur salah (11 teks basi, 6 kosong) diperbaiki sekali jalan dalam satu transaksi ber-invarian (jumlah baris & total laba kotor wajib tidak berubah). Backup + skrip rollback di `backend/backups/`. `batch_id_snapshot` terverifikasi 100% sehat — 0 yatim, jadi stok/HPP/laba tidak pernah terpengaruh.
+
+### Diperbaiki — saran "harga biasanya" memunculkan angka ganjil
+- `insights.js` `/baselines/sales` dulu memakai `AVG(price)` 180 hari. Satu diskon sekali mencemari saran selamanya: Bu Ling 18× di 105.000 + 1× 103.000 → saran 104.895.
+- Sekarang memakai **modus dari 8 transaksi terakhir** (`RECENT_PRICE_WINDOW`), bukan rata-rata seluruh riwayat. Diskon sesekali kalah suara, tapi perubahan harga sungguhan tetap terbaca dalam beberapa nota — modus dari seluruh 180 hari akan membekukan harga usang.
+- Response menambah `price_usual` (dipakai UI), `price_mode`, `price_mode_n`, `price_window_n`, `price_last`; `price_mean` dipertahankan untuk kompatibilitas.
+
+### Diperbaiki — test suite
+- `Dashboard.test.js` mem-mock `insightsAPI` tanpa `getRestock`/`getDormant` dan tanpa `loansAPI` → 1 suite merah walau produksi sehat. CRA memasang `resetMocks: true`, jadi implementasi default harus dipasang di `beforeEach`, bukan di factory `jest.mock()`.
+- `CI=true npm test` sekarang **5/5 suite, 10/10 test hijau** (sebelumnya 1 gagal).
+
 ## [v1.64.0-stable] - 2026-07-14
 
 ### Ditambahkan — Buku Besar 2.0 + Karyawan (Direktur-only)
@@ -2554,7 +2570,7 @@ Toast notifications — durasi terlalu singkat, glass effect kurang impactful.
 ### Added
 
 - **Local Data Sync Utility**: Menambahkan `backend/scripts/sync-to-local.sh` untuk melakukan kloning data dari Supabase ke environment lokal MacBook.
-- **Auto-Restore from Backup**: Melakukan restorasi data otomatis dari `cloud_migration_backup.sql` untuk memastikan login (`admin` / `<password-dihapus-dari-riwayat>`) dan data dashboard (37+ produk) langsung aktif di lokal.
+- **Auto-Restore from Backup**: Melakukan restorasi data otomatis dari `cloud_migration_backup.sql` untuk memastikan login (`admin` / `<password-lihat-CREDENTIALS.local.md>`) dan data dashboard (37+ produk) langsung aktif di lokal.
 
 ## [1.1.5] - 2026-03-12
 

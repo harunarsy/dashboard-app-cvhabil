@@ -229,7 +229,7 @@ export default function MasterSelect({
               }}
             />
             {query && (
-              <span onClick={() => setQuery('')} aria-label="Hapus pencarian" role="button" tabIndex={0} style={{ cursor: 'pointer' }}>
+              <span onClick={() => setQuery('')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setQuery(''); } }} aria-label="Hapus pencarian" role="button" tabIndex={0} style={{ cursor: 'pointer' }}>
                 <X size={13} color={muted} />
               </span>
             )}

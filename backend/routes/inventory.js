@@ -519,6 +519,21 @@ router.put('/batches/:id', auth, async (req, res) => {
         [after.id, after.product_id, JSON.stringify(changes), req.user?.id || null]
       ).catch((e) => console.error('batch_audit_log edit:', e.message));
     }
+    // v1.64.1: nota menyimpan salinan teks batch (sales_items.batch_no_snapshot).
+    // Kalau batch_no/ED dibetulkan di sini (mis. typo '2651103GU' → '26S1103GU'),
+    // nota lama harus ikut benar — kalau tidak, nota selamanya menampilkan typo.
+    // Hanya baris yang memang menunjuk batch ini (batch_id_snapshot) yang disentuh.
+    if (changes.batch_no || changes.expired_date) {
+      const { rowCount: syncedRows } = await pool.query(
+        `UPDATE sales_items
+            SET batch_no_snapshot = $1, expired_date_snapshot = $2
+          WHERE batch_id_snapshot = $3
+            AND (COALESCE(batch_no_snapshot,'') IS DISTINCT FROM COALESCE($1::varchar,'')
+                 OR expired_date_snapshot IS DISTINCT FROM $2::date)`,
+        [after.batch_no || null, after.expired_date || null, after.id]
+      );
+      if (syncedRows) console.log(`[inventory] batch ${after.id} disinkron ke ${syncedRows} baris nota`);
+    }
     if (global.io) global.io.emit('inventoryBatchUpdated', { product_id: after.product_id, batch_id: after.id });
     res.json(after);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -567,6 +582,9 @@ router.post('/batches/:id/adjust', auth, async (req, res) => {
   const { new_qty, reason } = req.body;
   if (new_qty === undefined || new_qty === null || isNaN(parseInt(new_qty))) {
     return res.status(400).json({ error: 'new_qty wajib (angka)' });
+  }
+  if (parseInt(new_qty) < 0) {
+    return res.status(400).json({ error: 'Stok tidak boleh negatif' });
   }
   if (!reason?.trim()) return res.status(400).json({ error: 'Alasan adjustment wajib' });
   const client = await pool.connect();

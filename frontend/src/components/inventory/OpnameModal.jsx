@@ -23,6 +23,7 @@ import {
 import { inventoryAPI, printSettingsAPI } from "../../services/api";
 import BatchFormModal from "./BatchFormModal";
 import BarcodeScanner from "../common/BarcodeScanner";
+import ConfirmModal from "../common/ConfirmModal";
 import { UI_MOTION, uiTransition } from "../../constants/ui";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
@@ -77,6 +78,8 @@ export default function OpnameModal({
   const [adjustFor, setAdjustFor] = useState(null);
   const [adjustForm, setAdjustForm] = useState({ new_qty: 0, reason: "" });
   const [actionError, setActionError] = useState("");
+  // AUDIT-UX-03: batch menunggu konfirmasi hapus lewat ConfirmModal (bukan window.confirm)
+  const [deleteBatchConfirm, setDeleteBatchConfirm] = useState(null);
   // v1.10.5: edit kode produk inline saat opname
   const [editingCode, setEditingCode] = useState(false);
   const [codeInput, setCodeInput] = useState("");
@@ -225,13 +228,13 @@ export default function OpnameModal({
     }
   }, []);
 
-  const handleDelete = async (batch) => {
-    if (
-      !window.confirm(
-        `Hapus batch "${batch.batch_no || "(tanpa no)"}"?${batch.qty_current > 0 ? ` Sisa stok ${batch.qty_current} akan di-nol-kan & dihapus.` : ""}`,
-      )
-    )
-      return;
+  // AUDIT-UX-03: hapus batch (apalagi yang masih ber-stok = nol-kan uang) lewat
+  // ConfirmModal, bukan window.confirm yang gampang ke-Enter tanpa kebaca.
+  const handleDelete = (batch) => setDeleteBatchConfirm(batch);
+  const executeDeleteBatch = async () => {
+    if (!deleteBatchConfirm) return;
+    const batch = deleteBatchConfirm;
+    setDeleteBatchConfirm(null);
     setActionError("");
     try {
       await inventoryAPI.deleteBatch(batch.id);
@@ -611,7 +614,7 @@ export default function OpnameModal({
                       padding: "10px 14px",
                       textAlign: "left",
                       background: isHighlighted
-                        ? "var(--color-success)22"
+                        ? "color-mix(in srgb, var(--color-success) 13%, transparent)"
                         : isSelected
                           ? "var(--color-primary-soft)"
                           : "transparent",
@@ -624,7 +627,7 @@ export default function OpnameModal({
                       alignItems: "center",
                       gap: "8px",
                       boxShadow: isHighlighted
-                        ? "inset 0 0 0 1px var(--color-success)66"
+                        ? "inset 0 0 0 1px color-mix(in srgb, var(--color-success) 40%, transparent)"
                         : "none",
                       transition: `${uiTransition("background", UI_MOTION.duration.base)}, ${uiTransition("box-shadow", UI_MOTION.duration.base)}`,
                     }}
@@ -1013,7 +1016,8 @@ export default function OpnameModal({
                               style={{
                                 ...iconBtnStyle,
                                 color: "var(--color-danger)",
-                                borderColor: "var(--color-danger)33",
+                                borderColor:
+                                  "color-mix(in srgb, var(--color-danger) 20%, transparent)",
                               }}
                             >
                               <Trash2 size={13} />
@@ -1493,6 +1497,24 @@ export default function OpnameModal({
           onScan={handleScanProduct}
         />
       )}
+
+      {/* AUDIT-UX-03: Delete Batch Confirm Modal — ganti window.confirm */}
+      <ConfirmModal
+        isOpen={!!deleteBatchConfirm}
+        onClose={() => setDeleteBatchConfirm(null)}
+        onConfirm={executeDeleteBatch}
+        title="Hapus Batch"
+        message={
+          deleteBatchConfirm
+            ? `Hapus batch "${deleteBatchConfirm.batch_no || "(tanpa no)"}"?${
+                deleteBatchConfirm.qty_current > 0
+                  ? ` Sisa stok ${deleteBatchConfirm.qty_current} akan di-nol-kan & dihapus.`
+                  : ""
+              }`
+            : ""
+        }
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
   return typeof document === "undefined"

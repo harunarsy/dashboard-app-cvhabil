@@ -24,8 +24,8 @@ Credential lokal/dev yang harus stabil:
 
 | Role | Username | Password |
 | --- | --- | --- |
-| Direktur | `direktur` | `<password-dihapus-dari-riwayat>` |
-| Admin | `admin` | `<password-dihapus-dari-riwayat>` |
+| Direktur | `direktur` | `<password-lihat-CREDENTIALS.local.md>` |
+| Admin | `admin` | `<password-lihat-CREDENTIALS.local.md>` |
 
 Jika DB lokal/dev kosong, jalankan aplikasi backend normal agar seed auth membuat user default. Jika login gagal saat smoke, cek dulu backend target dan `DATABASE_URL` yang dipakai, bukan langsung mengubah data prod.
 

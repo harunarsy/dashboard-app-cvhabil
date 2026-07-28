@@ -10,6 +10,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## Cara kerja di project ini
+
+**Opus = mandor, Sonnet/Haiku = pelaksana.** Untuk perintah apa pun — termasuk sekadar
+pengecekan — pecah tugasnya lalu delegasikan ke subagent murah (`model: "haiku"` untuk kerja
+mekanis, `"sonnet"` untuk yang butuh penilaian). Opus hanya memecah tugas, memutuskan,
+**memverifikasi hasil subagent**, dan bicara ke Harun. Jangan teruskan laporan subagent mentah —
+selalu cek sendiri ke kode dulu. Jangan pakai Fable 5 (butuh kredit terpisah).
+
+Bagi tugas subagent **per berkas, bukan per temuan** — dua agent tidak boleh memegang file yang
+sama. Tiap subagent dilarang commit/push, dilarang menyentuh database, dan dilarang menjalankan
+build/test; mandor yang menjalankannya sekali di akhir.
+
+**`ACTION_LOG.md` di root = status pekerjaan berjalan.** Baca duluan kalau sesi terputus, dan
+perbarui tiap kali ada tahap yang berubah.
+
+---
+
 ## Commands
 
 ```bash
@@ -28,7 +45,7 @@ cd frontend && npm test
 cd frontend && npm test -- --testPathPattern=SalesOrderList
 ```
 
-**Port note**: docker-compose uses backend port `5001`; `frontend/src/services/api.js` hardcodes `localhost:5006` for local dev. If running outside Docker, start backend on 5006 or adjust `api.js`.
+**Port note**: backend runs on `5001` everywhere — `server.js` (`PORT || 5001`), `docker-compose.yml`, and the `api.js` dev fallback all agree. The old 5006 mismatch is resolved; no adjustment needed.
 
 ---
 

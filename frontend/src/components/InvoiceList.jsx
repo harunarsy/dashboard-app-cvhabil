@@ -103,20 +103,20 @@ const formatLocalDate = (dateStr, opts) => {
 // Warna per distributor — auto-assign dari palette
 const DIST_COLORS = [
   {
-    bg: "var(--color-primary)20",
-    border: "var(--color-primary)50",
+    bg: "color-mix(in srgb, var(--color-primary) 12%, transparent)",
+    border: "color-mix(in srgb, var(--color-primary) 31%, transparent)",
     text: "var(--color-primary)",
     dot: "var(--color-primary)",
   },
   {
-    bg: "var(--color-success)20",
-    border: "var(--color-success)50",
+    bg: "color-mix(in srgb, var(--color-success) 12%, transparent)",
+    border: "color-mix(in srgb, var(--color-success) 31%, transparent)",
     text: "var(--color-success)",
     dot: "var(--color-success)",
   },
   {
     bg: "var(--color-warning-soft-strong)",
-    border: "var(--color-warning)50",
+    border: "color-mix(in srgb, var(--color-warning) 31%, transparent)",
     text: "var(--color-warning)",
     dot: "var(--color-warning)",
   },
@@ -3497,7 +3497,7 @@ export default function InvoiceList({
                   };
                   const cfg = ACTION_CFG[log.action] || {
                     color: "var(--color-text-subtle)",
-                    bg: "var(--color-text-subtle)18",
+                    bg: "color-mix(in srgb, var(--color-text-subtle) 9%, transparent)",
                     label: log.action,
                     icon: "•",
                   };

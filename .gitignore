@@ -16,3 +16,14 @@ logs/
 *.log
 build/
 dist/
+
+# v1.64.1 — jangan pernah ter-push lagi (kredensial/data internal).
+# Pemicu: cloud_migration_backup.sql pernah ter-commit berisi dump DB dengan
+# password teks polos. Dump/backup DB WAJIB tinggal di lokal.
+*backup*.sql
+*dump*.sql
+cloud_migration_backup.sql
+backend/backups/
+CREDENTIALS*.md
+*_fulldiff.tmp.js
+aistudio.zip

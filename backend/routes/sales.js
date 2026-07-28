@@ -668,9 +668,12 @@ router.put('/:id', auth, async (req, res) => {
         [m.qty, m.batch_id]
       );
     }
-    // 2) Hapus mutations lama (out + nota-cancelled in) supaya gak duplicate audit trail
+    // 2) Hapus mutations lama (out + nota-cancelled in + nota-restored out) supaya gak duplicate audit trail
+    // v1.64.1: nota-restored ikut dihapus — reverse di atas sudah mengembalikan qty dari mutasi
+    // 'nota' out yang outstanding, jadi baris nota-restored jadi yatim dan bikin net restore
+    // (cancelled in - restored out) keliru kehitung 0 di edit berikutnya, stok gak kepotong ulang.
     await client.query(
-      `DELETE FROM inventory_mutations WHERE reference_type IN ('nota', 'nota-cancelled') AND reference_id = $1`,
+      `DELETE FROM inventory_mutations WHERE reference_type IN ('nota', 'nota-cancelled', 'nota-restored') AND reference_id = $1`,
       [req.params.id]
     );
 
@@ -778,10 +781,18 @@ router.put('/:id', auth, async (req, res) => {
     // v1.59.1 (bug B): kunci ulang snapshot HPP item yg TIDAK di-reprice ke nilai saat jual.
     // Item di-reprice (unit_hpp berubah, mis. via "Perbarui HPP dari batch terkini") atau item
     // baru → dibiarkan pakai snapshot fresh. Cocok by produk+unit+unit_hpp-sama.
+    // v1.64.1 (bug batch): yang dikunci HANYA identitas batch (batch_id) + angka HPP.
+    // batch_no/ED TEKS-nya diambil ulang dari batch hidup — dulu teks lama ikut
+    // di-restore, jadi typo batch yg sudah dibetulkan di Inventory balik lagi tiap
+    // nota disimpan (dan nota lama ber-snapshot NULL dipaksa NULL terus).
     for (const o of oldSnapRows) {
       await client.query(
         `UPDATE sales_items SET unit_hpp_tax_type = $1, unit_hpp_ppn_rate = $2,
-              batch_no_snapshot = $3, batch_id_snapshot = $4, expired_date_snapshot = $5
+              batch_id_snapshot = $4,
+              batch_no_snapshot = COALESCE(
+                (SELECT b.batch_no FROM inventory_batches b WHERE b.id = $4), $3::varchar),
+              expired_date_snapshot = COALESCE(
+                (SELECT b.expired_date FROM inventory_batches b WHERE b.id = $4), $5::date)
          WHERE sales_order_id = $6
            AND LOWER(TRIM(product_name)) = LOWER(TRIM($7))
            AND LOWER(TRIM(COALESCE(unit,''))) = LOWER(TRIM(COALESCE($8,'')))

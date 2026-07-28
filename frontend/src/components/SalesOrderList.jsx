@@ -39,6 +39,7 @@ import Breadcrumb from "./common/Breadcrumb";
 import NotaPreview from "./common/NotaPreview";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import Icons from "./common/Icon";
+import RupiahInput from "./common/RupiahInput";
 import { UI_MOTION, uiTransition } from "../constants/ui";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import FieldError from "./common/FieldError";
@@ -1026,6 +1027,8 @@ export default function SalesOrderList({
     });
     setItems([blankItem()]);
     setItemBatches([]);
+    setFormErrors({});
+    setSaveError("");
     setShowModal(true);
   };
 
@@ -1073,6 +1076,8 @@ export default function SalesOrderList({
       : [blankItem()];
     setItems(editItems);
     setItemBatches(editItems.map(() => []));
+    setFormErrors({});
+    setSaveError("");
     setShowModal(true);
 
     // v1.8.1: re-fetch batches per item supaya dropdown bisa render + match snapshot
@@ -1574,9 +1579,11 @@ export default function SalesOrderList({
           const batches = batchesResp.data || [];
           const tiers = tiersResp.data || [];
           updated._product = { ...match, price_tiers: tiers }; // v1.7.0: cache tiers di item
-          const newBatches = [...itemBatches];
-          newBatches[idx] = batches;
-          setItemBatches(newBatches);
+          setItemBatches((prev) => {
+            const n = [...prev];
+            n[idx] = batches;
+            return n;
+          });
           // Auto-select FEFO (batch in-stock ED terdekat; fallback batch pertama)
           const fefo = pickFefoBatch(batches);
           if (fefo) {
@@ -1596,9 +1603,11 @@ export default function SalesOrderList({
         }
       } else {
         // Clear batch list when product name doesn't match
-        const newBatches = [...itemBatches];
-        newBatches[idx] = [];
-        setItemBatches(newBatches);
+        setItemBatches((prev) => {
+          const n = [...prev];
+          n[idx] = [];
+          return n;
+        });
         updated._product = null;
       }
     }
@@ -1678,8 +1687,7 @@ export default function SalesOrderList({
       }
     }
 
-    newItems[idx] = updated;
-    setItems(newItems);
+    setItems((prev) => prev.map((it, i) => (i === idx ? updated : it)));
   };
 
   const productSubtotal = items.reduce(
@@ -2775,7 +2783,7 @@ export default function SalesOrderList({
                         backgroundColor: selectedNotaIds.has(o.id)
                           ? isDarkMode
                             ? "var(--color-primary-soft)"
-                            : "var(--color-primary)08"
+                            : "color-mix(in srgb, var(--color-primary) 3%, transparent)"
                           : "transparent",
                       }}
                       onClick={() =>
@@ -2818,7 +2826,7 @@ export default function SalesOrderList({
                             backgroundColor:
                               o.channel === "online"
                                 ? "var(--color-primary-soft)"
-                                : "var(--color-text-subtle)15",
+                                : "color-mix(in srgb, var(--color-text-subtle) 8%, transparent)",
                             color:
                               o.channel === "online"
                                 ? "var(--color-primary)"
@@ -4336,19 +4344,18 @@ export default function SalesOrderList({
                         </select>
                       );
                       const hppInputEl = (
-                        <input
-                          type="number"
-                          value={Math.round(hppIncFor(it))}
-                          onChange={(e) =>
+                        <RupiahInput
+                          value={hppIncFor(it)}
+                          decimals={0}
+                          onChange={(v) =>
                             updateItem(
                               idx,
                               "unit_hpp",
                               it.unit_hpp_tax_type === "nota"
-                                ? parseFloat(e.target.value) || 0
-                                : hnaFromHpp(parseFloat(e.target.value) || 0),
+                                ? v || 0
+                                : hnaFromHpp(v || 0),
                             )
                           }
-                          min="0"
                           placeholder="0"
                           aria-label="HPP"
                           title={
@@ -4369,17 +4376,10 @@ export default function SalesOrderList({
                         />
                       );
                       const priceInputEl = (
-                        <input
-                          type="number"
+                        <RupiahInput
                           value={it.unit_price}
-                          onChange={(e) =>
-                            updateItem(
-                              idx,
-                              "unit_price",
-                              parseFloat(e.target.value) || 0,
-                            )
-                          }
-                          min="0"
+                          decimals={0}
+                          onChange={(v) => updateItem(idx, "unit_price", v || 0)}
                           placeholder="0"
                           aria-label="Harga"
                           style={{
@@ -4400,7 +4400,12 @@ export default function SalesOrderList({
                               background: "none",
                               border: "none",
                               cursor: "pointer",
-                              padding: 0,
+                              padding: "8px",
+                              minWidth: "36px",
+                              minHeight: "36px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
                             }}
                           >
                             <Trash2 size={14} color="var(--color-danger)" />
@@ -4441,7 +4446,7 @@ export default function SalesOrderList({
                                 style={{
                                   display: "grid",
                                   gridTemplateColumns: removeBtnEl
-                                    ? "minmax(0, 1fr) 28px"
+                                    ? "minmax(0, 1fr) 36px"
                                     : "minmax(0, 1fr)",
                                   gap: "6px",
                                   alignItems: "center",
@@ -4484,7 +4489,7 @@ export default function SalesOrderList({
                               style={{
                                 display: "grid",
                                 gridTemplateColumns:
-                                  "minmax(0, 2fr) 60px 70px 80px 100px 30px",
+                                  "minmax(0, 2fr) 60px 70px 80px 100px 36px",
                                 gap: "6px",
                                 alignItems: "center",
                               }}
@@ -4788,8 +4793,11 @@ export default function SalesOrderList({
                             if (!cust) return null;
                             const key = `${(it.product_name || "").trim().toLowerCase()}||${cust.toLowerCase()}`;
                             const b = salesBaselines[key];
-                            if (!b || !b.n_samples || !b.price_mean || b.price_mean <= 0)
-                              return null;
+                            // v1.64.1: "biasanya" = modus (harga paling sering), bukan
+                            // rata-rata. price_usual dari backend; price_mean cuma cadangan
+                            // buat data lama yang belum kirim field baru.
+                            const usual = b?.price_usual ?? b?.price_mean;
+                            if (!b || !b.n_samples || !usual || usual <= 0) return null;
                             const prod =
                               it._product ||
                               products.find(
@@ -4798,7 +4806,7 @@ export default function SalesOrderList({
                               );
                             const sellUmum = parseFloat(prod?.sell_price) || 0;
                             const cur = parseFloat(it.unit_price) || 0;
-                            const rec = Math.round(b.price_mean);
+                            const rec = Math.round(usual);
                             if (rec === Math.round(cur)) return null;
                             return (
                               <div
@@ -5058,14 +5066,10 @@ export default function SalesOrderList({
                       >
                         Ongkir (ditagih ke customer)
                       </label>
-                      <input
-                        type="number"
-                        min="0"
-                        inputMode="numeric"
+                      <RupiahInput
                         value={form.ongkir}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, ongkir: e.target.value }))
-                        }
+                        decimals={0}
+                        onChange={(v) => setForm((f) => ({ ...f, ongkir: v }))}
                         placeholder="0"
                         style={inputStyle}
                       />
@@ -5082,13 +5086,11 @@ export default function SalesOrderList({
                       >
                         Biaya kurir asli (opsional)
                       </label>
-                      <input
-                        type="number"
-                        min="0"
-                        inputMode="numeric"
+                      <RupiahInput
                         value={form.ongkir_cost}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, ongkir_cost: e.target.value }))
+                        decimals={0}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, ongkir_cost: v }))
                         }
                         placeholder="0"
                         style={inputStyle}

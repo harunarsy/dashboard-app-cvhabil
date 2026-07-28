@@ -1128,26 +1128,112 @@ router.patch('/:id/payment-status', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// SOFT DELETE
+// SOFT DELETE — v1.64.1: sekarang MENARIK BALIK stok yang masuk dari faktur ini,
+// konsisten dgn perilaku hapus nota (sales.js) yang sudah lama begini. Simetris
+// dengan RESTORE di bawah lewat mutasi penanda 'faktur-cancelled'/'faktur-restored'.
 router.delete('/:id', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const snap = await client.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
-    if (snap.rows.length) {
-      await client.query(
-        `INSERT INTO invoice_audit_log (invoice_id, invoice_number, action, snapshot, note)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [req.params.id, snap.rows[0].invoice_number, 'DELETE', JSON.stringify(snap.rows[0]), '']
-      );
-    }
-    const result = await client.query(
-      'UPDATE invoices SET deleted_at = NOW() WHERE id = $1 RETURNING *', [req.params.id]
+    // v1.64.1: existence + "belum di-trash" dicek di depan (dulu baru dicek lewat
+    // hasil UPDATE di akhir) — WAJIB supaya delete dobel pada faktur yang sudah di
+    // trash tidak ikut menarik stok dua kali (mirror guard is_deleted=FALSE sales.js).
+    const snap = await client.query(
+      'SELECT * FROM invoices WHERE id = $1 AND deleted_at IS NULL', [req.params.id]
     );
-    if (!result.rows.length) {
+    if (!snap.rows.length) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Not found' });
     }
+    const invoice = snap.rows[0];
+    await client.query(
+      `INSERT INTO invoice_audit_log (invoice_id, invoice_number, action, snapshot, note)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [req.params.id, invoice.invoice_number, 'DELETE', JSON.stringify(invoice), '']
+    );
+
+    // v1.64.1 (mirror AUDIT-LS-05a): batch faktur ini sudah dipakai keluar (nota,
+    // atau mutasi 'out' lain) → tolak. Menarik stok diam-diam di sini akan membuat
+    // stok yang sudah dipakai nota jadi minus / hilang jejak.
+    // v1.64.1: kecualikan 'faktur-cancelled' — itu jejak pembatalan faktur ini SENDIRI
+    // dari soft-delete sebelumnya (siklus hapus→pulihkan→hapus lagi), bukan pemakaian
+    // nota. Tanpa pengecualian ini, faktur yang pernah di-trash lalu dipulihkan TIDAK
+    // PERNAH bisa dihapus lagi — ketolak oleh jejaknya sendiri, dengan pesan yang salah.
+    const { rows: usedOut } = await client.query(
+      `SELECT 1 FROM inventory_mutations m
+       JOIN inventory_batches b ON b.id = m.batch_id
+       WHERE b.source_ref = $1 AND m.type = 'out' AND m.reference_type <> 'faktur-cancelled'
+       LIMIT 1`,
+      [`invoice-${req.params.id}`]
+    );
+    if (usedOut.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: 'Faktur tidak bisa dihapus: stok dari faktur ini sudah terpakai di nota penjualan. Koreksi lewat Stok Opname.',
+      });
+    }
+
+    // v1.64.1: mutasi masuk faktur ini per batch (SUM jaga-jaga kalau >1 baris
+    // mutasi 'in' hinggap di batch yang sama).
+    const { rows: inMutations } = await client.query(
+      `SELECT batch_id, product_id, SUM(qty) AS qty
+       FROM inventory_mutations
+       WHERE reference_type = 'faktur' AND reference_id = $1 AND type = 'in' AND batch_id IS NOT NULL
+       GROUP BY batch_id, product_id`,
+      [req.params.id]
+    );
+
+    // v1.64.1: kunci baris batch + pastikan qty_current cukup ditarik — jangan
+    // pernah membuat qty_current negatif.
+    for (const m of inMutations) {
+      const { rows: [b] } = await client.query(
+        'SELECT qty_current FROM inventory_batches WHERE id = $1 FOR UPDATE', [m.batch_id]
+      );
+      if (!b || Number(b.qty_current) < Number(m.qty)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          error: `Faktur tidak bisa dihapus: stok batch #${m.batch_id} sudah berkurang (tersedia ${b ? b.qty_current : 0}, butuh ${m.qty}). Koreksi lewat Stok Opname.`,
+        });
+      }
+    }
+
+    // v1.64.1: tarik qty_current + catat mutasi penanda 'faktur-cancelled' (out),
+    // simetris dgn 'nota-cancelled' (in) di sales.js — dipakai RESTORE utk hitung balik.
+    for (const m of inMutations) {
+      await client.query(
+        'UPDATE inventory_batches SET qty_current = qty_current - $1 WHERE id = $2',
+        [m.qty, m.batch_id]
+      );
+      await client.query(
+        `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by)
+         VALUES ($1, $2, 'out', $3, 'faktur-cancelled', $4, $5, $6)`,
+        [m.product_id, m.batch_id, m.qty, req.params.id,
+         `Reversal dari faktur ${invoice.invoice_number} dihapus`, req.user?.id || null]
+      );
+    }
+
+    // v1.64.1 (mirror AUDIT-LS-05b): kembalikan jatah SP — qty yang ditarik dari
+    // stok harus bisa diterima ulang lewat faktur lain. Dihitung dari inMutations
+    // yang sudah dibaca di atas (tanpa query ulang, scope-nya sama).
+    const purchaseOrderId = invoice.purchase_order_id || null;
+    if (purchaseOrderId) {
+      const qtyByProduct = new Map();
+      for (const m of inMutations) {
+        qtyByProduct.set(m.product_id, (qtyByProduct.get(m.product_id) || 0) + Number(m.qty));
+      }
+      for (const [productId, qty] of qtyByProduct) {
+        await client.query(
+          `UPDATE purchase_order_items SET received_qty = GREATEST(0, received_qty - $1)
+           WHERE po_id = $2 AND product_id = $3`,
+          [qty, purchaseOrderId, productId]
+        );
+      }
+      await syncPurchaseOrderStatus(client, purchaseOrderId);
+    }
+
+    const result = await client.query(
+      'UPDATE invoices SET deleted_at = NOW() WHERE id = $1 RETURNING *', [req.params.id]
+    );
     await client.query('COMMIT');
     if (global.io) global.io.emit('invoiceDeleted', { id: req.params.id });
     res.json({ message: 'Moved to trash', invoice: result.rows[0] });
@@ -1157,16 +1243,86 @@ router.delete('/:id', auth, async (req, res) => {
   } finally { client.release(); }
 });
 
-// RESTORE
+// RESTORE — v1.64.1: dibungkus transaksi + mengembalikan stok yang ditarik saat
+// soft delete (simetris dgn DELETE di atas / pola restore nota di sales.js).
 router.put('/:id/restore', auth, async (req, res) => {
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
+    await client.query('BEGIN');
+    // v1.64.1: existence + "sedang di-trash" dicek di depan — cegah restore dobel
+    // ikut menambah stok dua kali (mirror guard is_deleted=TRUE di sales.js).
+    const { rows: [existing] } = await client.query(
+      'SELECT * FROM invoices WHERE id = $1 AND deleted_at IS NOT NULL', [req.params.id]
+    );
+    if (!existing) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    // v1.64.1: net dari mutasi penanda 'faktur-cancelled' (out, dari hapus) dikurangi
+    // 'faktur-restored' (in, dari restore sebelumnya) — HAVING > 0 supaya siklus
+    // hapus→pulihkan berkali-kali tidak dobel-hitung. Mirror pola HAVING di restore
+    // nota sales.js, arah kebalikan (di sini menambah stok balik).
+    const { rows: reversals } = await client.query(
+      `SELECT batch_id, product_id,
+         SUM(CASE WHEN reference_type = 'faktur-cancelled' AND type = 'out' THEN qty
+                  WHEN reference_type = 'faktur-restored'  AND type = 'in'  THEN -qty
+                  ELSE 0 END) AS qty
+       FROM inventory_mutations
+       WHERE reference_id = $1 AND batch_id IS NOT NULL
+         AND reference_type IN ('faktur-cancelled', 'faktur-restored')
+       GROUP BY batch_id, product_id
+       HAVING SUM(CASE WHEN reference_type = 'faktur-cancelled' AND type = 'out' THEN qty
+                       WHEN reference_type = 'faktur-restored'  AND type = 'in'  THEN -qty
+                       ELSE 0 END) > 0`,
+      [req.params.id]
+    );
+
+    // v1.64.1: tambahkan lagi qty_current + catat mutasi 'in' penanda 'faktur-restored'
+    // (reference_type beda dari 'faktur' supaya delete berikutnya tidak ikut
+    // me-reverse mutasi restore ini sendiri). Menambah stok selalu aman (tidak
+    // mungkin bikin negatif) — tidak perlu guard qty_current seperti di DELETE.
+    for (const r of reversals) {
+      await client.query(
+        'UPDATE inventory_batches SET qty_current = qty_current + $1 WHERE id = $2',
+        [r.qty, r.batch_id]
+      );
+      await client.query(
+        `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by)
+         VALUES ($1, $2, 'in', $3, 'faktur-restored', $4, $5, $6)`,
+        [r.product_id, r.batch_id, r.qty, req.params.id,
+         `Restore faktur ${existing.invoice_number} dari trash`, req.user?.id || null]
+      );
+    }
+
+    // v1.64.1: ambil lagi jatah SP yang tadi dikembalikan saat dihapus (kebalikan
+    // AUDIT-LS-05b), per product_id dari reversals yang sudah dihitung di atas.
+    const purchaseOrderId = existing.purchase_order_id || null;
+    if (purchaseOrderId) {
+      const qtyByProduct = new Map();
+      for (const r of reversals) {
+        qtyByProduct.set(r.product_id, (qtyByProduct.get(r.product_id) || 0) + Number(r.qty));
+      }
+      for (const [productId, qty] of qtyByProduct) {
+        await client.query(
+          `UPDATE purchase_order_items SET received_qty = received_qty + $1
+           WHERE po_id = $2 AND product_id = $3`,
+          [qty, purchaseOrderId, productId]
+        );
+      }
+      await syncPurchaseOrderStatus(client, purchaseOrderId);
+    }
+
+    const result = await client.query(
       'UPDATE invoices SET deleted_at = NULL WHERE id = $1 RETURNING *', [req.params.id]
     );
-    if (!result.rows.length) return res.status(404).json({ error: 'Not found' });
+    await client.query('COMMIT');
     await logAudit(req.params.id, result.rows[0].invoice_number, 'RESTORE', result.rows[0]);
     res.json({ message: 'Restored', invoice: result.rows[0] });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally { client.release(); }
 });
 
 // PERMANENT DELETE
@@ -1184,10 +1340,14 @@ router.delete('/:id/permanent', auth, async (req, res) => {
     }
     // AUDIT-LS-05a: tolak kalau batch faktur ini sudah dipakai keluar stok oleh nota —
     // menghapusnya bikin reversal edit/hapus nota jadi no-op senyap (stok hilang tanpa jejak).
+    // v1.64.1: kecualikan mutasi 'faktur-cancelled' — itu reversal milik SOFT DELETE
+    // sendiri (alur normal: faktur masuk trash dulu baru dihapus permanen), BUKAN
+    // pemakaian nota. Tanpa pengecualian ini, faktur yang sudah di-trash TIDAK PERNAH
+    // bisa dihapus permanen lagi (selalu ketolak oleh mutasi cancel miliknya sendiri).
     const { rows: usedByNota } = await client.query(
       `SELECT 1 FROM inventory_mutations m
        JOIN inventory_batches b ON b.id = m.batch_id
-       WHERE b.source_ref = $1 AND m.type = 'out'
+       WHERE b.source_ref = $1 AND m.type = 'out' AND m.reference_type <> 'faktur-cancelled'
        LIMIT 1`,
       [`invoice-${req.params.id}`]
     );
@@ -1199,13 +1359,31 @@ router.delete('/:id/permanent', auth, async (req, res) => {
     }
 
     // AUDIT-LS-05b: kembalikan room SP — stok yang dihapus harus bisa diterima ulang.
+    // v1.64.1: qty_in sekarang NET dari 'faktur' (in) dikurangi 'faktur-cancelled' (out)
+    // ditambah 'faktur-restored' (in) — bukan cuma SUM 'faktur' mentah. Alur normalnya
+    // faktur ini SUDAH di-soft-delete lebih dulu (received_qty sudah dikurangi di sana);
+    // tanpa net ini, room SP kepotong DOBEL di sini (bisa menyerobot jatah faktur lain
+    // di PO yang sama). Kalau belum pernah di-soft-delete (hapus permanen langsung),
+    // net-nya sama persis dgn SUM 'faktur' lama — perilaku lama tetap terjaga.
     const purchaseOrderId = snap.rows[0]?.purchase_order_id || null;
     if (purchaseOrderId) {
       const { rows: inMutations } = await client.query(
-        `SELECT product_id, COALESCE(SUM(qty), 0) AS qty_in
+        `SELECT product_id, COALESCE(SUM(
+           CASE WHEN reference_type = 'faktur' AND type = 'in' THEN qty
+                WHEN reference_type = 'faktur-restored' AND type = 'in' THEN qty
+                WHEN reference_type = 'faktur-cancelled' AND type = 'out' THEN -qty
+                ELSE 0 END
+         ), 0) AS qty_in
          FROM inventory_mutations
-         WHERE reference_type = 'faktur' AND reference_id = $1 AND type = 'in'
-         GROUP BY product_id`,
+         WHERE reference_id = $1
+           AND reference_type IN ('faktur', 'faktur-cancelled', 'faktur-restored')
+         GROUP BY product_id
+         HAVING COALESCE(SUM(
+           CASE WHEN reference_type = 'faktur' AND type = 'in' THEN qty
+                WHEN reference_type = 'faktur-restored' AND type = 'in' THEN qty
+                WHEN reference_type = 'faktur-cancelled' AND type = 'out' THEN -qty
+                ELSE 0 END
+         ), 0) > 0`,
         [req.params.id]
       );
       for (const m of inMutations) {
@@ -1219,8 +1397,11 @@ router.delete('/:id/permanent', auth, async (req, res) => {
     }
 
     // Clean up inventory_batches and mutations created from this invoice
+    // v1.64.1: ikut hapus mutasi penanda 'faktur-cancelled'/'faktur-restored' —
+    // kalau tidak, baris itu jadi sampah nyantol ke invoice_id yang sudah tidak ada.
     await client.query(
-      `DELETE FROM inventory_mutations WHERE reference_type = 'faktur' AND reference_id = $1`,
+      `DELETE FROM inventory_mutations
+       WHERE reference_type IN ('faktur', 'faktur-cancelled', 'faktur-restored') AND reference_id = $1`,
       [req.params.id]
     );
     await client.query(

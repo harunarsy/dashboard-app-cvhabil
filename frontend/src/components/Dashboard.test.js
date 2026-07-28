@@ -24,6 +24,13 @@ jest.mock("../services/api", () => ({
   },
   insightsAPI: {
     getWeeklySummary: jest.fn(),
+    // v1.64.1: Dashboard.jsx:4336 memanggil ketiganya lewat Promise.allSettled.
+    // Mock ini sempat ketinggalan → suite merah walau produksi sehat.
+    getRestock: jest.fn(() => Promise.resolve({ data: { items: [] } })),
+    getDormant: jest.fn(() => Promise.resolve({ data: { items: [] } })),
+  },
+  loansAPI: {
+    getAll: jest.fn(() => Promise.resolve({ data: [] })),
   },
 }));
 
@@ -59,7 +66,7 @@ import { render, screen, waitFor, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Dashboard from "./Dashboard";
-import api, { dashboardAPI, insightsAPI, tasksAPI } from "../services/api";
+import api, { dashboardAPI, insightsAPI, loansAPI, tasksAPI } from "../services/api";
 
 // Mock lucide-react broadly because Dashboard renders child widgets that import
 // many icons directly.
@@ -97,6 +104,11 @@ describe("Dashboard Component - Loading State", () => {
     api.get.mockResolvedValue({ data: [] });
     tasksAPI.getAll.mockResolvedValue({ data: [] });
     insightsAPI.getWeeklySummary.mockResolvedValue({ data: null });
+    // CRA memasang resetMocks:true → implementasi dari jest.mock() factory dihapus
+    // tiap test. Jadi default-nya HARUS dipasang di sini, bukan di factory.
+    insightsAPI.getRestock.mockResolvedValue({ data: { items: [] } });
+    insightsAPI.getDormant.mockResolvedValue({ data: { items: [] } });
+    loansAPI.getAll.mockResolvedValue({ data: [] });
     global.ResizeObserver = class {
       observe() {}
       unobserve() {}

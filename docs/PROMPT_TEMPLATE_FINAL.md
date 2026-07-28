@@ -155,5 +155,5 @@ SHUTDOWN:
 | Mau laporin bug dengan foto | Template Cepat sudah cukup |
 
 **Kredensial default** (jangan sampai agent tebak-tebak):
-- Admin   : `admin` / `<password-dihapus-dari-riwayat>`
-- Direktur: `direktur` / `<password-dihapus-dari-riwayat>`
+- Admin   : `admin` / `<password-lihat-CREDENTIALS.local.md>`
+- Direktur: `direktur` / `<password-lihat-CREDENTIALS.local.md>`

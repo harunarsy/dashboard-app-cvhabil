@@ -606,7 +606,7 @@ export default function CustomerList({
                               c.type === "reseller"
                                 ? "var(--color-warning-soft)"
                                 : c.type === "institusi"
-                                  ? "var(--color-primary-hover)18"
+                                  ? "color-mix(in srgb, var(--color-primary-hover) 9%, transparent)"
                                   : "var(--color-primary-soft)",
                             color:
                               c.type === "reseller"
@@ -918,8 +918,9 @@ export default function CustomerList({
               }}
             >
               <div>
-                <label style={labelStyle}>Nama *</label>
+                <label htmlFor="form-name" style={labelStyle}>Nama *</label>
                 <input
+                  id="form-name"
                   value={form.name}
                   onChange={(e) =>
                     setForm((p) => ({ ...p, name: e.target.value }))
@@ -931,8 +932,9 @@ export default function CustomerList({
                 />
               </div>
               <div>
-                <label style={labelStyle}>Telepon</label>
+                <label htmlFor="form-phone" style={labelStyle}>Telepon</label>
                 <input
+                  id="form-phone"
                   value={form.phone}
                   onChange={(e) =>
                     setForm((p) => ({
@@ -947,8 +949,9 @@ export default function CustomerList({
                 />
               </div>
               <div>
-                <label style={labelStyle}>Alamat</label>
+                <label htmlFor="form-address" style={labelStyle}>Alamat</label>
                 <textarea
+                  id="form-address"
                   value={form.address}
                   onChange={(e) =>
                     setForm((p) => ({ ...p, address: e.target.value }))
@@ -964,8 +967,9 @@ export default function CustomerList({
                 />
               </div>
               <div>
-                <label style={labelStyle}>Tipe</label>
+                <label htmlFor="form-type" style={labelStyle}>Tipe</label>
                 <select
+                  id="form-type"
                   value={form.type}
                   onChange={(e) =>
                     setForm((p) => ({ ...p, type: e.target.value }))

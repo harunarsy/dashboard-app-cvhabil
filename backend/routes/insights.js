@@ -476,6 +476,11 @@ router.get('/copurchase', async (req, res) => {
 });
 
 // ─── #3 Baseline anomali — penjualan (qty + harga) ───────────────────────
+// Berapa transaksi terakhir yang dipakai menghitung "harga biasanya" (modus).
+// Cukup besar supaya 1 diskon sekali tidak menang, cukup kecil supaya perubahan
+// harga sungguhan kebaca dalam beberapa nota — bukan tenggelam riwayat 180 hari.
+const RECENT_PRICE_WINDOW = 8;
+
 router.get('/baselines/sales', async (req, res) => {
   const productName = String(req.query.product_name || '').trim();
   const customerName = String(req.query.customer_name || '').trim();
@@ -487,15 +492,16 @@ router.get('/baselines/sales', async (req, res) => {
       params.push(customerName);
       custFilter = `AND LOWER(TRIM(so.customer_name)) = LOWER(TRIM($2))`;
     }
+    // v1.64.1: "biasanya" = harga yang PALING SERING dipakai (modus), bukan rata-rata.
+    // Rata-rata bikin angka ganjil yang tak pernah terjadi: Bu Ling 18× di 105.000 dan
+    // 1× diskon 103.000 → AVG 104.895. Satu diskon mencemari saran harga selamanya.
+    // price_mean tetap dikembalikan untuk kompatibilitas & pembanding.
     const { rows } = await pool.query(
       `
-        SELECT
-          COUNT(*)::int AS n,
-          AVG(q) AS qty_mean,
-          STDDEV_SAMP(q) AS qty_std,
-          AVG(price) AS price_mean
-        FROM (
+        WITH base AS (
           SELECT
+            si.id AS item_id,
+            so.sale_date,
             COALESCE(si.qty_in_unit, si.qty, 0) AS q,
             NULLIF(si.unit_price, 0) AS price
           FROM sales_items si
@@ -505,16 +511,51 @@ router.get('/baselines/sales', async (req, res) => {
             AND so.sale_date >= CURRENT_DATE - INTERVAL '180 days'
             AND LOWER(TRIM(si.product_name)) = LOWER(TRIM($1))
             ${custFilter}
-        ) t
-      `,
+        ),
+        -- Modus dihitung dari N transaksi TERAKHIR saja, bukan seluruh 180 hari.
+        -- Kalau harga benar-benar pindah (mis. TS Classic jadi 103.000 permanen),
+        -- riwayat lama tidak boleh terus menang suara dan menyarankan harga usang.
+        recent AS (
+          SELECT price FROM base
+          WHERE price IS NOT NULL
+          ORDER BY sale_date DESC, item_id DESC
+          LIMIT ${RECENT_PRICE_WINDOW}
+        ),
+        agg AS (
+          SELECT
+            COUNT(*)::int AS n,
+            AVG(q) AS qty_mean,
+            STDDEV_SAMP(q) AS qty_std,
+            AVG(price) AS price_mean,
+            (ARRAY_AGG(price ORDER BY sale_date DESC, item_id DESC)
+               FILTER (WHERE price IS NOT NULL))[1] AS price_last
+          FROM base
+        )
+        SELECT agg.*,
+               (SELECT MODE() WITHIN GROUP (ORDER BY price) FROM recent) AS price_mode,
+               (SELECT COUNT(*)::int FROM recent) AS price_window_n,
+               (SELECT COUNT(*)::int FROM recent
+                 WHERE recent.price = (SELECT MODE() WITHIN GROUP (ORDER BY price) FROM recent)
+               ) AS price_mode_n
+        FROM agg
+`,
       params,
     );
     const r = rows[0] || {};
+    const num = (v) => (v === null || v === undefined ? null : Math.round(Number(v) || 0));
+    const priceMode = num(r.price_mode);
+    const priceLast = num(r.price_last);
     res.json({
       n_samples: Number(r.n) || 0,
       qty_mean: r.qty_mean === null ? null : Math.round((Number(r.qty_mean) || 0) * 100) / 100,
       qty_std: r.qty_std === null ? null : Math.round((Number(r.qty_std) || 0) * 100) / 100,
-      price_mean: r.price_mean === null ? null : Math.round(Number(r.price_mean) || 0),
+      price_mean: num(r.price_mean),
+      price_mode: priceMode,
+      price_mode_n: Number(r.price_mode_n) || 0,
+      price_window_n: Number(r.price_window_n) || 0,
+      price_last: priceLast,
+      // Yang dipakai UI: modus dulu, kalau tak ada baru harga terakhir.
+      price_usual: priceMode ?? priceLast,
     });
   } catch (e) {
     console.error('[insights.baselines.sales] failed:', e.message);

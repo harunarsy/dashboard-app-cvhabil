@@ -138,6 +138,9 @@ export default function InventoryDashboard({
   const [modalError, setModalError] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const toastTimerRef = useRef(null);
+  // AUDIT-FIX: id produk yang formnya sedang terbuka — dipakai untuk menolak
+  // hasil fetch (mis. price tiers) yang telat datang setelah user pindah produk.
+  const openProductIdRef = useRef(null);
 
   // Expand + Drawer state (Phase 2 additions)
   const [expandedIds, setExpandedIds] = useState(new Set());
@@ -417,6 +420,7 @@ export default function InventoryDashboard({
 
   // ─── Product CRUD ─────────────────────────────────────────────────────
   const openAddProduct = () => {
+    openProductIdRef.current = null;
     setEditId(null);
     setProductModalTab("profile");
     setPForm({
@@ -438,6 +442,7 @@ export default function InventoryDashboard({
     setShowModal("product");
   };
   const openEditProduct = async (p) => {
+    openProductIdRef.current = p.id;
     setEditId(p.id);
     setProductModalTab("profile");
     setPForm({
@@ -461,6 +466,9 @@ export default function InventoryDashboard({
     // v1.7.0: fetch tiers async
     try {
       const { data } = await inventoryAPI.getProductTiers(p.id);
+      // AUDIT-FIX: kalau user sudah pindah ke produk lain (atau modal Tambah)
+      // sebelum request ini selesai, JANGAN timpa form yang sedang aktif.
+      if (openProductIdRef.current !== p.id) return;
       setPForm((prev) => ({ ...prev, price_tiers: data || [] }));
     } catch (e) {
       console.error("Failed to fetch product tiers", p.id, e);

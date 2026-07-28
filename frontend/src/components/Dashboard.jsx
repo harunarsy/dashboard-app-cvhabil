@@ -39,9 +39,24 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.64.1-stable",
+    date: "27 Juli 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Nomor batch di nota sekarang ikut terbarui. Dulu kalau nomor batch dibetulkan di menu Stok (misal salah ketik '2651103GU' padahal '26S1103GU'), nota lama tetap menampilkan yang salah — bahkan disimpan ulang pun tidak sembuh. Sekarang begitu batch dibetulkan, semua nota yang memakai batch itu ikut benar sendiri. 17 baris nota lama yang terlanjur salah/kosong sudah diperbaiki sekaligus. Stok, HPP, dan laba tidak berubah sama sekali — yang salah cuma tulisannya.",
+      },
+      {
+        type: "fix",
+        text: "Saran 'harga biasanya' tidak lagi memunculkan angka ganjil. Dulu memakai rata-rata, jadi satu kali diskon bisa bikin saran jadi Rp104.867 padahal pelanggan itu selalu beli Rp105.000. Sekarang memakai harga yang paling sering dipakai di 8 transaksi terakhir — diskon sesekali tidak mengganggu, tapi kalau harga memang benar-benar berubah, sarannya ikut menyesuaikan dalam beberapa nota.",
+      },
+    ],
+  },
+  {
     version: "v1.64.0-stable",
     date: "14 Juli 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "feature",
@@ -475,7 +490,7 @@ const RELEASES = [
       {
         type: "new",
         text: "Saat buat nota, muncul rekomendasi harga berdasarkan kebiasaan customer itu (mis. 'CV Surya Sakti biasanya Rp78.000') beserta perbandingan harga umum, lengkap dengan tombol 'Pakai'. Sistem baca dari nota-nota sebelumnya per customer.",
-        dev: "SalesOrderList: chip harga dari salesBaselines.price_mean (per produk+customer, 180 hari) vs product_master.sell_price; tombol apply ke unit_price. Data dari /insights/baselines/sales (price_mean sudah ada).",
+        dev: "SalesOrderList: chip harga dari salesBaselines.price_usual (modus 8 transaksi terakhir per produk+customer; v1.64.1 — sebelumnya price_mean/rata-rata 180 hari) vs product_master.sell_price; tombol apply ke unit_price. Data dari /insights/baselines/sales.",
       },
       {
         type: "new",
@@ -4210,7 +4225,7 @@ export default function Dashboard({
     ui: {
       label: "UI/UX",
       color: "var(--color-primary-hover)",
-      bg: "var(--color-primary-hover)18",
+      bg: "color-mix(in srgb, var(--color-primary-hover) 9%, transparent)",
     },
     docs: {
       label: "Docs",

@@ -66,7 +66,7 @@ Default frontend runs on **http://localhost:3000**
 
 ```
 Username: admin
-Password: <password-dihapus-dari-riwayat>
+Password: <password-lihat-CREDENTIALS.local.md>
 ```
 
 ## Environment Variables

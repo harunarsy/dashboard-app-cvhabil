@@ -31,7 +31,7 @@ Tujuan: bisa develop + audit **lokal** tanpa pernah menyentuh data **produksi**.
    NODE_ENV=development
    ```
 4. Jalankan: `cd backend && npm run dev`
-5. User default ter-*seed* otomatis saat DB kosong: `admin / <password-dihapus-dari-riwayat>` dan `direktur / <password-dihapus-dari-riwayat>` (lihat `routes/auth.js`).
+5. User default ter-*seed* otomatis saat DB kosong: `admin / <password-lihat-CREDENTIALS.local.md>` dan `direktur / <password-lihat-CREDENTIALS.local.md>` (lihat `routes/auth.js`).
 
 Alternatif: Postgres lokal (isi `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD` di `.env.dev`).
 

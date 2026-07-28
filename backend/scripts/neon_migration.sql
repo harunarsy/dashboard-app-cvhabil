@@ -267,9 +267,10 @@ CREATE TRIGGER update_tasks_modtime
     EXECUTE PROCEDURE update_modified_column();
 
 -- 10. INITIAL SEEDING
+-- v1.64.1: password WAJIB diganti manual sebelum skrip ini dipakai (jangan simpan password asli di repo).
 INSERT INTO app_users (username, password, display_name, role) VALUES
-    ('direktur', '<password-dihapus-dari-riwayat>', 'Direktur CV Habil', 'direktur'),
-    ('admin',    '<password-dihapus-dari-riwayat>',    'Admin Toko',        'admin')
+    ('direktur', 'GANTI_SEBELUM_DIPAKAI', 'Direktur CV Habil', 'direktur'),
+    ('admin',    'GANTI_SEBELUM_DIPAKAI', 'Admin Toko',        'admin')
 ON CONFLICT (username) DO NOTHING;
 
 INSERT INTO document_counters (doc_type, prefix, last_number, is_locked) 

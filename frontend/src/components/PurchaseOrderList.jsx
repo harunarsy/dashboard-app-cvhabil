@@ -61,7 +61,7 @@ const statusColors = {
     label: "Dikirim",
   },
   partial: {
-    bg: "var(--color-primary-hover)18",
+    bg: "color-mix(in srgb, var(--color-primary-hover) 9%, transparent)",
     color: "var(--color-primary-hover)",
     label: "Partial",
   },
@@ -551,8 +551,13 @@ export default function PurchaseOrderList({
   };
 
   const handleRenameDistributor = async (oldName, newName) => {
-    await distributorsAPI.rename(oldName, newName);
-    fetchDistributors();
+    try {
+      await distributorsAPI.rename(oldName, newName);
+      flash("Nama distributor diubah");
+      fetchDistributors();
+    } catch (e) {
+      flash(e.response?.data?.error || e.message, "error");
+    }
   };
 
   // MasterSelect handlers for Produk (mirror Nota — tambah produk baru langsung daftar ke Inventory)
