@@ -22,6 +22,16 @@ dan ambil HPP fresh dari DB — jangan pakai angka hardcode di `engine_laba.py`.
 **Terakhir diperbarui:** 27 Jul 2026 (malam)
 **Status:** ✅ **v1.64.1-stable SUDAH DI-PUSH ke `main`** — Vercel deploy otomatis. Tag `v1.64.1` sudah ada di GitHub.
 
+### 📦 GitHub Releases dirapikan total (28 Jul 2026)
+Sebelumnya berhenti di `v1.0.1` (Mar 2026) padahal kode sudah v1.64.1 — melompat 4 bulan.
+- **77 rilis** sekarang: 12 rilis lama (v0.1.0–v1.0.1) dirapikan judul+isinya, **64 rilis baru**
+  (v1.1–v1.64, satu per versi minor, tiap rilis memuat semua entri changelog di baris versinya),
+  plus v1.64.1. Tidak ada lubang versi.
+- Tag dibuat retroaktif, ditambatkan ke commit nyata berdasarkan tanggal rilis di `CHANGELOG.md`.
+- **Kebocoran kedua ditemukan & ditutup**: badan rilis `v0.1.0` di GitHub memuat `Password: admin123`
+  (pembersihan riwayat git TIDAK menyentuh teks rilis — saluran terpisah). Kini 0 kredensial di 77 badan rilis.
+- `gh` CLI dipasang (brew) + Harun login sekali; rilis berikutnya bisa dibuat langsung dari sini.
+
 ### 🔐 Riwayat git ditulis ulang (27 Jul 2026)
 Password produksi (`direktur`/`admin`) pernah ter-commit **teks polos** di `cloud_migration_backup.sql`
 plus tersebar di 7 berkas lain (docs, changelog, seed `auth.js`). Atas keputusan Harun (menolak ganti
