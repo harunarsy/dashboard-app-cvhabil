@@ -138,6 +138,32 @@ memang sudah begitu (ini menyeragamkan), tapi di Nota ini baru.
 
 ---
 
+
+---
+
+## 📌 ANTREAN TUGAS (dicatat 28 Jul 2026)
+
+### A. Menyangkut orang lain — dahulukan
+| # | Tugas | Catatan |
+|---|---|---|
+| A1 | **Bayar Om Irul (beras)** — cek nominal dulu | Mengunci HPP beras yang di rekonsiliasi TMA masih ESTIMASI Rp350.000 → 5 nota ⚠ bisa dihitung ulang benar |
+| A2 | **Ko Hans**: penjualan online Juni 2026 | Data Juni ADA di app, bisa langsung ditarik |
+| A3 | **Perbarui laporan keuangan** | Kemungkinan menunggu A1 |
+| A4 | **Mas Viktor**: Surya Sakti Jan–kini, produk Enseval | Jan–Mar kemungkinan tidak ada di app → sinkron Drive/Dropbox. Detail belum diberikan |
+
+### B. Aplikasi
+| # | Tugas | Catatan |
+|---|---|---|
+| B1 | **Stok opname Enseval & PPG** | 9 foto `~/Downloads/IMG_1898..1906.jpeg`. HANYA yang dicoret tangan, dan itu pun sebagian (tiap salesman beda PIC) |
+| B2 | **Kategori distributor per produk** | Enseval / Parit Padang / AAM. Satu produk bisa dari >1 distributor. **Brainstorming dulu** |
+| B3 | **Filter isi repo biar profesional** | `CLAUDE.md`, `SUPERAPP_BRAIN.md`, `SEED_MIGRATION_HABIL.sql`, `ACTION_LOG.md`, `AUDIT_*`, `RELEASE_*_DRAFT.md` — mana yang layak publik? Cek juga riwayat/source code kalau ada yang nyangkut |
+| B4 | **Fitur ganti password** | Disepakati. Belum ada sama sekali di `auth.js` — ini sebabnya password default masih aktif |
+
+### C. Sisa audit (21 temuan) yang belum digarap
+#7 HPP dari browser · #8 edit faktur menyusul tak menambah stok · #10 bedakan layar gagal-muat vs kosong ·
+#15 draft per perangkat (sudah diputuskan, tinggal eksekusi) · #18-20 race condition ringan ·
+#17-lanjutan konfirmasi hapus baris · kerentanan dependensi · `err.message` bocor 124× · `React.memo` 0× · responsif lewat JS
+
 ## Dokumen terkait
 
 - `AUDIT_TEMUAN_2026-07-27.md` — 21 temuan hasil audit 4 subagent, sudah diverifikasi mandor + tabel status
