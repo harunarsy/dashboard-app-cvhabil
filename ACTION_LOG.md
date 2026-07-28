@@ -19,9 +19,24 @@ dan ambil HPP fresh dari DB — jangan pakai angka hardcode di `engine_laba.py`.
 
 ---
 
-**Terakhir diperbarui:** 27 Jul 2026
-**Basis:** HEAD `1b29e45` (v1.64.0) → kerja menuju rilis **v1.64.1-stable**
-**Branch:** `main` · **Belum ada satu pun commit** — semua perubahan masih di working tree
+**Terakhir diperbarui:** 27 Jul 2026 (malam)
+**Status:** ✅ **v1.64.1-stable SUDAH DI-PUSH ke `main`** — Vercel deploy otomatis. Tag `v1.64.1` sudah ada di GitHub.
+
+### 🔐 Riwayat git ditulis ulang (27 Jul 2026)
+Password produksi (`direktur`/`admin`) pernah ter-commit **teks polos** di `cloud_migration_backup.sql`
+plus tersebar di 7 berkas lain (docs, changelog, seed `auth.js`). Atas keputusan Harun (menolak ganti
+password, minta dibersihkan dari GitHub):
+- Password dihapus dari semua berkas terlacak; seed `auth.js` kini ambil dari env
+  (`SEED_DIREKTUR_PASSWORD` / `SEED_ADMIN_PASSWORD`), `cloud_migration_backup.sql` di-untrack + gitignore.
+- Seluruh riwayat ditulis ulang dengan `git filter-repo --replace-text` (406 commit), lalu force-push
+  `main` + `dev` + `audit-fixes` + semua tag.
+- **Verifikasi**: kloning ulang dari GitHub → 406 commit, **0 memuat password**.
+  (Verifikasi pertama sempat menemukan 232 commit masih kotor karena `dev`/`audit-fixes` belum ikut didorong — sudah diperbaiki.)
+- Cadangan penuh sebelum penulisan ulang: `~/Downloads/habil-repo-backup-2026-07-27.bundle` (2,2 MB)
+  dan `~/Downloads/cloud_migration_backup_LOKAL_2026-07-27.sql`.
+
+⚠️ **Password lama MASIH AKTIF di produksi** — Harun memilih menunda. Aplikasi belum punya fitur ganti
+password sama sekali (`auth.js` cuma `login`/`logout`). **Fitur ganti password = pekerjaan berikutnya yang disepakati.**
 
 ---
 
