@@ -39,9 +39,32 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.65.1-stable",
+    date: "29 Juli 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "feature",
+        text: "Barcode nomor nota. Di nota sekarang ada barcode garis-garis tepat di bawah tulisan 'NOTA PENJUALAN', isinya nomor nota itu sendiri — muncul di pratinjau maupun hasil cetak (A4, A5, A6). Nanti bisa dipindai memakai fitur scan barcode yang sudah ada di aplikasi.",
+      },
+      {
+        type: "feature",
+        text: "Tombol Salin Draft WA sekarang ada langsung di baris daftar nota, tidak perlu membuka layar Ubah dulu. Sekali klik, teks ringkasan nota langsung tersalin dan tinggal ditempel di WhatsApp.",
+      },
+      {
+        type: "feature",
+        text: "Filter PPN di daftar nota: Semua PPN / Dengan PPN / Tanpa PPN — melengkapi fitur nota tanpa PPN yang keluar di versi sebelumnya.",
+      },
+      {
+        type: "fix",
+        text: "Cetak PDF tidak lagi gagal setelah aplikasi diperbarui. Dulu kalau versi baru naik sementara halamanmu masih terbuka, tombol cetak memunculkan 'Loading chunk failed' dan harus muat ulang manual. Sekarang halaman memuat ulang sendiri sekali lalu lanjut. Berlaku untuk semua fitur cetak: nota, laporan, surat pesanan, daftar harga, stok, opname, barcode, dan pemindai.",
+      },
+    ],
+  },
+  {
     version: "v1.65.0-stable",
     date: "28 Juli 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "feature",

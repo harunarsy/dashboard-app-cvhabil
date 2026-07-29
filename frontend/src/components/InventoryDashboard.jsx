@@ -40,6 +40,7 @@ import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import Icons from "./common/Icon";
 import { UI_MOTION, UI_SIZE, uiTransition } from "../constants/ui";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
+import { importWithReload } from "../utils/importWithReload";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -738,7 +739,7 @@ export default function InventoryDashboard({
       }
       const { data: rows } = await inventoryAPI.getOpnameTemplate();
       const { generateInventoryPDF } =
-        await import("../utils/generateInventoryPDF");
+        await importWithReload(() => import("../utils/generateInventoryPDF"));
       const doc = generateInventoryPDF(rows, { settings });
       const stamp = new Date().toISOString().slice(0, 10);
       doc.save(`Template_Opname_${stamp}.pdf`);

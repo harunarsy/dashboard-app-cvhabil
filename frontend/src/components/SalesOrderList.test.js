@@ -43,22 +43,18 @@ import SalesOrderList from './SalesOrderList';
 import { salesAPI, customersAPI, productsAPI, priceListAPI, inventoryAPI, printSettingsAPI, countersAPI, settingsAPI } from '../services/api';
 
 // Mock lucide-react
-jest.mock('lucide-react', () => ({
-  Plus: () => <div data-testid="icon-plus" />,
-  Search: () => <div data-testid="icon-search" />,
-  Trash2: () => <div data-testid="icon-trash" />,
-  Edit2: () => <div data-testid="icon-edit" />,
-  X: () => <div data-testid="icon-x" />,
-  FileText: () => <div data-testid="icon-file-text" />,
-  ChevronsUpDown: () => <div data-testid="icon-sort" />,
-  ChevronUp: () => <div data-testid="icon-chevron-up" />,
-  ChevronDown: () => <div data-testid="icon-chevron-down" />,
-  ChevronRight: () => <div data-testid="icon-chevron-right" />,
-  ArrowLeft: () => <div data-testid="icon-arrow-left" />,
-  AlertTriangle: () => <div data-testid="icon-alert" />,
-  Clock: () => <div data-testid="icon-clock" />,
-  RotateCcw: () => <div data-testid="icon-rotate" />,
-  History: () => <div data-testid="icon-history" />
+// v1.65.1: dulu daftar-putih 15 ikon — tiap ikon BARU yang dipakai komponen bikin
+// test ini gagal dengan "Element type is invalid ... got: undefined", padahal
+// produksinya sehat (kejadian saat MessageCircle ditambahkan). Sekarang Proxy:
+// nama ikon apa pun otomatis dapat komponen tiruan, jadi test tidak lagi rapuh
+// terhadap penambahan ikon. testid tetap mengikuti nama ikonnya.
+jest.mock('lucide-react', () => new Proxy({}, {
+  get: (_target, name) => {
+    if (name === '__esModule') return true;
+    const Icon = () => <div data-testid={`icon-${String(name)}`} />;
+    Icon.displayName = `MockIcon(${String(name)})`;
+    return Icon;
+  },
 }));
 
 const renderWithQueryClient = (ui) => {

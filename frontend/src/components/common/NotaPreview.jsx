@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
+import JsBarcode from 'jsbarcode';
 import { angkaKeTerbilang } from '../../utils/angkaKeTerbilang';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n || 0);
@@ -55,6 +56,25 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
   const mutedText = '#333';
   const subText = '#555';
 
+  // v1.65.1: Ref & effect untuk barcode di antara heading dan nomor nota
+  const barcodeRef = useRef(null);
+  useEffect(() => {
+    if (barcodeRef.current && displayNo && displayNo !== 'HSB-NOTA-AUTO') {
+      try {
+        JsBarcode(barcodeRef.current, displayNo, {
+          format: 'CODE128',
+          width: 1.2,
+          height: 28,
+          displayValue: false,
+          margin: 0,
+          valid: () => true,
+        });
+      } catch (err) {
+        console.error('Barcode render error:', err);
+      }
+    }
+  }, [displayNo]);
+
   return (
     <div style={{
       backgroundColor: '#FFF', borderRadius: '10px', padding: '16px',
@@ -71,6 +91,12 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
           <div style={{ fontSize: '14px', fontWeight: '800', color: bodyText, marginBottom: '2px' }}>NOTA PENJUALAN</div>
+          {/* v1.65.1: Barcode SVG di antara heading dan nomor nota */}
+          {displayNo && displayNo !== 'HSB-NOTA-AUTO' && (
+            <div style={{ textAlign: 'center', marginBottom: '2px', maxWidth: '100%', overflow: 'hidden' }}>
+              <svg ref={barcodeRef} style={{ maxWidth: '100%', height: 'auto' }} />
+            </div>
+          )}
           <div style={{ fontSize: '11px', color: mutedText }}>No: {displayNo}</div>
           <div style={{ fontSize: '11px', color: mutedText }}>{headerDate}</div>
           {due_date && !isCash && (

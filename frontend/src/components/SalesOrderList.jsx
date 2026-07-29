@@ -12,6 +12,7 @@ import {
   Clock,
   AlertTriangle,
   RotateCcw,
+  MessageCircle,
 } from "lucide-react";
 import {
   salesAPI,
@@ -60,6 +61,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { qk } from "../lib/queryClient";
 import Pagination from "./common/Pagination";
+import { importWithReload } from "../utils/importWithReload";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -885,6 +887,7 @@ export default function SalesOrderList({
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterChannel, setFilterChannel] = useState("all");
   const [filterProfit, setFilterProfit] = useState("all");
+  const [filterPpn, setFilterPpn] = useState("all"); // v1.65.1: filter PPN — all | ppn | non_ppn
   const [filterDue, setFilterDue] = useState("all"); // all | overdue | soon
   const [sortKey, setSortKey] = useState("sale_date"); // 'sale_date' | 'total' | 'order_number'
   const [sortDir, setSortDir] = useState("desc"); // 'asc' | 'desc'
@@ -936,6 +939,11 @@ export default function SalesOrderList({
           pct >= activeProfitThresholds.thin &&
           pct < activeProfitThresholds.normal) ||
         (filterProfit === "loss" && pct < activeProfitThresholds.thin);
+      // v1.65.1: filter PPN — ppn_excluded null/undefined = perlakukan sebagai ber-PPN (dengan PPN)
+      const matchesPpn =
+        filterPpn === "all" ||
+        (filterPpn === "ppn" && !o.ppn_excluded) ||
+        (filterPpn === "non_ppn" && o.ppn_excluded === true);
       const dueDiff = notaDaysDiff(o.due_date);
       const unpaid = o.payment_status !== "paid";
       const matchesDue =
@@ -953,6 +961,7 @@ export default function SalesOrderList({
         matchesStatus &&
         matchesChannel &&
         matchesProfit &&
+        matchesPpn &&
         matchesDue
       );
     })
@@ -991,6 +1000,7 @@ export default function SalesOrderList({
     filterStatus,
     filterChannel,
     filterProfit,
+    filterPpn, // v1.65.1: reset halaman saat filter PPN berubah
     filterDue,
     sortKey,
     sortDir,
@@ -1343,7 +1353,7 @@ export default function SalesOrderList({
     if (!printOrder || pdfLoading) return;
     setPdfLoading(true);
     try {
-      const { generateNotaPDF } = await import("../utils/generateNotaPDF");
+      const { generateNotaPDF } = await importWithReload(() => import("../utils/generateNotaPDF"));
       const doc = generateNotaPDF(printOrder, {
         ...printOptions,
         settings: layoutSettings,
@@ -1527,7 +1537,7 @@ export default function SalesOrderList({
     setExportingPdf(true);
     try {
       const { generateLaporanPDF } =
-        await import("../utils/generateLaporanPDF");
+        await importWithReload(() => import("../utils/generateLaporanPDF"));
       const selected = orders.filter((o) => selectedNotaIds.has(o.id));
       generateLaporanPDF(selected, {
         companyName: "HABIL SUPERAPP",
@@ -2383,7 +2393,8 @@ export default function SalesOrderList({
             }}
           >
             {(() => {
-              const n = [filterMonth, filterYear, filterStatus, filterChannel, filterProfit]
+              // v1.65.1: tambah filterPpn ke counter filter aktif
+              const n = [filterMonth, filterYear, filterStatus, filterChannel, filterPpn, filterProfit]
                 .filter((f) => f !== "all").length;
               return `${showMobileFilters ? "✕ Tutup" : "⚙ Filter"}${n ? ` (${n})` : ""}`;
             })()}
@@ -2496,6 +2507,25 @@ export default function SalesOrderList({
           <option value="all">Semua Saluran</option>
           <option value="offline">🏪 Offline</option>
           <option value="online">🛒 Online</option>
+        </select>
+
+        {/* v1.65.1: Filter PPN — Dengan PPN / Tanpa PPN */}
+        <select
+          value={filterPpn}
+          onChange={(e) => setFilterPpn(e.target.value)}
+          style={{
+            ...inputStyle,
+            width: isMobile ? "100%" : "150px",
+            flex: "0 0 auto",
+            paddingRight: "32px",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <option value="all">Semua PPN</option>
+          <option value="ppn">Dengan PPN</option>
+          <option value="non_ppn">Tanpa PPN</option>
         </select>
 
         <select
@@ -3015,6 +3045,46 @@ export default function SalesOrderList({
                             alignItems: "center",
                           }}
                         >
+                          {/* v1.65.1: tombol salin draft WA di baris daftar nota */}
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const msg = buildNotaWaMessage({
+                                form: {
+                                  customer_name: o.customer_name,
+                                  order_number: o.order_number,
+                                  due_date: o.due_date,
+                                },
+                                items: o.items || [],
+                                total: o.total,
+                                orderNumber: o.order_number,
+                                dueDate: o.due_date,
+                              });
+                              const ok = await copyTextToClipboard(msg);
+                              flash(
+                                ok
+                                  ? "Draft WA disalin"
+                                  : "Gagal menyalin draft",
+                                ok ? "success" : "error",
+                              );
+                            }}
+                            aria-label={`Salin draft WA nota ${o.order_number}`}
+                            title="Salin draft WA"
+                            style={{
+                              background: "var(--color-surface-elevated)",
+                              border: `1px solid ${border}`,
+                              cursor: "pointer",
+                              padding: "0",
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "10px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <MessageCircle size={15} color="var(--color-primary)" />
+                          </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -3404,6 +3474,7 @@ export default function SalesOrderList({
                       filterYear !== "all" ||
                       filterStatus !== "all" ||
                       filterChannel !== "all" ||
+                      filterPpn !== "all" || // v1.65.1: tambah filterPpn
                       filterProfit !== "all"
                         ? `Tidak ada hasil untuk '${search || "filter aktif"}'`
                         : "Belum ada nota penjualan."
@@ -3414,6 +3485,7 @@ export default function SalesOrderList({
                       filterYear !== "all" ||
                       filterStatus !== "all" ||
                       filterChannel !== "all" ||
+                      filterPpn !== "all" || // v1.65.1: tambah filterPpn
                       filterProfit !== "all"
                         ? "Coba kata kunci lain atau reset filter."
                         : "Nota final dan paid akan muncul di sini, lengkap dengan ringkasan margin."

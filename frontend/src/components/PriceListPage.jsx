@@ -11,6 +11,7 @@ import Pagination from "./common/Pagination";
 import ToastNotice from "./common/ToastNotice";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import { UI_MOTION } from "../constants/ui";
+import { importWithReload } from "../utils/importWithReload";
 
 const fmtRp = (n) =>
   new Intl.NumberFormat("id-ID", {
@@ -964,7 +965,7 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
         flash("Tidak ada produk dengan harga untuk dicetak", "error");
         return;
       }
-      const { generatePriceListPDF } = await import("../utils/generatePriceListPDF");
+      const { generatePriceListPDF } = await importWithReload(() => import("../utils/generatePriceListPDF"));
       const doc = generatePriceListPDF(printable, {
         settings,
         effectiveDate: latestEffectiveDate || todayStr(),

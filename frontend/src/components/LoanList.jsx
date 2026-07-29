@@ -22,6 +22,7 @@ import {
   buildLoanReminderMessage,
   copyTextToClipboard,
 } from "../utils/waMessage";
+import { importWithReload } from "../utils/importWithReload";
 
 // v1.54.0: Peminjaman produk — "nota gantung": stok sudah keluar saat pinjam,
 // belum dihitung penjualan sampai dikembalikan atau dikonversi jadi nota.
@@ -426,7 +427,7 @@ export default function LoanList({ isDarkMode, isMobile }) {
       } catch (e) {
         /* pakai default */
       }
-      const { generateNotaPDF } = await import("../utils/generateNotaPDF");
+      const { generateNotaPDF } = await importWithReload(() => import("../utils/generateNotaPDF"));
       const doc = generateNotaPDF(
         {
           order_number: loan.loan_number,

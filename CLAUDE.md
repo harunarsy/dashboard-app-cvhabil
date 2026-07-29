@@ -45,7 +45,12 @@ cd frontend && npm test
 cd frontend && npm test -- --testPathPattern=SalesOrderList
 ```
 
-**Port note**: backend runs on `5001` everywhere — `server.js` (`PORT || 5001`), `docker-compose.yml`, and the `api.js` dev fallback all agree. The old 5006 mismatch is resolved; no adjustment needed.
+**Port note (dikoreksi 29 Jul 2026)**: ports do NOT agree — verify before assuming.
+`server.js` default & `docker-compose.yml` = **5001**, but `backend/.env` = **5005** and
+`backend/.env.dev` = **5006**. Backend loads `.env.dev` in local dev, so it actually listens on **5006**.
+`frontend/.env` must set `REACT_APP_API_URL` to whichever port the backend really prints on startup —
+mismatch shows up as a silent "Login failed" with no network error. (These `.env` files are gitignored,
+so each machine can differ; always read the startup log, not this doc.)
 
 ---
 

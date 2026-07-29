@@ -2,6 +2,24 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.65.1-stable] - 2026-07-29
+
+### Ditambahkan
+- **Barcode nomor nota** (CODE128) di bawah judul "NOTA PENJUALAN", di atas baris "No: …". Muncul di pratinjau (`NotaPreview.jsx`, SVG) dan hasil cetak (`generateNotaPDF.js`, canvas→PNG→`addImage`). Memakai `jsbarcode` yang sudah jadi dependensi (dipakai `generateBarcodePDF.js`) — tidak ada pustaka baru.
+  - Ruang header mepet (A6 hanya sisa 1 mm sebelum garis pembatas), jadi barcode **mendorong** baris No/tanggal/jatuh tempo + `dividerY` + `customerY` lewat satu variabel `infoShift` — pergeseran merambat konsisten di A4/A5/A6.
+  - Impor `JsBarcode` **statis** di `generateNotaPDF.js` supaya fungsinya tetap sinkron (mengubah jadi async = mengubah signature API yang dipakai 2 komponen). Modul PDF sendiri sudah lazy-loaded, jadi tidak membebani bundle utama (+9 B).
+  - Gagal render barcode di-`catch` → nota **tetap tercetak** tanpa barcode. Nomor kosong/`HSB-NOTA-AUTO` → tidak dirender.
+- **Tombol Salin Draft WA di baris daftar nota** — sebelumnya hanya ada di dalam modal Edit. Memakai `buildNotaWaMessage` dari nota tersimpan (bukan state form). Versi di modal tetap ada (memakai isi form termasuk perubahan belum tersimpan).
+- **Filter PPN** di daftar nota: `Semua PPN` / `Dengan PPN` / `Tanpa PPN`. `ppn_excluded` null/undefined diperlakukan sebagai ber-PPN supaya nota lama tidak hilang. Ikut ke counter filter mobile + EmptyState.
+
+### Diperbaiki
+- **"Loading chunk NNN failed" setelah deploy.** Modul PDF dimuat dinamis; setelah versi baru naik, tab yang masih terbuka meminta nama chunk lama yang sudah tidak ada → toast "Gagal membuat PDF". Ditambah helper `utils/importWithReload.js`: deteksi chunk error → muat ulang halaman **sekali** (dijaga `sessionStorage`, tidak bisa jadi lingkaran), error jenis lain tetap dilempar ke penanganan lama. Dipasang di **9 titik** (nota, laporan, pinjaman, daftar harga, SP, stok, opname, barcode, pemindai).
+- **Mock ikon test tidak lagi rapuh.** `SalesOrderList.test.js` dulu mem-mock `lucide-react` dengan daftar-putih 15 ikon; tiap ikon baru bikin suite gagal `Element type is invalid ... got: undefined` walau produksi sehat (terjadi saat `MessageCircle` ditambahkan). Diganti Proxy — nama ikon apa pun otomatis dapat komponen tiruan.
+
+### Catatan lingkungan (berkas gitignored, tidak ikut commit)
+- `CLAUDE.md` dikoreksi: **port TIDAK seragam**. `server.js`/`docker-compose` = 5001, `backend/.env` = 5005, `backend/.env.dev` = 5006 — backend lokal sebenarnya mendengarkan **5006**. Salah port muncul sebagai "Login failed" tanpa error jaringan. Selalu baca log startup, jangan percaya dokumen.
+- Akun `superadmin` (role `direktur`) dibuat untuk kemudahan dev. ⚠️ Dibuat di DB **produksi** karena lokal & Vercel berbagi database yang sama — belum ada Neon branch dev terpisah seperti yang diwajibkan `docs/ENVIRONMENT_SAFETY_v1.19.2.md`.
+
 ## [v1.65.0-stable] - 2026-07-28
 
 ### Ditambahkan — nota dengan / tanpa PPN

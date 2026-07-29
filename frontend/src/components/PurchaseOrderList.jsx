@@ -28,6 +28,7 @@ import {
   useDistributors,
   useProducts,
 } from "../hooks/useMasterData";
+import { importWithReload } from "../utils/importWithReload";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -650,7 +651,7 @@ export default function PurchaseOrderList({
     if (pdfLoading) return;
     setPdfLoading(o.id);
     try {
-      const { generateSPPDF } = await import("../utils/generateSPPDF");
+      const { generateSPPDF } = await importWithReload(() => import("../utils/generateSPPDF"));
       const bInfo = await printSettingsAPI.get();
       const settings = bInfo.data.nota_layout || undefined;
       const sInfo =

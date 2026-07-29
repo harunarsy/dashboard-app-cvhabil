@@ -1,5 +1,10 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+// v1.65.1: barcode nomor nota. Impor STATIS (bukan dynamic import) supaya
+// generateNotaPDF tetap sinkron — mengubahnya jadi async berarti mengubah
+// signature API yang dipakai 2 komponen. Modul ini sendiri sudah lazy-loaded,
+// jadi jsbarcode ikut chunk PDF, tidak membebani bundle utama.
+import JsBarcode from 'jsbarcode';
 import { angkaKeTerbilang } from './angkaKeTerbilang';
 
 const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
@@ -73,33 +78,58 @@ export function generateNotaPDF(order, options = {}) {
   const titleY = isA6 ? margin + 4 : margin + 5;
   doc.text(docTitle, infoX, titleY, { align: 'right' });
 
+  // v1.65.1: barcode nomor nota — di bawah judul, di atas baris "No:".
+  // Ruang header mepet (A6 cuma sisa 1mm sebelum garis pembatas), jadi barcode
+  // MENDORONG baris di bawahnya + garis pembatas + blok customer lewat infoShift.
+  // Kalau render gagal (nomor kosong/karakter aneh), nota tetap tercetak tanpa barcode.
+  let infoShift = 0;
+  const barcodeValue = String(order.order_number || '').trim();
+  if (barcodeValue && type !== 'terima') {
+    const barcodeW = isA6 ? 26 : (isA5 ? 32 : 38);
+    const barcodeH = isA6 ? 5 : (isA5 ? 6 : 7);
+    try {
+      const canvas = document.createElement('canvas');
+      JsBarcode(canvas, barcodeValue, {
+        format: 'CODE128', displayValue: false, margin: 0,
+        width: 2, height: 100, background: '#FFFFFF', lineColor: '#000000',
+      });
+      const dataUrl = canvas.toDataURL('image/png');
+      if (dataUrl && dataUrl !== 'data:,') {
+        doc.addImage(dataUrl, 'PNG', infoX - barcodeW, titleY + 1.5, barcodeW, barcodeH);
+        infoShift = barcodeH + 1.5;
+      }
+    } catch (e) {
+      // sengaja diabaikan — barcode itu pelengkap, nota tetap harus bisa dicetak
+    }
+  }
+
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize - 1.5);
   doc.setTextColor(50, 50, 50);
-  doc.text(`No: ${String(order.order_number || '-')}`, infoX, titleY + 5, { align: 'right' });
+  doc.text(`No: ${String(order.order_number || '-')}`, infoX, titleY + 5 + infoShift, { align: 'right' });
   const saleDateStr = order.sale_date
     ? new Date(order.sale_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
     : '-';
-  doc.text(saleDateStr, infoX, titleY + 9, { align: 'right' });
+  doc.text(saleDateStr, infoX, titleY + 9 + infoShift, { align: 'right' });
   // v1.8.1: tampilkan Jatuh Tempo di header kalau ada AND non-cash
   // v1.54.0: nota pinjaman → label "Batas Pengembalian" (selalu tampil kalau ada due_date)
   if (order.due_date && (isLoan || (order.payment_method !== 'Tunai' && type !== 'terima'))) {
     const dueStr = new Date(order.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
     doc.setTextColor(255, 59, 48);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${isLoan ? 'Batas Pengembalian' : 'Jatuh Tempo Pembayaran'}: ${dueStr}`, infoX, titleY + 13, { align: 'right' });
+    doc.text(`${isLoan ? 'Batas Pengembalian' : 'Jatuh Tempo Pembayaran'}: ${dueStr}`, infoX, titleY + 13 + infoShift, { align: 'right' });
     doc.setTextColor(60, 60, 60);
     doc.setFont('helvetica', 'normal');
   }
 
   // Blue Line Divider — push 2mm A4/A5 (kasih clearance dari JT text descender)
-  const dividerY = margin + (isA6 ? 18 : 24);
+  const dividerY = margin + (isA6 ? 18 : 24) + infoShift;
   doc.setDrawColor(...accentColor);
   doc.setLineWidth(0.4);
   doc.line(margin, dividerY, pageWidth - margin, dividerY);
 
   // ─── Customer & Payment ───────────────────────────────────────────────
-  const customerY = margin + (isA6 ? 23 : 30);
+  const customerY = margin + (isA6 ? 23 : 30) + infoShift;
   doc.setFontSize(baseFontSize);
   doc.setTextColor(0);
   doc.setFont('helvetica', 'normal');

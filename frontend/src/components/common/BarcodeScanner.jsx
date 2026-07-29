@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Camera, RefreshCw, X } from 'lucide-react';
+import { importWithReload } from '../../utils/importWithReload';
 
 export default function BarcodeScanner({ onScan, onClose, isDarkMode }) {
   const elemIdRef = useRef(`barcode-scanner-${Math.random().toString(36).slice(2)}`);
@@ -61,7 +62,7 @@ export default function BarcodeScanner({ onScan, onClose, isDarkMode }) {
 
     const startScanner = async () => {
       try {
-        const { Html5Qrcode } = await import('html5-qrcode');
+        const { Html5Qrcode } = await importWithReload(() => import('html5-qrcode'));
         if (cancelled) return;
         const scanner = new Html5Qrcode(elemIdRef.current);
         scannerRef.current = scanner;

@@ -26,6 +26,7 @@ import BarcodeScanner from "../common/BarcodeScanner";
 import ConfirmModal from "../common/ConfirmModal";
 import { UI_MOTION, uiTransition } from "../../constants/ui";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
+import { importWithReload } from "../../utils/importWithReload";
 
 const fmtDate = (d) =>
   d
@@ -407,7 +408,7 @@ export default function OpnameModal({
           notes: v.notes,
         }));
       const { generateOpnamePDF } =
-        await import("../../utils/generateOpnamePDF");
+        await importWithReload(() => import("../../utils/generateOpnamePDF"));
       const doc = generateOpnamePDF(rows, { settings });
       doc.save(
         `Berita_Acara_Opname_${new Date().toISOString().slice(0, 10)}.pdf`,

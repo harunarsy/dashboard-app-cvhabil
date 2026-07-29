@@ -11,6 +11,8 @@ import { printSettingsAPI } from "../../services/api";
 import { UI_SIZE } from "../../constants/ui";
 import Icons from "../common/Icon";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
+import { importWithReload } from "../../utils/importWithReload";
+
 export default function PrintBarcodeModal({
   products,
   isDarkMode,
@@ -90,7 +92,7 @@ export default function PrintBarcodeModal({
         );
       }
       const { generateBarcodePDF } =
-        await import("../../utils/generateBarcodePDF");
+        await importWithReload(() => import("../../utils/generateBarcodePDF"));
       const { doc, skippedCount } = await generateBarcodePDF(rows, {
         layout,
         customLayout: { rows: customRows, cols: customCols },
