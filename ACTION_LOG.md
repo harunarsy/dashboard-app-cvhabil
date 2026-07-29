@@ -20,7 +20,7 @@ dan ambil HPP fresh dari DB — jangan pakai angka hardcode di `engine_laba.py`.
 ---
 
 **Terakhir diperbarui:** 27 Jul 2026 (malam)
-**Status:** ✅ **v1.64.1-stable SUDAH DI-PUSH ke `main`** — Vercel deploy otomatis. Tag `v1.64.1` sudah ada di GitHub.
+**Status:** ✅ **v1.65.1-stable SUDAH DI-PUSH ke `main`** (29 Jul) — barcode nota, tombol WA di daftar, filter PPN, fix chunk gagal muat. Sebelumnya v1.65.0 (nota dengan/tanpa PPN) & v1.64.1-stable — Vercel deploy otomatis. Tag `v1.64.1` sudah ada di GitHub.
 
 ### 📦 GitHub Releases dirapikan total (28 Jul 2026)
 Sebelumnya berhenti di `v1.0.1` (Mar 2026) padahal kode sudah v1.64.1 — melompat 4 bulan.
