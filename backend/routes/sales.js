@@ -8,6 +8,13 @@ const { runOnce } = require('../utils/migrationOnce');
 const formDrafts = require('../utils/formDrafts');
 const { generateMonthlyDocNumber } = require('../utils/docNumbers');
 
+// v1.65.0: Normalisasi ppn_excluded ke boolean (terima true/false dan string 'true'/'false')
+const normalizeBooleanField = (val) => {
+  if (val === true || val === 'true') return true;
+  if (val === false || val === 'false' || val === undefined || val === null) return false;
+  return Boolean(val);
+};
+
 // ─── Auto-create tables ─────────────────────────────────────────────────────
 const ensureSchema = async () => {
   await pool.query(`
@@ -353,8 +360,11 @@ const computePaymentFee = (baseTotal, rate, mode) =>
 
 // POST create
 router.post('/', auth, async (req, res) => {
-  const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, payment_method, payment_details, order_number: manualOrderNumber, channel: rawChannel, due_date, payment_terms, ongkir: rawOngkir, ongkir_cost: rawOngkirCost, package_weight_gram: rawPackageWeightGram } = req.body;
+  const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, payment_method, payment_details, order_number: manualOrderNumber, channel: rawChannel, due_date, payment_terms, ongkir: rawOngkir, ongkir_cost: rawOngkirCost, package_weight_gram: rawPackageWeightGram, ppn_excluded: rawPpnExcluded } = req.body;
   const channel = ['offline', 'online'].includes(rawChannel) ? rawChannel : 'offline';
+  // v1.65.0: Normalisasi ppn_excluded — jika nilai TRUE, tandai siapa + kapan
+  const ppnExcluded = normalizeBooleanField(rawPpnExcluded);
+  const ppnMarkedBy = ppnExcluded ? (req.user?.id || null) : null;
   // v1.21.14: ongkir = biaya yang DITAGIH ke customer (masuk total + nota PDF);
   // ongkir_cost = biaya kurir asli (internal, buat hitung untung; TIDAK di nota).
   const ongkir = Math.max(0, parseFloat(rawOngkir) || 0);
@@ -410,10 +420,11 @@ router.post('/', auth, async (req, res) => {
       );
       if (cm.length === 1) resolvedCustomerId = cm[0].id;
     }
+    // v1.65.0: Tambah ppn_excluded + audit tracking (ppn_marked_by, ppn_marked_at)
     const { rows } = await client.query(
-      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms, ongkir, ongkir_cost, payment_fee_rate, payment_fee_mode, payment_fee, package_weight_gram, est_weight_gram, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,'final') RETURNING *`,
-      [orderNumber, resolvedCustomerId, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, 0]
+      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms, ongkir, ongkir_cost, payment_fee_rate, payment_fee_mode, payment_fee, package_weight_gram, est_weight_gram, ppn_excluded, ppn_marked_by, ppn_marked_at, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,'final') RETURNING *`,
+      [orderNumber, resolvedCustomerId, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, 0, ppnExcluded, ppnMarkedBy, ppnExcluded ? new Date() : null]
     );
     const order = rows[0];
 
@@ -598,7 +609,7 @@ router.post('/', auth, async (req, res) => {
 
 // PUT update
 router.put('/:id', auth, async (req, res) => {
-  const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, status, payment_method, payment_details, channel: rawChannel, due_date, payment_terms, ongkir: rawOngkir, ongkir_cost: rawOngkirCost, package_weight_gram: rawPackageWeightGram } = req.body;
+  const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, status, payment_method, payment_details, channel: rawChannel, due_date, payment_terms, ongkir: rawOngkir, ongkir_cost: rawOngkirCost, package_weight_gram: rawPackageWeightGram, ppn_excluded: rawPpnExcluded } = req.body;
   const channel = ['offline', 'online'].includes(rawChannel) ? rawChannel : 'offline';
   const ongkir = Math.max(0, parseFloat(rawOngkir) || 0);
   const ongkirCost = Math.max(0, parseFloat(rawOngkirCost) || 0);
@@ -624,6 +635,19 @@ router.put('/:id', auth, async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    // v1.65.0: Ambil ppn_excluded lama (untuk tracking perubahan di audit fields)
+    const { rows: [noteOld] } = await client.query(
+      'SELECT ppn_excluded FROM sales_orders WHERE id = $1 AND is_deleted = FALSE',
+      [req.params.id]
+    );
+    const oldPpnExcluded = noteOld?.ppn_excluded ?? false;
+    // Tentukan nilai baru (jika tidak dikirim, pertahankan lama)
+    const newPpnExcluded = rawPpnExcluded !== undefined ? normalizeBooleanField(rawPpnExcluded) : oldPpnExcluded;
+    // Track perubahan untuk audit fields
+    const ppnChanged = newPpnExcluded !== oldPpnExcluded;
+    const ppnMarkedBy = ppnChanged ? (req.user?.id || null) : null;
+    const ppnMarkedAt = ppnChanged ? new Date() : null;
+
     let total = 0;
     let gross_profit = 0;
 	    items.forEach(it => {
@@ -648,10 +672,11 @@ router.put('/:id', auth, async (req, res) => {
       );
       if (cm.length === 1) resolvedCustomerId = cm[0].id;
     }
+    // v1.65.0: Tambah ppn_excluded + conditional audit tracking (hanya jika berubah)
     const { rowCount } = await client.query(
-      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, channel=$12, due_date=$13, payment_terms=$14, ongkir=$15, ongkir_cost=$16, payment_fee_rate=$17, payment_fee_mode=$18, payment_fee=$19, package_weight_gram=$20, est_weight_gram=0, updated_at=NOW()
-       WHERE id=$21 AND is_deleted=FALSE`,
-      [resolvedCustomerId, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'final', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, req.params.id]
+      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, channel=$12, due_date=$13, payment_terms=$14, ongkir=$15, ongkir_cost=$16, payment_fee_rate=$17, payment_fee_mode=$18, payment_fee=$19, package_weight_gram=$20, est_weight_gram=0, ppn_excluded=$21, ppn_marked_by = CASE WHEN $22::boolean THEN $23 ELSE ppn_marked_by END, ppn_marked_at = CASE WHEN $22::boolean THEN $24::timestamp ELSE ppn_marked_at END, updated_at=NOW()
+       WHERE id=$25 AND is_deleted=FALSE`,
+      [resolvedCustomerId, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'final', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, newPpnExcluded, ppnChanged, ppnMarkedBy, ppnMarkedAt, req.params.id]
     );
     if (!rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
 

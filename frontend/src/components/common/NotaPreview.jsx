@@ -4,7 +4,7 @@ import { angkaKeTerbilang } from '../../utils/angkaKeTerbilang';
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
 
-export default function NotaPreview({ form = {}, items = [], settings = {} }) {
+export default function NotaPreview({ form = {}, items = [], settings = {}, ppnExcluded = false }) {
   const {
     customer_name, customer_address, customer_phone,
     payment_method, due_date, notes, order_number, sale_date,
@@ -141,8 +141,13 @@ export default function NotaPreview({ form = {}, items = [], settings = {} }) {
 
       {/* Breakdown — ongkir & biaya kartu (pass_on) baris terpisah TANPA PPN */}
       <div style={{ textAlign: 'right', marginBottom: '8px' }}>
-        <div style={{ fontSize: '11px', color: subText }}>Subtotal (DPP): {fmtRp(dpp)}</div>
-        <div style={{ fontSize: '11px', color: subText }}>PPN 11%: {fmtRp(ppn)}</div>
+        {/* v1.65.0: Tampilkan DPP & PPN hanya jika ppnExcluded false */}
+        {!ppnExcluded && (
+          <>
+            <div style={{ fontSize: '11px', color: subText }}>Subtotal (DPP): {fmtRp(dpp)}</div>
+            <div style={{ fontSize: '11px', color: subText }}>PPN 11%: {fmtRp(ppn)}</div>
+          </>
+        )}
         {ongkir > 0 && (
           <div style={{ fontSize: '11px', color: subText }}>Ongkir: {fmtRp(ongkir)}</div>
         )}

@@ -558,6 +558,34 @@ const invoiceStockFieldsChanged = async (client, invoiceId, nextItems = []) => {
   return JSON.stringify(current) !== JSON.stringify(next);
 };
 
+// v1.64.2: field HARGA per item (hna beli + diskon) — SENGAJA fungsi terpisah dari
+// invoiceStockFieldsChanged di atas. hna/disc_percent/disc_nominal TIDAK mengubah
+// JUMLAH stok, jadi lolos dari guard qty di atas — tapi kalau berubah setelah stok
+// diposting, header (hna_final/hna_plus_ppn, dst — turunan item) tetap ikut berubah
+// dari payload sementara baris item TIDAK ditulis ulang (shouldRewriteItems=false) →
+// header vs item jadi tidak sinkron TANPA pesan error apa pun (kasus nyata: faktur
+// 19072026 header Rp21.600.000 vs item Rp15.600.000; faktur 12-07-2026 Rp3.600.000
+// vs Rp3.500.000). Toleransi kecil (bukan 0) supaya pembulatan desimal round-trip
+// form tidak memicu penolakan palsu. Dibandingkan per-index seperti
+// invoiceStockFieldsChanged (asumsi urutan item terjaga — konsisten dgn guard qty).
+const PRICE_FIELD_TOLERANCE = 0.005;
+const invoicePriceFieldsChanged = async (client, invoiceId, nextItems = []) => {
+  const { rows: currentItems } = await client.query(
+    `SELECT hna, disc_percent, disc_nominal FROM invoice_items
+     WHERE invoice_id = $1 ORDER BY id`,
+    [invoiceId]
+  );
+  if (currentItems.length !== nextItems.length) return true;
+  for (let i = 0; i < currentItems.length; i++) {
+    const cur = currentItems[i];
+    const next = nextItems[i] || {};
+    if (Math.abs(toNumber(cur.hna) - toNumber(next.hna)) > PRICE_FIELD_TOLERANCE) return true;
+    if (Math.abs(toNumber(cur.disc_percent) - toNumber(next.disc_percent)) > PRICE_FIELD_TOLERANCE) return true;
+    if (Math.abs(toNumber(cur.disc_nominal) - toNumber(next.disc_nominal)) > PRICE_FIELD_TOLERANCE) return true;
+  }
+  return false;
+};
+
 // GET all invoices
 router.get('/', auth, async (req, res) => {
   try {
@@ -943,6 +971,21 @@ router.put('/:id', auth, async (req, res) => {
       });
     }
 
+    // v1.64.2: qty/produk SAMA tapi HARGA (hna/diskon per item) beda — tidak kena guard
+    // di atas (invoiceStockFieldsChanged sengaja cuma cek field yang mengubah JUMLAH
+    // stok). Kalau lolos, header (hna_final/hna_plus_ppn) tetap ikut berubah dari payload
+    // sementara item TIDAK ditulis ulang → data tidak konsisten tanpa error sama sekali
+    // (lihat komentar invoicePriceFieldsChanged di atas untuk kasus nyata di produksi).
+    const priceFieldsChanged = items !== undefined && hasStockMutations
+      ? await invoicePriceFieldsChanged(client, id, items || [])
+      : false;
+    if (items !== undefined && hasStockMutations && priceFieldsChanged) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: 'Harga/HPP faktur yang stoknya sudah masuk tidak bisa diubah dari sini, karena stok terlanjur tercatat dengan harga lama dan sebagiannya mungkin sudah terjual. Koreksi lewat Stok Opname / Adjust.',
+      });
+    }
+
     const shouldRewriteItems = items !== undefined && !hasStockMutations;
     // Metadata-only: stok diposting & qty/produk tak berubah → patch batch_no/ED saja.
     const shouldPatchItemMeta = items !== undefined && hasStockMutations && !stockFieldsChanged;
@@ -957,6 +1000,58 @@ router.put('/:id', auth, async (req, res) => {
       }
     }
 
+    // v1.64.2: LAPIS-2 jaring pengaman — walau guard harga di atas (invoicePriceFieldsChanged)
+    // sudah menolak payload yang mengubah hna/diskon item, header di bawah TETAP tidak boleh
+    // dipercaya begitu saja dari payload saat item terkunci (shouldRewriteItems=false: qty/
+    // produk sama, ATAU items tak dikirim sama sekali di request ini). Total header dihitung
+    // ULANG dari invoice_items yang SUNGGUHAN ada di DB — formula persis meniru calcTotals()
+    // di frontend/src/components/InvoiceList.jsx (total_hna, hna_baru_total, hna_final,
+    // ppn_masukan, ppn_pembulatan, hna_plus_ppn, harga_per_produk, discount_amount).
+    // disc_cod_amount/disc_cod_ada SENGAJA tetap dari payload — itu input header (nilai COD
+    // sudah di-resolve ke nominal di form), bukan hasil agregasi item.
+    let computedTotalHna = total_hna || null;
+    let computedDiscountAmount = discount_amount || null;
+    let computedHnaBaruHeader = hna_baru || null;
+    let computedHnaFinal = resolvedHnaFinal;
+    let computedPpn = resolvedPpn;
+    let computedPpnPembulatan = ppn_pembulatan || null;
+    let computedHnaPlusPpn = hna_plus_ppn || null;
+    let computedHargaPerProduk = harga_per_produk || null;
+    if (!shouldRewriteItems) {
+      // COALESCE(qty_in_unit, quantity): qty_in_unit baru ada sejak v1.6.0 (multi-unit) —
+      // jaga-jaga faktur lama sebelum kolom itu ada supaya harga_per_produk tidak 0/timpang.
+      // v1.64.2: hna_baru_total DITURUNKAN dari (hna_times_qty − disc_nominal), BUKAN
+      // SUM(hna_baru). hna_baru adalah kolom turunan yang di beberapa baris lama
+      // terlanjur berisi harga SATUAN, bukan total baris — mis. faktur MVG06262516717
+      // (Mika Nasi, qty 1500 × 190): hna_times_qty=285.000 tapi hna_baru=190. Kalau
+      // header dihitung dari SUM(hna_baru), header yang BENAR (285.000) justru ditimpa
+      // jadi 190. Diuji ke seluruh 127 faktur: cara ini cocok 126, SUM(hna_baru) 125.
+      const { rows: [itemSums] } = await client.query(
+        `SELECT
+           COALESCE(SUM(hna_times_qty), 0) AS total_hna,
+           COALESCE(SUM(hna_times_qty), 0) - COALESCE(SUM(disc_nominal), 0) AS hna_baru_total,
+           COALESCE(SUM(disc_nominal), 0) AS discount_amount,
+           COALESCE(SUM(COALESCE(qty_in_unit, quantity)), 0) AS total_qty
+         FROM invoice_items WHERE invoice_id = $1`,
+        [id]
+      );
+      const hnaBaruTotalRaw = toNumber(itemSums.hna_baru_total);
+      const discCodAmount = disc_cod_ada ? toNumber(disc_cod_amount) : 0;
+      const hnaFinalRaw = hnaBaruTotalRaw - discCodAmount;
+      const ppnMasukanRaw = taxType === tax.TAX_TYPE_NOTA ? 0 : hnaFinalRaw * resolvedPpnRate;
+      const hnaPlusPpnRaw = hnaFinalRaw + ppnMasukanRaw;
+      const totalQty = toNumber(itemSums.total_qty);
+
+      computedTotalHna = round2(itemSums.total_hna);
+      computedDiscountAmount = round2(itemSums.discount_amount);
+      computedHnaBaruHeader = round2(hnaBaruTotalRaw);
+      computedHnaFinal = round2(hnaFinalRaw);
+      computedPpn = round2(ppnMasukanRaw);
+      computedPpnPembulatan = Math.floor(ppnMasukanRaw);
+      computedHnaPlusPpn = round2(hnaPlusPpnRaw);
+      computedHargaPerProduk = totalQty > 0 ? round2(hnaPlusPpnRaw / totalQty) : 0;
+    }
+
     const result = await client.query(
       `UPDATE invoices SET
         invoice_number=$1, purchase_date=$2, distributor_name=$3,
@@ -969,10 +1064,10 @@ router.put('/:id', auth, async (req, res) => {
 	        updated_at=NOW()
 	       WHERE id=$20 RETURNING *`,
       [invoice_number, purchase_date, distributor_name,
-       total_hna||null, discount_amount||null, hna_baru||null,
+       computedTotalHna||null, computedDiscountAmount||null, computedHnaBaruHeader||null,
        disc_cod_ada||false, disc_cod_amount||null,
-       resolvedHnaFinal, resolvedPpn, resolvedPpn, ppn_pembulatan||null,
-	       hna_plus_ppn||null, harga_per_produk||null,
+       computedHnaFinal, computedPpn, computedPpn, computedPpnPembulatan||null,
+	       computedHnaPlusPpn||null, computedHargaPerProduk||null,
 	       due_date||null, payment_date||null, status||'Pending', taxType, resolvedPpnRate, id]
     );
     if (!result.rows.length) {

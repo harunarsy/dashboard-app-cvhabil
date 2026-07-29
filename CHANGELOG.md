@@ -2,6 +2,21 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.65.0-stable] - 2026-07-28
+
+### Ditambahkan — nota dengan / tanpa PPN
+- Segmented tab **"Nota PPN" | "Nota Tanpa PPN"** di dalam modal buat/edit nota (`SalesOrderList.jsx`), meniru pola tab Penjualan|Pinjaman yang sudah ada.
+- **Memakai ulang kolom `sales_orders.ppn_excluded`** yang sudah dibuat modul Pajak (v1.51.x) — BUKAN kolom baru. Sebelumnya kolom itu "terisolasi, tidak dibaca jalur nota" dan hanya bisa diubah dari halaman Pajak; sekarang tersambung ke form, pratinjau, dan cetakan. Satu sumber kebenaran, jadi menandai nota di sini otomatis mengecualikannya dari perhitungan PPN di menu Pajak.
+- `NotaPreview.jsx` menerima prop `ppnExcluded`; `generateNotaPDF.js` membaca `order.ppn_excluded`. Saat aktif, baris `Subtotal (DPP)` & `PPN 11%` tidak dirender. **GRAND TOTAL tidak berubah nilainya** — flag ini murni penanda tampilan, tidak menyentuh total/HPP/margin/laba/stok.
+- Backend `sales.js` POST+PUT menyimpan flag; `ppn_marked_by`/`ppn_marked_at` diisi hanya saat nilainya berubah. PUT mempertahankan nilai lama kalau field tidak dikirim. GET tidak diubah (query sudah `SELECT s.*`).
+- Badge **"TANPA PPN"** di baris daftar nota.
+
+### Diperbaiki — edit harga faktur tersimpan setengah jadi
+- `PUT /invoices/:id`: penjaga lama (`invoiceStockFieldsChanged`) hanya mendeteksi perubahan qty/produk, tidak harga. Akibatnya mengubah HPP pada faktur yang stoknya sudah diposting membuat **header ikut berubah sementara baris item tidak** — data bertentangan tanpa pesan error. Terjadi nyata pada 2 faktur beras (header 21.600.000 vs item 15.600.000).
+- Ditambah `invoicePriceFieldsChanged` (cek `hna`/`disc_percent`/`disc_nominal`, toleransi 0,005) → tolak dengan pesan yang mengarahkan ke Stok Opname.
+- Lapis kedua: saat item terkunci, total header **dihitung ulang dari `invoice_items` yang sungguhan ada**, bukan dari payload. `hna_baru_total` diturunkan dari `SUM(hna_times_qty) − SUM(disc_nominal)`, bukan `SUM(hna_baru)` — kolom turunan itu di sebagian baris lama berisi harga satuan (mis. faktur MVG06262516717: `hna_times_qty`=285.000 tapi `hna_baru`=190), sehingga memakainya justru akan menimpa header yang benar. Diuji ke seluruh 127 faktur: cara ini cocok 126, `SUM(hna_baru)` hanya 125.
+- **Data**: HPP beras 3 faktur Om Irul diseragamkan ke 360.000 (2 baris item + 2 batch). Laba kotor terverifikasi tidak bergeser — nota penjualannya memang sudah memakai 360.000 sejak awal.
+
 ## [v1.64.1-stable] - 2026-07-27
 
 ### Diperbaiki — nomor batch di nota tidak ikut terupdate

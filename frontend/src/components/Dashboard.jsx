@@ -39,9 +39,24 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.65.0-stable",
+    date: "28 Juli 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "feature",
+        text: "Nota sekarang bisa dibuat dengan atau tanpa PPN. Di dalam layar Buat Nota ada pilihan 'Nota PPN' dan 'Nota Tanpa PPN'. Kalau dipilih tanpa PPN, baris 'Subtotal (DPP)' dan 'PPN 11%' tidak muncul di pratinjau maupun hasil cetak — harga tampil apa adanya dan totalnya tetap sama persis. Nota lama juga bisa dipindah lewat tombol Ubah, dan yang tanpa PPN diberi penanda di daftar nota. Catatan: pilihan ini terhubung ke menu Pajak, jadi nota yang ditandai tanpa PPN otomatis dikecualikan dari perhitungan PPN bulan itu.",
+      },
+      {
+        type: "fix",
+        text: "Harga di faktur yang stoknya sudah masuk tidak bisa lagi berubah setengah-setengah. Dulu kalau HPP diubah di faktur yang barangnya sudah tercatat masuk stok, total fakturnya berubah tapi rincian produknya tidak — jadi angkanya bertentangan tanpa ada pesan apa pun. Sekarang ditolak dengan penjelasan dan diarahkan ke Stok Opname. Dua faktur beras yang terlanjur begitu sudah dibetulkan.",
+      },
+    ],
+  },
+  {
     version: "v1.64.1-stable",
     date: "27 Juli 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",

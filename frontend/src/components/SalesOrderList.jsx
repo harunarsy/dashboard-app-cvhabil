@@ -1024,6 +1024,7 @@ export default function SalesOrderList({
       package_weight_gram: "",
       payment_fee_rate: "",
       payment_fee_mode: "absorb",
+      ppn_excluded: false, // v1.65.0: Nota PPN vs Tanpa PPN
     });
     setItems([blankItem()]);
     setItemBatches([]);
@@ -1057,6 +1058,7 @@ export default function SalesOrderList({
           ? String(+(parseFloat(order.payment_fee_rate) * 100).toFixed(3))
           : "",
       payment_fee_mode: order.payment_fee_mode === "pass_on" ? "pass_on" : "absorb",
+      ppn_excluded: !!order.ppn_excluded, // v1.65.0: Nota PPN vs Tanpa PPN
     });
     // v1.8.1: include batch snapshot fields supaya batch picker bisa pre-fill
     // v1.16.2: tambah _selected_batch_id untuk lookup berbasis id
@@ -1237,6 +1239,8 @@ export default function SalesOrderList({
           ? (parseFloat(form.payment_fee_rate) || 0) / 100
           : 0;
       payload.payment_fee_mode = form.payment_fee_mode || "absorb";
+      // v1.65.0: ppn_excluded — nota PPN vs Tanpa PPN
+      payload.ppn_excluded = !!form.ppn_excluded;
       // v1.16.2: map batch fields ke payload (selected_batch_id, batch_id_snapshot, dll)
       payload.items = payload.items.map((i) => ({
         ...i,
@@ -2815,26 +2819,45 @@ export default function SalesOrderList({
                       </td>
                       <td style={{ padding: "12px 14px", color: text }}>
                         <div>{o.customer_name}</div>
-                        <span
-                          style={{
-                            fontSize: "9px",
-                            fontWeight: "700",
-                            padding: "1px 5px",
-                            borderRadius: "3px",
-                            whiteSpace: "nowrap",
-                            display: "inline-block",
-                            backgroundColor:
-                              o.channel === "online"
-                                ? "var(--color-primary-soft)"
-                                : "color-mix(in srgb, var(--color-text-subtle) 8%, transparent)",
-                            color:
-                              o.channel === "online"
-                                ? "var(--color-primary)"
-                                : "var(--color-text-subtle)",
-                          }}
-                        >
-                          {o.channel === "online" ? "🛒 ONLINE" : "🏪 OFFLINE"}
-                        </span>
+                        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginTop: "4px" }}>
+                          <span
+                            style={{
+                              fontSize: "9px",
+                              fontWeight: "700",
+                              padding: "1px 5px",
+                              borderRadius: "3px",
+                              whiteSpace: "nowrap",
+                              display: "inline-block",
+                              backgroundColor:
+                                o.channel === "online"
+                                  ? "var(--color-primary-soft)"
+                                  : "color-mix(in srgb, var(--color-text-subtle) 8%, transparent)",
+                              color:
+                                o.channel === "online"
+                                  ? "var(--color-primary)"
+                                  : "var(--color-text-subtle)",
+                            }}
+                          >
+                            {o.channel === "online" ? "🛒 ONLINE" : "🏪 OFFLINE"}
+                          </span>
+                          {/* v1.65.0: badge "TANPA PPN" kalau ppn_excluded = true */}
+                          {o.ppn_excluded && (
+                            <span
+                              style={{
+                                fontSize: "9px",
+                                fontWeight: "700",
+                                padding: "1px 5px",
+                                borderRadius: "3px",
+                                whiteSpace: "nowrap",
+                                display: "inline-block",
+                                backgroundColor: "color-mix(in srgb, var(--color-warning) 12%, transparent)",
+                                color: "var(--color-warning)",
+                              }}
+                            >
+                              TANPA PPN
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td
                         style={{
@@ -4090,6 +4113,55 @@ export default function SalesOrderList({
                       <option value="offline">🏪 Offline</option>
                       <option value="online">🛒 Online / Marketplace</option>
                     </select>
+                  </div>
+
+                  {/* v1.65.0: Tab "Nota PPN" vs "Nota Tanpa PPN" — segmented control mirip pageTab */}
+                  <div>
+                    <label style={labelStyle}>Jenis Nota</label>
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        gap: "4px",
+                        padding: "4px",
+                        borderRadius: "10px",
+                        backgroundColor: isDarkMode
+                          ? "var(--color-surface-raised)"
+                          : "var(--color-border)",
+                      }}
+                    >
+                      {[
+                        { key: false, label: "Nota PPN" },
+                        { key: true, label: "Nota Tanpa PPN" },
+                      ].map((t) => (
+                        <button
+                          key={String(t.key)}
+                          onClick={() =>
+                            setForm((p) => ({ ...p, ppn_excluded: t.key }))
+                          }
+                          className="ui-motion-button"
+                          style={{
+                            padding: "6px 16px",
+                            borderRadius: "8px",
+                            border: "none",
+                            cursor: "pointer",
+                            fontWeight: 700,
+                            fontSize: "13px",
+                            backgroundColor:
+                              form.ppn_excluded === t.key
+                                ? "var(--color-primary)"
+                                : "transparent",
+                            color:
+                              form.ppn_excluded === t.key
+                                ? "#FFF"
+                                : isDarkMode
+                                  ? "#FFF"
+                                  : "#000",
+                          }}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {/* #1 konfirmasi item rugi sebelum simpan */}
@@ -5367,6 +5439,7 @@ export default function SalesOrderList({
                     }}
                     items={items}
                     settings={layoutSettings || {}}
+                    ppnExcluded={!!form.ppn_excluded}
                   />
                 </div>
               </div>

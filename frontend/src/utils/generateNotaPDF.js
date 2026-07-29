@@ -290,10 +290,15 @@ export function generateNotaPDF(order, options = {}) {
     doc.setFontSize(baseFontSize - 1);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 80, 80);
-    doc.text(`Subtotal (DPP): ${fmtRp(dpp)}`, rightX, finalY, { align: 'right' });
-    finalY += isA6 ? 2.4 : (isA5 ? 3.3 : 4.5);
-    doc.text(`PPN ${Math.round(PPN_RATE * 100)}%: ${fmtRp(ppn)}`, rightX, finalY, { align: 'right' });
-    finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
+    // v1.65.0: nota TANPA PPN (sales_orders.ppn_excluded) — rincian DPP/PPN tidak
+    // dicetak, harga tampil apa adanya. GRAND TOTAL sengaja TIDAK diubah: nilainya
+    // sama persis, yang hilang hanya dua baris rincian pajaknya.
+    if (!order.ppn_excluded) {
+      doc.text(`Subtotal (DPP): ${fmtRp(dpp)}`, rightX, finalY, { align: 'right' });
+      finalY += isA6 ? 2.4 : (isA5 ? 3.3 : 4.5);
+      doc.text(`PPN ${Math.round(PPN_RATE * 100)}%: ${fmtRp(ppn)}`, rightX, finalY, { align: 'right' });
+      finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
+    }
     if (ongkir > 0) {
       doc.text(`Ongkir: ${fmtRp(ongkir)}`, rightX, finalY, { align: 'right' });
       finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
