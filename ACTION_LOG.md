@@ -158,6 +158,8 @@ memang sudah begitu (ini menyeragamkan), tapi di Nota ini baru.
 | B2 | **Kategori distributor per produk** | Enseval / Parit Padang / AAM. Satu produk bisa dari >1 distributor. **Brainstorming dulu** |
 | B3 | **Filter isi repo biar profesional** | `CLAUDE.md`, `SUPERAPP_BRAIN.md`, `SEED_MIGRATION_HABIL.sql`, `ACTION_LOG.md`, `AUDIT_*`, `RELEASE_*_DRAFT.md` — mana yang layak publik? Cek juga riwayat/source code kalau ada yang nyangkut |
 | B4 | **Fitur ganti password** | Disepakati. Belum ada sama sekali di `auth.js` — ini sebabnya password default masih aktif |
+| B5 | **Audit mandiri lewat browser** | Fase khusus: Claude buka app-nya sendiri pakai browser tool — cek responsivitas (HP/tablet/desktop), telusuri fitur satu-satu, baca console error + network log, laporkan temuan visual & fatal. Selama ini audit baru dari membaca kode, belum dari memakai aplikasinya |
+| B6 | **Buku Besar: perjelas keterangan & kategori** | Harun masih bingung membacanya — belum nyambung dengan buku besar Excel miliknya. Perlu: keterangan transaksi lebih terbaca, kategori sepadan dengan Excel, penanda laba minus. **Butuh berkas Excel buku besar Harun sebagai acuan** sebelum mulai. Saat ini ada 74 entri "Perlu review" yang belum terkategori |
 
 ### C. Sisa audit (21 temuan) yang belum digarap
 #7 HPP dari browser · #8 edit faktur menyusul tak menambah stok · #10 bedakan layar gagal-muat vs kosong ·
