@@ -11,8 +11,11 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
   - Perbaikan: kedua jalur dinormalisasi lewat `uom.pricePerBase(nilai, item.unit, product)` — helper yang sudah ada di `utils/uom.js` tapi belum dipakai di sini. `effectiveHna()` kini menerima parameter `product` (7 pemanggil ikut diperbarui). Aman untuk produk non-pack: `pricePerBase` no-op kalau `unit` bukan `pack_unit`.
   - Data: penyisiran seluruh `inventory_batches` aktif menemukan **1 batch** terdampak (`FF1181557`, faktur MJ23.2026026577) — HNA 178.092 → 14.841 (`master_hna` per pcs 14.840,54, cocok). Dikoreksi dalam transaksi dengan dua pengaman: rasio harus mendekati `pack_size`, dan batch tidak boleh punya mutasi keluar. Batch tersebut belum pernah dipakai jualan, jadi tidak ada nota/laba yang berubah.
 
-### Catatan
-- `qty` batch `FF1181557` masih 10 (satuan tercatat `pcs`). Kalau faktur itu sebenarnya 10 **karton**, stok fisiknya 120 pcs — menunggu konfirmasi pemilik sebelum diubah, karena itu mengubah stok, bukan sekadar harga.
+- **Satuan & qty batch `FF1181557` ikut dikoreksi** setelah dikonfirmasi pemilik: faktur itu **10 karton**, bukan 10 pcs. `inventory_batches.qty_current` 10 → **120 pcs**, `source_qty_unit` `pcs` → `karton` (`source_qty_value` 10); `inventory_mutations` baris masuk disesuaikan (qty 120, `qty_unit` karton, `qty_in_unit` 10); `invoice_items.quantity` 10 → 120 dengan `unit` `karton`. Total stok Omela Foaming 10 → 120 pcs.
+  - Nominal faktur **tidak berubah** (Rp 1.780.920) — dijaga assertion di dalam transaksi, karena yang salah memang satuannya saja, bukan uangnya. Backup baris asli disimpan sebelum eksekusi.
+
+### Hasil akhir
+- Nota satuan `pcs` → HPP **14.841**; satuan `karton` → HPP **178.092** (14.841 × 12). Kedua gejala yang dilaporkan hilang.
 
 ## [v1.65.1-stable] - 2026-07-29
 
