@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.65.2-stable",
+    date: "31 Juli 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Harga pokok produk karton tidak lagi kebalik. Di Omela Foaming Milk, harga modal per 1 pcs terbaca sebesar harga 1 karton, lalu waktu satuannya diganti ke karton angkanya jadi 12 kali lipat lagi. Penyebabnya harga dari faktur masuk tersimpan per karton padahal kolomnya untuk harga per pcs. Sekarang harga dari faktur otomatis dibagi isi karton dulu sebelum disimpan, dan data Omela yang terlanjur salah sudah dibetulkan. Nota lama tidak berubah.",
+      },
+    ],
+  },
+  {
     version: "v1.65.1-stable",
     date: "29 Juli 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "feature",

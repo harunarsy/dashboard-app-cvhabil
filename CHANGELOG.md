@@ -2,6 +2,18 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.65.2-stable] - 2026-07-31
+
+### Diperbaiki
+- **HPP produk satuan pack tersimpan per-pack, bukan per-pcs** (dilaporkan pada Omela Foaming Milk 1 L, `pack_size` 12). Gejala di Nota: satuan `pcs` menarik HPP 178.092 (itu harga per karton), lalu ganti satuan ke `karton` mengalikannya lagi ×12 → 2.137.104.
+  - Akar masalah di `routes/invoices.js`. `effectiveHna()` punya 4 cabang: `hna_after_cod` dan `hna_baru` adalah **nominal total baris** sehingga dibagi `qtyBase` (sudah per base unit, benar), tapi `hna_per_item` dan `hna` adalah **harga per satuan yang diketik operator** dan dikembalikan mentah. Kalau barisnya memakai satuan pack, nilai per-karton itu masuk ke `inventory_batches.hna` yang kolomnya wajib per base unit.
+  - Bug kedua sejenis di route PUT (edit faktur): `UPDATE product_master SET hna = $1` memakai `parseFloat(item.hna)` mentah, padahal komentarnya sendiri menyatakan "per pcs".
+  - Perbaikan: kedua jalur dinormalisasi lewat `uom.pricePerBase(nilai, item.unit, product)` — helper yang sudah ada di `utils/uom.js` tapi belum dipakai di sini. `effectiveHna()` kini menerima parameter `product` (7 pemanggil ikut diperbarui). Aman untuk produk non-pack: `pricePerBase` no-op kalau `unit` bukan `pack_unit`.
+  - Data: penyisiran seluruh `inventory_batches` aktif menemukan **1 batch** terdampak (`FF1181557`, faktur MJ23.2026026577) — HNA 178.092 → 14.841 (`master_hna` per pcs 14.840,54, cocok). Dikoreksi dalam transaksi dengan dua pengaman: rasio harus mendekati `pack_size`, dan batch tidak boleh punya mutasi keluar. Batch tersebut belum pernah dipakai jualan, jadi tidak ada nota/laba yang berubah.
+
+### Catatan
+- `qty` batch `FF1181557` masih 10 (satuan tercatat `pcs`). Kalau faktur itu sebenarnya 10 **karton**, stok fisiknya 120 pcs — menunggu konfirmasi pemilik sebelum diubah, karena itu mengubah stok, bukan sekadar harga.
+
 ## [v1.65.1-stable] - 2026-07-29
 
 ### Ditambahkan

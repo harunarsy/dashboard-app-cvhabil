@@ -177,12 +177,18 @@ const prorateSourceQty = (sourceQty, fullBaseQty, stockedBaseQty) => {
   return Number(((source * stocked) / full).toFixed(4));
 };
 
-const effectiveHna = (item, qtyBase) => {
+// Hasilnya SELALU harga per base unit (pcs) — itu satuan yang dipakai
+// inventory_batches.hna & product_master.hna.
+// hna_after_cod / hna_baru = nominal TOTAL baris → dibagi qty base sudah per pcs.
+// hna_per_item / hna = harga per SATUAN YANG DIKETIK operator (bisa karton), jadi
+// wajib dinormalisasi lewat pricePerBase. Tanpa ini batch.hna kesimpan per-karton
+// dan Nota menarik HPP pack_size kali lipat (bug Omela Foaming, v1.65.2).
+const effectiveHna = (item, qtyBase, product = null) => {
   const qty = toNumber(qtyBase) || toNumber(item.quantity) || 1;
   if (toNumber(item.hna_after_cod) > 0) return toNumber(item.hna_after_cod) / qty;
-  if (toNumber(item.hna_per_item) > 0) return toNumber(item.hna_per_item);
+  if (toNumber(item.hna_per_item) > 0) return uom.pricePerBase(toNumber(item.hna_per_item), item.unit, product);
   if (toNumber(item.hna_baru) > 0) return toNumber(item.hna_baru) / qty;
-  return toNumber(item.hna) || 0;
+  return uom.pricePerBase(toNumber(item.hna) || 0, item.unit, product);
 };
 
 const resolveProductByIdOrName = async (client, item = {}) => {
@@ -823,15 +829,15 @@ router.post('/', auth, async (req, res) => {
               );
               if (hnaBatchRows.length > 1) {
                 console.warn(`[Invoice ${invoice_number}] Multiple PO batches for product #${product.id} without batch_number — batch HNA not blanket-updated`);
-                await syncProductHna(client, product.id, effectiveHna(item, qtyBase), null);
+                await syncProductHna(client, product.id, effectiveHna(item, qtyBase, product), null);
               } else {
-                await syncProductHna(client, product.id, effectiveHna(item, qtyBase), purchase_order_id, null);
+                await syncProductHna(client, product.id, effectiveHna(item, qtyBase, product), purchase_order_id, null);
               }
             } else {
-              await syncProductHna(client, product.id, effectiveHna(item, qtyBase), purchase_order_id, batchNo);
+              await syncProductHna(client, product.id, effectiveHna(item, qtyBase, product), purchase_order_id, batchNo);
             }
           } else {
-            await syncProductHna(client, product.id, effectiveHna(item, qtyBase));
+            await syncProductHna(client, product.id, effectiveHna(item, qtyBase, product));
           }
         } else if (product && taxType === tax.TAX_TYPE_NOTA && purchase_order_id) {
           // AUDIT-LS-04: nota + SP — backfill batch purchase dgn harga beli riil.
@@ -846,10 +852,10 @@ router.post('/', auth, async (req, res) => {
             if (hnaBatchRows.length > 1) {
               console.warn(`[Invoice ${invoice_number}] Multiple PO batches for product #${product.id} without batch_number — nota batch HNA not blanket-updated`);
             } else {
-              await syncPurchaseBatchForNota(client, product.id, effectiveHna(item, qtyBase), purchase_order_id, null);
+              await syncPurchaseBatchForNota(client, product.id, effectiveHna(item, qtyBase, product), purchase_order_id, null);
             }
           } else {
-            await syncPurchaseBatchForNota(client, product.id, effectiveHna(item, qtyBase), purchase_order_id, batchNo);
+            await syncPurchaseBatchForNota(client, product.id, effectiveHna(item, qtyBase, product), purchase_order_id, batchNo);
           }
         }
 
@@ -880,7 +886,7 @@ router.post('/', auth, async (req, res) => {
           // AUDIT-LS-02: pembagi WAJIB qty penuh baris faktur. effectiveHna membagi
           // nominal TOTAL baris; kalau dibagi stockQtyBase hasil clamp room SP,
           // HNA per pcs menggelembung (1jt/40 = 25rb padahal benar 1jt/100 = 10rb).
-          const batchHna = effectiveHna(item, qtyBase);
+          const batchHna = effectiveHna(item, qtyBase, product);
           const { rows: [batch] } = await client.query(
             `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size, tax_type, ppn_rate)
              VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9, $10, $11) RETURNING id`,
@@ -1166,11 +1172,14 @@ router.put('/:id', auth, async (req, res) => {
 	           item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize, taxType]
 	        );
 	        // v1.8.2: sync product_master.hna ke RAW HNA per pcs dari faktur edit (mirror POST behavior)
+	        // v1.65.2: item.hna = harga per satuan yang diketik operator. Kalau barisnya
+	        // pakai satuan pack (mis. karton), harus dibagi pack_size dulu — kolom
+	        // product_master.hna wajib per base unit, sama seperti inventory_batches.hna.
 	        if (taxType === tax.TAX_TYPE_FAKTUR && product && parseFloat(item.hna) > 0) {
           await client.query(
             `UPDATE product_master SET hna = $1, updated_at = NOW()
              WHERE id = $2`,
-            [parseFloat(item.hna), product.id]
+            [uom.pricePerBase(parseFloat(item.hna), item.unit, product), product.id]
           );
         }
       }
