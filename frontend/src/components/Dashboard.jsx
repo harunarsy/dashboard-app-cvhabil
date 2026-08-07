@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.65.3-stable",
+    date: "07 Agustus 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Tulisan di pojok kanan atas nota tidak lagi tumpang tindih. Sejak barcode ditambahkan, baris 'Metode: Transfer' tidak ikut bergeser turun sehingga menimpa tulisan merah 'Jatuh Tempo Pembayaran'. Sekarang metode pembayaran sejajar rapi dengan blok 'Kepada Yth'. Berlaku untuk semua ukuran kertas (A4, A5, A6).",
+      },
+    ],
+  },
+  {
     version: "v1.65.2-stable",
     date: "31 Juli 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",

@@ -175,7 +175,9 @@ export function generateNotaPDF(order, options = {}) {
   if (type !== 'terima' && !isLoan) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(baseFontSize);
-    doc.text(`Metode: ${String(order.payment_method || 'Tunai')}`, infoX, margin + (isA6 ? 23 : 30), { align: 'right' });
+    // v1.65.3: pakai customerY, bukan margin+30 hardcode. Tanpa infoShift baris ini
+    // tak ikut terdorong barcode (v1.65.1) lalu menimpa baris "Jatuh Tempo".
+    doc.text(`Metode: ${String(order.payment_method || 'Tunai')}`, infoX, customerY, { align: 'right' });
   }
 
   // ─── Table ────────────────────────────────────────────────────────────

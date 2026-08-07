@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.65.3-stable] - 2026-08-07
+
+### Diperbaiki
+- **Baris "Metode: …" menimpa "Jatuh Tempo Pembayaran" di header nota PDF** (regresi dari v1.65.1). Barcode nomor nota mendorong seluruh blok kanan-atas ke bawah lewat `infoShift`, tapi satu baris tertinggal: `Metode:` di `utils/generateNotaPDF.js` masih memakai koordinat keras `margin + 30` tanpa `+ infoShift`.
+  - Akibatnya pada A4 baris itu tetap di Y=42, sementara "Jatuh Tempo" ikut turun ke Y=38.5 dan garis pembatas biru ke Y=44.5 — jadi `Metode:` terjepit di antara keduanya dan bertindihan.
+  - Perbaikan: pakai `customerY` (yang sudah memuat `infoShift`) alih-alih angka keras, sehingga `Metode:` kembali sejajar dengan blok "Kepada Yth" persis seperti maksud desain sebelum barcode ada. Y berubah 42 → 50.5 pada A4.
+  - Elemen header lain sudah aman: `tableStartY` mengambil `Math.max` dengan `addressY` yang merupakan turunan `customerY`, jadi ikut terdorong dengan sendirinya.
+  - Hanya menyentuh tata letak; tidak ada perubahan nilai, perhitungan, atau data. Nota pinjaman tidak terpengaruh (baris `Metode:` memang tidak dirender saat `isLoan`).
+
 ## [v1.65.2-stable] - 2026-07-31
 
 ### Diperbaiki
