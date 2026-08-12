@@ -7,9 +7,14 @@ const { AlertTriangle, CheckCircle, Download, RefreshCw, DollarSign } = Icons;
 const formatRupiah = (n) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(parseFloat(n) || 0);
 
+// v1.65.6: API mengirim timestamp ISO penuh ("2026-07-17T00:00:00.000Z"), jadi
+// d + "T00:00:00" menghasilkan "...000ZT00:00:00" -> Invalid Date di SEMUA baris.
+// split("T")[0] dulu, idiom yang sama dgn fmtEd di utils/waMessage.js.
 const formatDate = (d) => {
   if (!d) return "—";
-  return new Date(d + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  const dt = new Date(String(d).split("T")[0] + "T00:00:00");
+  if (Number.isNaN(dt.getTime())) return "—";
+  return dt.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 };
 
 const currentMonthStr = () => {

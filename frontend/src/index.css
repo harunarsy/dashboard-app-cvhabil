@@ -634,8 +634,15 @@ body.dark .ui-over-media-copy {
     var(--color-surface);
 }
 
+/* v1.65.6: fill-mode `backwards`, BUKAN `both`. Keyframe akhir ui-fade-scale-in
+   menyetel transform: translateY(0) scale(1) — identitas, tapi tetap terhitung
+   transform. Dengan `both` nilai itu ditahan selamanya, sehingga .ui-page permanen
+   jadi containing block untuk semua anak position:fixed (toast, tooltip, onboarding)
+   dan mereka ikut hanyut saat halaman di-scroll. `backwards` hanya menerapkan
+   keadaan awal sebelum animasi jalan, lalu melepas semuanya setelah selesai —
+   animasi masuknya tetap sama persis. */
 .ui-motion-page {
-  animation: ui-fade-scale-in var(--ui-motion-page) var(--ui-motion-enter) both;
+  animation: ui-fade-scale-in var(--ui-motion-page) var(--ui-motion-enter) backwards;
 }
 
 .ui-motion-modal {

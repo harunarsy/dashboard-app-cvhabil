@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.65.6-stable] - 2026-08-07
+
+### Diperbaiki
+- **Halaman Keuangan menampilkan `Invalid Date` di 64 tempat.** `formatDate()` di `FinancePage.jsx:12` melakukan `new Date(d + "T00:00:00")`, padahal `GET /api/finance/summary` mengirim timestamp ISO penuh — hasil gabungannya `"2026-07-17T00:00:00.000ZT00:00:00"` yang tidak bisa di-parse. Diverifikasi dengan memanggil endpoint aslinya di produksi (`invoiceDate: "2026-07-17T00:00:00.000Z"`). Perbaikan: `String(d).split("T")[0]` dulu — idiom yang sama dengan `fmtEd` di `utils/waMessage.js` — plus penjaga `Number.isNaN` agar jatuh ke `—` alih-alih `Invalid Date`. Penyisiran `frontend/src` menemukan dua pemakaian pola serupa lain (`Dashboard.jsx:5385`, `SalesOrderList.jsx:142`) yang aman karena sumbernya string `YYYY-MM-DD` buatan sendiri; pemindaian halaman juga tidak menemukan `Invalid Date` di sana, jadi keduanya tidak diubah.
+
+- **Toast masih hanyut saat scroll — perbaikan v1.65.5 mengenai lapisan yang salah.** Yang jadi containing block sesungguhnya bukan `.route-fade`, melainkan `.ui-page.ui-motion-page` satu lapis di dalamnya: `animation: ui-fade-scale-in … both`, dan keyframe akhirnya menyetel `transform: translateY(0) scale(1)`. `fill-mode: both` menahan nilai itu selamanya, sehingga transform identitas menempel permanen dan tetap membentuk containing block. Karena `.ui-page` lebih dalam daripada `.route-fade`, dialah yang selalu menang — artinya perbaikan v1.65.5 tidak pernah bisa menyelesaikan gejalanya.
+  - Perbaikan: `both` → `backwards` pada `.ui-motion-page`. Animasi masuk tidak berubah (keadaan awal tetap diterapkan sebelum animasi jalan), tapi setelah selesai semua nilai dilepas sehingga `transform` kembali `none`. Opacity dasar `.ui-page` memang 1, jadi tidak ada kedipan.
+  - Diverifikasi langsung di produksi, bukan di repro terisolasi: dengan `both` → `transform: matrix(1,0,0,1,0,0)`, `offsetParent` toast = `ui-page`, posisi bergeser 24 → −502 saat scroll 900px. Dengan `backwards` → `transform: none`, `offsetParent` = `null` (viewport), posisi tetap 24 → 24.
+  - `will-change: auto` dari v1.65.5 tetap dipertahankan: itu instance laten yang nyata dan praktik yang benar, hanya saja bukan penyebab aktifnya.
+  - **Catatan proses:** v1.65.5 diverifikasi memakai repro HTML terisolasi yang hanya memuat `.route-fade` tanpa `.ui-page`. Repro itu mengkonfirmasi hipotesis alih-alih menguji halaman sungguhan — persis kegagalan yang membuat perbaikan salah sasaran lolos.
+
 ## [v1.65.5-stable] - 2026-08-07
 
 ### Diperbaiki

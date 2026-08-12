@@ -39,9 +39,24 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.65.5-stable",
+    version: "v1.65.6-stable",
     date: "07 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Halaman Keuangan: semua tanggal hutang & piutang yang tadinya tertulis 'Invalid Date' kini tampil benar. Tanggal faktur dan tanggal jatuh tempo pada tiap baris terpengaruh — totalnya 64 tempat di satu halaman.",
+      },
+      {
+        type: "fix",
+        text: "Notifikasi pojok kanan atas benar-benar berhenti hanyut saat halaman digulir. Perbaikan di versi sebelumnya ternyata mengenai lapisan yang keliru, jadi masalahnya masih ada; sekarang sudah diuji langsung di aplikasi yang berjalan. Tooltip dan panduan onboarding ikut membaik.",
+      },
+    ],
+  },
+  {
+    version: "v1.65.5-stable",
+    date: "07 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
