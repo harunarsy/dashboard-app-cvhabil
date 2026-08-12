@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.65.7-stable",
+    date: "12 Agustus 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Halaman Keuangan kini benar-benar terkunci untuk Admin. Sebelumnya menunya memang tidak tampil di sidebar, tapi kalau alamatnya diketik langsung halaman itu tetap terbuka lengkap — total hutang, total piutang, nama distributor, sampai tombol untuk menandai faktur lunas. Sekarang hanya Direktur yang bisa membukanya, dan penguncian dilakukan di sisi server, bukan sekadar menyembunyikan menu. Buku Besar dan Pajak sudah aman sejak dulu; hanya Keuangan yang terlewat.",
+      },
+    ],
+  },
+  {
     version: "v1.65.6-stable",
     date: "07 Agustus 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",

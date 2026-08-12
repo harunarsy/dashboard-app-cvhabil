@@ -1,10 +1,20 @@
+// Keuangan — hutang (faktur belum lunas) + piutang (nota belum lunas).
+// Akses: direktur SAJA. Admin TIDAK boleh — ini data uang selevel Buku Besar,
+// dan PATCH /lunas bisa mengubah catatan hutang ke distributor.
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const roleGuard = require('../middleware/roleGuard');
+
+// v1.65.7: SEBELUMNYA tiap rute hanya memakai `auth` tanpa roleGuard, sehingga admin
+// yang mengetik /finance langsung bisa melihat seluruh hutang-piutang DAN menandai
+// faktur lunas. Menyembunyikan menu di sidebar bukan pengamanan. Penjaga dipasang di
+// router.use SEBELUM semua rute — jangan pindahkan ke bawah definisi rute mana pun.
+router.use(auth, roleGuard('direktur'));
 
 // GET /api/finance/summary — hutang (faktur belum lunas) + piutang (nota belum lunas)
-router.get('/summary', auth, async (req, res) => {
+router.get('/summary', async (req, res) => {
   try {
     const [hutangRows, piutangRows] = await Promise.all([
       pool.query(`
@@ -76,7 +86,7 @@ router.get('/summary', auth, async (req, res) => {
 });
 
 // PATCH /api/finance/hutang/:invoiceNumber/lunas — tandai faktur lunas
-router.patch('/hutang/:invoiceNumber/lunas', auth, async (req, res) => {
+router.patch('/hutang/:invoiceNumber/lunas', async (req, res) => {
   try {
     const { invoiceNumber } = req.params;
     const { rows } = await pool.query(

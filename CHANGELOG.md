@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.65.7-stable] - 2026-08-12
+
+### Keamanan
+- **`/api/finance/*` tidak punya `roleGuard` — admin bisa membaca DAN mengubah data keuangan.** Ditemukan saat audit produksi dengan login `admin`.
+  - `routes/finance.js` hanya memasang `auth` (sekadar "sudah login") pada kedua rutenya, tanpa `roleGuard`. `ledger.js` (`roleGuard('direktur')`) dan `tax.js` (`roleGuard('direktur','pajak')`) sudah benar sejak awal — hanya `finance.js` yang terlewat; penyisiran `backend/routes/*.js` memastikan cuma dua berkas itu yang memakai `roleGuard`.
+  - Bukti langsung dengan token admin: `GET /api/ledger` → **403**, `GET /api/tax/summary` → **403**, tetapi `GET /api/finance/summary` → **200 dengan data lengkap**. Di layar, admin yang mengetik `/finance` melihat Total Hutang Rp 81.770.410, Total Piutang Rp 62.127.500, 47 angka rupiah, plus nama distributor (PT. JNI MITRAJAYA, PT. ENSEVAL …).
+  - Lebih berat dari sekadar kebocoran baca: `PATCH /hutang/:invoiceNumber/lunas` juga tanpa penjaga, sehingga admin dapat **menandai hutang ke distributor sebagai lunas**.
+  - Perbaikan: `router.use(auth, roleGuard('direktur'))` dipasang **sebelum** semua definisi rute, lalu `auth` per-rute yang kini berlebihan dihapus. Mengikuti pola `tax.js`/`ledger.js` persis.
+  - Diperiksa juga apakah `ledger.js` punya celah serupa karena `router.use`-nya berada di baris 116: tidak ada satu pun rute yang didefinisikan sebelum baris itu, jadi aman.
+  - Sisi frontend tidak diubah — `/ledger` pun tidak punya penjaga peran di klien, jadi perilakunya sudah konsisten. Sidebar memang sudah menyembunyikan menu untuk admin; yang kurang selama ini penguncian di server.
+
 ## [v1.65.6-stable] - 2026-08-07
 
 ### Diperbaiki
