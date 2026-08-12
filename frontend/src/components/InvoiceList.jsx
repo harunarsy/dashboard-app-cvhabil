@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import MasterSelect from "./MasterSelect";
 import ConfirmModal from "./common/ConfirmModal";
+import NewProductModal from "./common/NewProductModal";
 import Skeleton from "./common/Skeleton";
 import Breadcrumb from "./common/Breadcrumb";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
@@ -3799,6 +3800,7 @@ export default function InvoiceList({
           editingId={editingId}
           distributors={distributors}
           products={products}
+          refetchProducts={fetchProducts}
           purchaseOrders={purchaseOrders}
           onSelectSP={handleSelectSP}
           onAddDistributor={handleAddDistributor}
@@ -4407,6 +4409,7 @@ function InvoiceModal({
   editingId,
   distributors,
   products,
+  refetchProducts,
   onAddDistributor,
   onRemoveDistributor,
   onRenameDistributor,
@@ -4424,6 +4427,8 @@ function InvoiceModal({
   purchaseOrders,
   onSelectSP,
 }) {
+  // v1.65.8: alur "tambah produk baru" via NewProductModal (ganti "ketik nama bebas")
+  const [newProductFor, setNewProductFor] = useState(null); // { name, idx } | null
   const sec = {
     marginBottom: "1.75rem",
     paddingBottom: "1.75rem",
@@ -4492,6 +4497,7 @@ function InvoiceModal({
   });
 
   return (
+    <>
     <div
       onClick={onClose}
       style={{
@@ -4933,7 +4939,7 @@ function InvoiceModal({
                         updateItem(idx, "product_option", option)
                       }
                       options={products}
-                      allowCustomValue
+                      onAdd={(nama) => setNewProductFor({ name: nama, idx })}
                       placeholder="Pilih atau tambah produk..."
                       isDarkMode={isDarkMode}
                     />
@@ -5763,5 +5769,20 @@ function InvoiceModal({
         </div>
       </div>
     </div>
+    <NewProductModal
+      isOpen={!!newProductFor}
+      initialName={newProductFor?.name || ""}
+      existingProducts={products}
+      isDarkMode={isDarkMode}
+      onClose={() => setNewProductFor(null)}
+      onCreated={(prod) => {
+        // pakai jalur "product_option" (bukan "product_name") supaya product_id
+        // langsung dari objek prod, tidak bergantung urutan refetch products
+        updateItem(newProductFor.idx, "product_option", prod);
+        refetchProducts();
+        setNewProductFor(null);
+      }}
+    />
+    </>
   );
 }

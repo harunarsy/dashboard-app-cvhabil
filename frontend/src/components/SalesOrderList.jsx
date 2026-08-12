@@ -33,6 +33,7 @@ import {
 } from "../constants/units";
 import { hppFromHna, hnaFromHpp } from "../utils/rupiah";
 import MasterSelect from "./MasterSelect";
+import NewProductModal from "./common/NewProductModal";
 import LoanList from "./LoanList";
 import Skeleton from "./common/Skeleton";
 import ConfirmModal from "./common/ConfirmModal";
@@ -335,6 +336,8 @@ export default function SalesOrderList({
   });
   const [items, setItems] = useState([blankItem()]);
   const [itemBatches, setItemBatches] = useState([]);
+  // v1.65.8: modal buat produk baru langsung dari dropdown item (produk baru wajib punya KODE)
+  const [newProductFor, setNewProductFor] = useState(null); // { name, idx }
   const [customerInsights, setCustomerInsights] = useState([]);
   const [customerInsightsLoading, setCustomerInsightsLoading] = useState(false);
   const [addingInsightProduct, setAddingInsightProduct] = useState("");
@@ -699,26 +702,32 @@ export default function SalesOrderList({
   };
 
   // Product CRUD Handlers
-  const handleAddProduct = async (name) => {
-    try {
-      await inventoryAPI.createProduct({
-        name,
-        unit: "pcs",
-        hna: 0,
-        sell_price: 0,
-        category: "",
-        min_stock: 5,
+  // v1.65.8: produk baru wajib punya KODE (backend menolak tanpa code) — buka modal
+  // NewProductModal yang mengurus KODE, bukan panggil createProduct langsung dari sini.
+  const handleAddProduct = (name, idx) => {
+    setNewProductFor({ name, idx });
+  };
+
+  // Dipanggil NewProductModal setelah produk baru (atau produk existing yang dipilih
+  // ulang via _reusedExisting) selesai dibuat.
+  const handleProductCreated = async (prod) => {
+    const idx = newProductFor?.idx;
+    await fetchProducts(); // segarkan master produk supaya dropdown & lookup lain ikut update
+    if (idx != null) {
+      await updateItem(idx, "product_name", prod.name);
+      // Jaga-jaga: kalau closure `products` di updateItem masih data lama (refetch
+      // belum ke-render ulang), _product_id bisa lolos null — tambal manual dari
+      // objek produk yang baru dibuat/dipilih.
+      setItems((prev) => {
+        const next = [...prev];
+        if (next[idx] && !next[idx]._product_id) {
+          next[idx] = { ...next[idx], _product_id: prod.id, _product: prod };
+        }
+        return next;
       });
-      flash("Produk ditambahkan");
-      fetchProducts();
-    } catch (e) {
-      flash(
-        e.response?.status === 400
-          ? "Produk baru wajib punya KODE — buat dulu di halaman Inventory ya"
-          : e.response?.data?.error || e.message,
-        "error",
-      );
     }
+    flash(prod._reusedExisting ? "Produk dipilih" : "Produk ditambahkan");
+    setNewProductFor(null);
   };
 
   const handleRemoveProduct = async (name) => {
@@ -4445,7 +4454,7 @@ export default function SalesOrderList({
                           value={it.product_name}
                           onChange={(v) => updateItem(idx, "product_name", v)}
                           options={products.map((p) => ({ name: p.name }))}
-                          onAdd={handleAddProduct}
+                          onAdd={(name) => handleAddProduct(name, idx)}
                           onRemove={handleRemoveProduct}
                           onRename={handleRenameProduct}
                           isDarkMode={isDarkMode}
@@ -5991,6 +6000,15 @@ export default function SalesOrderList({
         title="Hapus Nota"
         message="Apakah Anda yakin ingin menghapus nota ini? Tindakan ini tidak dapat dibatalkan."
         isDarkMode={isDarkMode}
+      />
+
+      <NewProductModal
+        isOpen={!!newProductFor}
+        initialName={newProductFor?.name || ""}
+        existingProducts={products}
+        isDarkMode={isDarkMode}
+        onClose={() => setNewProductFor(null)}
+        onCreated={handleProductCreated}
       />
 
       <ToastNotice message={toast} type={toastType} isMobile={isMobile} />

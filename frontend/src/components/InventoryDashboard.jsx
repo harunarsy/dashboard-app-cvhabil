@@ -26,6 +26,7 @@ import Breadcrumb from "./common/Breadcrumb";
 import ProductDrawer from "./inventory/ProductDrawer";
 import OpnameModal from "./inventory/OpnameModal";
 import BatchFormModal from "./inventory/BatchFormModal";
+import NewProductModal from "./common/NewProductModal";
 import { hppFromHna, hppForBatch, formatRupiah } from "../utils/rupiah";
 import HnaHppInput from "./common/HnaHppInput";
 import BulkEditModal from "./inventory/BulkEditModal";
@@ -117,6 +118,7 @@ export default function InventoryDashboard({
   isVantaMode,
 }) {
   const [tab, setTab] = useState("products");
+  const [newProductName, setNewProductName] = useState(null);
   // v1.45.0: TanStack Query — products & alerts di-cache & dibagi antar halaman.
   // fetchProducts/fetchAlerts = refetch (nama dipertahankan utk call-site lama).
   const {
@@ -622,17 +624,7 @@ export default function InventoryDashboard({
     }
   };
 
-  const handleAddProduct = async (name) => {
-    await inventoryAPI.createProduct({
-      name,
-      unit: "pcs",
-      hna: 0,
-      sell_price: 0,
-      category: "",
-      min_stock: 5,
-    });
-    fetchProducts();
-  };
+  const handleAddProduct = (name) => setNewProductName(name);
   const handleRemoveProduct = async (name) => {
     const prod = products.find((p) => p.name === name);
     if (prod) await inventoryAPI.deleteProduct(prod.id);
@@ -3085,6 +3077,18 @@ export default function InventoryDashboard({
           }}
         />
       )}
+
+      <NewProductModal
+        isOpen={!!newProductName}
+        initialName={newProductName || ""}
+        existingProducts={products}
+        isDarkMode={isDarkMode}
+        onClose={() => setNewProductName(null)}
+        onCreated={() => {
+          fetchProducts();
+          setNewProductName(null);
+        }}
+      />
 
       {adjustBatch && (
         <ModalShell

@@ -39,9 +39,28 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.65.7-stable",
+    version: "v1.66.0-stable",
     date: "12 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "feature",
+        text: "Produk baru sekarang bisa langsung ditambahkan dari form Faktur Pembelian. Kalau distributor membawa barang yang belum pernah masuk, ketik namanya di kolom produk lalu pilih 'Tambah' — muncul kotak kecil untuk mengisi KODE (sudah disarankan otomatis dari namanya), satuan dasar, dan isi per karton kalau barangnya dijual per dus. Tidak perlu bolak-balik ke halaman Inventory dulu.",
+      },
+      {
+        type: "fix",
+        text: "Tombol 'Tambah Baru' pada pilihan produk di Nota Penjualan, Surat Pesanan, dan Inventory sebelumnya selalu gagal — sistem menolak karena produk wajib punya KODE, tapi formnya tidak pernah menanyakan KODE. Sekarang ketiganya memakai kotak isian yang sama dan sudah berfungsi.",
+      },
+      {
+        type: "fix",
+        text: "Kalau nama produk baru mirip dengan yang sudah ada, sistem memperingatkan dan menawarkan memakai produk lama. Ini mencegah stok terpecah dua gara-gara salah ketik.",
+      },
+    ],
+  },
+  {
+    version: "v1.65.7-stable",
+    date: "12 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

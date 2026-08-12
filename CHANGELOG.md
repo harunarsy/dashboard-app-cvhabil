@@ -2,6 +2,20 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.0-stable] - 2026-08-12
+
+### Ditambahkan
+- **Buat produk baru langsung dari form Faktur Pembelian.** Komponen baru `frontend/src/components/common/NewProductModal.jsx` — menanyakan KODE (disarankan otomatis dari nama, dibuat unik dengan sufiks `-2`/`-3` bila bentrok), satuan dasar, serta `pack_unit` + `pack_size` bila barang dijual per karton. Peringatan nama-mirip dihitung di sisi klien dari daftar produk yang memang sudah dimuat, jadi tanpa panggilan server tambahan; tiap kandidat bisa dipakai ulang lewat tombol "Pakai ini".
+  - `pack_size` sengaja ditanyakan, bukan didiamkan ke default `1`. Ini pelajaran langsung dari bug HPP Omela (v1.65.2): produk `pack_size` 12 dengan harga per karton tersimpan sebagai harga per pcs membuat HPP meleset 12×. Membuat produk diam-diam dengan `pack_size: 1` akan mengulang kelas bug itu pada tiap produk baru.
+
+### Diperbaiki
+- **Tombol "Tambah Baru" pada dropdown produk SELALU gagal 400 di tiga berkas.** `SalesOrderList.jsx`, `PurchaseOrderList.jsx`, dan `InventoryDashboard.jsx` memanggil `inventoryAPI.createProduct({ name, unit, hna, sell_price, category, min_stock })` **tanpa `code`**, padahal `POST /api/inventory/products` (`backend/routes/inventory.js:261`) mewajibkannya: `if (!code?.trim()) return res.status(400)`. Blok `catch` di dua berkas bahkan sudah mengakuinya — "Produk baru wajib punya KODE — buat dulu di halaman Inventory ya". Fitur itu tidak pernah bisa berhasil sejak ada. Ketiganya kini memakai `NewProductModal`.
+- **Form Faktur menawarkan sesuatu yang server tolak.** `InvoiceList.jsx` mengoper `allowCustomValue` tanpa `onAdd`, sehingga `MasterSelect` menampilkan tombol "Ketik nama bebas" yang mengisi `product_name` tapi membiarkan `product_id` null — lalu backend menolak 422 "belum dikenali master Inventory". Prop `allowCustomValue` diganti `onAdd`; tombol nama-bebas hilang dengan sendirinya.
+
+### Catatan teknis
+- Titik rawan: bila `product_name` disetel sebelum daftar master ter-refetch, pencocokan by-nama menghasilkan `product_id` null dan faktur tetap ditolak. `InvoiceList` dan `PurchaseOrderList` menghindarinya lewat jalur `updateItem(idx, 'product_option', prod)` yang sudah ada (`product_id: val?.id`) sehingga id diambil langsung dari respons API, bukan dari hasil lookup. `SalesOrderList` tidak punya jalur itu, jadi memakai penambalan eksplisit `_product_id` setelah update.
+- Backend tidak diubah sama sekali — `POST /api/inventory/products` sudah mengembalikan baris lengkap (`RETURNING *` → `res.status(201).json(rows[0])`), jadi `id` tersedia untuk pemanggil.
+
 ## [v1.65.7-stable] - 2026-08-12
 
 ### Keamanan

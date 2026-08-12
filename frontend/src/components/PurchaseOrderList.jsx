@@ -17,6 +17,7 @@ import Breadcrumb from "./common/Breadcrumb";
 import SPPreview from "./common/SPPreview";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import Icons from "./common/Icon";
+import NewProductModal from "./common/NewProductModal";
 import { UI_MOTION, uiTransition } from "../constants/ui";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import SearchBox from "./common/SearchBox";
@@ -181,6 +182,8 @@ export default function PurchaseOrderList({
     salesman_phone: "",
   });
   const [items, setItems] = useState([blankItem()]);
+  // v: modal produk baru — { name, idx } baris yang lagi minta produk baru, atau null
+  const [newProductFor, setNewProductFor] = useState(null);
   const [receiveItems, setReceiveItems] = useState([]);
   const [layoutSettings, setLayoutSettings] = useState(null);
 
@@ -561,27 +564,9 @@ export default function PurchaseOrderList({
     }
   };
 
-  // MasterSelect handlers for Produk (mirror Nota — tambah produk baru langsung daftar ke Inventory)
-  const handleAddProduct = async (name) => {
-    try {
-      await inventoryAPI.createProduct({
-        name,
-        unit: "pcs",
-        hna: 0,
-        sell_price: 0,
-        category: "",
-        min_stock: 5,
-      });
-      flash("Produk ditambahkan");
-      fetchProducts();
-    } catch (e) {
-      flash(
-        e.response?.status === 400
-          ? "Produk baru wajib punya KODE — buat dulu di halaman Inventory ya"
-          : e.response?.data?.error || e.message,
-        "error",
-      );
-    }
+  // MasterSelect handlers for Produk — buka modal (produk baru wajib punya KODE, lihat NewProductModal)
+  const handleAddProduct = (name, idx) => {
+    setNewProductFor({ name, idx });
   };
   const handleRemoveProduct = async (name) => {
     try {
@@ -1455,7 +1440,7 @@ export default function PurchaseOrderList({
                                   ? `${p.code} — ${p.name}`
                                   : p.name,
                               }))}
-                              onAdd={handleAddProduct}
+                              onAdd={(name) => handleAddProduct(name, idx)}
                               onRemove={handleRemoveProduct}
                               onRename={handleRenameProduct}
                               isDarkMode={isDarkMode}
@@ -2139,6 +2124,24 @@ export default function PurchaseOrderList({
         onConfirm={confirmDelete}
         title="Hapus SP"
         message="Apakah Anda yakin ingin menghapus Surat Pesanan ini?"
+        isDarkMode={isDarkMode}
+      />
+
+      {/* Modal Produk Baru — dipicu dari MasterSelect produk (lihat handleAddProduct) */}
+      <NewProductModal
+        isOpen={!!newProductFor}
+        initialName={newProductFor?.name || ""}
+        existingProducts={products}
+        onClose={() => setNewProductFor(null)}
+        onCreated={(prod) => {
+          // set langsung dari objek produk yang dikembalikan modal — product_id
+          // tidak perlu menunggu fetchProducts() supaya tidak sempat null
+          if (newProductFor) {
+            updateItem(newProductFor.idx, "product_option", prod);
+          }
+          fetchProducts();
+          setNewProductFor(null);
+        }}
         isDarkMode={isDarkMode}
       />
 
