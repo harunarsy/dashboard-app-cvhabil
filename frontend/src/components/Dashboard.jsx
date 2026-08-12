@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.65.3-stable",
+    version: "v1.65.4-stable",
     date: "07 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Draft pesan WA salah hitung untuk barang satuan karton. Tombol salin draft WA di daftar nota menulis jumlah dalam pcs tapi memberinya label karton, lalu mengalikannya dengan harga per karton — misalnya 4 karton Omela tertulis '48 karton x Rp 212.000 = Rp 10.176.000', padahal Total di bawahnya sudah benar Rp 848.000. Sekarang jumlah dan harga memakai satuan yang sama. Barang satuan pcs tidak pernah terpengaruh, dan draft WA dari form nota yang sedang diketik juga selalu benar sejak awal.",
+      },
+    ],
+  },
+  {
+    version: "v1.65.3-stable",
+    date: "07 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.65.4-stable] - 2026-08-07
+
+### Diperbaiki
+- **Draft WA: baris item mengalikan qty base unit dengan harga per satuan jual** (dilaporkan pada nota `HSB-NOTA-2608018`, Omela `pack_size` 12). Gejala: `4 karton x Rp 212.000` tertulis `48 karton x Rp 212.000 = Rp 10.176.000`, sementara `Total:` di bawahnya benar Rp 848.000 — jadi pelanggan menerima pesan yang angkanya bertentangan sendiri.
+  - Akar masalah di `utils/waMessage.js:43`: `Number(item.qty ?? item.qty_in_unit)`. Prioritasnya terbalik. `sales_items.qty` selalu base unit (pcs), sedangkan `item.unit` dan `item.unit_price` per satuan jual, jadi qty pcs dipasangkan dengan label + harga karton → subtotal 12×.
+  - Aturan yang benar sudah lama ada di codebase (`saleItemDisplayQty`, `SalesOrderList.jsx:172`, v1.23.2) dan dipakai konsisten oleh 7 tempat lain: `generateNotaPDF`, `generateSPPDF`, `generateLaporanPDF`, `NotaPreview` (2×), dan tabel margin `SalesOrderList`. Penyisiran seluruh `frontend/src` memastikan `waMessage.js` satu-satunya yang membalik urutan.
+  - Perbaikan: `Number(item.qty_in_unit ?? item.qty)`. Operator `??` menjaga dua jalur lain tetap utuh — item form nota (belum punya `qty_in_unit`; di situ `qty` memang qty tampilan) dan `qty_in_unit` bernilai `null` dari DB.
+  - **Bukan efek samping perbaikan HPP Omela v1.65.2.** Bug ini laten di tombol draft WA sejak v1.65.1 dan muncul pada produk satuan pack mana pun; Omela kebetulan produk pack yang sedang dipakai.
+  - Regresi dikunci test baru `utils/waMessage.test.js` (3 kasus: nota tersimpan satuan karton, item form, `qty_in_unit` null). Diverifikasi gagal di kode lama — reproduksi persis baris `48 karton … Rp 10.176.000` — dan lolos setelah perbaikan.
+
 ## [v1.65.3-stable] - 2026-08-07
 
 ### Diperbaiki

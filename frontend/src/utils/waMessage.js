@@ -40,7 +40,12 @@ export const buildNotaWaMessage = ({
   items
     .filter((item) => item?.product_name)
     .forEach((item, idx) => {
-      const qty = Number(item.qty ?? item.qty_in_unit) || 0;
+      // v1.65.4: qty_in_unit DULU, baru qty — aturan sama dgn saleItemDisplayQty
+      // (SalesOrderList) & semua generator PDF. `qty` selalu base unit (pcs)
+      // sedangkan `unit` + `unit_price` per satuan jual, jadi urutan terbalik
+      // bikin 4 karton tampil "48 karton" dan subtotal 12x lipat.
+      // Item form belum punya qty_in_unit → ?? jatuh ke qty (memang qty tampilan).
+      const qty = Number(item.qty_in_unit ?? item.qty) || 0;
       const unit = item.unit || "pcs";
       const price = Number(item.unit_price) || 0;
       lines.push(
