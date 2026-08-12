@@ -1044,9 +1044,15 @@ tr.ui-row.ui-hover-delight:focus-within {
   will-change: opacity, transform;
 }
 
+/* v1.65.5: WAJIB lepas will-change setelah transisi selesai. `will-change: transform`
+   menjadikan elemen ini containing block untuk SEMUA anak position:fixed — dan itu
+   bertahan walau transform sudah none. Akibatnya toast, tooltip, dan onboarding layer
+   berpatokan ke wadah halaman, bukan viewport, lalu ikut hanyut saat di-scroll.
+   Melepasnya juga praktik yang dianjurkan: will-change hanya untuk selama animasi. */
 .route-fade--entered {
   opacity: 1;
   transform: none;
+  will-change: auto;
 }
 
 .ui-tooltip-anchor {

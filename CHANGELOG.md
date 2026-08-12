@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.65.5-stable] - 2026-08-07
+
+### Diperbaiki
+- **Toast (`Draft WA disalin`, dll) ikut hanyut saat halaman di-scroll**, padahal `.ui-toast-notice` sudah `position: fixed`.
+  - Akar masalah di `index.css`: `.route-fade` (pembungkus tiap halaman, dari `common/RouteFade.jsx`) memasang `will-change: opacity, transform`. Properti itu menjadikan elemennya **containing block** untuk seluruh keturunan `position: fixed`, dan efek tersebut **bertahan** meski `.route-fade--entered` sudah menyetel `transform: none` — karena `will-change`-nya tidak pernah dilepas. Toast jadi berpatokan ke wadah halaman, bukan viewport.
+  - Perbaikan: `will-change: auto` pada `.route-fade--entered`. Satu baris, dan sekaligus praktik yang dianjurkan — `will-change` memang hanya untuk selama animasi berlangsung, bukan permanen.
+  - Ikut sembuh tanpa perubahan lain: `.ui-tooltip` dan `.ui-onboarding-layer` yang sama-sama `position: fixed` di dalam pembungkus itu.
+  - Diverifikasi dengan repro CSS terisolasi: scroll 800px, toast bergeser dari `top: 24` ke `top: -776` (ikut hanyut) sebelum perbaikan, dan tetap di `top: 24` sesudahnya.
+  - Tidak berlaku saat `prefers-reduced-motion` aktif — `RouteFade` memang tidak memasang kelas apa pun di mode itu, jadi bug ini tidak pernah muncul di sana.
+
 ## [v1.65.4-stable] - 2026-08-07
 
 ### Diperbaiki

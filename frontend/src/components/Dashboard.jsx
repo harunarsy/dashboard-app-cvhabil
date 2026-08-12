@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.65.4-stable",
+    version: "v1.65.5-stable",
     date: "07 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Notifikasi kecil di pojok kanan atas (misalnya 'Draft WA disalin') tidak lagi hilang saat halaman di-scroll. Sebelumnya notifikasi itu menempel pada halaman, bukan pada layar, jadi begitu digulir ke bawah dia ikut terbawa naik dan tidak terlihat. Sekarang tetap menempel di layar selama masih tampil. Berlaku juga untuk tooltip dan panduan onboarding.",
+      },
+    ],
+  },
+  {
+    version: "v1.65.4-stable",
+    date: "07 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
