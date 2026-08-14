@@ -25,6 +25,18 @@ export default defineConfig({
         target: 'https://habil-backend.vercel.app',
         changeOrigin: true,
         secure: true,
+        // WAJIB: proxy meneruskan header Origin (localhost:5173) apa adanya,
+        // dan backend tetap menolaknya -> 500. Backend mengizinkan permintaan
+        // TANPA Origin (`if (!origin || allowed.includes(origin))`), dan hop
+        // proxy ini memang server-ke-server sehingga Origin tidak relevan.
+        // Diverifikasi dgn curl memakai kredensial palsu:
+        //   dgn Origin localhost:5173 -> 500 (ditolak CORS)
+        //   tanpa Origin             -> 401 (tembus, cuma password salah)
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.removeHeader('origin');
+          });
+        },
       },
     },
   },
