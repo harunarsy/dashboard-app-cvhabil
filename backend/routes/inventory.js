@@ -176,13 +176,28 @@ router.get('/products', auth, async (req, res) => {
         COALESCE(stats.expiring_batches, 0) AS expiring_batches,
         latest.hna AS latest_hna,
         latest.batch_no AS latest_batch_no,
-        latest.expired_date AS latest_batch_expired_date
+        latest.expired_date AS latest_batch_expired_date,
+        COALESCE(stockval.stock_value, 0) AS stock_value,
+        stockval.avg_hna AS avg_hna,
+        stockval.min_hna AS min_hna,
+        stockval.max_hna AS max_hna,
+        COALESCE(stockval.batch_count, 0) AS batch_count,
+        stockval.batch_cost_tiers AS batch_cost_tiers
       FROM product_master p
       LEFT JOIN LATERAL (
         SELECT
-          COALESCE(SUM(b.qty_current), 0) AS total_stock,
+          -- v1.66.2: WAJIB kecualikan batch nonaktif. Pengurangan stok FEFO saat
+          -- jualan sudah menghormati is_active, jadi batch nonaktif TIDAK bisa
+          -- keluar. Menghitungnya di total_stock bikin stok hantu: dashboard
+          -- bilang 221 pcs padahal yang bisa dijual cuma 187. Pemilik
+          -- mengonfirmasi barangnya memang sudah tidak ada. Data batch TIDAK
+          -- diubah — hanya cara menghitungnya.
+          COALESCE(SUM(b.qty_current) FILTER (
+            WHERE COALESCE(b.is_active, TRUE) = TRUE
+          ), 0) AS total_stock,
           MIN(b.expired_date) FILTER (
             WHERE b.qty_current > 0 AND b.expired_date IS NOT NULL
+              AND COALESCE(b.is_active, TRUE) = TRUE
           ) AS nearest_expiry,
           COUNT(b.id) FILTER (
             WHERE b.qty_current > 0
@@ -201,6 +216,37 @@ router.get('/products', auth, async (req, res) => {
         ORDER BY b.created_at DESC, b.id DESC
         LIMIT 1
       ) latest ON TRUE
+      LEFT JOIN LATERAL (
+        -- Nilai persediaan riil: hanya batch yang MASIH berstok, jadi tiap batch
+        -- menyumbang HNA-nya sendiri (bukan satu harga "terbaru" dikali total stok)
+        SELECT
+          SUM(b2.qty_current * b2.hna) AS stock_value,
+          SUM(b2.qty_current * b2.hna) / NULLIF(SUM(b2.qty_current), 0) AS avg_hna,
+          MIN(b2.hna) AS min_hna,
+          MAX(b2.hna) AS max_hna,
+          COUNT(*) AS batch_count,
+          -- Rincian harga per tingkat: batch dgn hna sama digabung, urut lama -> baru
+          (
+            SELECT json_agg(
+              json_build_object('hna', t.hna, 'qty', t.qty)
+              ORDER BY t.oldest_created_at
+            )
+            FROM (
+              SELECT b3.hna AS hna,
+                SUM(b3.qty_current) AS qty,
+                MIN(b3.created_at) AS oldest_created_at
+              FROM inventory_batches b3
+              WHERE b3.product_id = p.id
+                AND b3.qty_current > 0
+                AND COALESCE(b3.is_active, TRUE) = TRUE
+              GROUP BY b3.hna
+            ) t
+          ) AS batch_cost_tiers
+        FROM inventory_batches b2
+        WHERE b2.product_id = p.id
+          AND b2.qty_current > 0
+          AND COALESCE(b2.is_active, TRUE) = TRUE
+      ) stockval ON TRUE
       ${whereClause}
       ORDER BY p.name ASC
       LIMIT $${idx}
@@ -794,12 +840,17 @@ router.get('/alerts', auth, async (req, res) => {
     `);
     // Low stock products
     const { rows: lowStock } = await pool.query(`
-      SELECT pm.*, COALESCE(SUM(b.qty_current), 0) AS total_stock
+      -- v1.66.2: batch nonaktif tidak bisa dijual, jadi jangan dihitung sebagai
+      -- stok — kalau ikut dihitung, produk yang sebenarnya menipis tidak muncul
+      -- di peringatan. Sama seperti perbaikan total_stock di daftar produk.
+      SELECT pm.*, COALESCE(SUM(b.qty_current) FILTER (
+               WHERE COALESCE(b.is_active, TRUE) = TRUE), 0) AS total_stock
       FROM product_master pm
       LEFT JOIN inventory_batches b ON b.product_id = pm.id
       WHERE pm.is_active = TRUE
       GROUP BY pm.id
-      HAVING COALESCE(SUM(b.qty_current), 0) < pm.min_stock
+      HAVING COALESCE(SUM(b.qty_current) FILTER (
+               WHERE COALESCE(b.is_active, TRUE) = TRUE), 0) < pm.min_stock
       ORDER BY pm.name
     `);
     res.json({ expiring, lowStock });

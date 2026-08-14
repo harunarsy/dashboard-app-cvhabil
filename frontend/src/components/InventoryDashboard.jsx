@@ -64,8 +64,19 @@ const fmtDate = (d) =>
 const daysUntil = (d) =>
   d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
 
-const getProductDisplayHna = (product) =>
-  parseFloat(product?.latest_hna ?? product?.hna) || 0;
+const getProductDisplayHna = (product) => {
+  // v1.66.2: `batch_cost_tiers` = rincian harga BELI per batch (dari daftar produk).
+  // JANGAN tertukar dgn `price_tiers` di form produk — itu tingkat harga JUAL.
+  const tiers = Array.isArray(product?.batch_cost_tiers)
+    ? product.batch_cost_tiers
+    : [];
+  const latestTierHna = tiers.length
+    ? tiers[tiers.length - 1]?.hna
+    : undefined;
+  return (
+    parseFloat(latestTierHna ?? product?.latest_hna ?? product?.hna) || 0
+  );
+};
 
 const getProductDisplayHpp = (product) =>
   hppFromHna(getProductDisplayHna(product));
@@ -324,13 +335,17 @@ export default function InventoryDashboard({
   }, [filtered, safePage, pageSize, showAll]);
 
   // v1.10.2: total nilai persediaan = Σ HPP(inc PPN) × stok (ikut filter aktif)
+  // v1.66.1: pakai stock_value per-batch (exc PPN) kalau ada, biar tidak
+  // menyamaratakan satu HPP untuk semua batch; fallback ke cara lama kalau kosong.
   const totalNilai = useMemo(
     () =>
-      filtered.reduce(
-        (s, p) =>
-          s + getProductDisplayHpp(p) * (parseInt(p.total_stock) || 0),
-        0,
-      ),
+      filtered.reduce((s, p) => {
+        const stockValue = parseFloat(p.stock_value);
+        if (Number.isFinite(stockValue) && p.stock_value != null) {
+          return s + hppFromHna(stockValue);
+        }
+        return s + getProductDisplayHpp(p) * (parseInt(p.total_stock) || 0);
+      }, 0),
     [filtered],
   );
   const selectedBarcodeProducts = useMemo(
@@ -1341,6 +1356,23 @@ export default function InventoryDashboard({
                               }}
                             >
                               {fmtRp(getProductDisplayHpp(p), 2)}
+                              {Array.isArray(p.batch_cost_tiers) &&
+                                p.batch_cost_tiers.length > 1 && (
+                                  <div
+                                    style={{
+                                      fontSize: "10px",
+                                      fontWeight: "400",
+                                      color: "var(--color-text-subtle)",
+                                    }}
+                                  >
+                                    {p.batch_cost_tiers.map((tier, i) => (
+                                      <div key={i}>
+                                        {tier.qty} {p.base_unit || p.unit || "pcs"} @{" "}
+                                        {fmtRp(hppFromHna(tier.hna), 2)}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                             </td>
                             <td
                               style={{

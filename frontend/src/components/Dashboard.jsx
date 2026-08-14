@@ -39,9 +39,28 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.66.2-stable",
+    date: "14 Agustus 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Stok di Inventory tidak lagi menghitung batch yang sudah dinonaktifkan. Batch seperti itu memang tidak bisa keluar saat jualan, tapi selama ini tetap dijumlah sebagai stok — akibatnya dashboard menyebut angka yang lebih besar dari barang yang benar-benar bisa dijual. Empat produk terdampak, totalnya 168 unit. Angka stoknya akan terlihat turun, tapi itu justru yang benar. Data batch tidak diubah sama sekali.",
+      },
+      {
+        type: "fix",
+        text: "Kolom HPP kini menampilkan harga batch terbaru yang masih ada stoknya, lengkap dengan rincian tiap harga di bawahnya — misalnya '28 pcs @ Rp 94.905' dan '159 pcs @ Rp 97.014'. Sebelumnya angkanya bisa diambil dari batch yang stoknya sudah habis, sehingga menyesatkan.",
+      },
+      {
+        type: "fix",
+        text: "Total nilai persediaan dihitung ulang per batch, bukan satu harga dikali seluruh stok. Sebelumnya nilainya bisa meleset jauh karena tiap batch punya harga beli berbeda.",
+      },
+    ],
+  },
+  {
     version: "v1.66.1-stable",
     date: "12 Agustus 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",

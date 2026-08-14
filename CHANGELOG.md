@@ -2,6 +2,24 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.2-stable] - 2026-08-14
+
+### Diperbaiki
+- **Stok hantu: batch nonaktif ikut dihitung sebagai stok padahal tidak bisa dijual.** Dilaporkan lewat gejala HPP yang salah pada `TS-CLS-160SCT`.
+  - `stats.total_stock` di `GET /api/inventory/products` menjumlah `qty_current` **semua** batch tanpa filter `is_active`, padahal pengurangan stok FEFO saat penjualan sudah mengecualikan batch nonaktif. Akibatnya stok tampil lebih besar dari yang benar-benar bisa keluar.
+  - Terverifikasi di database produksi, 4 produk / **168 unit**: `TS-CLS-160SCT` 221→187, `NEPHD-VAN-210G` 227→179, `DIAN-VAN-180G` 182→134, `NEPH-VAN-201G` 65→27. Pemilik mengonfirmasi barangnya memang sudah tidak ada.
+  - Perbaikan: `FILTER (WHERE COALESCE(b.is_active, TRUE) = TRUE)` pada `total_stock` dan `nearest_expiry`, plus query peringatan stok menipis yang punya kelalaian sama. **Data batch tidak diubah** — hanya cara menghitungnya, jadi kalau ada batch yang ternyata salah dinonaktifkan, datanya masih utuh.
+
+- **Kolom HPP diambil dari batch yang stoknya sudah habis.** `latest_hna` memilih batch dengan `created_at` terbaru tanpa syarat `qty_current > 0`. Pada `TS-CLS-160SCT`, batch `ANQC30DA` (qty 0) yang terpilih, sehingga tampil Rp 94.905 padahal 159 dari 187 pcs ada di harga Rp 97.014.
+  - Perbaikan: kolom baru `batch_cost_tiers` — `json_agg` rincian `{hna, qty}` dari batch berstok, batch berharga sama digabung, urut lama→baru. Angka HPP utama diambil dari elemen terakhir (batch terbaru yang masih ada stok), dengan rincian tiap harga ditampilkan di bawahnya.
+  - Nama `batch_cost_tiers` dipilih untuk menghindari tabrakan dengan `price_tiers` yang sudah ada — itu tingkat harga **jual** (`product_price_tiers`), konsep yang sama sekali berbeda.
+
+- **Nilai persediaan dihitung dengan satu harga dikali seluruh stok.** `totalNilai` di `InventoryDashboard.jsx` memakai `getProductDisplayHpp(p) * total_stock`, padahal tiap batch punya harga beli sendiri. Diganti dengan kolom `stock_value` = `SUM(qty_current × hna)` per batch berstok. Nilai persediaan yang benar: **Rp 226.120.468** inc PPN.
+
+### Belum dikerjakan
+- `system_qty` pada opname (`inventory.js:763`) punya kelalaian `is_active` yang sama, TAPI sengaja tidak disentuh: nilai itu dibandingkan dengan hitungan fisik lalu **menulis penyesuaian stok**. Mengubahnya tanpa pengawasan bisa menghasilkan koreksi yang salah. Perlu keputusan pemilik terpisah.
+- 6 batch berstok masih ber-HNA 0 di seluruh database — nilainya jadi nol dalam perhitungan. Perlu ditelusuri asalnya.
+
 ## [v1.66.1-stable] - 2026-08-12
 
 ### Diperbaiki
