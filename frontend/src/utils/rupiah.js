@@ -2,8 +2,13 @@
 // Display: "Rp 288.288,25" (titik ribuan, koma desimal — native ID-id)
 // Parse:   "Rp 288.288,25" / "288.288,25" / "288288.25" / "288288,25" → 288288.25
 
+// v2 Slice 1: aturan harga pindah ke @habil/core supaya v1 dan v2 memakai
+// perhitungan yang sama persis. Di-IMPOR lalu di-ekspor ulang (bukan sekadar
+// `export ... from`) karena PPN_RATE masih dipakai di dalam berkas ini sendiri.
 // Rate DEFAULT (historis = 11%). Rate aktual per-pembelian per-batch/faktur. Jangan global-kan 12%.
-export const PPN_RATE = 0.11;
+import { PPN_RATE, hppFromHna } from "@habil/core";
+
+export { PPN_RATE, hppFromHna };
 
 export const formatRupiah = (n, decimals = 2) => {
   if (n === null || n === undefined || n === '') return '';
@@ -31,12 +36,6 @@ export const parseRupiah = (str) => {
 
 export const formatRupiahDisplay = (n) => formatRupiah(n, 2);
 export const formatRupiahCompact = (n) => formatRupiah(n, 0);
-
-export const hppFromHna = (hna) => {
-  const n = parseFloat(hna);
-  if (isNaN(n)) return 0;
-  return n * (1 + PPN_RATE);
-};
 
 export const hnaFromHpp = (hpp) => {
   const n = parseFloat(hpp);
