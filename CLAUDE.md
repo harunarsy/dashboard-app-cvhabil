@@ -111,6 +111,36 @@ grep -rn "v1\.14\." frontend/src --include="*.jsx" --include="*.js"
 ```
 If any file differs → fix before committing.
 
+### GitHub Release (MANDATORY after every push to `main`)
+
+Versi yang sudah di-`main` **belum selesai** sampai ada tag + GitHub Release.
+Sempat tertinggal 9 versi (v1.65.2–v1.66.2) karena langkah ini tidak pernah
+tertulis di protokol.
+
+Setelah push ke `main` berhasil:
+
+```bash
+git tag vX.Y.Z <sha-commit-versi-itu>
+git push origin vX.Y.Z
+gh release create vX.Y.Z --verify-tag \
+  --title "vX.Y.Z — <judul singkat, bahasa Indonesia>" \
+  --notes-file <file berisi bagian CHANGELOG versi itu>
+```
+
+Aturan:
+- **Satu rilis per versi.** Jangan menggabung beberapa versi jadi satu rilis —
+  riwayatnya jadi tidak bisa ditelusuri.
+- **Isi catatan diambil dari `CHANGELOG.md`**, bagian versi itu persis apa adanya.
+  Jangan menulis ulang; CHANGELOG adalah sumbernya.
+- **Judul deskriptif**, bukan cuma nomor versi. Pola yang dipakai:
+  `v1.66.2 — Stok Hantu & Nilai Persediaan per Batch`.
+- **Urut dari versi terlama** kalau merilis beberapa sekaligus, supaya label
+  `Latest` berakhir di versi terbaru.
+- `--target <short-sha>` DITOLAK GitHub (`target_commitish is invalid`) — buat
+  tag lokal dulu, push tag-nya, baru `gh release create --verify-tag`.
+- Membuat rilis = menerbitkan ke publik. **Minta izin Harun dulu**, kecuali dia
+  memang sudah menyuruh merilis.
+
 ### Release modal storage
 Use `sessionStorage`, key: `habil_release_seen_${VERSION.replace(/\./g, '_')}`.
 **Never `localStorage`** — multiple operators share one account (Harun, Fivin, Ferry); popup must appear on every login.
