@@ -116,7 +116,7 @@ Menyentuh seluruh isi `core/` sekaligus (satuan, HNA→HPP, PPN, FEFO, batch akt
 tapi hanya membaca. Menguji semuanya dengan risiko tulis nol.
 
 **Ukuran keberhasilan** — angka beta harus sama persis dengan v1:
-83 produk · stok Tropicana `TS-CLS-160SCT` = 187 · nilai persediaan Rp 226.120.468 inc PPN.
+83 produk · stok Tropicana `TS-CLS-160SCT` = 187 · nilai persediaan Rp 237.109.142 inc PPN.
 Kalau meleset, `core/` salah.
 
 ### Slice 2 — Customer + Distributor

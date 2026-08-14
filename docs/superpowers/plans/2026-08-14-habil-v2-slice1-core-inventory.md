@@ -16,7 +16,7 @@
 - Backend (`backend/`) **tidak diubah** pada slice ini.
 - v1 (`frontend/`) tetap jalan sepanjang slice; tidak boleh ada perubahan yang merusaknya.
 - Setiap task diakhiri commit tersendiri.
-- Angka acuan paritas (data produksi, 14 Agu 2026): **83 produk**, stok `TS-CLS-160SCT` = **187**, total nilai persediaan = **Rp 226.120.468** inc PPN.
+- Angka acuan paritas (data produksi, 14 Agu 2026): **83 produk**, stok `TS-CLS-160SCT` = **187**, total nilai persediaan = **Rp 237.109.142** inc PPN.
 
 ---
 
@@ -1093,7 +1093,7 @@ export default function App() {
 
 Run: `cd web && npm run dev`
 Buka berdampingan dengan `habil-dashboard.vercel.app/inventory`.
-Expected: jumlah produk **83**, stok `TS-CLS-160SCT` **187**, total nilai **Rp 226.120.468**, rincian Tropicana `28 @ Rp 94.905` dan `159 @ Rp 97.014`.
+Expected: jumlah produk **83**, stok `TS-CLS-160SCT` **187**, total nilai **Rp 237.109.142**, rincian Tropicana `28 @ Rp 94.905` dan `159 @ Rp 97.014`.
 
 - [ ] **Step 5: Commit**
 
@@ -1231,7 +1231,7 @@ Expected: halaman kunci, bukan layar login Habil.
 
 - [ ] **Step 5: Verifikasi angka di beta produksi**
 
-Setelah membuka kunci dan login: **83 produk**, stok `TS-CLS-160SCT` **187**, total nilai **Rp 226.120.468**.
+Setelah membuka kunci dan login: **83 produk**, stok `TS-CLS-160SCT` **187**, total nilai **Rp 237.109.142**.
 
 - [ ] **Step 6: Commit**
 
