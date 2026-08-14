@@ -27,3 +27,8 @@ backend/backups/
 CREDENTIALS*.md
 *_fulldiff.tmp.js
 aistudio.zip
+.superpowers/
+
+# core package
+core/node_modules/
+core/dist/
