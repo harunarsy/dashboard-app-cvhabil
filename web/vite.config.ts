@@ -11,4 +11,21 @@ export default defineConfig({
   optimizeDeps: {
     include: ['@habil/core'],
   },
+  // Backend hanya mengizinkan origin port 3000 (port CRA milik v1); Vite pakai
+  // 5173, jadi preflight dari localhost:5173 ditolak -> HTTP 500 dan login
+  // selalu gagal padahal kredensialnya benar. Diverifikasi dgn curl:
+  //   Origin localhost:5173             -> 500
+  //   Origin habil-dashboard.vercel.app -> 204
+  // Proxy ini membuat browser bicara ke localhost:5173 saja, lalu Vite yang
+  // meneruskan ke backend dari sisi server — tidak ada CORS sama sekali.
+  // Backend produksi TIDAK diubah.
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://habil-backend.vercel.app',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
+  },
 })

@@ -13,7 +13,18 @@ export default function Login() {
     try {
       await login(u, p);
     } catch (e2: any) {
-      setErr(e2.response?.data?.error || 'Login gagal');
+      // Bedakan "server menolak" dari "server tidak terjangkau". Sebelumnya
+      // keduanya sama-sama jadi "Login gagal", sehingga masalah CORS terbaca
+      // sebagai password salah — pemilik sempat membuang waktu mengecek
+      // kredensial yang sebenarnya benar.
+      if (e2.response) {
+        setErr(e2.response.data?.error || `Ditolak server (HTTP ${e2.response.status})`);
+      } else {
+        setErr(
+          'Tidak bisa menghubungi server. Ini BUKAN soal username/password — ' +
+            'periksa koneksi atau setelan proxy dev.',
+        );
+      }
     }
   };
 
