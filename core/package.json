@@ -11,8 +11,11 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "comment": "typescript sengaja di dependencies, BUKAN devDependencies: npm tidak memasang devDependencies milik dependensi file:, sehingga script prepare gagal 'tsc: command not found' saat build Vercel. typescript hanya dipakai saat build, tidak pernah diimpor kode aplikasi.",
+  "dependencies": {
+    "typescript": "^5.7.0"
+  },
   "devDependencies": {
-    "typescript": "^5.7.0",
     "vitest": "^2.1.0"
   }
 }
