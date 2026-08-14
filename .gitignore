@@ -31,4 +31,11 @@ aistudio.zip
 
 # core package
 core/node_modules/
-core/dist/
+# core/dist SENGAJA ikut ter-commit. Vercel membangun frontend/ dgn Root Directory
+# frontend/, dan core/ ada di SEBELAHNYA — typescript yg dipasang di
+# frontend/node_modules tidak terlihat dari core/, jadi script prepare gagal
+# "tsc: command not found". Dgn dist ikut ter-commit, Vercel tidak perlu
+# menerjemahkan apa pun. Script prepare tetap dipertahankan supaya dist di
+# laptop selalu segar; skrip paritas Task 9 yg akan menangkap kalau dist basi.
+!core/dist/
+!core/dist/**
