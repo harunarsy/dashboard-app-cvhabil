@@ -39,9 +39,24 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.0-stable",
+    version: "v1.66.1-stable",
     date: "12 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Pesan peringatan tidak lagi tertutup jendela yang sedang terbuka. Sebelumnya saat menyimpan Faktur gagal, tulisan kuning 'Faktur tidak disimpan' muncul di belakang kotak isian sehingga tidak terbaca — operator mengira tidak ada masalah padahal fakturnya tidak tersimpan. Sekarang notifikasi selalu tampil paling depan.",
+      },
+      {
+        type: "fix",
+        text: "Notifikasi di seluruh halaman kini seragam. Empat halaman (Faktur, Karyawan, Buku Besar, Toko Online) sebelumnya memakai notifikasi buatan sendiri yang muncul di pojok kanan bawah dengan warna dan bentuk berbeda; semuanya kini memakai tampilan yang sama di kanan atas.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.0-stable",
+    date: "12 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "feature",

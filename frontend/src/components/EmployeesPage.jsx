@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, X } from 'lucide-react';
 import { ledgerAPI } from '../services/api';
 import Breadcrumb from './common/Breadcrumb';
+import ToastNotice from './common/ToastNotice';
 import { UI_MOTION, uiTransition } from '../constants/ui';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
@@ -130,7 +131,7 @@ export default function EmployeesPage({ isDarkMode, isSidebarOpen, isMobile, isV
         </div>
       )}
 
-      {toast && <div className="ui-motion-toast" style={{ position: 'fixed', bottom: 24, right: 24, backgroundColor: 'var(--color-success)', color: '#FFF', padding: '12px 20px', borderRadius: 10, fontWeight: 600, fontSize: 14, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>✅ {toast}</div>}
+      {toast && <ToastNotice message={toast} type="success" isMobile={isMobile} />}
     </div>
   );
 }

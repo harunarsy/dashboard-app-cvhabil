@@ -2,6 +2,20 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.1-stable] - 2026-08-12
+
+### Diperbaiki
+- **Toast error tertutup modal — pesan "Faktur tidak disimpan" tidak terbaca operator.** Dilaporkan pemilik saat menyimpan faktur dengan produk yang belum ada di master.
+  - Akar masalah: `.ui-toast-notice` memakai `z-index: 99999`, **seri** dengan modal Faktur (`InvoiceList.jsx:2992`), `ConfirmModal.jsx:38`, dan `NewProductModal.jsx:179`. Saat z-index seri, pemenangnya ditentukan urutan DOM — dan modal-modal itu dipindah ke `document.body` lewat `createPortal` sehingga selalu berada setelah toast dalam urutan dokumen, alias menang stacking. Toast tidak hilang; dia ada di balik modal.
+  - Perbaikan berlapis: (1) `UI_ZINDEX` baru di `constants/ui.js` sebagai skala lapisan terpusat — sebelumnya nilai z-index ditulis ad-hoc di ~26 berkas tanpa aturan; (2) `ToastNotice` kini merender lewat `createPortal(..., document.body)` sehingga ikut jadi anak `body` seperti modal; (3) z-index toast dipaksa ke `UI_ZINDEX.toast` (2147483000), di atas onboarding (100000) dan tooltip.
+  - Portal itu inti perbaikannya. Menaikkan angka saja hanya menang balapan sampai ada komponen baru yang menimpali lebih tinggi.
+
+- **Empat halaman memakai toast buatan sendiri, bukan `ToastNotice`.** `InvoiceList.jsx` (state `successToast` + markup manual), `EmployeesPage.jsx:133`, `LedgerPage.jsx:343`, dan `OnlineStoreDashboard.jsx` masing-masing merender div melayang sendiri di pojok kanan **bawah** dengan gaya dan warna berbeda, semuanya `zIndex: 99999`. Keempatnya kini memakai `ToastNotice` — posisi, ikon, dan perilaku seragam. `InvoiceList` mendapat state `toastType` yang diisi sekali di `showToast` memakai deteksi `isErrorish` yang sudah ada, jadi ke-20 pemanggil `showToast` tidak berubah sama sekali.
+  - Penyisiran akhir memastikan tidak ada lagi toast manual tersisa di `frontend/src`; jumlah pemakai `ToastNotice` naik dari 10 menjadi 17 berkas.
+
+### Catatan
+- `FinancePage.jsx` masih memakai `alert()` polos di dua tempat dan `window.confirm()` di tiga berkas (`FinancePage`, `TasksKanban`, `inventory/ProductDrawer`). Itu dialog bawaan browser yang memblokir layar dan tampil beda sendiri, tapi bukan bagian dari bug z-index ini — sengaja tidak disentuh, menunggu keputusan pemilik.
+
 ## [v1.66.0-stable] - 2026-08-12
 
 ### Ditambahkan

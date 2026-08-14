@@ -33,6 +33,7 @@ import NewProductModal from "./common/NewProductModal";
 import Skeleton from "./common/Skeleton";
 import Breadcrumb from "./common/Breadcrumb";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
+import ToastNotice from "./common/ToastNotice";
 import { PPN_RATE } from "../utils/rupiah";
 import RupiahInput from "./common/RupiahInput";
 import Icons from "./common/Icon";
@@ -525,6 +526,7 @@ export default function InvoiceList({
   const [savedDraftUpdatedAt, setSavedDraftUpdatedAt] = useState(null);
   const [dupConfirm, setDupConfirm] = useState(null);
   const [successToast, setSuccessToast] = useState("");
+  const [toastType, setToastType] = useState("success"); // v1.66.2: dipakai ToastNotice, diisi bareng showToast
   const [auditModal, setAuditModal] = useState(null); // { invoiceId, invoiceNumber }
   const [auditLog, setAuditLog] = useState([]);
   const [paymentModal, setPaymentModal] = useState({ open: false, inv: null, date: "" });
@@ -600,6 +602,7 @@ export default function InvoiceList({
     setSuccessToast(msg);
     // AUDIT-UX-02: pesan error/gagal tahan lebih lama (operator sempat baca)
     const isErrorish = /^(error|gagal|❌|⚠️)/i.test(String(msg));
+    setToastType(isErrorish ? "error" : "success"); // v1.66.2: tipe disimpan sekali di sini, bukan dideteksi ulang saat render
     toastTimerRef.current = setTimeout(
       () => setSuccessToast(""),
       durationMs ||
@@ -1740,34 +1743,9 @@ export default function InvoiceList({
         </div>
       )}
 
-      {successToast && (
-        <div
-          style={{
-            position: "fixed",
-            top: "24px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            backgroundColor: successToast.startsWith("⚠️")
-              ? "var(--color-warning, #d97706)"
-              : /^(error|gagal|❌)/i.test(successToast)
-                ? "var(--color-danger)"
-                : "var(--color-success)",
-            color: "white",
-            padding: "12px 28px",
-            borderRadius: "12px",
-            fontWeight: "700",
-            fontSize: "14px",
-            zIndex: 9999,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-            transition: uiTransition("all", UI_MOTION.duration.page),
-            maxWidth: "600px",
-            textAlign: "center",
-            lineHeight: "1.5",
-          }}
-        >
-          {successToast}
-        </div>
-      )}
+      {/* v1.66.2: ganti toast buatan sendiri (zIndex 9999, seri dgn modal) dgn ToastNotice
+          yang portal ke document.body + UI_ZINDEX.toast, biar tak pernah ketutup modal */}
+      <ToastNotice message={successToast} type={toastType} isMobile={isMobile} />
 
 
       {/* Summary Cards */}

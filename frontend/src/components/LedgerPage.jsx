@@ -8,6 +8,7 @@ import { ledgerAPI } from '../services/api';
 import Skeleton from './common/Skeleton';
 import ConfirmModal from './common/ConfirmModal';
 import Breadcrumb from './common/Breadcrumb';
+import ToastNotice from './common/ToastNotice';
 import { UI_MOTION, uiTransition } from '../constants/ui';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
@@ -340,7 +341,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
       )}
 
       <ConfirmModal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} onConfirm={confirmDelete} title="Hapus Entri" message="Yakin hapus entri ini?" isDarkMode={isDarkMode} />
-      {toast && <div className="ui-motion-toast" role={toastType === 'error' ? 'alert' : 'status'} style={{ position: 'fixed', bottom: 24, right: 24, backgroundColor: toastType === 'error' ? 'var(--color-danger)' : 'var(--color-success)', color: '#FFF', padding: '12px 20px', borderRadius: 10, fontWeight: 600, fontSize: 14, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', zIndex: 99999 }}>{toastType === 'error' ? '⚠️' : '✅'} {toast}</div>}
+      {toast && <ToastNotice message={toast} type={toastType === 'error' ? 'error' : 'success'} isMobile={isMobile} />}
     </div>
   );
 }

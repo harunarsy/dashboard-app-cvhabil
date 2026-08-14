@@ -135,6 +135,27 @@ export const UI_SIZE = {
   },
 };
 
+// v1.66.1: skala lapisan terpusat. SEBELUMNYA nilai z-index ditulis ad-hoc di ~26
+// berkas, dan toast kebetulan SERI dengan beberapa modal di 99999. Kalau seri, yang
+// menang adalah yang belakangan di DOM — dan modal dipindah ke document.body lewat
+// createPortal, jadi modal SELALU menang dan pesan error tertutup tanpa disadari.
+//
+// Aturan: toast HARUS di atas segalanya. Notifikasi yang tidak terbaca sama saja
+// dengan tidak ada notifikasi, dan di aplikasi ini pesan error itu satu-satunya
+// tanda bahwa faktur gagal disimpan.
+export const UI_ZINDEX = {
+  base: 1,
+  stickyHeader: 5,
+  dropdown: 1000,
+  drawer: 1900,
+  modalNested: 2100,
+  modal: 9999,
+  modalStacked: 10200, // scanner, print barcode, dsb — modal di atas modal
+  onboarding: 100000,
+  tooltip: 100001,
+  toast: 2147483000, // paling atas, selalu
+};
+
 export const uiTransition = (property = 'all', duration = UI_MOTION.duration.base, easing = UI_MOTION.easing.enter) =>
   `${property} ${duration}ms ${easing}`;
 

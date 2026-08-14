@@ -741,7 +741,10 @@ body.dark .ui-over-media-copy {
   position: fixed;
   top: 24px;
   right: 24px;
-  z-index: 99999;
+  /* v1.66.1: dulu 99999 — SERI dengan modal Faktur/ConfirmModal, dan modal menang
+     karena di-portal ke body (belakangan di DOM). Nilai ini cadangan; nilai
+     sebenarnya dipaksa inline dari UI_ZINDEX.toast di ToastNotice.jsx. */
+  z-index: 2147483000;
   display: flex;
   width: min(360px, calc(100vw - 32px));
   align-items: flex-start;
