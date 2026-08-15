@@ -178,6 +178,7 @@ router.get('/products', auth, async (req, res) => {
         latest.batch_no AS latest_batch_no,
         latest.expired_date AS latest_batch_expired_date,
         COALESCE(stockval.stock_value, 0) AS stock_value,
+        COALESCE(stockval.stock_value_inc_ppn, 0) AS stock_value_inc_ppn,
         stockval.avg_hna AS avg_hna,
         stockval.min_hna AS min_hna,
         stockval.max_hna AS max_hna,
@@ -221,25 +222,43 @@ router.get('/products', auth, async (req, res) => {
         -- menyumbang HNA-nya sendiri (bukan satu harga "terbaru" dikali total stok)
         SELECT
           SUM(b2.qty_current * b2.hna) AS stock_value,
+          -- v1.66.3: nilai persediaan SUDAH termasuk PPN, dihitung PER BATCH sesuai
+          -- jenis pajaknya. Batch 'nota' = beli tanpa PPN masukan -> HPP = harga beli
+          -- apa adanya, TIDAK dikali (1+rate). Sebelumnya frontend mengalikan 1,11 rata
+          -- ke semua batch sehingga nilai persediaan kelebihan Rp 1.083.306 (6 batch nota).
+          -- Dilaporkan pd kasus Mika Nasi: 1500 x 190 tampil Rp 316.350, seharusnya Rp 285.000.
+          SUM(
+            b2.qty_current * b2.hna * CASE
+              WHEN COALESCE(b2.tax_type, 'faktur') = 'nota' THEN 1
+              ELSE 1 + COALESCE(b2.ppn_rate, 0.11)
+            END
+          ) AS stock_value_inc_ppn,
           SUM(b2.qty_current * b2.hna) / NULLIF(SUM(b2.qty_current), 0) AS avg_hna,
           MIN(b2.hna) AS min_hna,
           MAX(b2.hna) AS max_hna,
           COUNT(*) AS batch_count,
-          -- Rincian harga per tingkat: batch dgn hna sama digabung, urut lama -> baru
+          -- Rincian harga per tingkat: batch dgn hna + jenis pajak SAMA digabung,
+          -- urut lama -> baru. tax_type & ppn_rate ikut dikirim supaya frontend bisa
+          -- memakai hppForBatch() dan tidak menebak sendiri.
           (
             SELECT json_agg(
-              json_build_object('hna', t.hna, 'qty', t.qty)
+              json_build_object(
+                'hna', t.hna, 'qty', t.qty,
+                'tax_type', t.tax_type, 'ppn_rate', t.ppn_rate
+              )
               ORDER BY t.oldest_created_at
             )
             FROM (
               SELECT b3.hna AS hna,
+                COALESCE(b3.tax_type, 'faktur') AS tax_type,
+                COALESCE(b3.ppn_rate, 0.11) AS ppn_rate,
                 SUM(b3.qty_current) AS qty,
                 MIN(b3.created_at) AS oldest_created_at
               FROM inventory_batches b3
               WHERE b3.product_id = p.id
                 AND b3.qty_current > 0
                 AND COALESCE(b3.is_active, TRUE) = TRUE
-              GROUP BY b3.hna
+              GROUP BY b3.hna, COALESCE(b3.tax_type, 'faktur'), COALESCE(b3.ppn_rate, 0.11)
             ) t
           ) AS batch_cost_tiers
         FROM inventory_batches b2

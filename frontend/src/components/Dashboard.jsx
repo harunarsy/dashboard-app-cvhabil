@@ -39,6 +39,17 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.66.3-stable",
+    date: "15 Agustus 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Nilai persediaan tidak lagi menambahkan PPN ke barang yang dibeli TANPA PPN. Faktur berjenis 'Nota' memang tidak punya PPN masukan, tapi halaman Inventory tetap menambahkan 11% ke semuanya. Contohnya Mika Nasi: 1500 pcs x Rp 190 tampil Rp 316.350, padahal seharusnya Rp 285.000 — dan baris batch di bawahnya sudah menampilkan Rp 190 yang benar. Total nilai persediaan turun sekitar Rp 1.083.306 dari 6 batch yang terdampak. Angka barunya yang benar.",
+      },
+    ],
+  },
+  {
     version: "v1.66.2-stable",
     date: "14 Agustus 2026",
     status: "latest",

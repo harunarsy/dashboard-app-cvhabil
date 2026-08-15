@@ -78,8 +78,18 @@ const getProductDisplayHna = (product) => {
   );
 };
 
-const getProductDisplayHpp = (product) =>
-  hppFromHna(getProductDisplayHna(product));
+// v1.66.3: HPP baris produk WAJIB sadar jenis pajak batch terbarunya. Batch 'nota'
+// = beli tanpa PPN masukan, HPP = harga beli apa adanya. Dulu selalu dikali (1+rate)
+// sehingga Mika Nasi (nota, HNA 190) tampil Rp 210,90 — padahal baris batch di
+// bawahnya sudah benar Rp 190. Pakai hppForBatch yg sudah ada sejak v1.22.3.
+const getProductDisplayHpp = (product) => {
+  const tiers = Array.isArray(product?.batch_cost_tiers)
+    ? product.batch_cost_tiers
+    : [];
+  const latest = tiers.length ? tiers[tiers.length - 1] : null;
+  if (latest && latest.hna != null) return hppForBatch(latest);
+  return hppFromHna(getProductDisplayHna(product));
+};
 
 function expirySeverity(date, isDarkMode) {
   if (!date)
@@ -340,6 +350,14 @@ export default function InventoryDashboard({
   const totalNilai = useMemo(
     () =>
       filtered.reduce((s, p) => {
+        // v1.66.3: backend sudah menghitung inc-PPN PER BATCH sesuai tax_type.
+        // Batch 'nota' beli tanpa PPN masukan, jadi TIDAK boleh dikali (1+rate).
+        // Sebelumnya baris ini mengalikan 1,11 rata ke seluruh nilai -> kelebihan
+        // Rp 1.083.306 dari 6 batch nota (kasus Mika Nasi: 316.350 vs 285.000).
+        const incPpn = parseFloat(p.stock_value_inc_ppn);
+        if (Number.isFinite(incPpn) && p.stock_value_inc_ppn != null) {
+          return s + incPpn;
+        }
         const stockValue = parseFloat(p.stock_value);
         if (Number.isFinite(stockValue) && p.stock_value != null) {
           return s + hppFromHna(stockValue);
@@ -1368,7 +1386,7 @@ export default function InventoryDashboard({
                                     {p.batch_cost_tiers.map((tier, i) => (
                                       <div key={i}>
                                         {tier.qty} {p.base_unit || p.unit || "pcs"} @{" "}
-                                        {fmtRp(hppFromHna(tier.hna), 2)}
+                                        {fmtRp(hppForBatch(tier), 2)}
                                       </div>
                                     ))}
                                   </div>

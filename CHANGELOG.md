@@ -2,6 +2,21 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.3-stable] - 2026-08-15
+
+### Diperbaiki
+- **Nilai persediaan menambahkan PPN ke batch yang dibeli TANPA PPN.** Dilaporkan pemilik pada `MIKA-NASI-20X20-5SKT`: faktur berjenis `nota` (tanpa PPN masukan), HNA Rp 190, tapi halaman Inventory menampilkan HPP Rp 210,90 dan nilai Rp 316.350 untuk 1500 pcs — seharusnya Rp 190 dan Rp 285.000.
+  - Akar masalah: `inventory_batches` SUDAH menyimpan `tax_type` dan `ppn_rate` per batch, dan endpoint detail batch sudah memakainya dengan benar (`inventory.js:959-965`). Tapi endpoint daftar produk hanya menjumlah `qty × hna`, lalu `InventoryDashboard.jsx` mengalikan `hppFromHna()` (× 1,11) rata ke SEMUA batch. Satu aturan, dua tempat, dua hasil.
+  - Lebih menyakitkan: helper yang benar sudah ada sejak v1.22.3 — `hppForBatch()` di `utils/rupiah.js`, lengkap dgn penanganan `tax_type` dan rate per-batch, komentarnya sendiri berbunyi *"Pakai ini di mana pun yg dihitung batch"*. Penyisiran `frontend/src` menemukan **nol pemanggil**. Aturannya ditulis, lalu tidak pernah dipakai.
+  - Dampak terukur di data produksi: 6 batch ber-`tax_type = 'nota'` (5.588 unit). Total nilai persediaan **kelebihan Rp 1.083.306**. Terdampak: `DUS-IVORY-R10K` +Rp 590.480, `SPGT-10SCT` +Rp 258.500, `PROTEN-50G` +Rp 213.290, `MIKA-NASI-20X20-5SKT` +Rp 20.900, `DUSNASI-R10K-SABLON` +Rp 136.
+  - Perbaikan backend: `GET /api/inventory/products` menambah kolom `stock_value_inc_ppn` yang dihitung per batch — `CASE tax_type='nota' THEN 1 ELSE 1 + COALESCE(ppn_rate, 0.11)`. Tiap elemen `batch_cost_tiers` kini membawa `tax_type` dan `ppn_rate`, dan pengelompokannya ikut memakai kedua kolom itu supaya batch nota dan faktur berharga sama tidak tergabung keliru.
+  - Perbaikan frontend: `totalNilai` memakai `stock_value_inc_ppn` apa adanya (tidak mengalikan apa pun lagi); HPP baris produk dan rincian per-tingkat memakai `hppForBatch()`. Kolom lama `stock_value` tetap dikirim sebagai cadangan.
+  - **Angka nilai persediaan akan TURUN sekitar Rp 1,08 juta setelah rilis ini.** Itu angka yang benar, bukan kehilangan stok.
+
+### Catatan
+- Cacat yang sama ada di `core/src/inventory.ts` pada cabang `v2/slice-1` (`stockValue()` belum sadar pajak). Wajib diperbaiki sebelum Slice 4.
+- Skrip paritas `scripts/paritas-inventory.mjs` melaporkan "Beda: 0" meski V2 salah — karena V2 meniru v1 dengan setia. **Paritas membuktikan kesetiaan, bukan kebenaran.**
+
 ## [v1.66.2-stable] - 2026-08-14
 
 ### Diperbaiki
