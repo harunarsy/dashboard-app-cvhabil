@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.5-stable] - 2026-08-18
+
+### Diperbaiki
+- **Pagination Nota Penjualan multi-item.** Nota yang masih muat di satu halaman tidak lagi memindahkan bank dan tanda tangan ke halaman kedua yang hampir kosong. Jika isi benar-benar panjang, halaman lanjutan memakai header yang jelas agar tetap mudah dibaca saat dicetak.
+
 ## [v1.66.4-stable] - 2026-08-18
 
 ### Dipoles

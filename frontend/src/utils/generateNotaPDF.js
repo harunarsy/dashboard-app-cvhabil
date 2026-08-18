@@ -376,6 +376,11 @@ export function generateNotaPDF(order, options = {}) {
   const lineH = isA6 ? 2.1 : (isA5 ? 2.6 : 4);
   const sigBlockH = isA6 ? 15 : (isA5 ? 19 : 28);
   const footerGap = isA6 ? 1.5 : (isA5 ? 2.5 : 4);
+  const sigGap = isA6 ? 3 : (isA5 ? 4 : 5);
+  const sigLineOffset = isA6 ? 8 : (isA5 ? 12 : 19);
+  const sigNameOffset = isA6 ? 12 : (isA5 ? 17 : 24);
+  const sigHalfWidth = isA6 ? 30 : 45;
+  const sigCenter = isA6 ? 15 : 22;
 
   let bankH = 0;
   if (bankInfo && type !== 'terima' && !isLoan) {
@@ -385,10 +390,39 @@ export function generateNotaPDF(order, options = {}) {
   const tailGroupH = bankH + sigBlockH + footerGap;
   const tailThreshold = pageHeight - margin;
 
+  const bankLead = isA6 ? 2.5 : (isA5 ? 3.5 : 5);
+  const bankLineAdvance = isA6 ? 2.5 : (isA5 ? 3.3 : 4);
+  const bankAdvance = bankInfo && type !== 'terima' && !isLoan
+    ? bankLead + bankLineAdvance + (qrisText ? bankLineAdvance : 0)
+    : 0;
+  const compactSigY = pageHeight - 4 - footerGap - sigNameOffset;
+
+  const startContinuationPage = () => {
+    doc.addPage();
+    const pageNumber = doc.getNumberOfPages();
+    const continuationLineY = margin + 11;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(baseFontSize + 1);
+    doc.setTextColor(...accentColor);
+    doc.text(String(companyName), margin, margin + 4);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(baseFontSize);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`${docTitle} - Lanjutan`, margin, margin + 8);
+    doc.text(`No: ${String(order.order_number || '-')}`, infoX, margin + 4, { align: 'right' });
+    doc.text(`Halaman ${pageNumber}`, infoX, margin + 8, { align: 'right' });
+
+    doc.setDrawColor(...accentColor);
+    doc.setLineWidth(0.3);
+    doc.line(margin, continuationLineY, pageWidth - margin, continuationLineY);
+    finalY = continuationLineY + (isA6 ? 4 : 5);
+  };
+
   const ensureSpace = (heightNeeded) => {
     if (finalY + heightNeeded > tailThreshold) {
-      doc.addPage();
-      finalY = margin + 5;
+      startContinuationPage();
     }
   };
 
@@ -418,34 +452,34 @@ export function generateNotaPDF(order, options = {}) {
     doc.setTextColor(0);
   }
 
-  // Jaga bank + sig + footer satu page (kalau gak fit → addPage SEKALI sebelum bank)
-  if (finalY + tailGroupH > pageHeight - margin) {
-    doc.addPage();
-    finalY = margin + 5;
+  // Compact paper: anchor the signature block near the footer instead of
+  // reserving a conservative tail that can create an almost-empty page.
+  // A5/A6 still add a page when the content genuinely reaches the signature.
+  if (compactPaper) {
+    if (finalY + bankAdvance + sigGap > compactSigY) {
+      startContinuationPage();
+    }
+  } else if (finalY + tailGroupH > pageHeight - margin) {
+    startContinuationPage();
   }
 
   // ─── Bank Info ────────────────────────────────────────────────────────
   if (bankInfo && type !== 'terima' && !isLoan) {
-    finalY += isA6 ? 2.5 : (isA5 ? 3.5 : 5);
+    finalY += bankLead;
     doc.setFontSize(baseFontSize - 1);
     doc.setTextColor(0);
     doc.setFont('helvetica', 'bold');
     doc.text(`REK ${bankInfo}`, pageWidth / 2, finalY, { align: 'center' });
-    finalY += isA6 ? 2.5 : (isA5 ? 3.3 : 4); // explicit advance past REK text height biar gak collide sig
+    finalY += bankLineAdvance; // explicit advance past REK text height biar gak collide sig
     if (qrisText) {
       doc.text(qrisText, pageWidth / 2, finalY, { align: 'center' });
-      finalY += isA6 ? 2.5 : (isA5 ? 3.3 : 4);
+      finalY += bankLineAdvance;
     }
   }
 
   // ─── Signatures ──────────────────────────────────────────────────────
   // v1.66.4: label -> line -> name spacing is intentionally consistent.
-  const sigGap = isA6 ? 3 : (isA5 ? 4 : 5);
-  const sigLineOffset = isA6 ? 8 : (isA5 ? 12 : 19);
-  const sigNameOffset = isA6 ? 12 : (isA5 ? 17 : 24);
-  const sigHalfWidth = isA6 ? 30 : 45;
-  const sigCenter = isA6 ? 15 : 22;
-  const sigY = finalY + sigGap;
+  const sigY = compactPaper ? compactSigY : finalY + sigGap;
 
   doc.setFontSize(baseFontSize - 1);
   doc.setTextColor(0);

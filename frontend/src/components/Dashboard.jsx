@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.4-stable",
+    version: "v1.66.5-stable",
     date: "18 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Nota Penjualan dengan beberapa barang tidak lagi membuat halaman kedua yang hampir kosong hanya untuk tanda tangan. Konten yang masih muat tetap satu halaman; nota yang benar-benar panjang memakai header lanjutan yang jelas.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.4-stable",
+    date: "18 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "polish",
