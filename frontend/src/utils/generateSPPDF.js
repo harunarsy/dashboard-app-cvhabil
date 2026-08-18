@@ -167,7 +167,17 @@ export function generateSPPDF(order, options = {}) {
   }
 
   // Signature Area (Bottom Right)
-  const sigY = Math.max(finalY + 10, pageHeight - 35);
+  // Keep a predictable label -> line -> name gap and protect the footer.
+  const signatureLabelToLine = isA6 ? 18 : 20;
+  const signatureLineToName = 5;
+  const signatureBlockH = signatureLabelToLine + signatureLineToName + 1;
+  const footerReserve = isA6 ? 10 : 12;
+  if (finalY + signatureBlockH > pageHeight - footerReserve) {
+    doc.addPage();
+    finalY = margin + 10;
+  }
+  const signatureLineY = pageHeight - footerReserve - signatureLineToName - 1;
+  const sigY = Math.max(finalY + 8, signatureLineY - signatureLabelToLine);
   doc.setFontSize(baseFontSize);
   doc.setTextColor(0);
   console.log('[generateSPPDF] Signature Y:', sigY);
@@ -179,12 +189,12 @@ export function generateSPPDF(order, options = {}) {
   // Optional: A small guide for stamp if needed, or just leave blank space.
   
   doc.setLineDashPattern([], 0);
-  doc.line(pageWidth - margin - 40, sigY + 20, pageWidth - margin, sigY + 20);
+  doc.line(pageWidth - margin - 40, sigY + signatureLabelToLine, pageWidth - margin, sigY + signatureLabelToLine);
   
   const picName = order.pic_name || 'Harun Al Rasyid';
   doc.setFont('helvetica', 'bold');
   console.log('[generateSPPDF] PIC name:', picName);
-  doc.text(String(picName || ''), pageWidth - margin - 20, sigY + 24, { align: 'center' });
+  doc.text(String(picName || ''), pageWidth - margin - 20, sigY + signatureLabelToLine + signatureLineToName, { align: 'center' });
 
   // Global Footer
   doc.setFont('helvetica', 'normal');

@@ -900,7 +900,7 @@ export default function PrintSettings({
                       style={{
                         borderBottom: "1px solid #555",
                         width: "60px",
-                        margin: "10px auto 2px",
+                        margin: "14px auto 4px",
                       }}
                     />{" "}
                     <div style={{ color: "#999" }}>( )</div>{" "}
@@ -912,7 +912,7 @@ export default function PrintSettings({
                       style={{
                         borderBottom: "1px solid #555",
                         width: "60px",
-                        margin: "10px auto 2px",
+                        margin: "14px auto 4px",
                       }}
                     />{" "}
                     {settings.signer_name && (

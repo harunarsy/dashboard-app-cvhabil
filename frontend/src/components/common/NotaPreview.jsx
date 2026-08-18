@@ -211,15 +211,15 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
       )}
 
       {/* Signatures */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', marginTop: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', marginTop: '16px' }}>
         <div style={{ textAlign: 'center', flex: 1 }}>
           <div style={{ fontSize: '10px', color: subText }}>Penerima,</div>
-          <div style={{ borderBottom: '1px solid #555', width: '80px', margin: '12px auto 2px' }} />
+          <div style={{ borderBottom: '1px solid #555', width: '80px', margin: '16px auto 5px' }} />
           <div style={{ fontSize: '10px', color: '#999' }}>(                    )</div>
         </div>
         <div style={{ textAlign: 'center', flex: 1 }}>
           <div style={{ fontSize: '10px', color: subText }}>Hormat kami,</div>
-          <div style={{ borderBottom: '1px solid #555', width: '80px', margin: '12px auto 2px' }} />
+          <div style={{ borderBottom: '1px solid #555', width: '80px', margin: '16px auto 5px' }} />
           {signerName && <div style={{ fontSize: '10px', color: mutedText }}>{signerName}</div>}
         </div>
       </div>

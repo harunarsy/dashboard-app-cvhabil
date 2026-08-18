@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.66.4-stable",
+    date: "18 Agustus 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "polish",
+        text: "Ruang tanda tangan di Nota, Surat Pesanan, dan Berita Acara Stok Opname dibuat lebih lega dan konsisten untuk cetak fisik. Preview pengaturan juga mengikuti jarak yang sama.",
+      },
+    ],
+  },
+  {
     version: "v1.66.3-stable",
     date: "15 Agustus 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",
@@ -52,7 +63,7 @@ const RELEASES = [
   {
     version: "v1.66.2-stable",
     date: "14 Agustus 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",

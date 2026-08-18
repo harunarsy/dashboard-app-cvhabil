@@ -89,7 +89,7 @@ export const generateOpnamePDF = (rows, options = {}) => {
       7: { halign: 'center', cellWidth: 18 },
       8: { halign: 'left' },
     },
-    margin: { left: margin, right: margin, bottom: 28 },
+    margin: { left: margin, right: margin, bottom: 38 },
   });
 
   // ─── Footer: page# + tanda tangan ───────────────────────────────────
@@ -102,14 +102,15 @@ export const generateOpnamePDF = (rows, options = {}) => {
   }
 
   doc.setPage(totalPages);
-  const sigY = pageHeight - 16;
+  const sigLabelY = pageHeight - 31;
+  const sigLineY = sigLabelY + 11;
   doc.setFontSize(8); doc.setTextColor(60, 60, 60);
   doc.setFont('helvetica', 'normal');
-  doc.text('Diperiksa oleh:', margin, sigY);
+  doc.text('Diperiksa oleh:', margin, sigLabelY);
   doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.2);
-  doc.line(margin + 28, sigY, margin + 95, sigY);
-  doc.text('Disetujui oleh:', pageWidth - margin - 95, sigY);
-  doc.line(pageWidth - margin - 65, sigY, pageWidth - margin, sigY);
+  doc.line(margin + 28, sigLineY, margin + 95, sigLineY);
+  doc.text('Disetujui oleh:', pageWidth - margin - 95, sigLabelY);
+  doc.line(pageWidth - margin - 65, sigLineY, pageWidth - margin, sigLineY);
 
   return doc;
 };

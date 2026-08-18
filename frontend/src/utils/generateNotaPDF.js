@@ -371,9 +371,10 @@ export function generateNotaPDF(order, options = {}) {
     doc.setTextColor(0);
   }
 
-  // v1.8.5.6: A6 sigBlockH 15 (sigGap 4 + sigNameOffset 11). lineH 2.5 keep.
+  // v1.66.4: reserve a deliberate signature footprint so label, line, name,
+  // and footer remain separated on A4/A5/A6.
   const lineH = isA6 ? 2.1 : (isA5 ? 2.6 : 4);
-  const sigBlockH = isA6 ? 11 : (isA5 ? 14 : 24);
+  const sigBlockH = isA6 ? 15 : (isA5 ? 19 : 28);
   const footerGap = isA6 ? 1.5 : (isA5 ? 2.5 : 4);
 
   let bankH = 0;
@@ -438,10 +439,10 @@ export function generateNotaPDF(order, options = {}) {
   }
 
   // ─── Signatures ──────────────────────────────────────────────────────
-  // v1.8.5.6: sigGap A6 4mm (clear REK text). Sig footprint masih compact 11mm total.
-  const sigGap = isA6 ? 2.5 : (isA5 ? 3 : 3);
-  const sigLineOffset = isA6 ? 5.5 : (isA5 ? 8.5 : 16);
-  const sigNameOffset = isA6 ? 8.5 : (isA5 ? 11 : 21);
+  // v1.66.4: label -> line -> name spacing is intentionally consistent.
+  const sigGap = isA6 ? 3 : (isA5 ? 4 : 5);
+  const sigLineOffset = isA6 ? 8 : (isA5 ? 12 : 19);
+  const sigNameOffset = isA6 ? 12 : (isA5 ? 17 : 24);
   const sigHalfWidth = isA6 ? 30 : 45;
   const sigCenter = isA6 ? 15 : 22;
   const sigY = finalY + sigGap;

@@ -84,7 +84,7 @@ export default function SPPreview({ form = {}, items = [], settings = {} }) {
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', marginBottom: '6px' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '8px', color: '#555' }}>Hormat Kami,</div>
-          <div style={{ borderBottom: '1px solid #555', width: '100px', margin: '20px auto 2px' }} />
+          <div style={{ borderBottom: '1px solid #555', width: '100px', margin: '18px auto 5px' }} />
           <div style={{ fontSize: '8px', fontWeight: '700', color: '#333' }}>{pic_name || 'Harun Al Rasyid'}</div>
         </div>
       </div>

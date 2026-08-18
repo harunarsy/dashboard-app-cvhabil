@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.4-stable] - 2026-08-18
+
+### Dipoles
+- **Ruang tanda tangan pada dokumen cetak.** Nota Penjualan, Surat Pesanan, dan Berita Acara Stok Opname kini memberi jarak yang lebih proper antara label, garis tanda tangan, nama/paraf, dan footer. Preview Nota, SP, serta Pengaturan juga diselaraskan.
+
 ## [v1.66.3-stable] - 2026-08-15
 
 ### Diperbaiki
