@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.5-stable",
+    version: "v1.66.6-stable",
     date: "18 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Nota Penjualan A5 dengan beberapa barang tidak lagi membuat halaman kedua yang hampir kosong saat barcode tercetak. Posisi header, bank, dan tanda tangan sekarang menyesuaikan isi secara nyata; halaman lanjutan tetap punya header dan blok tanda tangan yang rapi jika nota benar-benar panjang.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.5-stable",
+    date: "18 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

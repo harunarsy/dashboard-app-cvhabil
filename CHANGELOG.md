@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.6-stable] - 2026-08-18
+
+### Diperbaiki
+- **Pagination Nota Penjualan saat barcode tercetak.** Nota A5 dengan beberapa barang tidak lagi memindahkan bank dan tanda tangan ke halaman kedua yang hampir kosong hanya karena barcode menambah tinggi header. Posisi konten sekarang mengikuti metadata yang benar-benar tampil; bila nota memang terlalu panjang, halaman lanjutan tetap memiliki header dan blok tanda tangan yang rapi.
+
 ## [v1.66.5-stable] - 2026-08-18
 
 ### Diperbaiki

@@ -79,9 +79,9 @@ export function generateNotaPDF(order, options = {}) {
   doc.text(docTitle, infoX, titleY, { align: 'right' });
 
   // v1.65.1: barcode nomor nota — di bawah judul, di atas baris "No:".
-  // Ruang header mepet (A6 cuma sisa 1mm sebelum garis pembatas), jadi barcode
-  // MENDORONG baris di bawahnya + garis pembatas + blok customer lewat infoShift.
-  // Kalau render gagal (nomor kosong/karakter aneh), nota tetap tercetak tanpa barcode.
+  // Barcode hanya menggeser metadata kanan. Garis pembatas dihitung ulang dari
+  // baris metadata terakhir agar barcode tidak ikut mendorong seluruh isi nota
+  // lebih jauh dari yang benar-benar dibutuhkan.
   let infoShift = 0;
   const barcodeValue = String(order.order_number || '').trim();
   if (barcodeValue && type !== 'terima') {
@@ -113,7 +113,10 @@ export function generateNotaPDF(order, options = {}) {
   doc.text(saleDateStr, infoX, titleY + 9 + infoShift, { align: 'right' });
   // v1.8.1: tampilkan Jatuh Tempo di header kalau ada AND non-cash
   // v1.54.0: nota pinjaman → label "Batas Pengembalian" (selalu tampil kalau ada due_date)
-  if (order.due_date && (isLoan || (order.payment_method !== 'Tunai' && type !== 'terima'))) {
+  const hasDueDate = Boolean(
+    order.due_date && (isLoan || (order.payment_method !== 'Tunai' && type !== 'terima'))
+  );
+  if (hasDueDate) {
     const dueStr = new Date(order.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
     doc.setTextColor(255, 59, 48);
     doc.setFont('helvetica', 'bold');
@@ -122,14 +125,20 @@ export function generateNotaPDF(order, options = {}) {
     doc.setFont('helvetica', 'normal');
   }
 
-  // Blue Line Divider — push 2mm A4/A5 (kasih clearance dari JT text descender)
-  const dividerY = margin + (isA6 ? 18 : 24) + infoShift;
+  // Blue Line Divider — follow the last right-side metadata line. This keeps
+  // the barcode clear while recovering the unused vertical space it used to
+  // add to every section below the header.
+  const lastInfoY = titleY + (hasDueDate ? 13 : 9) + infoShift;
+  const dividerBaseY = margin + (isA6 ? 18 : 24);
+  const dividerClearance = isA6 ? 1.5 : (isA5 ? 3 : 4);
+  const dividerY = Math.max(dividerBaseY, lastInfoY + dividerClearance);
   doc.setDrawColor(...accentColor);
   doc.setLineWidth(0.4);
   doc.line(margin, dividerY, pageWidth - margin, dividerY);
 
   // ─── Customer & Payment ───────────────────────────────────────────────
-  const customerY = margin + (isA6 ? 23 : 30) + infoShift;
+  const customerGap = isA6 ? 5 : 6;
+  const customerY = dividerY + customerGap;
   doc.setFontSize(baseFontSize);
   doc.setTextColor(0);
   doc.setFont('helvetica', 'normal');
@@ -396,9 +405,11 @@ export function generateNotaPDF(order, options = {}) {
     ? bankLead + bankLineAdvance + (qrisText ? bankLineAdvance : 0)
     : 0;
   const compactSigY = pageHeight - 4 - footerGap - sigNameOffset;
+  let continuationStarted = false;
 
   const startContinuationPage = () => {
     doc.addPage();
+    continuationStarted = true;
     const pageNumber = doc.getNumberOfPages();
     const continuationLineY = margin + 11;
 
@@ -456,7 +467,7 @@ export function generateNotaPDF(order, options = {}) {
   // reserving a conservative tail that can create an almost-empty page.
   // A5/A6 still add a page when the content genuinely reaches the signature.
   if (compactPaper) {
-    if (finalY + bankAdvance + sigGap > compactSigY) {
+    if (!continuationStarted && finalY + bankAdvance + sigGap > compactSigY) {
       startContinuationPage();
     }
   } else if (finalY + tailGroupH > pageHeight - margin) {
@@ -479,7 +490,11 @@ export function generateNotaPDF(order, options = {}) {
 
   // ─── Signatures ──────────────────────────────────────────────────────
   // v1.66.4: label -> line -> name spacing is intentionally consistent.
-  const sigY = compactPaper ? compactSigY : finalY + sigGap;
+  // On a continuation page, keep bank/signature content near the continuation
+  // header. Anchoring it to the footer creates a mostly blank second page.
+  const sigY = compactPaper
+    ? (continuationStarted ? finalY + sigGap : compactSigY)
+    : finalY + sigGap;
 
   doc.setFontSize(baseFontSize - 1);
   doc.setTextColor(0);
