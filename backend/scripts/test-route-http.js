@@ -7,6 +7,7 @@
 // Force test mode so route modules skip import-time schema init (no prod DB writes during smoke test)
 process.env.NODE_ENV = 'test';
 const path = require('path');
+const fs = require('fs');
 const { loadRuntimeEnv } = require('../config/runtimeEnv');
 
 loadRuntimeEnv({ baseDir: path.join(__dirname, '..'), context: 'backend/test-route-http', preferDevEnv: true });
@@ -36,6 +37,26 @@ async function run() {
   console.log('═══ HTTP Route Smoke Tests ═══\n');
 
   const request = supertest(app);
+
+  await test('Sales edit preserves explicit batch selection when HPP is equal', async () => {
+    const salesSource = fs.readFileSync(
+      path.join(__dirname, '..', 'routes', 'sales.js'),
+      'utf8'
+    );
+
+    assert.ok(
+      !salesSource.includes('const { rows: oldSnapRows }'),
+      'Sales edit must not restore snapshots from old rows matched by HPP'
+    );
+    assert.ok(
+      !salesSource.includes('AND ABS(COALESCE(unit_hpp,0) - $9) < 0.005'),
+      'Sales edit must not match batch snapshots by product/unit/HPP'
+    );
+    assert.ok(
+      salesSource.includes('resolveSelectedBatchForSale(client, product.id, it)'),
+      'Sales edit must retain explicit selected-batch resolution'
+    );
+  });
 
   // 1. Health endpoint (no DB)
   await test('/api/health returns 200', async () => {

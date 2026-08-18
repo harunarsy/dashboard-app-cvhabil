@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.7-stable",
+    version: "v1.66.8-stable",
     date: "18 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Edit Nota kini menyimpan batch dan tanggal ED persis sesuai pilihan operator, walau beberapa batch memiliki HPP yang sama.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.7-stable",
+    date: "18 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

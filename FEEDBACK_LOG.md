@@ -1,5 +1,10 @@
 # Feedback Log
 
+## [2026-08-18] - v1.66.8 Data Integrity
+- **Batch pilihan pada Edit Nota tertimpa batch lama ketika HPP sama**: pada `HSB-NOTA-2608032`, form mengirim batch `26Q1102GU`, `26T0205GU`, dan `26R2004GU`, tetapi setelah disimpan data berubah menjadi `26T0205GU`, `26Q1102GU`, dan `26T0205GU`.
+- **Akar masalah**: `PUT /sales/:id` menulis ulang snapshot batch lama dengan pencocokan `produk + satuan + HPP`. Kombinasi ini tidak unik karena batch berbeda dapat memiliki HPP yang sama.
+- **Perbaikan**: snapshot hasil resolusi `selected_batch_id` dari setiap baris edit menjadi otoritatif; tidak ada lagi pemulihan snapshot berdasarkan HPP. Tidak ada perbaikan data manual: operator cukup membuka dan menyimpan ulang nota setelah deploy untuk menjalankan transaksi normal aplikasi.
+
 ## [2026-05-30] - Investigation
 - **Faktur Pembelian gagal dibuat — missing column `stock_received`**: UI menampilkan error `column "stock_received" does not exist` saat membuat Faktur Pembelian yang terhubung ke Surat Pesanan. Root cause awal: backend membaca/menulis `purchase_orders.stock_received` untuk mencegah stok dobel, tetapi schema guard `ensureSchema()` di `backend/routes/purchaseOrders.js` belum menjamin kolom tersebut ada di DB existing. Fix harus menambah `ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS stock_received BOOLEAN DEFAULT FALSE` sebelum query yang memakai kolom itu.
 

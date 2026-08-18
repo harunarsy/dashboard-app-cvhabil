@@ -702,16 +702,7 @@ router.put('/:id', auth, async (req, res) => {
       [req.params.id]
     );
 
-    // Replace items
-    // v1.59.1 (bug B): tangkap snapshot HPP lama SEBELUM delete → dikunci ulang setelah
-    // re-insert utk item yang TIDAK di-reprice, biar batch/rate/tax tak "mental" pindah
-    // batch FEFO baru tiap kali nota diedit (HPP terkunci ke kondisi saat penjualan).
-    const { rows: oldSnapRows } = await client.query(
-      `SELECT product_name, unit, unit_hpp, unit_hpp_tax_type, unit_hpp_ppn_rate,
-              batch_no_snapshot, batch_id_snapshot, expired_date_snapshot
-       FROM sales_items WHERE sales_order_id = $1`,
-      [req.params.id]
-    );
+    // Replace items. Each submitted row resolves and snapshots its own batch.
     await client.query('DELETE FROM sales_items WHERE sales_order_id = $1', [req.params.id]);
     // v1.6.0 multi-unit + v1.7.0 batch snapshot + v1.16.2 selected_batch safety
     // v1.8.1: re-snapshot batch_no/expired_date on edit (sebelumnya PUT gak update snapshot)
@@ -803,31 +794,9 @@ router.put('/:id', auth, async (req, res) => {
       );
     }
 
-    // v1.59.1 (bug B): kunci ulang snapshot HPP item yg TIDAK di-reprice ke nilai saat jual.
-    // Item di-reprice (unit_hpp berubah, mis. via "Perbarui HPP dari batch terkini") atau item
-    // baru → dibiarkan pakai snapshot fresh. Cocok by produk+unit+unit_hpp-sama.
-    // v1.64.1 (bug batch): yang dikunci HANYA identitas batch (batch_id) + angka HPP.
-    // batch_no/ED TEKS-nya diambil ulang dari batch hidup — dulu teks lama ikut
-    // di-restore, jadi typo batch yg sudah dibetulkan di Inventory balik lagi tiap
-    // nota disimpan (dan nota lama ber-snapshot NULL dipaksa NULL terus).
-    for (const o of oldSnapRows) {
-      await client.query(
-        `UPDATE sales_items SET unit_hpp_tax_type = $1, unit_hpp_ppn_rate = $2,
-              batch_id_snapshot = $4,
-              batch_no_snapshot = COALESCE(
-                (SELECT b.batch_no FROM inventory_batches b WHERE b.id = $4), $3::varchar),
-              expired_date_snapshot = COALESCE(
-                (SELECT b.expired_date FROM inventory_batches b WHERE b.id = $4), $5::date)
-         WHERE sales_order_id = $6
-           AND LOWER(TRIM(product_name)) = LOWER(TRIM($7))
-           AND LOWER(TRIM(COALESCE(unit,''))) = LOWER(TRIM(COALESCE($8,'')))
-           AND ABS(COALESCE(unit_hpp,0) - $9) < 0.005`,
-        [tax.normalizeTaxType(o.unit_hpp_tax_type), o.unit_hpp_ppn_rate,
-         o.batch_no_snapshot, o.batch_id_snapshot, o.expired_date_snapshot,
-         req.params.id, o.product_name, o.unit, parseFloat(o.unit_hpp) || 0]
-      );
-    }
-    // Recompute gross_profit produk dgn snapshot FINAL (setelah lock) supaya konsisten.
+    // The explicit selected batch is authoritative. Do not restore snapshots by
+    // product/unit/HPP because different batches can legitimately share HPP.
+    // Recompute gross profit from the newly written item snapshots.
     const _hppSqlLock = tax.hppSqlForSalesItem('si');
     const { rows: [_gpLock] } = await client.query(
       `SELECT COALESCE(SUM(COALESCE(si.qty_in_unit, si.qty, 0) * (COALESCE(si.unit_price,0) - (${_hppSqlLock}))), 0) AS g

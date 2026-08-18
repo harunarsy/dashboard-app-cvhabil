@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.8-stable] - 2026-08-18
+
+### Diperbaiki
+- **Edit Nota menjaga batch sesuai pilihan operator.** Saat beberapa batch memiliki HPP sama, batch dan tanggal ED yang dipilih pada tiap baris kini tetap tersimpan setelah nota disimpan ulang. Sebelumnya snapshot batch lama dapat menimpa pilihan baru hanya karena produk, unit, dan HPP-nya sama.
+
+### Catatan
+- Tidak ada perbaikan data manual. Nota historis tetap aman; buka lalu simpan ulang nota yang perlu dikoreksi agar mutasi stok normal aplikasi diarahkan ke batch yang dipilih.
+
 ## [v1.66.7-stable] - 2026-08-18
 
 ### Diperbaiki
