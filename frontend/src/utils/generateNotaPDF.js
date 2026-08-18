@@ -191,6 +191,57 @@ export function generateNotaPDF(order, options = {}) {
 
   // ─── Table ────────────────────────────────────────────────────────────
   const items = order.items || [];
+  // Cetakan boleh merangkum baris yang identik, tetapi sumber data transaksi
+  // tetap per baris. Ini mencegah nota multi-batch membuang satu halaman hanya
+  // untuk mengulang produk/batch/ED/harga yang sama (mis. batch diambil dua kali).
+  const hasQtyInUnit = (item) => item.qty_in_unit !== undefined && item.qty_in_unit !== null;
+  const toNumber = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+  const displayItems = (() => {
+    if (type === 'terima') return items;
+
+    const bySnapshot = new Map();
+    const grouped = [];
+    items.forEach((item) => {
+      // Tanpa snapshot batch yang dapat dipercaya, jangan menyatukan baris.
+      // Dengan begitu riwayat lama yang ambigu tetap terlihat apa adanya.
+      const hasBatchSnapshot = Boolean(
+        item.batch_id_snapshot || item.batch_no_snapshot || item.expired_date_snapshot
+      );
+      if (!hasBatchSnapshot) {
+        grouped.push({ ...item });
+        return;
+      }
+
+      const key = [
+        item.product_id ?? '',
+        item.product_name ?? '',
+        item.unit ?? '',
+        item.unit_base ?? '',
+        item.pack_size_at_sale ?? '',
+        item.unit_price ?? '',
+        item.batch_id_snapshot ?? '',
+        item.batch_no_snapshot ?? '',
+        item.expired_date_snapshot ?? '',
+        hasQtyInUnit(item) ? 'unit-qty' : 'base-qty',
+      ].join('\u001F');
+      const existingIndex = bySnapshot.get(key);
+      if (existingIndex === undefined) {
+        bySnapshot.set(key, grouped.length);
+        grouped.push({ ...item });
+        return;
+      }
+
+      const existing = grouped[existingIndex];
+      existing.qty = toNumber(existing.qty) + toNumber(item.qty);
+      if (hasQtyInUnit(existing)) {
+        existing.qty_in_unit = toNumber(existing.qty_in_unit) + toNumber(item.qty_in_unit);
+      }
+    });
+    return grouped;
+  })();
   // v1.6.0 multi-unit: prefer qty_in_unit + unit (snapshot at sale time) untuk display user-friendly
   // Tampilkan "1 karton" instead of "12 pcs" kalau pack unit dipakai. Append conversion ke nama produk untuk transparency.
   const formatQtyDisplay = (item) => {
@@ -216,7 +267,7 @@ export function generateNotaPDF(order, options = {}) {
     if (meta.length) lines.push(`  ${meta.join(' · ')}`);
     return lines.join('\n');
   };
-  let tableData = items.map((item, index) => {
+  let tableData = displayItems.map((item, index) => {
     if (type === 'terima') {
       // v1.8.5.3: drop Satuan col (formatQtyDisplay sudah include unit "12 pcs")
       return [index + 1, formatProductName(item), formatQtyDisplay(item)];
@@ -443,10 +494,31 @@ export function generateNotaPDF(order, options = {}) {
   }
 
   // ─── Ketentuan / Notes (adaptive line-by-line) ────────────────────────
+  // Ketentuan, rekening, dan tanda tangan adalah satu kelompok cetak. Saat
+  // tidak muat di A5/A6, pindahkan kelompok ini bersama-sama ke halaman
+  // lanjutan, bukan membuat halaman kedua yang nyaris kosong hanya untuk TTD.
+  const notesTopGap = isA6 ? 1.2 : (isA5 ? 2 : 3);
+  const noteHeadingAdvance = isA6 ? 2.5 : (isA5 ? 3 : 4);
+  const ketentuanRows = ketentuan && type !== 'terima' && !isLoan
+    ? ketentuan.split('\n').filter((line) => line.trim()).map((line, index) => ({
+      wrapped: doc.splitTextToSize(`${index + 1}. ${line}`, pageWidth - margin * 2),
+    }))
+    : [];
+  const ketentuanBlockH = ketentuanRows.length
+    ? notesTopGap + noteHeadingAdvance + ketentuanRows.reduce((height, row) => height + row.wrapped.length * lineH, 0)
+    : 0;
+
+  if (
+    compactPaper &&
+    ketentuanBlockH > 0 &&
+    finalY + ketentuanBlockH + bankAdvance + sigGap > compactSigY
+  ) {
+    startContinuationPage();
+  }
+
   // v1.8.5.4: A6 include ketentuan kembali. Kalau overflow → fallback addPage acceptable.
-  if (ketentuan && type !== 'terima' && !isLoan) {
-    const ketentuanLines = ketentuan.split('\n').filter(l => l.trim());
-    finalY += isA6 ? 1.2 : (isA5 ? 2 : 3);
+  if (ketentuanRows.length) {
+    finalY += notesTopGap;
     ensureSpace(isA6 ? 2.5 : (isA5 ? 3 : 4));
     doc.setFontSize(baseFontSize - 2);
     doc.setFont('helvetica', 'bold');
@@ -454,8 +526,7 @@ export function generateNotaPDF(order, options = {}) {
     doc.text('NOTE:', margin, finalY);
     finalY += isA6 ? 2.5 : (isA5 ? 3 : 4);
     doc.setFont('helvetica', 'normal');
-    ketentuanLines.forEach((line, i) => {
-      const wrapped = doc.splitTextToSize(`${i + 1}. ${line}`, pageWidth - margin * 2);
+    ketentuanRows.forEach(({ wrapped }) => {
       ensureSpace(wrapped.length * lineH);
       doc.text(wrapped, margin, finalY);
       finalY += wrapped.length * lineH;
@@ -467,7 +538,7 @@ export function generateNotaPDF(order, options = {}) {
   // reserving a conservative tail that can create an almost-empty page.
   // A5/A6 still add a page when the content genuinely reaches the signature.
   if (compactPaper) {
-    if (!continuationStarted && finalY + bankAdvance + sigGap > compactSigY) {
+    if (finalY + bankAdvance + sigGap > compactSigY) {
       startContinuationPage();
     }
   } else if (finalY + tailGroupH > pageHeight - margin) {

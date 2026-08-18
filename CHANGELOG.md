@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.7-stable] - 2026-08-18
+
+### Diperbaiki
+- **Nota A6 multi-batch siap cetak.** Baris dengan produk, harga, unit, batch, dan ED yang benar-benar sama kini dirangkum pada PDF tanpa mengubah baris transaksi maupun stok di database. Jika beberapa batch memang berbeda dan isi tak muat, blok catatan, rekening, serta tanda tangan dipindahkan bersama ke halaman lanjutan yang jelas, bukan menyisakan halaman kedua hampir kosong.
+
 ## [v1.66.6-stable] - 2026-08-18
 
 ### Diperbaiki

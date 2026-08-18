@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.6-stable",
+    version: "v1.66.7-stable",
     date: "18 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Nota Penjualan A6 dengan batch yang sama kini merangkum jumlahnya dalam satu baris cetak tanpa mengubah data transaksi atau stok. Jika nota memang perlu halaman lanjutan, catatan, rekening, dan tanda tangan berpindah bersama-sama agar halaman kedua tidak kosong hanya untuk tanda tangan.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.6-stable",
+    date: "18 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",
