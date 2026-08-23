@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.15-stable] - 2026-08-23
+
+### Ditingkatkan
+- **Vite kini membangun Tailwind 4 secara lokal melalui PostCSS.** Desktop mencapai visual parity dengan CDN; mobile 375 px, responsive utility, dan dark mode juga lulus pemeriksaan render nyata.
+
+### Catatan
+- CDN sudah hilang dari entry Vite. CRA fallback masih memuat CDN karena CRA 5 mengabaikan config PostCSS eksternal; fallback tersebut akan dihapus bersama CRA pada gate berikutnya.
+
 ## [v1.66.14-stable] - 2026-08-23
 
 ### Ditingkatkan

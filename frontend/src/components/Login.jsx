@@ -149,7 +149,7 @@ export default function Login({
             className="ui-over-media-copy mt-3 px-3 py-1 text-xs font-semibold"
             style={{ color: sub }}
           >
-            HABIL SUPERAPP v1.66.14-stable — 2026
+            HABIL SUPERAPP v1.66.15-stable — 2026
           </p>
         </div>
 
@@ -255,7 +255,7 @@ export default function Login({
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary ui-motion-button ui-focus-ring w-full min-h-11 py-3.5 px-4 text-white font-bold text-sm rounded-xl transition-colors shadow-sm focus:outline-none mt-2"
+              className="btn-primary ui-motion-button ui-focus-ring w-full min-h-11 py-3.5 px-4 text-white font-bold text-sm rounded-xl transition-colors shadow-sm focus:outline-none"
               data-magnetic="true"
               style={{
                 backgroundColor: focusRing,

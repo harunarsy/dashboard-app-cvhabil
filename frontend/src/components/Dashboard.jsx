@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.14-stable",
+    version: "v1.66.15-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Vite kini membangun Tailwind 4 secara lokal dengan visual parity desktop, mobile, dan dark mode; tidak lagi bergantung pada CDN.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.14-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",

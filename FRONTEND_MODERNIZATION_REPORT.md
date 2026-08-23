@@ -43,3 +43,24 @@ Vite memperingatkan adanya chunk di atas 500 kB, terutama Three.js. Ini pre-exis
 | CI test command | `npm test` tanpa flag Jest/CRA |
 
 Setup test menyediakan Web Storage double eksplisit agar JSDOM deterministik ketika script diluncurkan melalui Node maupun Bun. Setup Jest lama belum dihapus karena CRA build masih dipertahankan sampai gate removal 4D.
+
+## 4C — Tailwind 4 Lokal
+
+- Vite memakai `@tailwindcss/postcss` dan `@import "tailwindcss"`; utility CSS dibangkitkan saat build, bukan saat runtime.
+- Scan source tidak menemukan utility prefix yang dibentuk lewat interpolasi dinamis.
+- Universal reset dipindah ke `@layer base` agar utility spacing Tailwind 4 tidak kalah terhadap CSS unlayered.
+- Import `@fontsource` dipindah ke bootstrap JavaScript supaya aset font tetap di-resolve dan di-hash oleh bundler; tidak ada URL font unresolved pada build final.
+- `mt-2` yang redundant pada tombol login dihapus. Tailwind CDN lama dan Tailwind 4 berbeda dalam implementasi `space-y-5`; perubahan ini menghilangkan double-gap tanpa mengubah geometri akhir.
+- Entry Vite tidak lagi memuat `cdn.tailwindcss.com`.
+- CRA 5 terbukti mengabaikan config PostCSS eksternal: build selesai tetapi utility lokal tidak terbentuk. Karena itu `public/index.html` mempertahankan CDN hanya sebagai fallback sampai CRA dihapus pada 4D.
+
+### Gate 4C
+
+| Check | Hasil |
+|---|---|
+| Vite local Tailwind build | PASS — utility dan responsive variant terdeteksi |
+| Desktop visual parity vs CDN | PASS — geometri dan computed style elemen kunci sama |
+| Mobile 375×812 | PASS — 0 overflow; input 16 px; tombol 48 px |
+| Dark mode | PASS — token surface/text berubah sesuai tema |
+| Vitest | PASS — 7 file / 16 test |
+| CRA fallback | PASS dengan CDN sementara; local PostCSS unsupported |
