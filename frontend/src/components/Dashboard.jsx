@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.67.0-stable",
+    version: "v1.67.1-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Infrastruktur deep-freeze test kini membatasi write ke database lokal disposable dan menjamin rollback pada jalur sukses, error, maupun timeout.",
+      },
+    ],
+  },
+  {
+    version: "v1.67.0-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",

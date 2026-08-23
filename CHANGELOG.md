@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.1-stable] - 2026-08-23
+
+### Ditambahkan
+- **Deep-freeze transaction wrapper.** `runWithRollback()` dan `createTestClient()` hanya menerima target PostgreSQL lokal dengan nama test/CI, membutuhkan flag write eksplisit, mencatat seluruh query, dan selalu melakukan rollback pada koneksi yang sama.
+- Test body dibatasi maksimum 30 detik serta dilarang menjalankan DDL atau mengambil alih `BEGIN`/`COMMIT`/`ROLLBACK` milik wrapper.
+
+### Diverifikasi
+- PostgreSQL disposable membuktikan `before=0`, `inside=1`, dan `after rollback=0`; jalur sukses, exception, serta timeout lulus 5/5 pada Node 24.19.0 dan Bun 1.4.
+- Row count akhir tetap nol, tidak ada DDL saat test, target remote/production-like ditolak, dan cluster lokal dihentikan serta dihapus setelah verifikasi.
+
 ## [v1.67.0-stable] - 2026-08-23
 
 ### Ditingkatkan

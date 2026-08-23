@@ -1,10 +1,10 @@
 # Habil SuperApp Modernization — Final Report
 
-Status: **PASS through Fase 7E; Fase 8 safety gate remains**
+Status: **PASS through Fase 8A; Fase 8B–8E remain**
 
 Branch: `codex/bun-modernization-audit`
 
-Current version: `v1.67.0-stable`
+Current version: `v1.67.1-stable`
 
 Execution date: 23 August 2026
 
@@ -17,6 +17,7 @@ Execution date: 23 August 2026
 - Habil Smart-Assistant is implemented as a transparent deterministic rule engine. It does not use an LLM SDK, Python, RAG, or a vector database.
 - `PRODUCT.md`, `DESIGN.md`, the Smart-Assistant surface brief, and the Impeccable sidecar preserve the shipped product and visual decisions for future agents.
 - Frontend interaction styling now uses semantic action, selection, focus, information, and status roles instead of hue-bound component tokens or vendor-style doctrine.
+- Deep-freeze write tests now have a fail-closed, same-connection rollback wrapper restricted to local disposable test databases.
 - PostgreSQL remained read-only throughout execution. No DML, DDL, migration, or schema mutation was executed.
 
 ## Phase Ledger
@@ -35,6 +36,7 @@ Execution date: 23 August 2026
 | 7C — Bundle optimization | v1.66.22 | phase commit | Workbook loaded on demand; all chunks below 500 kB |
 | 7D — Explicit schema lifecycle | v1.66.23 | phase commit | 17 route schema initializers extracted; normal startup executes zero DDL |
 | 7E — Design-system liberation | v1.67.0 | phase commit | Semantic interaction roles, accessible contrast, and doctrine-neutral product/design contracts |
+| 8A — Transaction wrapper | v1.67.1 | phase commit | Local/test-only target guard; success/error/timeout rollback parity on Node and Bun |
 
 ## Smart-Assistant Architecture
 

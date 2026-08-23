@@ -1,6 +1,6 @@
 # Habil SuperApp Modernization Execution Plan
 
-Status: in progress — Fase 7E passed; Fase 8 safety gate remains
+Status: in progress — Fase 8A passed; Fase 8B–8E remain
 
 Source version: `v1.66.8-stable`
 
@@ -164,4 +164,8 @@ Status: **completed in v1.67.0-stable**. The rendered product behavior is preser
 
 ## Phase 8 — Deep-Freeze Transaction Testing
 
-Status: **safety gate pending**. Any mutating integration test requires a dedicated disposable PostgreSQL target and a proven same-connection transaction rollback. Shared, audit, staging, or production-like databases remain strictly read-only.
+The safety gate passed on a local disposable PostgreSQL cluster. Any mutating integration test still requires that isolated target and a proven same-connection rollback. Shared, audit, staging, or production-like databases remain strictly read-only.
+
+### Phase 8A — Transaction Wrapper Infrastructure
+
+Status: **completed in v1.67.1-stable**. The wrapper fails closed unless `NODE_ENV=test`, `ALLOW_DEEP_FREEZE_WRITES=true`, and a local test/CI-named `TEST_DATABASE_URL` are all present. Node 24 and Bun both proved rollback across success, exception, and timeout paths with zero residual rows.
