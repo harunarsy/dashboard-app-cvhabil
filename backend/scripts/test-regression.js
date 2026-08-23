@@ -13,6 +13,17 @@
  * 5. Faktur linked SP room logic (data integrity)
  * 6. Direct faktur tanpa SP (data integrity)
  */
+const deepFreezeMode = process.env.DEEP_FREEZE_MODE === 'true';
+
+if (deepFreezeMode) {
+  process.env.NODE_ENV = 'test';
+  process.env.HABIL_ENV_LOADED = '1';
+  process.env.HABIL_ENV_FILE = 'deep-freeze-injected';
+  require('./test-deep-freeze-writes').run().catch((error) => {
+    console.error(`FATAL: ${error.message}`);
+    process.exitCode = 1;
+  });
+} else {
 const path = require('path');
 const {
   ensureDbTargetSafety,
@@ -249,3 +260,4 @@ run().catch(e => {
   console.error('FATAL:', e.message);
   process.exit(1);
 });
+}

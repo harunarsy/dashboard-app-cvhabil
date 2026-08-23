@@ -6,6 +6,17 @@
  *
  * Run: node scripts/test-route-regression.js
  */
+const deepFreezeMode = process.env.DEEP_FREEZE_MODE === 'true';
+
+if (deepFreezeMode) {
+  process.env.NODE_ENV = 'test';
+  process.env.HABIL_ENV_LOADED = '1';
+  process.env.HABIL_ENV_FILE = 'deep-freeze-injected';
+  require('./test-deep-freeze-writes').run().catch((error) => {
+    console.error(`FATAL: ${error.message}`);
+    process.exitCode = 1;
+  });
+} else {
 const path = require('path');
 const {
   ensureDbTargetSafety,
@@ -291,3 +302,4 @@ async function run() {
 }
 
 run().catch(e => { console.error('FATAL:', e.message); process.exit(1); });
+}

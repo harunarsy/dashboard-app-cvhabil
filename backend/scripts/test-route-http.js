@@ -7,6 +7,18 @@
 // Force deterministic test behavior. Schema changes now live behind the explicit
 // migration runner and route imports must remain side-effect free in every mode.
 process.env.NODE_ENV = 'test';
+const deepFreezeMode = process.env.DEEP_FREEZE_MODE === 'true';
+
+if (deepFreezeMode) {
+  process.env.HABIL_ENV_LOADED = '1';
+  process.env.HABIL_ENV_FILE = 'deep-freeze-injected';
+  require('./test-deep-freeze-http').run()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      console.error(`FATAL: ${error.message}`);
+      process.exit(1);
+    });
+} else {
 const path = require('path');
 const fs = require('fs');
 const { loadRuntimeEnv } = require('../config/runtimeEnv');
@@ -199,3 +211,4 @@ async function run() {
 }
 
 run().catch(e => { console.error('FATAL:', e.message); process.exit(1); });
+}

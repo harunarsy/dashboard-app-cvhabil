@@ -6,6 +6,7 @@ const DEFAULT_LOCK_TIMEOUT_MS = 5_000;
 const TEST_DATABASE_PATTERN = /(^|[_-])(test|ci)([_-]|$)/i;
 const DDL_PATTERN = /\b(?:CREATE|ALTER|DROP|TRUNCATE|REINDEX|CLUSTER|VACUUM|GRANT|REVOKE|COMMENT)\b/i;
 const TRANSACTION_CONTROL_PATTERN = /^\s*(?:BEGIN|START\s+TRANSACTION|COMMIT|END|ROLLBACK|ABORT|PREPARE\s+TRANSACTION)\b/i;
+const ROUTE_CONTROL_PATTERN = /^(?:SAVEPOINT|RELEASE SAVEPOINT|ROLLBACK TO SAVEPOINT) [a-z][a-z0-9_]*$/i;
 
 class DeepFreezeSafetyError extends Error {
   constructor(message, code = 'DEEP_FREEZE_SAFETY_ERROR') {
@@ -150,6 +151,18 @@ async function createTestClient(options = {}) {
     return rawClient.query(queryConfig, values);
   };
 
+  const queryRouteControl = async (statement) => {
+    if (!acceptingQueries || finalized) {
+      throw new DeepFreezeSafetyError('Test transaction is no longer active', 'TEST_TRANSACTION_CLOSED');
+    }
+    const sql = normalizeSql(statement);
+    if (!ROUTE_CONTROL_PATTERN.test(sql)) {
+      throw new DeepFreezeSafetyError(`Unsafe route transaction control: ${sql}`, 'UNSAFE_ROUTE_CONTROL');
+    }
+    recordQuery(queryLog, sql, 'route-control', options.logger);
+    return rawClient.query(sql);
+  };
+
   const rollback = async () => {
     if (finalized) return;
     acceptingQueries = false;
@@ -176,6 +189,7 @@ async function createTestClient(options = {}) {
       if (property === 'query') return query;
       if (property === 'release') return () => {};
       if (property === 'rollback') return rollback;
+      if (property === 'queryRouteControl') return queryRouteControl;
       if (property === 'queryLog') return queryLog;
       if (property === 'target') return target;
       if (property === 'disableQueries') return () => { acceptingQueries = false; };

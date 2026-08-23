@@ -1,6 +1,6 @@
 # Habil SuperApp Modernization Execution Plan
 
-Status: in progress — Fase 8B passed; Fase 8C–8E remain
+Status: in progress — Fase 8C passed; Fase 8D–8E remain
 
 Source version: `v1.66.8-stable`
 
@@ -172,4 +172,8 @@ Status: **completed in v1.67.1-stable**. The wrapper fails closed unless `NODE_E
 
 ### Phase 8B — Write-Operation Coverage
 
-Status: **completed in v1.67.2-stable**. Six business write scenarios run against the fully provisioned disposable schema. Node 24 and Bun preserve row/value and sequence fingerprints exactly after every rollback. Route-level HTTP execution remains the explicit scope of Fase 8C.
+Status: **completed in v1.67.2-stable**. Six business write scenarios run against the fully provisioned disposable schema. Node 24 and Bun preserve row/value and sequence fingerprints exactly after every rollback.
+
+### Phase 8C — Existing Suite Integration
+
+Status: **completed in v1.67.3-stable**. Deep-freeze mode now dispatches the route regression, HTTP smoke, and DB regression entrypoints to the transactional suites while preserving the default read-only/mock behavior. Six actual Express write routes pass on Node 24 and Bun through a same-connection outer transaction with route `BEGIN`/`COMMIT` mapped to savepoints. Row counts and fixture values restore after every route; DDL during tests is zero. Sequence identity is intentionally not asserted for route-generated serial IDs, and the disposable cluster is destroyed after verification.

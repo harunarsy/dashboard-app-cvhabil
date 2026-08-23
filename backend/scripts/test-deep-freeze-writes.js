@@ -243,11 +243,19 @@ async function run() {
   console.log('All row counts and baseline values restored after rollback.');
 }
 
-run()
-  .catch((error) => {
+async function runAndClose() {
+  try {
+    await run();
+  } finally {
+    await verificationPool.end();
+  }
+}
+
+if (require.main === module) {
+  runAndClose().catch((error) => {
     console.error(`FATAL: ${error.message}`);
     process.exitCode = 1;
-  })
-  .finally(async () => {
-    await verificationPool.end();
   });
+}
+
+module.exports = { run: runAndClose };

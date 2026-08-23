@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.3-stable] - 2026-08-23
+
+### Ditambahkan
+- **Deep-freeze HTTP route coverage:** enam route write nyata diuji melalui Express dengan adapter transaction-to-savepoint pada satu koneksi outer transaction.
+- Mode integrasi Fase 8C tersedia melalui `test-route:deep-freeze`, `test-http:deep-freeze`, dan `test-db:deep-freeze`; mode default tetap memakai smoke/read-only guard.
+
+### Diverifikasi
+- Node 24.19.0 dan Bun 1.4 masing-masing lulus 6/6 route HTTP write; row count dan nilai fixture kembali ke baseline, DDL selama test nol, dan cluster disposable dibuang setelah verifikasi.
+- HTTP suite tidak mengklaim sequence fingerprint identik karena route menghasilkan ID serial; cluster test dihancurkan setelah kedua runtime selesai.
+
 ## [v1.67.2-stable] - 2026-08-23
 
 ### Ditambahkan
