@@ -13,7 +13,6 @@ import { queryClient, qk } from "./lib/queryClient";
 import { fetchProductsList, fetchCustomersList } from "./hooks/useMasterData";
 import { useDocumentTitle } from "./hooks/useDocumentTitle";
 import useReducedMotion from "./hooks/useReducedMotion";
-import useVantaBackground from "./hooks/useVantaBackground";
 import { UI_MOTION, uiTransition } from "./constants/ui";
 import "./App.css";
 
@@ -65,7 +64,6 @@ function ProtectedRoute({
   children,
   isDarkMode,
   setIsDarkMode,
-  isVantaMode,
   isSidebarOpen,
   setIsSidebarOpen,
   isMobile,
@@ -81,7 +79,6 @@ function ProtectedRoute({
       <Sidebar
         isDarkMode={isDarkMode}
         setIsDarkMode={setIsDarkMode}
-        isVantaMode={isVantaMode}
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
       />
@@ -127,7 +124,6 @@ function RouteFallback() {
 function AppRoutes({
   isDarkMode,
   setIsDarkMode,
-  isVantaMode,
   isSidebarOpen,
   setIsSidebarOpen,
   isMobile,
@@ -163,7 +159,6 @@ function AppRoutes({
     <ProtectedRoute
       isDarkMode={isDarkMode}
       setIsDarkMode={setIsDarkMode}
-      isVantaMode={isVantaMode}
       isSidebarOpen={isSidebarOpen}
       setIsSidebarOpen={setIsSidebarOpen}
       isMobile={isMobile}
@@ -171,7 +166,6 @@ function AppRoutes({
       <PageTitleWrapper title={title}>
         <Component
           isDarkMode={isDarkMode}
-          isVantaMode={isVantaMode}
           isSidebarOpen={isSidebarOpen}
           isMobile={isMobile}
         />
@@ -189,7 +183,6 @@ function AppRoutes({
                 <Login
                   isDarkMode={isDarkMode}
                   setIsDarkMode={setIsDarkMode}
-                  isVantaMode={isVantaMode}
                 />
               </PageTitleWrapper>
             </RouteFade>
@@ -257,9 +250,6 @@ function App() {
       localStorage.setItem("habil_dark_mode", next ? "1" : "0");
     } catch {}
   };
-  // Vanta.js animated background (v1.8.6) — theme-aware FOG effect, always ON
-  // Auto-disable only via: ?vanta=off URL / prefers-reduced-motion / deviceMemory<4. No UI toggle.
-  const [vantaRef, isVantaMode] = useVantaBackground(isDarkMode);
   const reducedMotion = useReducedMotion();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
@@ -364,19 +354,13 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        {/* Vanta canvas behind everything — pointer-events: none di CSS */}
-        <div ref={vantaRef} id="vanta-bg" />
         <div
           className={`app-content transition-colors duration-300 ${isDarkMode ? "dark" : ""}`}
-          style={{
-            backgroundColor: isVantaMode ? "transparent" : "var(--color-bg)",
-          }}
         >
           <ErrorBoundary>
             <AppRoutes
               isDarkMode={isDarkMode}
               setIsDarkMode={setIsDarkMode}
-              isVantaMode={isVantaMode}
               isSidebarOpen={isSidebarOpen}
               setIsSidebarOpen={setIsSidebarOpen}
               isMobile={isMobile}

@@ -2,7 +2,7 @@
 
 Dashboard bisnis terintegrasi untuk mengelola faktur, nota penjualan, stok, dan keuangan CV Habil Sejahtera Bersama.
 
-- **Versi**: v1.66.19-stable (23 Agustus 2026)
+- **Versi**: v1.66.20-stable (23 Agustus 2026)
 - **Status**: Production-stable
 
 ---

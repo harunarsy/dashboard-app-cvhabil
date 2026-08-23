@@ -477,7 +477,6 @@ export default function InvoiceList({
   isDarkMode,
   isSidebarOpen,
   isMobile,
-  isVantaMode,
 }) {
   // v1.46.0: TanStack Query — list & master di-cache (kunjungan ulang instan).
   // fetchX = refetch (nama dipertahankan utk call-site refresh). products & PO
@@ -1658,7 +1657,7 @@ export default function InvoiceList({
       style={{
         padding: isMobile ? "1rem" : "2rem",
         paddingTop: isMobile ? "4rem" : "2rem",
-        backgroundColor: isVantaMode ? "transparent" : "var(--color-bg)",
+        backgroundColor: "transparent",
         minHeight: "100vh",
         transition: uiTransition(
           "margin-left",

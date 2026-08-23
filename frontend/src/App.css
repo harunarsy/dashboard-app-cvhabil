@@ -1,26 +1,19 @@
-/* ─── Vanta animated background (v1.8.6) ───────────────────────
-   Container fixed di belakang seluruh UI. Saat enabled, hook
-   `useVantaBackground` mount canvas Three.js ke #vanta-bg.
-   ────────────────────────────────────────────────────────────── */
-#vanta-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
 .app-content {
   position: relative;
-  z-index: 1;
   min-height: 100vh;
-  background: var(--color-bg);
+  background:
+    radial-gradient(
+      circle at 12% -8%,
+      color-mix(in srgb, var(--color-primary) 10%, transparent) 0,
+      transparent 34rem
+    ),
+    radial-gradient(
+      circle at 92% 108%,
+      color-mix(in srgb, var(--color-accent) 7%, transparent) 0,
+      transparent 30rem
+    ),
+    var(--color-bg);
   color: var(--color-text);
-}
-
-body.vanta-active,
-body.vanta-active.dark,
-html:has(body.vanta-active) {
-  background-color: transparent !important;
 }
 
 .login-container {

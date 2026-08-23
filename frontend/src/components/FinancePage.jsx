@@ -22,7 +22,7 @@ const currentMonthStr = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 };
 
-export default function FinancePage({ isDarkMode, isVantaMode }) {
+export default function FinancePage({ isDarkMode }) {
   const [data, setData] = useState({ hutang: [], piutang: [], totalHutang: 0, totalPiutang: 0 });
   const [loading, setLoading] = useState(true);
   const [markingLunas, setMarkingLunas] = useState(null);
@@ -71,15 +71,13 @@ export default function FinancePage({ isDarkMode, isVantaMode }) {
     }
   };
 
-  // Transparan saat backdrop Vanta aktif supaya tidak menutup background (pola PriceListPage v1.28.2)
-  const bg = isVantaMode ? "transparent" : "var(--color-bg)";
   const cardBg = isDarkMode ? "var(--color-surface)" : "#fff";
   const border = "var(--color-border)";
   const text = "var(--color-text)";
   const sub = "var(--color-text-subtle)";
 
   return (
-    <div style={{ backgroundColor: bg, minHeight: "100vh", padding: "24px 20px" }}>
+    <div style={{ backgroundColor: "transparent", minHeight: "100vh", padding: "24px 20px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         {/* Header */}
         <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">

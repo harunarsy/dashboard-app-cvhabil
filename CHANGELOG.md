@@ -2,6 +2,20 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.20-stable] - 2026-08-23
+
+### Ditingkatkan
+- **Dependency security audit kini bersih.** Axios, React Router, DOMPurify, SheetJS, dan Testing Library user-event diperbarui satu per satu; frontend dan backend sama-sama menghasilkan 0 advisory pada `npm audit`.
+- SheetJS 0.20.3 dipin dari distribusi resmi karena npm registry berhenti pada versi 0.18.5 yang rentan. Parser marketplace serta generator laporan lulus write/read round-trip pada Node dan Bun.
+
+### Dihapus
+- **Background WebGL Three/Vanta dicabut total.** Dependency, hook, canvas, import dinamis, state, dan prop plumbing dihapus; background kini memakai gradient CSS statis yang ringan.
+- `web-vitals` dan `@habil/core` diverifikasi sudah tidak ada, sehingga dependency mati tidak ditambahkan kembali.
+
+### Diverifikasi
+- Frontend lulus 9 file/23 test dan build pada Node 20 serta Bun 1.4. Backend lulus 5/5 compatibility check pada kedua runtime, 15/15 route regression DB-independent, dan 17/17 HTTP read-only smoke tanpa mutating query/DDL.
+- Warning chunk 529.37 kB pada Online Store dicatat terbuka untuk ditangani khusus di Fase 7C.
+
 ## [v1.66.19-stable] - 2026-08-23
 
 ### Ditambahkan

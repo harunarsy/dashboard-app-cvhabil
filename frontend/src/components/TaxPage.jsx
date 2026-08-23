@@ -29,7 +29,7 @@ const currentMonth = () => {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
 };
 
-export default function TaxPage({ isDarkMode, isMobile, isVantaMode }) {
+export default function TaxPage({ isDarkMode, isMobile }) {
   const { user } = useContext(AuthContext);
   const [month, setMonth] = useState(currentMonth());
   const [summary, setSummary] = useState(null);
@@ -142,7 +142,7 @@ export default function TaxPage({ isDarkMode, isMobile, isVantaMode }) {
       style={{
         padding: isMobile ? "1rem" : "2rem",
         paddingTop: isMobile ? "4rem" : "2rem",
-        backgroundColor: isVantaMode ? "transparent" : "var(--color-bg)",
+        backgroundColor: "transparent",
         minHeight: "100vh",
         color: text,
         transition: uiTransition("margin-left", UI_MOTION.duration.page, UI_MOTION.easing.standard),

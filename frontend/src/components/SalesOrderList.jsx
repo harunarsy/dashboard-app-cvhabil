@@ -218,7 +218,6 @@ export default function SalesOrderList({
   isDarkMode,
   isSidebarOpen,
   isMobile,
-  isVantaMode,
 }) {
   // v1.46.0: TanStack Query — list & master di-cache (kunjungan ulang instan).
   // fetchX = refetch (call-site refresh lama tetap jalan). products buang ONGKIR via useMemo.
@@ -1874,7 +1873,7 @@ export default function SalesOrderList({
         style={{
           padding: isMobile ? "1rem" : "2rem",
           paddingTop: isMobile ? "4rem" : "2rem",
-          backgroundColor: isVantaMode ? "transparent" : bg,
+          backgroundColor: "transparent",
           minHeight: "100vh",
           transition: uiTransition(
             "margin-left",
@@ -1901,7 +1900,7 @@ export default function SalesOrderList({
       style={{
         padding: isMobile ? "1rem" : "2rem",
         paddingTop: isMobile ? "4rem" : "2rem",
-        backgroundColor: isVantaMode ? "transparent" : bg,
+        backgroundColor: "transparent",
         minHeight: "100vh",
         transition: uiTransition(
           "margin-left",

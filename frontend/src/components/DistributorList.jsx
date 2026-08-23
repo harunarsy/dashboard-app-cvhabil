@@ -34,7 +34,6 @@ export default function DistributorList({
   isDarkMode,
   isSidebarOpen,
   isMobile,
-  isVantaMode,
 }) {
   const {
     data: distributors = [],
@@ -51,7 +50,6 @@ export default function DistributorList({
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { name }
   const [isSaving, setIsSaving] = useState(false);
 
-  const bg = "var(--color-bg)";
   const cardBg = "var(--color-surface)";
   const surface = "var(--color-surface-elevated)";
   const border = "var(--color-border)";
@@ -194,7 +192,7 @@ export default function DistributorList({
       style={{
         padding: isMobile ? "1rem" : "2rem",
         paddingTop: isMobile ? "4rem" : "2rem",
-        backgroundColor: isVantaMode ? "transparent" : bg,
+        backgroundColor: "transparent",
         minHeight: "100vh",
         transition: uiTransition(
           "margin-left",

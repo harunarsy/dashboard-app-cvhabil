@@ -16,8 +16,7 @@ const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('id-ID', { day: '2-di
 const CATEGORIES = ['KULAK', 'LABA KOTOR PENJUALAN', 'GAJI KARYAWAN', 'OPERASIONAL', 'BENSIN', 'LISTRIK/PLN', 'INTERNET', 'PAJAK', 'MODAL', 'LAIN LAIN'];
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 
-export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
-  const bg = isDarkMode ? '#000' : 'var(--color-bg)';
+export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
   const cardBg = isDarkMode ? 'rgba(28,28,30,0.7)' : 'rgba(255,255,255,0.7)';
   const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
   const text = isDarkMode ? '#FFF' : '#000';
@@ -121,7 +120,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile, isVant
   );
 
   return (
-    <div className="ui-motion-page" style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
+    <div className="ui-motion-page" style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: 'transparent', minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
       <Breadcrumb title="Buku Besar" isMobile={isMobile} isDarkMode={isDarkMode} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', flexWrap: 'wrap', gap: 12 }}>
         <div>

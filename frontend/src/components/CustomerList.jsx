@@ -49,7 +49,6 @@ export default function CustomerList({
   isDarkMode,
   isSidebarOpen,
   isMobile,
-  isVantaMode,
 }) {
   // v1.42.0: data customer via TanStack Query (prefetched saat idle → buka halaman instan)
   const { data: customers = [], isLoading: loading, refetch: refetchCustomers } =
@@ -73,7 +72,6 @@ export default function CustomerList({
   const [churnLoading, setChurnLoading] = useState(true);
   const [followUpOpen, setFollowUpOpen] = useState(true); // strip ringkas, bisa collapse
 
-  const bg = "var(--color-bg)";
   const cardBg = "var(--color-surface)";
   const surface = "var(--color-surface-elevated)";
   const border = "var(--color-border)";
@@ -241,7 +239,7 @@ export default function CustomerList({
       style={{
         padding: isMobile ? "1rem" : "2rem",
         paddingTop: isMobile ? "4rem" : "2rem",
-        backgroundColor: isVantaMode ? "transparent" : bg,
+        backgroundColor: "transparent",
         minHeight: "100vh",
         transition: uiTransition(
           "margin-left",

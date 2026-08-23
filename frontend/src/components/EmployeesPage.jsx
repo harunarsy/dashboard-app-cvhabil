@@ -10,8 +10,7 @@ import { UI_MOTION, uiTransition } from '../constants/ui';
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 
-export default function EmployeesPage({ isDarkMode, isSidebarOpen, isMobile, isVantaMode }) {
-  const bg = isDarkMode ? '#000' : 'var(--color-bg)';
+export default function EmployeesPage({ isDarkMode, isSidebarOpen, isMobile }) {
   const cardBg = isDarkMode ? 'rgba(28,28,30,0.7)' : 'rgba(255,255,255,0.7)';
   const border = isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-border)';
   const text = isDarkMode ? '#FFF' : '#000';
@@ -48,7 +47,7 @@ export default function EmployeesPage({ isDarkMode, isSidebarOpen, isMobile, isV
   const activeEmp = employees.filter((e) => e.active);
 
   return (
-    <div className="ui-motion-page" style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: isVantaMode ? 'transparent' : bg, minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
+    <div className="ui-motion-page" style={{ padding: isMobile ? '1rem' : '2rem', paddingTop: isMobile ? '4rem' : '2rem', backgroundColor: 'transparent', minHeight: '100vh', transition: uiTransition('margin-left', UI_MOTION.duration.page, UI_MOTION.easing.standard) }}>
       <Breadcrumb title="Karyawan" isMobile={isMobile} isDarkMode={isDarkMode} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', flexWrap: 'wrap', gap: 12 }}>
         <div>

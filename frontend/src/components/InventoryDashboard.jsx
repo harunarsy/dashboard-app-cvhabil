@@ -136,7 +136,6 @@ export default function InventoryDashboard({
   isDarkMode,
   isSidebarOpen,
   isMobile,
-  isVantaMode,
 }) {
   const [tab, setTab] = useState("products");
   const [newProductName, setNewProductName] = useState(null);
@@ -223,7 +222,6 @@ export default function InventoryDashboard({
   // Modal save loading flags
   const [modalSaving, setModalSaving] = useState(false);
 
-  const bg = "var(--color-bg)";
   const cardBg = "var(--color-surface)";
   const border = "var(--color-border)";
   const text = "var(--color-text)";
@@ -806,7 +804,7 @@ export default function InventoryDashboard({
       style={{
         padding: isMobile ? "1rem" : "2rem",
         paddingTop: isMobile ? "4rem" : "2rem",
-        backgroundColor: isVantaMode ? "transparent" : bg,
+        backgroundColor: "transparent",
         minHeight: "100vh",
         transition: uiTransition(
           "margin-left",

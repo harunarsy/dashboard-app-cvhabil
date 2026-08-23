@@ -761,7 +761,7 @@ function HistoryModal({ row, isMobile, onClose }) {
   );
 }
 
-export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
+export default function PriceListPage({ isDarkMode, isMobile }) {
   // v1.46.0: TanStack Query — rows & fee profiles di-cache (kunjungan ulang instan).
   const queryClient = useQueryClient();
   const { data: rows = [], isLoading: loading } = usePriceList();
@@ -1124,7 +1124,7 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
       className="ui-page ui-motion-page"
       style={{
         color: text,
-        backgroundColor: isVantaMode ? "transparent" : "var(--color-bg)",
+        backgroundColor: "transparent",
       }}
     >
       <Breadcrumb title="Daftar Harga" isMobile={isMobile} isDarkMode={isDarkMode} />

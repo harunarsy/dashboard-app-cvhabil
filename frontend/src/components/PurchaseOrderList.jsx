@@ -111,7 +111,6 @@ export default function PurchaseOrderList({
   isDarkMode,
   isSidebarOpen,
   isMobile,
-  isVantaMode,
 }) {
   // v1.45.0: TanStack Query — list di-cache, kunjungan ulang instan. fetchX = refetch
   // (nama dipertahankan supaya call-site mutasi lama tetap jalan).
@@ -187,7 +186,6 @@ export default function PurchaseOrderList({
   const [receiveItems, setReceiveItems] = useState([]);
   const [layoutSettings, setLayoutSettings] = useState(null);
 
-  const bg = "var(--color-bg)";
   const cardBg = "var(--color-surface)";
   const border = "var(--color-border)";
   const text = "var(--color-text)";
@@ -663,7 +661,7 @@ export default function PurchaseOrderList({
       style={{
         padding: isMobile ? "1rem" : "2rem",
         paddingTop: isMobile ? "4rem" : "2rem",
-        backgroundColor: isVantaMode ? "transparent" : bg,
+        backgroundColor: "transparent",
         minHeight: "100vh",
         transition: uiTransition(
           "margin-left",

@@ -10,7 +10,6 @@ export default function PrintSettings({
   isDarkMode,
   isSidebarOpen,
   isMobile,
-  isVantaMode,
 }) {
   const [settings, setSettings] = useState(null);
   const [thresholds, setThresholds] = useState({
@@ -119,7 +118,6 @@ export default function PrintSettings({
       setSavingThresholds(false);
     }
   };
-  const bg = "var(--color-bg)";
   const cardBg = "var(--color-surface)";
   const border = "var(--color-border)";
   const text = "var(--color-text)";
@@ -132,7 +130,7 @@ export default function PrintSettings({
         style={{
           padding: isMobile ? "1rem" : "2rem",
           paddingTop: isMobile ? "4rem" : "2rem",
-          backgroundColor: isVantaMode ? "transparent" : bg,
+          backgroundColor: "transparent",
           minHeight: "100vh",
           transition: uiTransition(
             "margin-left",
@@ -235,7 +233,7 @@ export default function PrintSettings({
       style={{
         padding: isMobile ? "1rem" : "2rem",
         paddingTop: isMobile ? "4rem" : "2rem",
-        backgroundColor: isVantaMode ? "transparent" : bg,
+        backgroundColor: "transparent",
         minHeight: "100vh",
         transition: uiTransition(
           "margin-left",

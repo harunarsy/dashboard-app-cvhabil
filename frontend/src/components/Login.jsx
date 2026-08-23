@@ -9,7 +9,6 @@ import useReducedMotion from "../hooks/useReducedMotion";
 export default function Login({
   isDarkMode = false,
   setIsDarkMode,
-  isVantaMode = false,
 }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -58,7 +57,6 @@ export default function Login({
   };
 
   // ─── Theme tokens (Stripe Modern palette, shared with app) ────────────
-  const bg = "var(--color-bg)";
   const card = "var(--color-surface)";
   const cardBorder = "var(--color-border)";
   const inputBg = "var(--color-surface-elevated)";
@@ -91,7 +89,7 @@ export default function Login({
   return (
     <div
       className={`ui-page ui-motion-page min-h-screen flex flex-col justify-center items-center px-4 py-6 sm:py-10 font-sans transition-colors duration-300${exiting ? " ui-auth-exit" : ""}`}
-      style={{ backgroundColor: isVantaMode ? "transparent" : bg, color: text }}
+      style={{ backgroundColor: "transparent", color: text }}
     >
       {/* Theme toggle (floating top-right) */}
       <div
@@ -129,10 +127,9 @@ export default function Login({
         <div
           className="ui-readable-surface text-center mb-7 rounded-3xl px-5 py-5"
           style={{
-            backgroundColor: isVantaMode
-              ? "color-mix(in srgb, var(--color-surface) 90%, transparent)"
-              : "transparent",
-            boxShadow: isVantaMode ? "var(--shadow-card)" : "none",
+            backgroundColor:
+              "color-mix(in srgb, var(--color-surface) 90%, transparent)",
+            boxShadow: "var(--shadow-card)",
           }}
         >
           <div
@@ -151,7 +148,7 @@ export default function Login({
             className="ui-over-media-copy mt-3 px-3 py-1 text-xs font-semibold"
             style={{ color: sub }}
           >
-            HABIL SUPERAPP v1.66.19-stable — 2026
+            HABIL SUPERAPP v1.66.20-stable — 2026
           </p>
         </div>
 

@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.19-stable",
+    version: "v1.66.20-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Background WebGL diganti gradient CSS statis dan dependency security audit kini bersih setelah paket rentan diperbarui.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.19-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",
@@ -4523,7 +4534,6 @@ export default function Dashboard({
   isDarkMode,
   isSidebarOpen,
   isMobile,
-  isVantaMode,
 }) {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
@@ -5115,7 +5125,7 @@ export default function Dashboard({
         maxWidth: "100%",
         padding: isMobile ? "1rem" : "2.5rem",
         paddingTop: isMobile ? "4rem" : "1rem",
-        backgroundColor: isVantaMode ? "transparent" : bg,
+        backgroundColor: "transparent",
         overflowX: "hidden",
       }}
     >

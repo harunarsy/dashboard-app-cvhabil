@@ -138,7 +138,7 @@ describe("PriceListPage suggestion drawer", () => {
 
   test("card tier bisa diklik dan mengirim harga hasil pembulatan yang berbeda", async () => {
     renderWithQueryClient(
-      <PriceListPage isDarkMode={false} isMobile={false} isVantaMode={false} />,
+      <PriceListPage isDarkMode={false} isMobile={false} />,
     );
 
     await screen.findByText("Nescafe Classic 1 Renceng (10 sachet x 2 g)");
