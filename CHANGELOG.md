@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.11-stable] - 2026-08-23
+
+### Ditingkatkan
+- **Bun 1.4 package-manager pilot tersedia secara reversible.** Frontend dan backend kini memiliki `bun.lock` hasil migrasi alami dari npm lockfile. Seluruh direct dependency resolve ke versi yang sama dan test/build parity lulus.
+
+### Catatan
+- npm tetap package manager default dan kedua `package-lock.json` dipertahankan. Backend belum dipindahkan ke runtime Bun; evaluasi tersebut dilakukan terpisah pada fase berikutnya.
+- CRA menghasilkan perbedaan kecil pada byte bundle ketika script dijalankan melalui Bun, tanpa regression test atau behavior yang terdeteksi.
+
 ## [v1.66.10-stable] - 2026-08-23
 
 ### Ditingkatkan

@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.10-stable",
+    version: "v1.66.11-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Bun 1.4 package-manager pilot kini memiliki lockfile reproducible dengan parity test/build, sementara npm tetap menjadi fallback default.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.10-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",
