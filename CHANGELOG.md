@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.12-stable] - 2026-08-23
+
+### Ditingkatkan
+- **Backend Bun 1.4 runtime pilot tersedia secara paralel.** Compatibility contract untuk Express, JWT, PostgreSQL, Socket.io, dan XLSX lulus; route test, HTTP smoke, DB regression read-only, startup, health check, dan graceful shutdown mencapai parity dengan Node 20.
+
+### Catatan
+- Node tetap runtime default. Bun menunjukkan latency health lebih rendah, tetapi RSS smoke benchmark sekitar 24% lebih tinggi, sehingga belum ada dasar untuk mengganti runtime produksi.
+
 ## [v1.66.11-stable] - 2026-08-23
 
 ### Ditingkatkan

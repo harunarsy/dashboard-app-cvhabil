@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.11-stable",
+    version: "v1.66.12-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Backend Bun 1.4 kini tersedia sebagai runtime pilot paralel setelah compatibility, read-only regression, dan startup smoke mencapai parity dengan Node.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.11-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",

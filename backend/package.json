@@ -6,10 +6,15 @@
   "scripts": {
     "dev": "node scripts/check-db.js && nodemon server.js",
     "start": "node server.js",
+    "start:bun": "bun server.js",
     "test": "node scripts/test-regression.js && node scripts/test-route-regression.js && node scripts/test-route-http.js",
     "test-db": "node scripts/test-regression.js",
+    "test-db:bun": "bun scripts/test-regression.js",
     "test-route": "node scripts/test-route-regression.js",
+    "test-route:bun": "bun scripts/test-route-regression.js",
     "test-http": "node scripts/test-route-http.js",
+    "test-http:bun": "bun scripts/test-route-http.js",
+    "test-compat:bun": "bun scripts/test-bun-compatibility.js",
     "health": "node scripts/health-check-prod.js"
   },
   "keywords": [],
