@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend / Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20.20.2, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: frontend
+      - run: npm test -- --watchAll=false --runInBand
+        working-directory: frontend
+        env:
+          CI: "true"
+      - run: npm run build
+        working-directory: frontend
+
+  backend:
+    name: Backend / Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20.20.2, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: backend
+      - run: npm run test-route
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          SKIP_DB_TESTS: "true"
+      - run: npm run test-http
+        working-directory: backend
+        env:
+          NODE_ENV: test
+      - run: node scripts/test-pricing-engine.js
+        working-directory: backend

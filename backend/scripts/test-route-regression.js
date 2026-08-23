@@ -247,38 +247,42 @@ async function run() {
   });
 
   // ─── DB Health: Verify LQC06DB + 1QA27DB still referenced correctly ───
-  console.log('\n── DB Health: Batch snapshot reference integrity ──');
+  if (process.env.SKIP_DB_TESTS === 'true') {
+    console.log('\n── DB Health: skipped explicitly for DB-independent CI ──');
+  } else {
+    console.log('\n── DB Health: Batch snapshot reference integrity ──');
 
-  const { rows: tsSweetItems } = await pool.query(`
-    SELECT si.id, si.batch_id_snapshot, si.batch_no_snapshot,
-           b.id AS batch_db_id, b.batch_no AS batch_db_no, b.qty_current
-    FROM sales_items si
-    LEFT JOIN inventory_batches b ON b.id = si.batch_id_snapshot
-    WHERE si.sales_order_id = 110
-    ORDER BY si.id
-  `);
+    const { rows: tsSweetItems } = await pool.query(`
+      SELECT si.id, si.batch_id_snapshot, si.batch_no_snapshot,
+             b.id AS batch_db_id, b.batch_no AS batch_db_no, b.qty_current
+      FROM sales_items si
+      LEFT JOIN inventory_batches b ON b.id = si.batch_id_snapshot
+      WHERE si.sales_order_id = 110
+      ORDER BY si.id
+    `);
 
-  test('Nota 008 item 1: LQC06DB batch snapshot preserved', () => {
-    const item = tsSweetItems[0];
-    assert.ok(item, 'Item 1 exists');
-    assert.strictEqual(item.batch_no_snapshot, 'LQC06DB',
-      `Expected LQC06DB, got ${item.batch_no_snapshot}`);
-    assert.ok(item.batch_db_id !== null, 'batch_id_snapshot should reference existing batch');
-  });
+    test('Nota 008 item 1: LQC06DB batch snapshot preserved', () => {
+      const item = tsSweetItems[0];
+      assert.ok(item, 'Item 1 exists');
+      assert.strictEqual(item.batch_no_snapshot, 'LQC06DB',
+        `Expected LQC06DB, got ${item.batch_no_snapshot}`);
+      assert.ok(item.batch_db_id !== null, 'batch_id_snapshot should reference existing batch');
+    });
 
-  test('Nota 008 item 2: 1QA27DB batch snapshot preserved', () => {
-    const item = tsSweetItems[1];
-    assert.ok(item, 'Item 2 exists');
-    assert.strictEqual(item.batch_no_snapshot, '1QA27DB',
-      `Expected 1QA27DB, got ${item.batch_no_snapshot}`);
-  });
+    test('Nota 008 item 2: 1QA27DB batch snapshot preserved', () => {
+      const item = tsSweetItems[1];
+      assert.ok(item, 'Item 2 exists');
+      assert.strictEqual(item.batch_no_snapshot, '1QA27DB',
+        `Expected 1QA27DB, got ${item.batch_no_snapshot}`);
+    });
 
-  test('Nota 008 item 3: ANQD28DA batch snapshot preserved', () => {
-    const item = tsSweetItems[2];
-    assert.ok(item, 'Item 3 exists');
-    assert.strictEqual(item.batch_no_snapshot, 'ANQD28DA',
-      `Expected ANQD28DA, got ${item.batch_no_snapshot}`);
-  });
+    test('Nota 008 item 3: ANQD28DA batch snapshot preserved', () => {
+      const item = tsSweetItems[2];
+      assert.ok(item, 'Item 3 exists');
+      assert.strictEqual(item.batch_no_snapshot, 'ANQD28DA',
+        `Expected ANQD28DA, got ${item.batch_no_snapshot}`);
+    });
+  }
 
   // ─── Summary ───
   console.log(`\n═══ Results: ${passed} PASSED, ${failed} FAILED ═══\n`);

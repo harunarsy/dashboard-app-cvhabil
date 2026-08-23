@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.9-stable",
+    version: "v1.66.10-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Runtime baseline kini dipin dan CI memverifikasi frontend serta backend DB-independent pada Node 20 dan Node 24.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.9-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

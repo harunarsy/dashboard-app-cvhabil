@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.10-stable] - 2026-08-23
+
+### Ditingkatkan
+- **Runtime baseline kini reproducible dan diperiksa CI.** Node 20.20.2/npm 10.9.9 dipin sebagai baseline kompatibilitas deployment, backend lockfile kini dilacak, dan CI menjalankan frontend serta backend DB-independent pada Node 20 dan Node 24.
+- **Route regression dapat berjalan tanpa database di CI.** Bagian health check DB hanya dilewati ketika `SKIP_DB_TESTS=true`; mode lokal/default tetap menjalankan pemeriksaan read-only lengkap.
+
+### Catatan
+- Node 20 sudah EOL dan dipertahankan hanya untuk kompatibilitas deployment lama. Node 24 LTS menjadi jalur pembanding aktif sebelum penggantian runtime produksi.
+- CI tidak memiliki database credential dan tidak menjalankan DB regression. Pemeriksaan database tetap manual dengan read-only guard.
+
 ## [v1.66.9-stable] - 2026-08-23
 
 ### Diperbaiki
