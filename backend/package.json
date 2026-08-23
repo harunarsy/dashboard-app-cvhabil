@@ -14,6 +14,10 @@
     "test-route:bun": "bun scripts/test-route-regression.js",
     "test-http": "node scripts/test-route-http.js",
     "test-http:bun": "bun scripts/test-route-http.js",
+    "test-assistant": "node scripts/test-smart-assistant.js",
+    "test-assistant:bun": "bun scripts/test-smart-assistant.js",
+    "test-assistant-db": "node scripts/test-smart-assistant-readonly.js",
+    "test-assistant-db:bun": "bun scripts/test-smart-assistant-readonly.js",
     "test-compat:bun": "bun scripts/test-bun-compatibility.js",
     "health": "node scripts/health-check-prod.js"
   },

@@ -265,6 +265,10 @@ export const insightsAPI = {
   getEffectiveFees: () => api.get('/insights/effective-fees'),
 };
 
+export const smartAssistantAPI = {
+  getRecommendations: (data) => api.post('/ai/recommendations', data),
+};
+
 export const salesAPI = {
   getAll: () => api.get('/sales', { params: { limit: 5000 } }),
   getById: (id) => api.get(`/sales/${id}`),

@@ -95,6 +95,7 @@ app.use('/api/print-settings', require('./routes/printSettings'));
 app.use('/api/price-list', require('./routes/priceList'));
 app.use('/api/marketplace', require('./routes/marketplace'));
 app.use('/api/insights', require('./routes/insights'));
+app.use('/api/ai', require('./routes/ai'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/finance', require('./routes/finance'));
 app.use('/api/tax', require('./routes/tax'));

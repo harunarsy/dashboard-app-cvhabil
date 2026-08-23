@@ -1872,7 +1872,7 @@ export default function InvoiceList({
                 color: "var(--color-primary)",
               }}
             >
-              AI based
+              Rule-based
             </span>
             {tempoBuckets.overdue.length > 0 && (
               <span style={{ fontSize: "12px", fontWeight: 800, color: "var(--color-danger)" }}>

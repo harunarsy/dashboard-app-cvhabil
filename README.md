@@ -2,7 +2,7 @@
 
 Dashboard bisnis terintegrasi untuk mengelola faktur, nota penjualan, stok, dan keuangan CV Habil Sejahtera Bersama.
 
-- **Versi**: v1.66.18-stable (23 Agustus 2026)
+- **Versi**: v1.66.19-stable (23 Agustus 2026)
 - **Status**: Production-stable
 
 ---
@@ -62,6 +62,7 @@ npm test
 8. **Karyawan** — Master karyawan dan riwayat gaji (Direktur-only)
 9. **Master Data** — Produk, distributor, customer, kontak
 10. **Kanban Tugas** — Tugas & pekerjaan tim
+11. **Habil Smart-Assistant** — Rekomendasi rule-based yang read-only, transparan, dan dilengkapi reason/evidence
 
 ---
 

@@ -1205,7 +1205,7 @@ export default function PriceListPage({ isDarkMode, isMobile, isVantaMode }) {
                     color: "var(--color-primary)",
                   }}
                 >
-                  AI based
+                  Rule-based
                 </span>
               </>
             )}

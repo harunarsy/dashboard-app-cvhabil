@@ -115,6 +115,14 @@ describe("Sidebar shell smoke", () => {
       "page",
     );
 
+    fireEvent.click(screen.getByRole("button", { name: "Smart-Assistant" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("current-path")).toHaveTextContent(
+        "/assistant",
+      );
+    });
+
     fireEvent.click(screen.getByRole("button", { name: "Inventory" }));
 
     await waitFor(() => {

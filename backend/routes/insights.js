@@ -3,6 +3,10 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const tax = require('../utils/tax');
+const {
+  buildProductHealthItems,
+  buildRestockItems,
+} = require('../utils/insightRules');
 
 router.use(auth);
 
@@ -15,8 +19,6 @@ const toPositiveInt = (value, fallback, max) => {
   if (!Number.isFinite(n) || n <= 0) return fallback;
   return Math.min(n, max);
 };
-
-const clamp01 = (n) => Math.max(0, Math.min(1, Number(n) || 0));
 
 router.get('/customer/:id', async (req, res) => {
   const customerId = Number.parseInt(req.params.id, 10);
@@ -199,36 +201,7 @@ router.get('/restock', async (req, res) => {
       `,
     );
 
-    const items = rows
-      .map((r) => {
-        const stock = Number(r.stock) || 0;
-        const pcs30 = Number(r.pcs30) || 0;
-        const pcs90 = Number(r.pcs90) || 0;
-        const daily30 = pcs30 / 30;
-        const dailyOlder = Math.max(0, pcs90 - pcs30) / 60;
-        const velocity = daily30 * 0.7 + dailyOlder * 0.3;
-        const daysLeft = velocity > 0 ? stock / velocity : null;
-        return {
-          product_id: r.product_id,
-          code: r.code,
-          name: r.name,
-          base_unit: r.base_unit,
-          pack_unit: r.pack_unit,
-          pack_size: Number(r.pack_size) || null,
-          min_stock: Number(r.min_stock) || 0,
-          stock,
-          velocity_per_day: Math.round(velocity * 100) / 100,
-          days_left: daysLeft === null ? null : Math.round(daysLeft),
-          avg_order_qty: r.avg_order_qty === null ? null : Math.round((Number(r.avg_order_qty) || 0) * 100) / 100,
-          order_unit: r.order_unit || r.pack_unit || r.base_unit || 'pcs',
-          cheapest_distributor: r.cheapest_distributor || null,
-          cheapest_hna: r.cheapest_hna === null || r.cheapest_hna === undefined ? null : Math.round(Number(r.cheapest_hna) || 0),
-          cheapest_date: r.cheapest_date || null,
-          n_distributors: Number(r.n_distributors) || 0,
-        };
-      })
-      .filter((r) => r.velocity_per_day > 0 && r.days_left !== null && r.days_left < 21)
-      .sort((a, b) => a.days_left - b.days_left);
+    const items = buildRestockItems(rows);
 
     res.json({ generated_at: new Date().toISOString(), items });
   } catch (e) {
@@ -287,49 +260,7 @@ router.get('/product-health', async (req, res) => {
       `,
     );
 
-    const bandOf = (score) =>
-      score >= 80 ? 'A' : score >= 65 ? 'B' : score >= 50 ? 'C' : score >= 35 ? 'D' : 'E';
-
-    const items = rows.map((r) => {
-      const stock = Number(r.stock) || 0;
-      const pcs90 = Number(r.pcs90) || 0;
-      const rev90 = Number(r.rev90) || 0;
-      const margin90 = Number(r.margin90) || 0;
-      const rev30 = Number(r.rev30) || 0;
-      const revPrev30 = Number(r.rev_prev30) || 0;
-      const edQty = Number(r.ed_qty) || 0;
-
-      // pergerakan: fraksi stok yang terjual 90 hari (turnover), bounded 0-1
-      const movement = pcs90 + stock > 0 ? clamp01(pcs90 / (pcs90 + stock)) : 0;
-      // margin: margin% / 25% target
-      const marginPct = rev90 > 0 ? margin90 / rev90 : 0;
-      const marginScore = clamp01(marginPct / 0.25);
-      // tren: rev30 vs rev_prev30
-      let trend;
-      if (revPrev30 <= 0) trend = rev30 > 0 ? 1 : 0.5;
-      else trend = clamp01(0.5 + (rev30 / revPrev30 - 1) * 0.5);
-      // risiko ED: 1 - porsi stok yang nyaris expired
-      const edShare = stock > 0 ? edQty / stock : 0;
-      const edScore = clamp01(1 - edShare);
-
-      const score = Math.round((movement * 0.3 + marginScore * 0.3 + trend * 0.2 + edScore * 0.2) * 100);
-      return {
-        product_id: r.product_id,
-        code: r.code,
-        name: r.name,
-        category: r.category,
-        score,
-        grade: bandOf(score),
-        metrics: {
-          movement: Math.round(movement * 100),
-          margin_pct: Math.round(marginPct * 1000) / 10,
-          trend: Math.round(trend * 100),
-          ed_risk: Math.round(edShare * 100),
-          stock,
-          sold_90d: pcs90,
-        },
-      };
-    });
+    const items = buildProductHealthItems(rows);
 
     res.json({ generated_at: new Date().toISOString(), items });
   } catch (e) {
@@ -677,7 +608,7 @@ router.get('/churn', async (req, res) => {
 
 // ─── Customer lama gak order (dormant > 30 hari) ─────────────────────────
 // Lebih simpel dari /churn (yang butuh >=3 order & 2x median gap). Ini: customer
-// pernah order tapi sudah > N hari (default 30) tidak order. Untuk reminder AI di
+// pernah order tapi sudah > N hari (default 30) tidak order. Untuk reminder rule-based di
 // Dashboard & Customer. days_silent + last_order utk pesan WA.
 router.get('/dormant', async (req, res) => {
   try {

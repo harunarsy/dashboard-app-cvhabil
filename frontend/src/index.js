@@ -1,4 +1,4 @@
 import "./main.jsx";
 
-document.title = "HABIL SUPERAPP — v1.66.18-stable";
-// HABIL SUPERAPP v1.66.18-stable
+document.title = "HABIL SUPERAPP — v1.66.19-stable";
+// HABIL SUPERAPP v1.66.19-stable

@@ -38,6 +38,8 @@ import {
   AlertTriangle as AlertTriangleIcon,
   Download as DownloadIcon,
   RefreshCw as RefreshCwIcon,
+  Send as SendIcon,
+  ShieldCheck as ShieldCheckIcon,
   Truck as TruckIcon,
 } from "lucide-react";
 
@@ -107,6 +109,8 @@ const Icons = {
   AlertTriangle: wrapIcon(AlertTriangleIcon),
   Download: wrapIcon(DownloadIcon),
   RefreshCw: wrapIcon(RefreshCwIcon),
+  Send: wrapIcon(SendIcon),
+  ShieldCheck: wrapIcon(ShieldCheckIcon),
   Truck: wrapIcon(TruckIcon),
 };
 

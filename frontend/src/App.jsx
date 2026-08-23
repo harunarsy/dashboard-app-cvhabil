@@ -37,6 +37,7 @@ const PriceListPage = lazy(() => import("./components/PriceListPage"));
 const PrintSettings = lazy(() => import("./components/PrintSettings"));
 const FinancePage = lazy(() => import("./components/FinancePage"));
 const TaxPage = lazy(() => import("./components/TaxPage"));
+const SmartAssistant = lazy(() => import("./components/SmartAssistant"));
 
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint);
@@ -195,6 +196,10 @@ function AppRoutes({
           }
         />
         <Route path="/dashboard" element={wrap(Dashboard, "Dashboard")} />
+        <Route
+          path="/assistant"
+          element={wrap(SmartAssistant, "Habil Smart-Assistant")}
+        />
         <Route path="/invoices" element={wrap(InvoiceList, "Nota Penjualan")} />
         <Route path="/sales" element={wrap(SalesOrderList, "Nota Penjualan")} />
         <Route path="/customers" element={wrap(CustomerList, "Customers")} />

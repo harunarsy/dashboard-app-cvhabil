@@ -366,7 +366,7 @@ export default function CustomerList({
                 color: "var(--color-primary)",
               }}
             >
-              AI based
+              Rule-based
             </span>
             <span
               style={{

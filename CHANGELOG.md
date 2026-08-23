@@ -2,6 +2,21 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.19-stable] - 2026-08-23
+
+### Ditambahkan
+- **Habil Smart-Assistant hadir sebagai asisten rule-based yang transparan.** Route baru merangkum prioritas restock, customer dormant, dan tren penjualan dari aturan existing dengan reason, evidence, severity, serta action path yang dapat diaudit.
+- **Design system hasil audit disimpan untuk agen berikutnya.** `DESIGN.md`, `PRODUCT.md`, surface brief, dan sidecar Impeccable menangkap token serta aturan evidence-first yang benar-benar dipakai.
+
+### Keamanan
+- Endpoint `POST /api/ai/recommendations` mewajibkan JWT dan role admin/direktur, rate limit 30/menit, timeout, input/output bounds, structured errors, dan transaksi PostgreSQL yang membuktikan `transaction_read_only=on` sebelum seluruh query.
+- Tidak ada LLM SDK, Python, vector database, atau query mutasi. Label lama “AI based” pada insight existing diganti menjadi “Rule-based”.
+
+### Diverifikasi
+- Node 20 dan Bun lulus 5/5 assistant contract test, 17/17 HTTP smoke, live read-only integration, 18/18 route regression, serta DB baseline tetap persis 15 pass/3 known failure. Frontend lulus 9 file/23 test dan build pada Node 20, Node 24, serta Bun.
+- Impeccable memvalidasi desktop/mobile/dark mode, keyboard radiogroup, reduced motion, zero horizontal overflow, target minimal 44 px, input mobile 16 px, dan contrast chip 5.10–7.88:1.
+- Lockfile npm dan Bun diuji dari clean install; Tailwind 4.3.3, PostCSS 8.5.26, Vite 8.2.2, dan Vitest 4.1.11 resolve konsisten.
+
 ## [v1.66.18-stable] - 2026-08-23
 
 ### Dihapus

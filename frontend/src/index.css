@@ -537,6 +537,312 @@ body.dark .ui-over-media-copy {
   box-shadow: 0 0 0 3px var(--color-focus);
 }
 
+/* Habil Smart-Assistant — deterministic recommendation workspace. */
+.smart-assistant-page {
+  --assistant-primary-text: #3730a3;
+  --assistant-success-text: #166534;
+  --assistant-danger-text: #b91c1c;
+  --assistant-warning-text: #92400e;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 82% 8%, var(--color-primary-soft-weak), transparent 28rem),
+    var(--color-bg);
+}
+
+.dark .smart-assistant-page {
+  --assistant-primary-text: #c4b5fd;
+  --assistant-success-text: #86efac;
+  --assistant-danger-text: #fca5a5;
+  --assistant-warning-text: #fcd34d;
+}
+
+.smart-assistant-page .ui-focus-ring:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.smart-assistant-mark {
+  width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  color: white;
+  background: var(--color-primary);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-primary) 24%, transparent);
+}
+
+.smart-assistant-shell {
+  display: flex;
+  min-height: 640px;
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: var(--shadow-floating);
+}
+
+.smart-assistant-scopes {
+  width: 280px;
+  flex: 0 0 280px;
+  padding: 24px 20px;
+  background: var(--color-bg-subtle);
+  border-right: 1px solid var(--color-border);
+}
+
+.smart-assistant-scope {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--color-text-muted);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    color var(--ui-motion-base) var(--ui-motion-enter),
+    background-color var(--ui-motion-base) var(--ui-motion-enter),
+    border-color var(--ui-motion-base) var(--ui-motion-enter);
+}
+
+.smart-assistant-scope:hover:not(:disabled) {
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.smart-assistant-scope[data-selected="true"] {
+  color: var(--assistant-primary-text);
+  background: var(--color-primary-soft);
+  border-color: color-mix(in srgb, var(--color-primary) 20%, var(--color-border));
+}
+
+.smart-assistant-scope:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.smart-assistant-method {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+}
+
+.smart-assistant-thread {
+  min-height: 540px;
+  padding: 28px;
+}
+
+.smart-assistant-query {
+  width: fit-content;
+  max-width: min(80%, 680px);
+  margin-left: auto;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: var(--color-text);
+  background: var(--color-primary-soft);
+}
+
+.smart-assistant-query span {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--assistant-primary-text);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.smart-assistant-query strong {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.smart-assistant-result {
+  max-width: 920px;
+  margin-top: 22px;
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--color-bg-subtle);
+}
+
+.smart-assistant-loader {
+  animation: smart-assistant-spin 900ms linear infinite;
+}
+
+.smart-assistant-progress {
+  height: 3px;
+  overflow: hidden;
+  margin-top: 16px;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.smart-assistant-progress span {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  animation: smart-assistant-progress 1.4s var(--ui-motion-standard) infinite;
+}
+
+@keyframes smart-assistant-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes smart-assistant-progress {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(260%); }
+}
+
+.smart-assistant-recommendation {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 18px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.smart-assistant-recommendation:first-child {
+  border-top: 0;
+}
+
+.smart-assistant-empty {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border);
+}
+
+.smart-assistant-composer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 7px 8px 7px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+
+.smart-assistant-composer:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus);
+}
+
+.smart-assistant-composer input::placeholder {
+  color: var(--color-text-subtle);
+  opacity: 1;
+}
+
+.smart-assistant-send {
+  min-width: 46px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 11px;
+  color: white;
+  background: var(--color-primary);
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.smart-assistant-send:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 1023px) {
+  .smart-assistant-shell {
+    display: block;
+  }
+
+  .smart-assistant-scopes {
+    width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .smart-assistant-method {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .smart-assistant-page::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 80;
+    height: 68px;
+    border-bottom: 1px solid var(--color-border);
+    background: color-mix(in srgb, var(--color-bg) 94%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .smart-assistant-shell {
+    min-height: 0;
+    border-radius: 14px;
+  }
+
+  .smart-assistant-scopes {
+    padding: 18px 14px;
+  }
+
+  .smart-assistant-scope {
+    align-items: flex-start;
+    min-height: 58px;
+    line-height: 1.25;
+  }
+
+  .smart-assistant-thread {
+    min-height: 430px;
+    padding: 20px 14px;
+  }
+
+  .smart-assistant-query {
+    max-width: 92%;
+  }
+
+  .smart-assistant-result {
+    padding: 16px;
+  }
+
+  .smart-assistant-recommendation {
+    display: block;
+  }
+
+  .smart-assistant-recommendation > button {
+    margin-top: 14px;
+  }
+
+  .smart-assistant-composer {
+    padding-left: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smart-assistant-loader,
+  .smart-assistant-progress span {
+    animation: none;
+  }
+}
+
 .ui-form-field {
   width: 100%;
   border: 1px solid var(--color-border);

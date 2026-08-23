@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.18-stable",
+    version: "v1.66.19-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Habil Smart-Assistant merangkum prioritas stok, follow-up customer, dan tren penjualan melalui rule bisnis yang transparan, read-only, serta dilengkapi alasan dan evidence.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.18-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",
@@ -781,7 +792,7 @@ const RELEASES = [
       {
         type: "new",
         text: "Di daftar Nota Penjualan, nota yang belum bayar punya tombol '💬 WA reminder' untuk kirim pengingat jatuh tempo ke customer (otomatis berisi no nota, total, & tanggal jatuh tempo).",
-        dev: "SalesOrderList: link WA reminder per row (buildDueReminderMessage + buildWaUrl, hanya jika ada phone). CustomerList radar: ikon 📡→✨ + badge 'AI based'.",
+        dev: "SalesOrderList: link WA reminder per row (buildDueReminderMessage + buildWaUrl, hanya jika ada phone). CustomerList radar: ikon 📡→✨ + badge 'Rule-based'.",
       },
     ],
   },
@@ -809,7 +820,7 @@ const RELEASES = [
       },
       {
         type: "new",
-        text: "Kartu insight (Saran Restock & Customer Perlu Follow-up) digabung ke satu zona 'AI based' di atas Dashboard. Customer Perlu Follow-up kini juga menampilkan customer yang BELUM pernah order (punya HP) untuk di-approach, bukan cuma yang lama tak order.",
+        text: "Kartu insight (Saran Restock & Customer Perlu Follow-up) digabung ke satu zona rule-based di atas Dashboard. Customer Perlu Follow-up kini juga menampilkan customer yang BELUM pernah order (punya HP) untuk di-approach, bukan cuma yang lama tak order.",
         dev: "Dashboard: 2 kartu insight dipindah ke dalam panel ringkasan mingguan (sub-card). /insights/dormant +tipe 'never' (customer 0 order final + punya phone, include_never toggle). Kartu type-aware (badge 'belum order' vs 'X hari'). CustomerList radar filter type!=never (never sudah di grid).",
       },
     ],
@@ -831,7 +842,7 @@ const RELEASES = [
       },
       {
         type: "new",
-        text: "Dashboard dapat 2 kartu insight baru: 'Saran Restock' (produk hampir habis) dan 'Customer Lama Gak Order' (belum order >1 bulan) dengan tombol Chat WA langsung — label AI based.",
+        text: "Dashboard dapat 2 kartu insight baru: 'Saran Restock' (produk hampir habis) dan 'Customer Lama Gak Order' (belum order >1 bulan) dengan tombol Chat WA langsung — label Rule-based.",
         dev: "Endpoint baru GET /insights/dormant (last order > min_days, default 30, 2-step CTE gap→median). Dashboard: fetch getRestock+getDormant, 2 kartu di bawah ringkasan mingguan. CustomerList radar pindah dari /churn ke /dormant(30); pesan WA guard median null + nama PT lengkap.",
       },
     ],
@@ -4639,7 +4650,7 @@ export default function Dashboard({
   const [selectedDay, setSelectedDay] = useState(null);
   const [dayNotas, setDayNotas] = useState([]);
   const [dayNotasLoading, setDayNotasLoading] = useState(false);
-  // Insight: saran restock + customer lama gak order (rule-based / AI based)
+  // Insight: saran restock + customer lama gak order (rule-based)
   const [restockList, setRestockList] = useState([]);
   const [dormantList, setDormantList] = useState([]);
   // v1.54.0: pinjaman lewat batas pengembalian → banner warning
@@ -4662,7 +4673,7 @@ export default function Dashboard({
       for (const [dist, items] of groups) {
         const { data } = await purchaseOrdersAPI.create({
           distributor_name: dist,
-          notes: "Auto-draft dari Saran Restock (AI based) — cek qty sebelum dikirim",
+          notes: "Auto-draft dari Saran Restock (rule-based) — cek qty sebelum dikirim",
           items: items.map((r) => ({
             product_name: r.name,
             qty: Math.max(1, Math.round(r.avg_order_qty || 1)),
@@ -4982,7 +4993,7 @@ export default function Dashboard({
                 </h2>
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
                   style={{ backgroundColor: "var(--color-primary-soft)", color: "var(--color-primary)" }}>
-                  AI based
+                  Rule-based
                 </span>
               </div>
               {/* Catatan Developer — pindah ke baris judul Ringkasan. v1.35.0 */}
@@ -5144,7 +5155,7 @@ export default function Dashboard({
           </button>
         )}
 
-        {/* Insight AI: Saran Restock + Customer Lama Gak Order — satu zona dgn ringkasan */}
+        {/* Insight rule-based: Saran Restock + Customer Lama Gak Order — satu zona dgn ringkasan */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Saran Restock */}
           <div
@@ -5159,7 +5170,7 @@ export default function Dashboard({
               </h3>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
                 style={{ backgroundColor: "var(--color-primary-soft)", color: "var(--color-primary)" }}>
-                AI based
+                Rule-based
               </span>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -5259,7 +5270,7 @@ export default function Dashboard({
                 </h3>
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
                   style={{ backgroundColor: "var(--color-primary-soft)", color: "var(--color-primary)" }}>
-                  AI based
+                  Rule-based
                 </span>
               </div>
               <button onClick={() => navigate("/customers")} className="text-xs font-semibold"

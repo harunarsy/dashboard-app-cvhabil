@@ -28,6 +28,7 @@ const {
   Boxes,
   Tags,
   Truck,
+  Sparkles,
 } = Icons;
 
 export default function Sidebar({
@@ -106,6 +107,12 @@ export default function Sidebar({
     // Inventory → Customer → Distributor → Daftar Harga → Toko Online → (direktur: Buku Besar
     // → Finance → Pajak → Karyawan) → Pengaturan paling bawah.
     { icon: Home, label: "Dashboard", path: "/dashboard", active: true },
+    {
+      icon: Sparkles,
+      label: "Smart-Assistant",
+      path: "/assistant",
+      active: true,
+    },
     {
       icon: ClipboardList,
       label: "Surat Pesanan",
@@ -255,7 +262,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.66.18-stable";
+  const appVersion = "v1.66.19-stable";
   const TooltipButton = ({
     label,
     children,

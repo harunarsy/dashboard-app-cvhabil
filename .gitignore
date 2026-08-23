@@ -26,3 +26,6 @@ backend/backups/
 CREDENTIALS*.md
 *_fulldiff.tmp.js
 aistudio.zip
+
+# Local browser QA captures; implementation briefs remain tracked.
+.impeccable/review/

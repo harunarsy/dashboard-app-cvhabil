@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-23T03:42:24Z",
+  "title": "Design System: Habil SuperApp",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Operational Indigo", "canonical": "#6366f1" },
+      "primary-hover": { "role": "primary", "displayName": "Operational Indigo Hover", "canonical": "#4f46e5" },
+      "primary-pressed": { "role": "primary", "displayName": "Operational Indigo Pressed", "canonical": "#4338ca" },
+      "primary-soft": { "role": "primary", "displayName": "Indigo Wash", "canonical": "color-mix(in srgb, #6366f1 12%, transparent)" },
+      "primary-soft-dark": { "role": "primary", "displayName": "Night Indigo Wash", "canonical": "color-mix(in srgb, #6366f1 16%, transparent)" },
+      "accent": { "role": "tertiary", "displayName": "Warm Accent", "canonical": "#f59e0b" },
+      "success": { "role": "secondary", "displayName": "Verified Green", "canonical": "#10b981" },
+      "success-dark": { "role": "secondary", "displayName": "Night Verified Green", "canonical": "#34d399" },
+      "warning": { "role": "secondary", "displayName": "Operational Amber", "canonical": "#f59e0b" },
+      "warning-dark": { "role": "secondary", "displayName": "Night Operational Amber", "canonical": "#fbbf24" },
+      "danger": { "role": "secondary", "displayName": "Critical Red", "canonical": "#ef4444" },
+      "danger-dark": { "role": "secondary", "displayName": "Night Critical Red", "canonical": "#f87171" },
+      "background": { "role": "neutral", "displayName": "Warm Canvas", "canonical": "#fafaf9" },
+      "background-subtle": { "role": "neutral", "displayName": "Warm Canvas Subtle", "canonical": "#f5f5f4" },
+      "surface": { "role": "neutral", "displayName": "Paper Surface", "canonical": "#ffffff" },
+      "surface-elevated": { "role": "neutral", "displayName": "Elevated Paper", "canonical": "#fffdfa" },
+      "surface-raised": { "role": "neutral", "displayName": "Raised Paper", "canonical": "#fdfcfb" },
+      "border": { "role": "neutral", "displayName": "Stone Border", "canonical": "#e7e5e4" },
+      "border-strong": { "role": "neutral", "displayName": "Strong Stone Border", "canonical": "#d6d3d1" },
+      "text": { "role": "neutral", "displayName": "Primary Ink", "canonical": "#0c0a09" },
+      "text-muted": { "role": "neutral", "displayName": "Muted Ink", "canonical": "#57534e" },
+      "text-subtle": { "role": "neutral", "displayName": "Subtle Ink", "canonical": "#78716c" },
+      "background-dark": { "role": "neutral", "displayName": "Night Canvas", "canonical": "#0a0a0a" },
+      "background-subtle-dark": { "role": "neutral", "displayName": "Night Canvas Subtle", "canonical": "#141414" },
+      "surface-dark": { "role": "neutral", "displayName": "Night Surface", "canonical": "#18181b" },
+      "surface-elevated-dark": { "role": "neutral", "displayName": "Night Elevated Surface", "canonical": "#27272a" },
+      "surface-raised-dark": { "role": "neutral", "displayName": "Night Raised Surface", "canonical": "#3f3f46" },
+      "border-dark": { "role": "neutral", "displayName": "Night Border", "canonical": "#2f2f35" },
+      "border-strong-dark": { "role": "neutral", "displayName": "Night Strong Border", "canonical": "#474752" },
+      "text-dark": { "role": "neutral", "displayName": "Night Primary Ink", "canonical": "#fafaf9" },
+      "text-muted-dark": { "role": "neutral", "displayName": "Night Muted Ink", "canonical": "#d4d4d8" },
+      "text-subtle-dark": { "role": "neutral", "displayName": "Night Subtle Ink", "canonical": "#a1a1aa" },
+      "focus": { "role": "primary", "displayName": "Focus Halo", "canonical": "color-mix(in srgb, #6366f1 38%, white)" },
+      "focus-dark": { "role": "primary", "displayName": "Night Focus Halo", "canonical": "color-mix(in srgb, #6366f1 46%, white)" },
+      "assistant-primary-text": { "role": "primary", "displayName": "Assistant Indigo Text", "canonical": "#3730a3" },
+      "assistant-primary-text-dark": { "role": "primary", "displayName": "Night Assistant Indigo Text", "canonical": "#c4b5fd" },
+      "assistant-success-text": { "role": "secondary", "displayName": "Assistant Verified Text", "canonical": "#166534" },
+      "assistant-success-text-dark": { "role": "secondary", "displayName": "Night Assistant Verified Text", "canonical": "#86efac" },
+      "assistant-danger-text": { "role": "secondary", "displayName": "Assistant Critical Text", "canonical": "#b91c1c" },
+      "assistant-danger-text-dark": { "role": "secondary", "displayName": "Night Assistant Critical Text", "canonical": "#fca5a5" },
+      "assistant-warning-text": { "role": "secondary", "displayName": "Assistant Warning Text", "canonical": "#92400e" },
+      "assistant-warning-text-dark": { "role": "secondary", "displayName": "Night Assistant Warning Text", "canonical": "#fcd34d" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Desktop route identity." },
+      "headline": { "displayName": "Headline", "purpose": "Mobile route identity and compact high-emphasis headings." },
+      "title": { "displayName": "Title", "purpose": "Card, dialog, and result titles." },
+      "body": { "displayName": "Body", "purpose": "Operational explanations, summaries, and reasons." },
+      "input": { "displayName": "Input", "purpose": "Editable text with mobile-safe sizing." },
+      "control": { "displayName": "Control", "purpose": "Compact scope and action labels." },
+      "label": { "displayName": "Label", "purpose": "Metadata and supporting labels." },
+      "caption": { "displayName": "Caption", "purpose": "Tertiary metadata, never critical state by itself." },
+      "mono": { "displayName": "Mono", "purpose": "Code-like and fixed-width technical data." }
+    },
+    "shadows": [
+      { "name": "flat", "value": "0 1px 2px rgba(15, 23, 42, 0.04)", "purpose": "Primary buttons and minimal light-mode separation." },
+      { "name": "card", "value": "0 10px 28px rgba(15, 23, 42, 0.06)", "purpose": "Standard cards and toolbars in light mode." },
+      { "name": "hover", "value": "0 18px 34px rgba(15, 23, 42, 0.08)", "purpose": "Intentional lifted states in light mode." },
+      { "name": "floating", "value": "0 28px 64px rgba(15, 23, 42, 0.18)", "purpose": "Shells, dialogs, and overlays in light mode." },
+      { "name": "flat-dark", "value": "0 1px 2px rgba(0, 0, 0, 0.28)", "purpose": "Minimal dark-mode separation." },
+      { "name": "card-dark", "value": "0 10px 28px rgba(0, 0, 0, 0.24)", "purpose": "Standard dark-mode cards." },
+      { "name": "hover-dark", "value": "0 18px 38px rgba(0, 0, 0, 0.3)", "purpose": "Intentional dark-mode lifted states." },
+      { "name": "floating-dark", "value": "0 34px 72px rgba(0, 0, 0, 0.42)", "purpose": "Dark-mode shells, dialogs, and overlays." }
+    ],
+    "motion": [
+      { "name": "ease-enter", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Entrances, hover lift, color changes, and width transitions." },
+      { "name": "ease-press", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Press feedback." },
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Progress and long-running state motion." },
+      { "name": "duration-fast", "value": "150ms", "purpose": "Fast control feedback." },
+      { "name": "duration-base", "value": "200ms", "purpose": "Default component state transition." },
+      { "name": "duration-modal", "value": "250ms", "purpose": "Modal and toast entrance." },
+      { "name": "duration-page", "value": "300ms", "purpose": "Route and page transition." },
+      { "name": "duration-skeleton", "value": "1200ms", "purpose": "Skeleton shimmer cycle." }
+    ],
+    "breakpoints": [
+      { "name": "assistant-phone-max", "value": "639px" },
+      { "name": "mobile-input-max", "value": "767px" },
+      { "name": "assistant-stack-max", "value": "1023px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The solid indigo action used for explicit forward operations.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Jalankan rule</button>",
+      "css": ".ds-btn-primary { padding: 8px 16px; border: 1px solid transparent; border-radius: 8px; background: var(--color-primary); color: #fff; box-shadow: var(--shadow-flat); font: 600 16px var(--font-sans); cursor: pointer; transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 100ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-primary:hover { background: var(--color-primary-hover); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-focus); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:disabled { cursor: not-allowed; opacity: 0.75; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search-field",
+      "description": "The compact reusable search control for dense operational lists.",
+      "html": "<label class=\"ds-search\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><circle cx=\"11\" cy=\"11\" r=\"8\"></circle><path d=\"m21 21-4.3-4.3\"></path></svg><input type=\"search\" placeholder=\"Cari data\" aria-label=\"Cari\"></label>",
+      "css": ".ds-search { position: relative; display: block; width: 280px; } .ds-search svg { position: absolute; left: 12px; top: 50%; width: 16px; height: 16px; fill: none; stroke: var(--color-text-subtle); stroke-width: 2; stroke-linecap: round; transform: translateY(-50%); } .ds-search input { width: 100%; min-height: 38px; padding: 8px 38px 8px 34px; border: 1px solid var(--color-border); border-radius: 9px; background: var(--color-surface); color: var(--color-text); font: 400 14px var(--font-sans); outline: none; } .ds-search input::placeholder { color: var(--color-text-subtle); } .ds-search input:focus-visible { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-focus); } .ds-search input:disabled { background: var(--color-bg-subtle); color: var(--color-text-subtle); cursor: not-allowed; }"
+    },
+    {
+      "name": "Active Navigation Item",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "The current sidebar destination with icon, label, and explicit page state.",
+      "html": "<nav aria-label=\"Menu utama\"><button class=\"ds-nav-item\" aria-current=\"page\" type=\"button\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"M3 10.5 12 3l9 7.5\"></path><path d=\"M5 9.5V21h14V9.5\"></path><path d=\"M9 21v-6h6v6\"></path></svg><span>Smart-Assistant</span></button></nav>",
+      "css": ".ds-nav-item { width: 100%; min-height: 44px; display: flex; align-items: center; gap: 0.7rem; padding: 0.78rem 0.95rem; border: 1px solid var(--color-primary-soft-strong); border-radius: 0.9rem; background: var(--color-primary-soft); color: var(--color-primary-hover); font: 700 0.86rem var(--font-sans); text-align: left; cursor: pointer; transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-nav-item svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; } .ds-nav-item:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-focus); } .ds-nav-item:active { transform: scale(0.97); }"
+    },
+    {
+      "name": "Assistant Scope Selector",
+      "kind": "custom",
+      "refersTo": "assistant-scope-selected",
+      "description": "The selected radio-like scope that starts a bounded deterministic check.",
+      "html": "<button class=\"ds-assistant-scope\" type=\"button\" role=\"radio\" aria-checked=\"true\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"M12 3v18M3 12h18\"></path><rect x=\"5\" y=\"5\" width=\"14\" height=\"14\" rx=\"3\"></rect></svg><span>Stok prioritas</span></button>",
+      "css": ".ds-assistant-scope { width: 100%; min-height: 46px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--color-primary) 20%, var(--color-border)); border-radius: 12px; background: var(--color-primary-soft); color: var(--assistant-primary-text, #3730a3); font: 800 13px var(--font-sans); text-align: left; cursor: pointer; transition: color 200ms cubic-bezier(0.16, 1, 0.3, 1), background-color 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-assistant-scope svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; } .ds-assistant-scope:hover:not(:disabled) { color: var(--color-text); background: var(--color-surface); } .ds-assistant-scope:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 2px; } .ds-assistant-scope:disabled { cursor: wait; opacity: 0.62; }"
+    },
+    {
+      "name": "Verified Status Chip",
+      "kind": "chip",
+      "refersTo": "status-chip-success",
+      "description": "A written verification state paired with semantic green, never color alone.",
+      "html": "<span class=\"ds-status-chip\">Read-only verified</span>",
+      "css": ".ds-status-chip { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; background: var(--color-success-soft); color: var(--assistant-success-text, #166534); font: 800 11px/1.35 var(--font-sans); }"
+    },
+    {
+      "name": "Assistant Result Card",
+      "kind": "card",
+      "refersTo": "assistant-result",
+      "description": "The quiet evidence container for summaries, reasons, figures, and next actions.",
+      "html": "<article class=\"ds-assistant-result\"><div class=\"ds-result-head\"><h3>Stok perlu diperiksa</h3><span>Prioritas</span></div><p>Permintaan diperkirakan melampaui stok aman.</p><small>Dasar: estimasi sisa di bawah batas operasional.</small><dl><div><dt>Estimasi sisa</dt><dd>12 hari</dd></div><div><dt>Stok aktif</dt><dd>24 unit</dd></div></dl></article>",
+      "css": ".ds-assistant-result { max-width: 920px; padding: 20px; border-radius: 14px; background: var(--color-bg-subtle); color: var(--color-text); font-family: var(--font-sans); } .ds-result-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; } .ds-result-head h3 { margin: 0; font-size: 14px; font-weight: 800; } .ds-result-head span { padding: 3px 8px; border-radius: 9999px; background: var(--color-danger-soft); color: var(--assistant-danger-text, #b91c1c); font-size: 11px; font-weight: 800; } .ds-assistant-result p { margin: 6px 0 0; color: var(--color-text-muted); font-size: 14px; line-height: 1.5; } .ds-assistant-result small { display: block; margin-top: 8px; color: var(--color-text-subtle); font-size: 12px; line-height: 1.5; } .ds-assistant-result dl { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 12px 0 0; } .ds-assistant-result dt { color: var(--color-text-subtle); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; } .ds-assistant-result dd { margin: 2px 0 0; color: var(--color-text); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Assistant Composer",
+      "kind": "input",
+      "refersTo": "assistant-composer",
+      "description": "The bounded-context field and explicit rule-run action.",
+      "html": "<form class=\"ds-assistant-composer\"><input type=\"text\" placeholder=\"Contoh: prioritaskan stok paling kritis\" aria-label=\"Tambah konteks pemeriksaan\"><button type=\"submit\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\"><path d=\"m22 2-7 20-4-9-9-4Z\"></path><path d=\"M22 2 11 13\"></path></svg><span>Jalankan rule</span></button></form>",
+      "css": ".ds-assistant-composer { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 7px 8px 7px 16px; border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface); } .ds-assistant-composer:focus-within { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-focus); } .ds-assistant-composer input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--color-text); font: 400 16px var(--font-sans); } .ds-assistant-composer input::placeholder { color: var(--color-text-subtle); opacity: 1; } .ds-assistant-composer button { min-width: 46px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 14px; border: 0; border-radius: 11px; background: var(--color-primary); color: #fff; font: 800 13px var(--font-sans); cursor: pointer; } .ds-assistant-composer button svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; } .ds-assistant-composer button:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 2px; } .ds-assistant-composer button:disabled { cursor: not-allowed; opacity: 0.45; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Transparent Operations Desk",
+    "overview": "The system feels like a calm, premium operations desk: warm neutral surfaces, compact evidence, and a restrained indigo signal that helps operators find the next action without turning the dashboard into a spectacle. Habil Smart-Assistant is its clearest expression—assistant-shaped, but visibly deterministic, read-only, and accountable to business evidence.\n\nApple-HIG influence appears through precise hierarchy, generous touch targets, softened geometry, quiet elevation, and responsive reflow. Density is intentional on desktop and simplified on mobile; decoration never competes with the reason, evidence, status, or destination behind an operational recommendation.",
+    "keyCharacteristics": [
+      "Warm neutral surfaces with a single restrained indigo action voice.",
+      "Structured evidence before decoration: summary, reason, figures, then action.",
+      "Compact desktop density with opaque, touch-safe mobile reflow.",
+      "Light and dark themes preserve semantic hierarchy and readable status contrast.",
+      "Lucide line icons support labels; they do not replace operational language."
+    ],
+    "rules": [
+      { "name": "The One Action Voice Rule", "body": "Indigo owns selection, focus, and forward action; semantic colors communicate state and must not become competing calls to action.", "section": "colors" },
+      { "name": "The Evidence Before Accent Rule", "body": "Color may prioritize evidence, but severity must also remain legible through labels, icons, borders, or structure.", "section": "colors" },
+      { "name": "The Operational Hierarchy Rule", "body": "Use weight and spacing before increasing size; large display type is reserved for route identity, not every card.", "section": "typography" },
+      { "name": "The Numeric Trust Rule", "body": "Operational figures use tabular numerals so evidence aligns and can be compared without visual jitter.", "section": "typography" },
+      { "name": "The Evidence Lane Rule", "body": "Recommendations keep title, severity, summary, reason, numeric evidence, and destination action in one scannable lane before secondary context is introduced.", "section": "layout" },
+      { "name": "The Solid Surface Rule", "body": "Glass and blur are not card materials; blur is limited to the mobile app-bar safety layer and transient overlay contexts.", "section": "elevation" },
+      { "name": "The Ambient Elevation Rule", "body": "Shadows communicate containment or temporary lift, never ornament or hard-edged decoration.", "section": "elevation" },
+      { "name": "The Nested Radius Rule", "body": "Inner controls use a smaller radius than the surface containing them, preserving visible hierarchy instead of rounding every layer equally.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do keep assistant capability copy explicit: rule-based, non-generative, read-only, and advisory.",
+      "Do pair every recommendation with a reason, numerical evidence, severity label, and owning-module action.",
+      "Do preserve 44px touch targets, visible keyboard focus, 16px mobile inputs, and reduced-motion behavior.",
+      "Do use solid surfaces and restrained Indigo Wash to maintain trust in light and dark modes.",
+      "Do keep dense information scannable through tabular numerals, short labels, and consistent evidence order."
+    ],
+    "donts": [
+      "Don't use generative-AI imagery, chat theatrics, or copy that implies unsupported intelligence.",
+      "Don't use semantic colors as decorative accents or rely on color alone to communicate severity.",
+      "Don't add glass cards, decorative gradients, or strong shadows inside the evidence lane.",
+      "Don't introduce content-bearing text below the `caption` role; the shipped 10px evidence and severity labels are implementation debt, not a system token.",
+      "Don't canonize unavailable font weights; the shipped 850/900 declarations are implementation debt, so use the loaded Inter weights from the normative type roles."
+    ]
+  }
+}

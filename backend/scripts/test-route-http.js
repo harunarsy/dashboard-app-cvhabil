@@ -13,13 +13,23 @@ const { loadRuntimeEnv } = require('../config/runtimeEnv');
 loadRuntimeEnv({ baseDir: path.join(__dirname, '..'), context: 'backend/test-route-http', preferDevEnv: true });
 const supertest = require('supertest');
 const assert = require('assert');
+const jwt = require('jsonwebtoken');
 
 // HTTP smoke tests only validate middleware/route contracts. Keep them fully
 // DB-isolated so an accidental route change cannot mutate any environment.
 const databasePath = require.resolve('../config/database');
 let blockedDbMutations = 0;
+const dbStatements = [];
 const readOnlyQueryMock = async (query) => {
   const sql = typeof query === 'string' ? query : query?.text;
+  const normalized = String(sql || '').trim();
+  dbStatements.push(normalized);
+  if (/^show\s+transaction_read_only$/i.test(normalized)) {
+    return { rows: [{ transaction_read_only: 'on' }], rowCount: 1 };
+  }
+  if (/^(begin\s+read\s+only|rollback)$/i.test(normalized)) {
+    return { rows: [], rowCount: 0 };
+  }
   if (sql && !/^\s*(select|show|with)\b/i.test(sql)) {
     blockedDbMutations += 1;
     throw new Error(`[DB Read-Only Guard] HTTP smoke blocked query: ${sql.split(/\s+/)[0]}`);
@@ -103,6 +113,7 @@ async function run() {
     { method: 'get', url: '/api/distributors', label: 'GET /api/distributors' },
     { method: 'get', url: '/api/customers', label: 'GET /api/customers' },
     { method: 'get', url: '/api/insights/customer/1', label: 'GET /api/insights/customer/:id' },
+    { method: 'post', url: '/api/ai/recommendations', label: 'POST /api/ai/recommendations' },
   ]) {
     await test(`${label} returns 401 without auth`, async () => {
       const res = await request[method](url);
@@ -116,6 +127,50 @@ async function run() {
     const res = await request.post('/api/auth/login').send({ username: 'test', password: 'test' });
     // 401 is expected (wrong credentials), not 404
     assert.notStrictEqual(res.status, 404, 'Route should exist');
+  });
+
+  await test('Smart-Assistant enforces authz and a proven read-only transaction', async () => {
+    process.env.JWT_SECRET ||= 'http-smoke-test-secret';
+    const adminToken = jwt.sign(
+      { id: 1, username: 'smoke-admin', role: 'admin' },
+      process.env.JWT_SECRET,
+      { expiresIn: '5m' },
+    );
+    const before = dbStatements.length;
+    const res = await request
+      .post('/api/ai/recommendations')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ scope: 'overview', limit: 4 });
+
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.assistant?.name, 'Habil Smart-Assistant');
+    assert.strictEqual(res.body.assistant?.mode, 'rule_based');
+    assert.strictEqual(res.body.meta?.data_boundary, 'authenticated_read_only');
+    assert.ok(Array.isArray(res.body.recommendations));
+    const assistantStatements = dbStatements.slice(before);
+    assert.ok(assistantStatements.includes('BEGIN READ ONLY'));
+    assert.ok(assistantStatements.includes('SHOW transaction_read_only'));
+    assert.ok(assistantStatements.includes('ROLLBACK'));
+    assert.ok(
+      assistantStatements.every((sql) =>
+        /^(begin\s+read\s+only|rollback|select|show|with)\b/i.test(sql),
+      ),
+      'Assistant may only execute transaction control or read statements',
+    );
+  });
+
+  await test('Smart-Assistant rejects the pajak role', async () => {
+    const token = jwt.sign(
+      { id: 2, username: 'smoke-pajak', role: 'pajak' },
+      process.env.JWT_SECRET,
+      { expiresIn: '5m' },
+    );
+    const res = await request
+      .post('/api/ai/recommendations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ scope: 'overview' });
+    assert.strictEqual(res.status, 403);
+    assert.strictEqual(res.body.error?.code, 'FORBIDDEN');
   });
 
   // 5. Response shape: array endpoints
