@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.2-stable] - 2026-08-23
+
+### Ditambahkan
+- **Enam skenario write deep-freeze pada schema aplikasi penuh:** create Purchase Order, edit Sales Nota, update stok beserta mutasi, delete distributor, alur autentikasi JWT, dan create batch beserta mutasi.
+- Fixture baseline disposable memakai ID eksplisit agar test tidak meninggalkan perubahan sequence; setiap skenario memverifikasi perubahan di dalam transaksi dan pemulihan nilai setelah rollback.
+
+### Diverifikasi
+- Node 24.19.0 dan Bun 1.4 masing-masing lulus 6/6 skenario pada 47 tabel hasil 17 migrasi eksplisit.
+- Fingerprint row/value dan seluruh PostgreSQL sequence identik sebelum/sesudah dua runtime, DDL saat test nol, dan cluster disposable dihentikan serta dihapus.
+
 ## [v1.67.1-stable] - 2026-08-23
 
 ### Ditambahkan

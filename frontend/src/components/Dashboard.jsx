@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.67.1-stable",
+    version: "v1.67.2-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Deep-freeze coverage kini menguji enam operasi write bisnis pada database disposable, dengan row, nilai baseline, dan sequence kembali identik setelah rollback.",
+      },
+    ],
+  },
+  {
+    version: "v1.67.1-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",

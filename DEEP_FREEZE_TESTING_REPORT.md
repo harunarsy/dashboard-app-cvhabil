@@ -1,8 +1,8 @@
 # Habil SuperApp — Deep-Freeze Testing Report
 
-Status: **PASS through Fase 8A; coverage expansion pending**
+Status: **PASS through Fase 8B; route-suite integration pending**
 
-Current version: `v1.67.1-stable`
+Current version: `v1.67.2-stable`
 
 Date: 23 August 2026
 
@@ -44,3 +44,25 @@ Provisioning DDL was executed before the test transaction on the disposable clus
 | Bun 1.4.0 | 5 / 5 PASS | 0 | 0 |
 
 The disposable cluster was stopped and deleted after both runtime passes.
+
+## Fase 8B — Write-Operation Coverage
+
+The disposable database was provisioned with the complete application schema: 47 public tables and all 17 explicit route-schema migrations. Six scenarios then ran exclusively inside `runWithRollback()`:
+
+| Scenario | Mutation verified inside transaction | State verified after rollback |
+|---|---|---|
+| Create Purchase Order | Header and item joined with expected subtotal | Header/item absent; counts restored |
+| Edit Sales Nota | Header total/note and item quantity/price changed | Original header/item values restored |
+| Update stock | Batch reduced and outbound mutation visible | Original quantity restored; mutation absent |
+| Delete operation | Distributor removed | Original distributor row restored |
+| Authentication | User created, password checked, JWT session verified and disposed | Test user absent |
+| Batch operation | Batch and inbound mutation joined | Batch/mutation absent |
+
+Node 24.19.0 and Bun 1.4.0 each passed 6/6. After both runs:
+
+- row/value fingerprint: **unchanged**;
+- all public sequence fingerprint: **unchanged**;
+- DDL executed during tests: **0**;
+- disposable cluster cleanup: **PASS**.
+
+These are direct database-operation tests. Actual Express route/HTTP transaction adaptation is intentionally deferred to Fase 8C rather than being implied by this result.

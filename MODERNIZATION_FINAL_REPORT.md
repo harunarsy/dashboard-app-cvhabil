@@ -1,10 +1,10 @@
 # Habil SuperApp Modernization — Final Report
 
-Status: **PASS through Fase 8A; Fase 8B–8E remain**
+Status: **PASS through Fase 8B; Fase 8C–8E remain**
 
 Branch: `codex/bun-modernization-audit`
 
-Current version: `v1.67.1-stable`
+Current version: `v1.67.2-stable`
 
 Execution date: 23 August 2026
 
@@ -18,6 +18,7 @@ Execution date: 23 August 2026
 - `PRODUCT.md`, `DESIGN.md`, the Smart-Assistant surface brief, and the Impeccable sidecar preserve the shipped product and visual decisions for future agents.
 - Frontend interaction styling now uses semantic action, selection, focus, information, and status roles instead of hue-bound component tokens or vendor-style doctrine.
 - Deep-freeze write tests now have a fail-closed, same-connection rollback wrapper restricted to local disposable test databases.
+- Six write-operation scenarios now prove rollback for PO, nota, inventory, delete, authentication, and batch flows without changing row/value or sequence fingerprints.
 - PostgreSQL remained read-only throughout execution. No DML, DDL, migration, or schema mutation was executed.
 
 ## Phase Ledger
@@ -37,6 +38,7 @@ Execution date: 23 August 2026
 | 7D — Explicit schema lifecycle | v1.66.23 | phase commit | 17 route schema initializers extracted; normal startup executes zero DDL |
 | 7E — Design-system liberation | v1.67.0 | phase commit | Semantic interaction roles, accessible contrast, and doctrine-neutral product/design contracts |
 | 8A — Transaction wrapper | v1.67.1 | phase commit | Local/test-only target guard; success/error/timeout rollback parity on Node and Bun |
+| 8B — Write coverage | v1.67.2 | phase commit | Six full-schema scenarios; row/value and sequence fingerprints unchanged |
 
 ## Smart-Assistant Architecture
 

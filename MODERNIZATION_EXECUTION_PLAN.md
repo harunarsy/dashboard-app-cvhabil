@@ -1,6 +1,6 @@
 # Habil SuperApp Modernization Execution Plan
 
-Status: in progress — Fase 8A passed; Fase 8B–8E remain
+Status: in progress — Fase 8B passed; Fase 8C–8E remain
 
 Source version: `v1.66.8-stable`
 
@@ -169,3 +169,7 @@ The safety gate passed on a local disposable PostgreSQL cluster. Any mutating in
 ### Phase 8A — Transaction Wrapper Infrastructure
 
 Status: **completed in v1.67.1-stable**. The wrapper fails closed unless `NODE_ENV=test`, `ALLOW_DEEP_FREEZE_WRITES=true`, and a local test/CI-named `TEST_DATABASE_URL` are all present. Node 24 and Bun both proved rollback across success, exception, and timeout paths with zero residual rows.
+
+### Phase 8B — Write-Operation Coverage
+
+Status: **completed in v1.67.2-stable**. Six business write scenarios run against the fully provisioned disposable schema. Node 24 and Bun preserve row/value and sequence fingerprints exactly after every rollback. Route-level HTTP execution remains the explicit scope of Fase 8C.
