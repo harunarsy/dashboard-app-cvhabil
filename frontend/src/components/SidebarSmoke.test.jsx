@@ -110,6 +110,10 @@ describe("Sidebar shell smoke", () => {
     renderSidebar();
 
     expect(screen.getByTestId("current-path")).toHaveTextContent("/dashboard");
+    expect(screen.getByRole("button", { name: "Dashboard" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Inventory" }));
 
@@ -134,5 +138,21 @@ describe("Sidebar shell smoke", () => {
 
     expect(localStorage.getItem("token")).toBeNull();
     expect(api.post).not.toHaveBeenCalled();
+  });
+
+  test("opens the bug report as a keyboard-dismissible dialog", async () => {
+    renderSidebar();
+
+    fireEvent.click(screen.getByRole("button", { name: "Bug / Saran Fitur" }));
+
+    const dialog = screen.getByRole("dialog", { name: "📢 Kirim Laporan" });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tutup laporan" })).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
   });
 });

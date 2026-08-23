@@ -19,6 +19,7 @@ export default function Login({
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
   const exitTimer = useRef(null);
+  const usernameInput = useRef(null);
   useEffect(
     () => () => {
       if (exitTimer.current) clearTimeout(exitTimer.current);
@@ -32,6 +33,7 @@ export default function Login({
 
     if (!username || !password) {
       setError("Username dan password wajib diisi.");
+      usernameInput.current?.focus();
       return;
     }
 
@@ -149,7 +151,7 @@ export default function Login({
             className="ui-over-media-copy mt-3 px-3 py-1 text-xs font-semibold"
             style={{ color: sub }}
           >
-            HABIL SUPERAPP v1.66.16-stable — 2026
+            HABIL SUPERAPP v1.66.17-stable — 2026
           </p>
         </div>
 
@@ -167,17 +169,18 @@ export default function Login({
             className="text-xl font-bold mb-2 text-center"
             style={{ color: text }}
           >
-            Sign In
+            Masuk
           </h2>
           <p className="text-xs font-medium text-center mb-6" style={{ color: sub }}>
             Masuk ke dashboard operasional CV Habil Sejahtera Bersama
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <FieldError message={error} visible={!!error} />
+            <FieldError id="login-error" message={error} visible={!!error} />
 
             <div>
               <label
+                htmlFor="login-username"
                 className="block text-[11px] font-bold uppercase tracking-[0.05em] mb-1.5 ml-1"
                 style={{ color: sub }}
               >
@@ -188,25 +191,20 @@ export default function Login({
                   <User size={18} style={{ color: subtle }} />
                 </div>
                 <input
+                  id="login-username"
+                  ref={usernameInput}
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className={`ui-form-field ui-focus-ring w-full min-h-11 pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl ${error && !username ? "ui-form-invalid" : ""}`}
+                  className={`ui-form-field ui-focus-ring w-full min-h-11 pl-11 pr-4 py-3 text-sm rounded-xl ${error && !username ? "ui-form-invalid" : ""}`}
                   style={{
                     backgroundColor: inputBg,
                     border: `1px solid ${inputBorder}`,
                     color: text,
                   }}
                   aria-invalid={!!error && !username}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = focusRing;
-                    e.currentTarget.style.boxShadow = `0 0 0 4px ${focusRing}1A`;
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor =
-                      error && !username ? "var(--color-danger)" : inputBorder;
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+                  aria-describedby={error ? "login-error" : undefined}
+                  aria-required="true"
                   placeholder="Masukkan username"
                   disabled={loading}
                   autoComplete="username"
@@ -216,6 +214,7 @@ export default function Login({
 
             <div>
               <label
+                htmlFor="login-password"
                 className="block text-[11px] font-bold uppercase tracking-[0.05em] mb-1.5 ml-1"
                 style={{ color: sub }}
               >
@@ -226,25 +225,19 @@ export default function Login({
                   <Lock size={18} style={{ color: subtle }} />
                 </div>
                 <input
+                  id="login-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`ui-form-field ui-focus-ring w-full min-h-11 pl-11 pr-4 py-3 text-sm outline-none transition-all rounded-xl ${error && !password ? "ui-form-invalid" : ""}`}
+                  className={`ui-form-field ui-focus-ring w-full min-h-11 pl-11 pr-4 py-3 text-sm rounded-xl ${error && !password ? "ui-form-invalid" : ""}`}
                   style={{
                     backgroundColor: inputBg,
                     border: `1px solid ${inputBorder}`,
                     color: text,
                   }}
                   aria-invalid={!!error && !password}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = focusRing;
-                    e.currentTarget.style.boxShadow = `0 0 0 4px ${focusRing}1A`;
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor =
-                      error && !password ? "var(--color-danger)" : inputBorder;
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+                  aria-describedby={error ? "login-error" : undefined}
+                  aria-required="true"
                   placeholder="Masukkan password"
                   disabled={loading}
                   autoComplete="current-password"
@@ -269,7 +262,7 @@ export default function Login({
                 !loading && (e.currentTarget.style.backgroundColor = focusRing)
               }
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "Sedang masuk..." : "Masuk"}
             </button>
           </form>
         </div>
@@ -279,7 +272,7 @@ export default function Login({
             className="ui-over-media-copy px-3 py-1 text-center text-xs"
             style={{ color: subtle }}
           >
-            &copy; 2026 HABIL SUPERAPP. All rights reserved.
+            &copy; 2026 HABIL SUPERAPP. Hak cipta dilindungi.
           </p>
         </div>
       </div>

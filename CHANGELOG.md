@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.17-stable] - 2026-08-23
+
+### Ditingkatkan
+- **Audit Impeccable menguatkan aksesibilitas login dan application shell.** Label form, error announcement, focus management, semantics navigasi/modal, Bahasa Indonesia, target mobile, dark-mode contrast, dan motion easing kini tervalidasi melalui browser serta 19 frontend regression test.
+
+### Catatan
+- Skor audit teknis saat ini 14/20. Optimasi chunk besar, tujuh layout-property transition, dan migrasi warna inline komponen legacy dicatat sebagai debt terukur, bukan dicampur ke hardening aksesibilitas ini.
+
 ## [v1.66.16-stable] - 2026-08-23
 
 ### Ditingkatkan

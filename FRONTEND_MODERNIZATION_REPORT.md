@@ -88,3 +88,24 @@ Setup test menyediakan Web Storage double eksplisit agar JSDOM deterministik ket
 | Default `npm start` | PASS — root dan SPA deep-link |
 | PWA manifest | PASS — Habil branding dan root scope |
 | Active Tailwind CDN references | 0 |
+
+## 4E — Impeccable UI Hardening
+
+- Audit teknis lima dimensi menghasilkan skor **14/20 (Good)**; detail evidence dan debt tersisa berada di `UI_UX_AUDIT.md`.
+- Form login kini memiliki label programmatik, hubungan error yang dapat dibaca screen reader, initial focus pada field invalid, dan focus ring CSS valid.
+- Bahasa dokumen dan microcopy login diselaraskan ke Bahasa Indonesia.
+- Modal laporan pada shell kini memiliki dialog semantics, initial focus, Escape close, focus trap, dan focus restore.
+- Navigasi aktif memakai `aria-current`; item nonaktif memakai native `disabled`.
+- Lima bounce easing dan side-tab sidebar dibersihkan. Tujuh layout transition serta satu side-tab faktur dicatat sebagai debt terpisah karena perbaikannya membutuhkan perubahan layout yang lebih luas.
+
+### Gate 4E
+
+| Check | Hasil |
+|---|---|
+| Impeccable static detector | 14 → 8 verified debt findings |
+| Browser detector desktop/mobile login | PASS — 0 finding |
+| Mobile 390×844 | PASS — 0 overflow; input 16 px; target 44–48 px |
+| Dark-mode contrast | PASS — 11.99:1 sampai 16.96:1 pada copy utama |
+| Keyboard/error semantics | PASS — label, alert linkage, focus, modal Escape/trap |
+| Vitest | PASS — 8 file / 19 test |
+| Node 20.20.2 / Node 24.19.0 / Bun 1.4 | PASS — test dan production build |

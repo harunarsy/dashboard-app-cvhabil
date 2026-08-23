@@ -54,6 +54,7 @@ export default function Sidebar({
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [mobileOpen, setMobileOpen] = useState(false);
   const drawerRef = useRef(null);
+  const bugDialogRef = useRef(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -199,6 +200,53 @@ export default function Sidebar({
     setBugForm({ title: "", description: "", steps: "", contact: "" });
   };
 
+  useEffect(() => {
+    if (!showBugModal) return undefined;
+    const dialog = bugDialogRef.current;
+    if (!dialog) return undefined;
+
+    const previousActive = document.activeElement;
+    const focusables = () =>
+      Array.from(
+        dialog.querySelectorAll(
+          'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+
+    dialog.querySelector('[data-dialog-close="true"]')?.focus();
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        resetModal();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const items = focusables();
+      if (items.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown, true);
+      previousActive?.focus?.();
+    };
+  }, [showBugModal]);
+
   const bg = isDarkMode ? "#000" : "#FFF";
   const border = isDarkMode
     ? "var(--color-surface-raised)"
@@ -207,7 +255,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.66.16-stable";
+  const appVersion = "v1.66.17-stable";
   const TooltipButton = ({
     label,
     children,
@@ -531,7 +579,10 @@ export default function Sidebar({
             const menuButton = (
               <button
                 key={index}
+                type="button"
                 onClick={() => handleNavigate(item.path, isActive)}
+                disabled={!isActive}
+                aria-current={isCurrent ? "page" : undefined}
                 className="ui-action-button ui-motion-button ui-focus-ring"
                 style={{
                   width: "100%",
@@ -569,7 +620,6 @@ export default function Sidebar({
                   textAlign: "left",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
-                  borderLeft: `3px solid ${isCurrent ? "var(--color-primary)" : "transparent"}`,
                   boxShadow: isCurrent
                     ? isDarkMode
                       ? "inset 0 0 0 1px rgba(255,255,255,0.04)"
@@ -758,6 +808,10 @@ export default function Sidebar({
           }}
         >
           <div
+            ref={bugDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bug-report-dialog-title"
             onClick={(e) => e.stopPropagation()}
             className="ui-motion-modal"
             style={{
@@ -783,6 +837,7 @@ export default function Sidebar({
               }}
             >
               <h3
+                id="bug-report-dialog-title"
                 style={{
                   margin: 0,
                   fontSize: "16px",
@@ -794,6 +849,7 @@ export default function Sidebar({
               </h3>
               <button
                 onClick={resetModal}
+                data-dialog-close="true"
                 aria-label="Tutup laporan"
                 className="ui-motion-button ui-focus-ring"
                 style={{

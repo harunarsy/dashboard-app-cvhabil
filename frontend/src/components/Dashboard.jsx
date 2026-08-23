@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.16-stable",
+    version: "v1.66.17-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Audit Impeccable menguatkan label dan error login, keyboard focus, semantics navigasi/modal, Bahasa Indonesia, dark mode, dan pengalaman mobile.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.16-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",
