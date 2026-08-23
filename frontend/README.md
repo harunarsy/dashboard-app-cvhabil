@@ -1,70 +1,41 @@
-# Getting Started with Create React App
+# Habil SuperApp Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React 19 frontend dengan Vite 8, Tailwind CSS 4 lokal, React Router 7, dan Vitest 4.
 
-## Available Scripts
+## Persyaratan
 
-In the project directory, you can run:
+- Node.js 20.20.2 atau Node.js 24
+- npm 10.x (default) atau Bun 1.4 sebagai package-manager pilot
 
-### `npm start`
+## Perintah
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```bash
+npm install
+npm run dev       # Vite dev server, default http://localhost:3000
+npm test          # Vitest sekali jalan
+npm run test:watch
+npm run build     # output production: dist/
+npm run preview
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+`npm start` tetap menjadi alias untuk Vite dev server.
 
-### `npm test`
+## Environment
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Gunakan `VITE_API_URL` untuk override endpoint API:
 
-### `npm run build`
+```bash
+VITE_API_URL=http://localhost:5001/api
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+`REACT_APP_API_URL` masih diterima sementara sebagai alias kompatibilitas deployment lama. Tanpa override, localhost memakai `http://localhost:5001/api` dan deployment memakai `/api` pada origin yang sama.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Build dan Styling
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- Entry HTML: `index.html`
+- Entry React: `src/index.js` → `src/main.jsx`
+- Vite config: `vite.config.mjs`
+- Tailwind/PostCSS: `postcss.config.mjs` dan `src/index.css`
+- Output production: `dist/`
 
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Tailwind dibangun lokal; frontend tidak membutuhkan script CDN.

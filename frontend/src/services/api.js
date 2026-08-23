@@ -62,7 +62,7 @@ const api = axios.create({
 });
 
 if (configuredApiUrl) {
-  console.log(`[API] Initialized with REACT_APP_API_URL override: ${API_BASE_URL}`);
+  console.log(`[API] Initialized with configured API URL override: ${API_BASE_URL}`);
 } else if (isLocal) {
   console.log(`[API] Initialized with local fallback endpoint: ${API_BASE_URL}`);
 } else {

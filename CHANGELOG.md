@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.16-stable] - 2026-08-23
+
+### Ditingkatkan
+- **Frontend resmi memakai Vite 8 sebagai build tool tunggal.** Script default, CI, dokumentasi, manifest, test runner, dan output production telah diselaraskan ke Vite/Tailwind lokal.
+
+### Dihapus
+- **Create React App dicabut setelah parity gate.** `react-scripts`, template CRA, setup Jest lama, dan satu-satunya sisa Tailwind CDN telah hilang; install tree berkurang 1.190 package.
+
 ## [v1.66.15-stable] - 2026-08-23
 
 ### Ditingkatkan

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## System Identity
 
-**HABIL SUPERAPP** — v1.14.0-stable line. Real-time business dashboard for invoice, orders, inventory, and financials. Design language: Stripe Modern premium SaaS, token-driven via `frontend/src/constants/ui.js`.
+**HABIL SUPERAPP** — v1.66.x-stable line. Business dashboard for invoice, orders, inventory, and financials. Design language: Stripe Modern premium SaaS, token-driven via `frontend/src/constants/ui.js`.
 
 ---
 
@@ -34,7 +34,7 @@ perbarui tiap kali ada tahap yang berubah.
 cd backend && npm run dev        # nodemon + DB check, port 5001
 
 # Frontend (local)
-cd frontend && npm start         # CRA dev server, port 3000
+cd frontend && npm run dev       # Vite dev server, port 3000
 
 # DB utilities
 node backend/scripts/check-db.js
@@ -42,13 +42,13 @@ node backend/scripts/run_production_migration.js
 
 # Frontend tests
 cd frontend && npm test
-cd frontend && npm test -- --testPathPattern=SalesOrderList
+cd frontend && npm test -- SalesOrderList
 ```
 
 **Port note (dikoreksi 29 Jul 2026)**: ports do NOT agree — verify before assuming.
 `server.js` default & `docker-compose.yml` = **5001**, but `backend/.env` = **5005** and
 `backend/.env.dev` = **5006**. Backend loads `.env.dev` in local dev, so it actually listens on **5006**.
-`frontend/.env` must set `REACT_APP_API_URL` to whichever port the backend really prints on startup —
+`frontend/.env` should set `VITE_API_URL` to whichever port the backend really prints on startup —
 mismatch shows up as a silent "Login failed" with no network error. (These `.env` files are gitignored,
 so each machine can differ; always read the startup log, not this doc.)
 
@@ -57,7 +57,7 @@ so each machine can differ; always read the startup log, not this doc.)
 ## Architecture
 
 ### Stack
-- **Frontend**: React 19, CRA, React Router v7, Axios, Socket.io-client, Recharts, jsPDF
+- **Frontend**: React 19, Vite 8, Tailwind CSS 4, React Router v7, Axios, Recharts, jsPDF
 - **Backend**: Node.js + Express 5, `pg` (PostgreSQL pool), Socket.io, JWT auth
 - **DB**: PostgreSQL on Neon.tech (Singapore). Prod uses `DATABASE_URL`; local uses individual `DB_*` env vars.
 - **Deploy**: Frontend → Vercel (`habil-dashboard.vercel.app`). Backend → Vercel (`habil-backend.vercel.app`).

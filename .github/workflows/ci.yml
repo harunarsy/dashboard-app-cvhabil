@@ -33,8 +33,6 @@ jobs:
         working-directory: frontend
       - run: npm run build
         working-directory: frontend
-      - run: npm run build:vite
-        working-directory: frontend
 
   backend:
     name: Backend / Node ${{ matrix.node }}

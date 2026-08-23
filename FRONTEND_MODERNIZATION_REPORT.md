@@ -64,3 +64,27 @@ Setup test menyediakan Web Storage double eksplisit agar JSDOM deterministik ket
 | Dark mode | PASS — token surface/text berubah sesuai tema |
 | Vitest | PASS — 7 file / 16 test |
 | CRA fallback | PASS dengan CDN sementara; local PostCSS unsupported |
+
+## 4D — CRA Removal
+
+- `react-scripts`, `web-vitals`, Autoprefixer lama, config ESLint CRA, Browserslist CRA, template `public/index.html`, dan setup Jest lama dihapus.
+- `npm start`/`npm run dev` menjalankan Vite; `npm run build` menghasilkan `dist/`; `npm run preview` menyajikan build Vite.
+- CI hanya menjalankan satu build frontend default dan tidak lagi menduplikasi jalur CRA/Vite.
+- PWA manifest memakai nama Habil SuperApp, `start_url`/`scope` root, dan tidak lagi membawa branding sample CRA.
+- `VITE_API_URL` menjadi nama environment utama; `REACT_APP_API_URL` tetap diterima sebagai alias deployment lama melalui config Vite.
+- Tidak ada deployment config di repository yang mengunci output ke `build/`; Vercel dapat mendeteksi Vite dan output `dist/`.
+- Penghapusan CRA membuang 1.190 package dari install tree. Temuan audit npm turun dari 43 menjadi 6 tanpa menjalankan auto-fix berisiko.
+
+### Gate 4D
+
+| Check | Hasil |
+|---|---|
+| Cold `npm ci` | PASS — 318 package installed |
+| Vitest / Node 20 | PASS — 7 file / 16 test |
+| Vitest / Node 24 | PASS — 7 file / 16 test |
+| `bun run test` | PASS — 7 file / 16 test |
+| Default `npm run build` | PASS — Vite output `dist/` |
+| Build / Node 24 dan Bun | PASS — output hash parity |
+| Default `npm start` | PASS — root dan SPA deep-link |
+| PWA manifest | PASS — Habil branding dan root scope |
+| Active Tailwind CDN references | 0 |

@@ -2,8 +2,8 @@
 
 Dashboard bisnis real-time untuk mengelola faktur, nota penjualan, stok, dan keuangan CV Habil Sejahtera Bersama.
 
-**Versi**: v1.64.1-stable (27 Juli 2026)  
-**Status**: Production-stable
+- **Versi**: v1.66.16-stable (23 Agustus 2026)
+- **Status**: Production-stable
 
 ---
 
@@ -11,7 +11,7 @@ Dashboard bisnis real-time untuk mengelola faktur, nota penjualan, stok, dan keu
 
 | Aspek | Detail |
 |-------|--------|
-| **Frontend** | React 19 (Create React App), React Router v7, Axios, Socket.io-client, Recharts, jsPDF |
+| **Frontend** | React 19, Vite 8, Tailwind CSS 4 lokal, React Router v7, Axios, Recharts, jsPDF |
 | **Backend** | Node.js + Express 5, PostgreSQL (via `pg`), Socket.io, JWT auth |
 | **Database** | PostgreSQL 17 (Neon.tech, Singapore region) |
 | **Deploy** | Frontend: Vercel (`habil-dashboard.vercel.app`), Backend: Vercel (`habil-backend.vercel.app`) |
@@ -22,7 +22,7 @@ Dashboard bisnis real-time untuk mengelola faktur, nota penjualan, stok, dan keu
 ## Jalankan Lokal
 
 ### Persyaratan
-- Node.js 18+
+- Node.js 20.20.2 atau Node.js 24
 - PostgreSQL (atau koneksi ke database cloud)
 - npm atau pnpm
 
@@ -38,9 +38,9 @@ Backend berjalan di port **5001**.
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev
 ```
-Frontend berjalan di port 3000 (dev server CRA).
+Frontend berjalan di port 3000 (Vite dev server).
 
 ### Test Frontend
 ```bash
@@ -81,7 +81,10 @@ dashboard-app/
 │   │   ├── services/     # API client (api.js, invoicesAPI, salesAPI, dll)
 │   │   ├── constants/    # UI tokens (ui.js), config
 │   │   ├── utils/        # Helper (pricingEngine, xlsx parsing, dll)
-│   │   └── index.js      # Root & Auth context
+│   │   ├── index.js      # Entry kompatibilitas & version title
+│   │   └── main.jsx      # Bootstrap React
+│   ├── vite.config.mjs   # Build, env compatibility, Vitest
+│   ├── postcss.config.mjs # Tailwind 4 lokal
 │   └── package.json
 ├── docs/                 # Dokumentasi teknis
 ├── CHANGELOG.md          # Riwayat versi

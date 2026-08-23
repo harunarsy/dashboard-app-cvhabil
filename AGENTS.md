@@ -30,7 +30,7 @@ Welcome, Agent. You are assisting with the **Habil SuperApp**, a real-time busin
 
 ### Frontend
 - **Install:** `cd frontend && npm install`
-- **Run Dev:** `cd frontend && npm start`
+- **Run Dev:** `cd frontend && npm run dev`
 - **Build:** `cd frontend && npm run build`
 
 ## 🛡️ Critical Protocols (Must Follow)

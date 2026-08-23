@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.15-stable",
+    version: "v1.66.16-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Frontend resmi memakai Vite 8 dan Tailwind lokal sebagai satu-satunya build pipeline; CRA dan CDN telah dihapus setelah parity gate.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.15-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",
