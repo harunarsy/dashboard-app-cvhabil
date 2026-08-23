@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.13-stable] - 2026-08-23
+
+### Ditingkatkan
+- **Vite 8 tersedia sebagai jalur frontend paralel.** Build Node/npm dan Bun lulus dengan SPA deep-link preview, sementara CRA tetap menjadi default dan ikut diverifikasi di CI.
+
+### Catatan
+- Tailwind CDN belum dilepas pada tahap ini. Output Vite dipisahkan ke `dist/`; output CRA tetap di `build/` agar rollback tetap sederhana.
+
 ## [v1.66.12-stable] - 2026-08-23
 
 ### Ditingkatkan

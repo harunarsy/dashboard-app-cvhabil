@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.12-stable",
+    version: "v1.66.13-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Vite 8 kini tersedia sebagai jalur frontend paralel dengan parity build dan SPA preview; CRA tetap menjadi fallback default.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.12-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",

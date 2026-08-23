@@ -1,17 +1,4 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { QueryClientProvider } from "@tanstack/react-query";
-import "./index.css";
-import App from "./App";
-import { queryClient } from "./lib/queryClient";
+import "./main.jsx";
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </React.StrictMode>,
-);
-document.title = "HABIL SUPERAPP — v1.66.12-stable";
-// HABIL SUPERAPP v1.66.12-stable
+document.title = "HABIL SUPERAPP — v1.66.13-stable";
+// HABIL SUPERAPP v1.66.13-stable
