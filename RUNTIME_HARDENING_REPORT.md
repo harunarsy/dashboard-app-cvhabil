@@ -34,7 +34,7 @@ No database secrets or write-capable database steps are present in CI.
 | DB regression | 15 pass / 3 known failures, exact baseline |
 | Startup/health/shutdown | PASS |
 
-The remaining 529.37 kB frontend chunk warning is a bundle concern assigned to Fase 7C, not a Node 24 compatibility regression.
+Fase 7C subsequently resolved the 529.37 kB warning through on-demand workbook loading; all production chunks are now below 500 kB.
 
 ## Historical Baseline
 

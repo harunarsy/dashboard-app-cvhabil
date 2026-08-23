@@ -4,7 +4,7 @@ Status: **PASS**
 
 Branch: `codex/bun-modernization-audit`
 
-Current version: `v1.66.21-stable`
+Current version: `v1.66.22-stable`
 
 Execution date: 23 August 2026
 
@@ -31,6 +31,7 @@ Execution date: 23 August 2026
 | 6 — Smart-Assistant | v1.66.19 | final phase commit | Rule engine, secured API, premium transparent UI |
 | 7A — Dead weight/security | v1.66.20 | `c0dbc3d` | Three/Vanta removal and zero npm advisories |
 | 7B — Node 24 promotion | v1.66.21 | phase commit | Node 24.19.0 default, engine/CI parity |
+| 7C — Bundle optimization | v1.66.22 | phase commit | Workbook loaded on demand; all chunks below 500 kB |
 
 ## Smart-Assistant Architecture
 
@@ -85,7 +86,7 @@ These are pre-existing production-data findings. They were not modified or maske
 
 ## Accepted Tradeoffs and Follow-up
 
-- Vite still warns about a chunk above 500 kB; this is pre-existing bundle debt and not a release blocker.
+- Vite chunk warning is resolved without raising the threshold: Online Store fell from 529.37 kB to 40.47 kB and the on-demand workbook chunk is 489.21 kB.
 - Frontend and backend `npm audit` report zero advisories after targeted upgrades, including SheetJS 0.20.3 from its official distribution.
 - Node 20 results are retained above only as historical rollback evidence; Node 24.19.0 is the supported default.
 - **LONG-TERM:** move schema initialization from route import to an explicit migration/deployment step. This execution intentionally did not perform that migration.

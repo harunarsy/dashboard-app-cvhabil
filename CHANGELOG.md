@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.22-stable] - 2026-08-23
+
+### Ditingkatkan
+- **SheetJS kini dimuat on-demand hanya saat upload/download workbook marketplace.** Membuka route Toko Online tidak lagi mengunduh parser Excel hampir 1 MB sebelum dibutuhkan.
+- Chunk Online Store turun dari 529.37 kB menjadi 40.47 kB (-92.36%); chunk workbook terpisah 489.21 kB dan seluruh output kini berada di bawah gate 500 kB tanpa menaikkan warning limit.
+
+### Diverifikasi
+- Node 24 dan Bun masing-masing lulus 10 file/25 frontend test dan production build tanpa warning chunk besar. Regression baru membuktikan parse serta write/read harga-stok XLSX tetap kompatibel.
+
 ## [v1.66.21-stable] - 2026-08-23
 
 ### Ditingkatkan

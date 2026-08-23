@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Upload, Download, Save, Link2, AlertTriangle, CheckCircle2, X, Search, Store, Sparkles } from 'lucide-react';
 import { marketplaceAPI, inventoryAPI } from '../services/api';
-import { parseFile, downloadFilledByKey, PLATFORM_LABEL } from '../utils/marketplaceTemplate';
+import { importWithReload } from '../utils/importWithReload';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Math.round(n || 0));
 const shopIdFromName = (fn = '') => { const m = String(fn).match(/sales_info_(\d+)_/); return m ? m[1] : null; };
@@ -19,6 +19,18 @@ const base64ToArrayBuffer = (b64) => {
   return bytes.buffer;
 };
 const PLAT_COLOR = { tiktok: '#000000', shopee: '#EE4D2D' };
+const PLATFORM_LABEL = { tiktok: 'TikTok Shop', shopee: 'Shopee' };
+let workbookModulePromise;
+const loadWorkbookModule = () => {
+  if (!workbookModulePromise) {
+    workbookModulePromise = importWithReload(() => import('../utils/marketplaceTemplate'))
+      .catch((error) => {
+        workbookModulePromise = undefined;
+        throw error;
+      });
+  }
+  return workbookModulePromise;
+};
 
 export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
   const cardBg = isDarkMode ? 'rgba(28,28,30,0.7)' : 'rgba(255,255,255,0.7)';
@@ -71,6 +83,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
     if (!file) return;
     setLoading(true);
     try {
+      const { parseFile } = await loadWorkbookModule();
       const parsed = await parseFile(file);
       bufferRef.current = parsed.buffer;
       templatesRef.current = [{ filename: parsed.filename, buffer: parsed.buffer }];
@@ -210,17 +223,22 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
     return { laba, margin: p > 0 ? +(laba / p * 100).toFixed(1) : 0 };
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!templatesRef.current.length) return flash('Belum ada file template. Upload file untuk download.');
-    // keyMap: match_key → harga/stok final yang mau ditulis (cocok utk baris dari DB tanpa excelRow).
-    const keyMap = {};
-    rows.forEach((r) => { const f = finals[keyOf(r)] || {}; keyMap[r.match_key] = { price: f.price, stock: f.stock }; });
-    templatesRef.current.forEach((t, i) => {
-      const base = (t.filename || 'template').replace(/\.xlsx$/i, '');
-      // stagger sedikit supaya browser tidak blokir multiple download
-      setTimeout(() => downloadFilledByKey(t.buffer, keyMap, `${base}-HABIL.xlsx`), i * 350);
-    });
-    flash(`${templatesRef.current.length} file diunduh — upload ke marketplace`);
+    try {
+      const { downloadFilledByKey } = await loadWorkbookModule();
+      // keyMap: match_key → harga/stok final yang mau ditulis (cocok utk baris dari DB tanpa excelRow).
+      const keyMap = {};
+      rows.forEach((r) => { const f = finals[keyOf(r)] || {}; keyMap[r.match_key] = { price: f.price, stock: f.stock }; });
+      templatesRef.current.forEach((t, i) => {
+        const base = (t.filename || 'template').replace(/\.xlsx$/i, '');
+        // stagger sedikit supaya browser tidak blokir multiple download
+        setTimeout(() => downloadFilledByKey(t.buffer, keyMap, `${base}-HABIL.xlsx`), i * 350);
+      });
+      flash(`${templatesRef.current.length} file diunduh — upload ke marketplace`);
+    } catch (err) {
+      flash(err.message || 'Gagal menyiapkan file download');
+    }
   };
 
   const handleAutoApply = async () => {

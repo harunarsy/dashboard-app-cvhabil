@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.21-stable",
+    version: "v1.66.22-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Toko Online kini memuat parser Excel hanya saat diperlukan; chunk halaman turun 92% dan warning bundle besar hilang.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.21-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",
