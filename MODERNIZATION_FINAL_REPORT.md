@@ -4,7 +4,7 @@ Status: **COMPLETE — Fase 8E passed**
 
 Branch: `codex/bun-modernization-audit`
 
-Current version: `v1.67.5-stable`
+Current version: `v1.67.6-stable`
 
 Execution date: 23 August 2026
 
@@ -23,6 +23,7 @@ Execution date: 23 August 2026
 - A dedicated safety net now hard-fails row-count mismatches as `ROLLBACK_FAILED` and verifies a dummy row disappears after rollback.
 - Shared/remote PostgreSQL remained read-only throughout execution. Fase 8 provisioning DDL and test DML were restricted to disposable local PostgreSQL; every test transaction rolled back and the cluster was destroyed.
 - `BASELINE_REPORT.md` now separates the original production-data baseline from disposable deep-freeze evidence, and `TESTING_GUIDE.md` documents the safe rerun procedure.
+- Vercel SPA fallback now serves `index.html` for direct React Router paths, including `/login` refreshes.
 
 ## Phase Ledger
 

@@ -2,7 +2,7 @@
 
 Dashboard bisnis terintegrasi untuk mengelola faktur, nota penjualan, stok, dan keuangan CV Habil Sejahtera Bersama.
 
-- **Versi**: v1.67.5-stable (23 Agustus 2026)
+- **Versi**: v1.67.6-stable (23 Agustus 2026)
 - **Status**: Production-stable
 
 ---
@@ -146,4 +146,4 @@ Tim: Harun (arsitek), Fivin (operasi), Ferry (input data)
 
 ---
 
-_HABIL SUPERAPP v1.67.5-stable. Didukung oleh React 19, Node.js, PostgreSQL, Vercel._
+_HABIL SUPERAPP v1.67.6-stable. Didukung oleh React 19, Node.js, PostgreSQL, Vercel._

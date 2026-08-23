@@ -39,13 +39,13 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.67.5-stable",
+    version: "v1.67.6-stable",
     date: "23 Agustus 2026",
     status: "latest",
     changes: [
       {
         type: "improvement",
-        text: "Deep-freeze kini memiliki coverage database dan route HTTP, safety net row-count, serta panduan rerun disposable yang lengkap.",
+        text: "Routing SPA Vercel kini mendukung refresh langsung pada /login dan seluruh route React tanpa 404.",
       },
     ],
   },

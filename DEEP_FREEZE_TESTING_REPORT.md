@@ -2,7 +2,7 @@
 
 Status: **COMPLETE — Fase 8E passed**
 
-Current version: `v1.67.5-stable`
+Current version: `v1.67.6-stable`
 
 Date: 23 August 2026
 

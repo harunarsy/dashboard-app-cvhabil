@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.6-stable] - 2026-08-23
+
+### Diperbaiki
+- **Vercel SPA routing:** menambahkan `frontend/vercel.json` dengan fallback ke `index.html`, sehingga refresh langsung pada `/login` dan route React Router lain tidak lagi menghasilkan `404 NOT_FOUND`.
+
+### Diverifikasi
+- Build Vite tetap menghasilkan `dist/`; konfigurasi rewrite berlaku pada deployment frontend dengan Root Directory `frontend/`.
+
 ## [v1.67.5-stable] - 2026-08-23
 
 ### Didokumentasikan
