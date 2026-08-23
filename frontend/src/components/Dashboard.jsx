@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.13-stable",
+    version: "v1.66.14-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Frontend regression suite kini memakai Vitest 4 dengan parity penuh: 7 file dan 16 test lulus.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.13-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",

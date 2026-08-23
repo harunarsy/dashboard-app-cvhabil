@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.14-stable] - 2026-08-23
+
+### Ditingkatkan
+- **Frontend test runner pindah ke Vitest 4.** Seluruh 7 file dan 16 regression test mencapai parity pada JSDOM dengan mock ESM yang eksplisit.
+
+### Catatan
+- CRA masih dipertahankan sebagai fallback build sampai Vite dan Tailwind lokal menyelesaikan seluruh parity gate.
+
 ## [v1.66.13-stable] - 2026-08-23
 
 ### Ditingkatkan

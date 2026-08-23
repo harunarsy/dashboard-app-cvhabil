@@ -1,4 +1,4 @@
-jest.mock('jsbarcode', () => jest.fn());
+vi.mock('jsbarcode', () => ({ default: vi.fn() }));
 
 import { generateNotaPDF } from './generateNotaPDF';
 

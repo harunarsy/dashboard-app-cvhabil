@@ -3,64 +3,55 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-jest.mock("../services/api", () => ({
+vi.mock("../services/api", () => ({
   __esModule: true,
   default: {
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
   },
   priceListAPI: {
-    getAll: jest.fn(),
-    setPrice: jest.fn(),
-    getHistory: jest.fn(),
-    getFeeProfiles: jest.fn(),
-    updateFeeProfile: jest.fn(),
-    recommend: jest.fn(),
+    getAll: vi.fn(),
+    setPrice: vi.fn(),
+    getHistory: vi.fn(),
+    getFeeProfiles: vi.fn(),
+    updateFeeProfile: vi.fn(),
+    recommend: vi.fn(),
   },
   printSettingsAPI: {
-    get: jest.fn(),
+    get: vi.fn(),
   },
 }));
 
-jest.mock("./common/Breadcrumb", () => (props) => (
-  <div data-testid="breadcrumb">{props.title}</div>
-));
+vi.mock("./common/Breadcrumb", () => ({
+  default: (props) => <div data-testid="breadcrumb">{props.title}</div>,
+}));
 
-jest.mock("./common/SearchBox", () => (props) => (
-  <input
-    aria-label={props.ariaLabel || "search"}
-    value={props.value}
-    onChange={(e) => props.onChange(e.target.value)}
-  />
-));
+vi.mock("./common/SearchBox", () => ({
+  default: (props) => (
+    <input
+      aria-label={props.ariaLabel || "search"}
+      value={props.value}
+      onChange={(e) => props.onChange(e.target.value)}
+    />
+  ),
+}));
 
-jest.mock("./common/Skeleton", () => (props) => (
-  <div className="skeleton" style={props.style || {}} />
-));
+vi.mock("./common/Skeleton", () => ({
+  default: (props) => <div className="skeleton" style={props.style || {}} />,
+}));
 
-jest.mock("./common/ToastNotice", () => ({ message }) =>
-  message ? <div role="status">{message}</div> : null,
-);
+vi.mock("./common/ToastNotice", () => ({
+  default: ({ message }) =>
+    message ? <div role="status">{message}</div> : null,
+}));
 
-jest.mock("./common/EmptyState", () => ({
+vi.mock("./common/EmptyState", () => ({
   __esModule: true,
   default: () => <div data-testid="empty-state" />,
   EmptyStateIcons: { box: "box" },
 }));
-
-jest.mock("lucide-react", () => {
-  const React = require("react");
-  const MockIcon = (props) => <svg data-testid="icon" {...props} />;
-
-  return new Proxy(
-    { __esModule: true },
-    {
-      get: (target, prop) => target[prop] || MockIcon,
-    },
-  );
-});
 
 import PriceListPage from "./PriceListPage";
 import { priceListAPI, printSettingsAPI } from "../services/api";
@@ -76,7 +67,7 @@ const renderWithQueryClient = (ui) => {
 
 describe("PriceListPage suggestion drawer", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     priceListAPI.getAll.mockResolvedValue({
       data: [
         {
@@ -152,7 +143,7 @@ describe("PriceListPage suggestion drawer", () => {
 
     await screen.findByText("Nescafe Classic 1 Renceng (10 sachet x 2 g)");
 
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     fireEvent.click(
       screen.getByRole("button", {
         name: /Saran harga Offline untuk Nescafe Classic 1 Renceng/i,
@@ -160,10 +151,10 @@ describe("PriceListPage suggestion drawer", () => {
     );
 
     await act(async () => {
-      jest.advanceTimersByTime(400);
+      vi.advanceTimersByTime(400);
       await Promise.resolve();
     });
-    jest.useRealTimers();
+    vi.useRealTimers();
 
     await screen.findByText("BEP (modal balik)");
 

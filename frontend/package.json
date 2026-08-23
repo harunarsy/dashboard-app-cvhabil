@@ -38,7 +38,8 @@
     "build": "GENERATE_SOURCEMAP=false react-scripts build",
     "build:vite": "vite build",
     "preview:vite": "vite preview",
-    "test": "react-scripts test",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -64,6 +65,8 @@
     "autoprefixer": "^10.4.27",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.1",
-    "vite": "^8.2.2"
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11",
+    "jsdom": "^29.0.0"
   }
 }

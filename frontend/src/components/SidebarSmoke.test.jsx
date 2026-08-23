@@ -4,9 +4,10 @@ import "@testing-library/jest-dom";
 import Sidebar from "./Sidebar";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
+import { MemoryRouter, useLocation } from "react-router-dom";
 
-jest.mock("react-router-dom", () => {
-  const React = require("react");
+vi.mock("react-router-dom", async () => {
+  const React = await import("react");
   const RouterContext = React.createContext({
     pathname: "/dashboard",
     navigate: () => {},
@@ -36,22 +37,21 @@ jest.mock("react-router-dom", () => {
     useLocation,
     useNavigate,
   };
-}, { virtual: true });
+});
 
-jest.mock("../services/api", () => ({
+vi.mock("../services/api", () => ({
   __esModule: true,
   default: {
-    post: jest.fn(),
+    post: vi.fn(),
   },
 }));
 
-jest.mock("./common/Tooltip", () => ({
+vi.mock("./common/Tooltip", () => ({
   __esModule: true,
   default: ({ children }) => <>{children}</>,
 }));
 
-jest.mock("./common/Icon", () => {
-  const React = require("react");
+vi.mock("./common/Icon", () => {
   const MockIcon = (props) => <svg data-testid="mock-icon" {...props} />;
   const icons = new Proxy(
     {},
@@ -66,8 +66,6 @@ jest.mock("./common/Icon", () => {
   };
 });
 
-const { MemoryRouter, useLocation } = require("react-router-dom");
-
 function PathProbe() {
   const location = useLocation();
   return <div data-testid="current-path">{location.pathname}</div>;
@@ -79,17 +77,17 @@ function renderSidebar(initialEntry = "/dashboard") {
       value={{
         user: { role: "direktur", username: "direktur" },
         token: "token",
-        login: jest.fn(),
-        logout: jest.fn(),
+        login: vi.fn(),
+        logout: vi.fn(),
         loading: false,
       }}
     >
       <MemoryRouter initialEntries={[initialEntry]}>
         <Sidebar
           isDarkMode={false}
-          setIsDarkMode={jest.fn()}
+          setIsDarkMode={vi.fn()}
           isSidebarOpen={true}
-          setIsSidebarOpen={jest.fn()}
+          setIsSidebarOpen={vi.fn()}
         />
         <PathProbe />
       </MemoryRouter>
@@ -100,7 +98,7 @@ function renderSidebar(initialEntry = "/dashboard") {
 describe("Sidebar shell smoke", () => {
   beforeEach(() => {
     localStorage.clear();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
       value: 1280,

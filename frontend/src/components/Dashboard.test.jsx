@@ -1,65 +1,66 @@
 import React from "react";
 // Mock before other imports using a factory to bypass original file logic
-jest.mock("../services/api", () => ({
+vi.mock("../services/api", () => ({
   __esModule: true,
   default: {
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
   },
   tasksAPI: {
-    getAll: jest.fn(() => Promise.resolve({ data: [] })),
-    getTrash: jest.fn(() => Promise.resolve({ data: [] })),
-    create: jest.fn(),
-    update: jest.fn(),
-    remove: jest.fn(),
-    restore: jest.fn(),
-    getHistory: jest.fn(() => Promise.resolve({ data: [] })),
+    getAll: vi.fn(() => Promise.resolve({ data: [] })),
+    getTrash: vi.fn(() => Promise.resolve({ data: [] })),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    restore: vi.fn(),
+    getHistory: vi.fn(() => Promise.resolve({ data: [] })),
   },
   dashboardAPI: {
-    getStats: jest.fn(),
-    getHeatmap: jest.fn(),
-    getDailyNotas: jest.fn(),
+    getStats: vi.fn(),
+    getHeatmap: vi.fn(),
+    getDailyNotas: vi.fn(),
   },
   insightsAPI: {
-    getWeeklySummary: jest.fn(),
+    getWeeklySummary: vi.fn(),
     // v1.64.1: Dashboard.jsx:4336 memanggil ketiganya lewat Promise.allSettled.
     // Mock ini sempat ketinggalan → suite merah walau produksi sehat.
-    getRestock: jest.fn(() => Promise.resolve({ data: { items: [] } })),
-    getDormant: jest.fn(() => Promise.resolve({ data: { items: [] } })),
+    getRestock: vi.fn(() => Promise.resolve({ data: { items: [] } })),
+    getDormant: vi.fn(() => Promise.resolve({ data: { items: [] } })),
   },
   loansAPI: {
-    getAll: jest.fn(() => Promise.resolve({ data: [] })),
+    getAll: vi.fn(() => Promise.resolve({ data: [] })),
   },
 }));
 
 // Mock useOnboarding to avoid pending setTimeout(900ms)
-jest.mock("../hooks/useOnboarding", () => () => ({
-  active: false,
-  currentStep: null,
-  stepIndex: 0,
-  steps: [],
-  next: jest.fn(),
-  skip: jest.fn(),
+vi.mock("../hooks/useOnboarding", () => ({
+  default: () => ({
+    active: false,
+    currentStep: null,
+    stepIndex: 0,
+    steps: [],
+    next: vi.fn(),
+    skip: vi.fn(),
+  }),
 }));
 
 // Mock sessionStorage so release modal doesn't auto-show (no pending timers)
 global.sessionStorage = {
   getItem: () => "true",
-  setItem: jest.fn(),
+  setItem: vi.fn(),
 };
 
-jest.mock("./dashboard/StockMovementChart", () => () => (
-  <div data-testid="stock-movement-chart" />
-));
+vi.mock("./dashboard/StockMovementChart", () => ({
+  default: () => <div data-testid="stock-movement-chart" />,
+}));
 
-jest.mock(
+vi.mock(
   "react-router-dom",
   () => ({
-    useNavigate: () => jest.fn(),
+    useNavigate: () => vi.fn(),
   }),
-  { virtual: true },
 );
 
 import { render, screen, waitFor, act } from "@testing-library/react";
@@ -67,20 +68,6 @@ import "@testing-library/jest-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Dashboard from "./Dashboard";
 import api, { dashboardAPI, insightsAPI, loansAPI, tasksAPI } from "../services/api";
-
-// Mock lucide-react broadly because Dashboard renders child widgets that import
-// many icons directly.
-jest.mock("lucide-react", () => {
-  const React = require("react");
-  const MockIcon = (props) => <svg data-testid="icon" {...props} />;
-
-  return new Proxy(
-    { __esModule: true },
-    {
-      get: (target, prop) => target[prop] || MockIcon,
-    },
-  );
-});
 
 const renderWithQueryClient = (ui) => {
   const queryClient = new QueryClient({
@@ -100,11 +87,11 @@ describe("Dashboard Component - Loading State", () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     api.get.mockResolvedValue({ data: [] });
     tasksAPI.getAll.mockResolvedValue({ data: [] });
     insightsAPI.getWeeklySummary.mockResolvedValue({ data: null });
-    // CRA memasang resetMocks:true → implementasi dari jest.mock() factory dihapus
+    // Vitest memasang mockReset:true → implementasi dari vi.mock() factory dihapus
     // tiap test. Jadi default-nya HARUS dipasang di sini, bukan di factory.
     insightsAPI.getRestock.mockResolvedValue({ data: { items: [] } });
     insightsAPI.getDormant.mockResolvedValue({ data: { items: [] } });
@@ -114,12 +101,12 @@ describe("Dashboard Component - Loading State", () => {
       unobserve() {}
       disconnect() {}
     };
-    window.matchMedia = jest.fn().mockReturnValue({
+    window.matchMedia = vi.fn().mockReturnValue({
       matches: true,
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
     });
   });
 
@@ -131,10 +118,10 @@ describe("Dashboard Component - Loading State", () => {
     });
     dashboardAPI.getStats.mockReturnValue(apiPromise);
 
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     renderWithQueryClient(<Dashboard isDarkMode={false} isSidebarOpen={true} />);
-    act(() => { jest.runAllTimers(); });
-    jest.useRealTimers();
+    act(() => { vi.runAllTimers(); });
+    vi.useRealTimers();
 
     // Check if skeletons are present
     // Based on Dashboard.jsx, there should be 4 stats card skeletons

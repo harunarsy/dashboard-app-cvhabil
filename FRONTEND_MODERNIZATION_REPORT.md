@@ -24,3 +24,22 @@ Strategi: staged, reversible, dan parity-gated
 | Static manifest served | PASS |
 
 Vite memperingatkan adanya chunk di atas 500 kB, terutama Three.js. Ini pre-existing bundle characteristic dan bukan parity blocker; optimasi chunk dicatat untuk audit performa, bukan dicampur ke migrasi build tool.
+
+## 4B — Vitest
+
+- Test runner default dipindah dari Jest milik `react-scripts` ke Vitest 4 dengan environment JSDOM.
+- Lima file test yang berisi JSX memakai ekstensi `.jsx`; dua test utility tanpa JSX tetap `.js`.
+- Mock dikonversi ke `vi` dan bentuk ESM eksplisit. Mock Proxy untuk Lucide dihapus agar test merender komponen ikon asli.
+- `mockReset` dan `clearMocks` dipertahankan untuk menjaga isolasi antartest.
+- `jsdom@29` dipilih karena masih mendukung baseline Node 20.20.2; major terbaru membutuhkan runtime yang lebih baru.
+
+### Gate 4B
+
+| Check | Hasil |
+|---|---|
+| Vitest / Node 20 | PASS — 7 file / 16 test |
+| Vitest / Node 24 | PASS — 7 file / 16 test |
+| `bun run test` | PASS — 7 file / 16 test |
+| CI test command | `npm test` tanpa flag Jest/CRA |
+
+Setup test menyediakan Web Storage double eksplisit agar JSDOM deterministik ketika script diluncurkan melalui Node maupun Bun. Setup Jest lama belum dihapus karena CRA build masih dipertahankan sampai gate removal 4D.
