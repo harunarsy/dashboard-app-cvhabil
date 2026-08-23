@@ -1,6 +1,6 @@
 # AGENTS.md - Instructions for AI Assistants (Habil SuperApp)
 
-Welcome, Agent. You are assisting with the **Habil SuperApp**, a real-time business dashboard for Invoices, Orders, Inventory, and Financials.
+Welcome, Agent. You are assisting with the **Habil SuperApp**, an integrated business dashboard for Invoices, Orders, Inventory, and Financials.
 
 ## 🧠 How To Respond (Owner's Standing Rule — Highest Priority)
 
@@ -19,7 +19,7 @@ Welcome, Agent. You are assisting with the **Habil SuperApp**, a real-time busin
 - **Frontend:** React 19 (located in `/frontend`)
 - **Backend:** Node.js + Express 5.x (located in `/backend`)
 - **Database:** PostgreSQL 17 (Neon.tech/Supabase)
-- **Real-time:** Socket.io
+- **Transport:** REST/HTTP request-response; no active WebSocket layer
 - **Design Language:** Apple Human Interface Guidelines (HIG) - Premium, minimalis, responsif.
 
 ## 🚀 Setup & Development Commands
@@ -50,7 +50,7 @@ Welcome, Agent. You are assisting with the **Habil SuperApp**, a real-time busin
     | `frontend/src/index.js` | lines ~11,15,16 | `<p>` text + `document.title` + comment |
     | `CHANGELOG.md` | top of file | add new `## [vX.X.XX-stable]` section |
 
-    **Current tracking:** `v1.3.x`
+    **Current tracking:** `v1.66.x`
 4.  **Critical Error Logging:** If you encounter a system-breaking error (e.g., "Relation missing"), you MUST log the findings into `FEEDBACK_LOG.md` BEFORE applying a fix.
 5.  **Design Standard:** Always prioritize Apple HIG principles: subtle gradients, high-quality typography (Inter/Roboto), and smooth micro-animations.
 

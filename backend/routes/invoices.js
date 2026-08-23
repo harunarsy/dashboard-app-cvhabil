@@ -917,7 +917,6 @@ router.post('/', auth, async (req, res) => {
     }
 
     const final = await pool.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
-    if (global.io) global.io.emit('invoiceCreated', final.rows[0]);
     res.status(201).json({ invoice: final.rows[0], items: invoiceItems, unmatchedProducts: [] });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -1197,7 +1196,6 @@ router.put('/:id', auth, async (req, res) => {
       }
     }
 
-    if (global.io) global.io.emit('invoiceUpdated', result.rows[0]);
     res.json({ ...result.rows[0], unmatchedProducts: [] });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -1227,7 +1225,6 @@ router.patch('/:id/payment-status', auth, async (req, res) => {
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Faktur tidak ditemukan' });
     await logAudit(req.params.id, result.rows[0].invoice_number, 'PAYMENT_STATUS', { status, payment_date: payDate });
-    if (global.io) global.io.emit('invoiceUpdated', result.rows[0]);
     res.json({ ...result.rows[0], unmatchedProducts: [] });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -1339,7 +1336,6 @@ router.delete('/:id', auth, async (req, res) => {
       'UPDATE invoices SET deleted_at = NOW() WHERE id = $1 RETURNING *', [req.params.id]
     );
     await client.query('COMMIT');
-    if (global.io) global.io.emit('invoiceDeleted', { id: req.params.id });
     res.json({ message: 'Moved to trash', invoice: result.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');

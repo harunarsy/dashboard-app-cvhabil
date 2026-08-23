@@ -1,9 +1,9 @@
 # 🧠 HABIL SUPERAPP — Source of Truth
 
-> **Current Version: v1.66.8-stable
-> System Version: v1.66.8-stable
+> **Current Version: v1.66.18-stable
+> System Version: v1.66.18-stable
 > Status: PROD-STABLE
-> **VERSI SISTEM\\*\\*: v1.66.8-stable
+> **VERSI SISTEM\\*\\*: v1.66.18-stable
 
 > **CREDENTIALS (LOKAL):** Lihat `CREDENTIALS.local.md` di root project untuk semua akses: DB URL, JWT, Vercel, GitHub. File ini hanya ada di lokal (tidak di-commit).
 
@@ -12,7 +12,7 @@
 ## 1. SYSTEM OVERVIEW
 
 **Nama Sistem:** HABIL SUPERAPP  
-**Core Identity:** Real-time business dashboard (Invoice, Orders, Inventory, Financials).  
+**Core Identity:** Integrated business dashboard (Invoice, Orders, Inventory, Financials).
 **Design Language:** Premium SaaS dashboard language (Stripe / Linear inspired) — solid, minimalis, dan responsif.
 
 ### Tech Stack
@@ -20,7 +20,7 @@
 - **Frontend:** React 19 (Vercel)
 - **Backend:** Node.js + Express 5.x (Vercel)
 - **Database:** PostgreSQL 17 (Neon.tech - Singapore Region)
-- **Real-time:** Socket.io
+- **Transport:** REST/HTTP request-response; no active WebSocket layer
 - **Auth:** JWT (4h Session)
 
 ### Production URLs

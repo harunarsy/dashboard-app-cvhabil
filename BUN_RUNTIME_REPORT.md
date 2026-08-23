@@ -1,5 +1,7 @@
 # Fase 3 — Backend Bun Runtime Pilot
 
+> Historical note: Socket.io compatibility below was measured during Fase 3. Socket.io was removed in Fase 5 (`v1.66.18-stable`) after repository-wide verification found no frontend consumer.
+
 Tanggal: 2026-08-23  
 Branch: `codex/bun-modernization-audit`  
 Runtime pembanding: Node.js `v20.20.2` dan Bun `1.4.0`

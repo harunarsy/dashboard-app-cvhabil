@@ -38,9 +38,6 @@ require.cache[databasePath] = {
   },
 };
 
-// Mock global.io before importing app
-global.io = { emit: () => {} };
-
 const app = require('../app');
 
 let passed = 0;

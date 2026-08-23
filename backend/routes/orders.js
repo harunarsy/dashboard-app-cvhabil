@@ -32,11 +32,6 @@ router.post('/', auth, async (req, res) => {
       [order_number, customer_name, customer_email, total_amount, 'pending']
     );
     
-    // Emit real-time update to all connected clients
-    if (global.io) {
-      global.io.emit('orderCreated', result.rows[0]);
-    }
-    
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('Create order error:', err);
@@ -61,10 +56,6 @@ router.put('/:id', auth, async (req, res) => {
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Order not found' });
-    }
-    
-    if (global.io) {
-      global.io.emit('orderUpdated', result.rows[0]);
     }
     
     res.json(result.rows[0]);

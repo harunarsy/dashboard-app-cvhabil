@@ -599,7 +599,6 @@ router.put('/batches/:id', auth, async (req, res) => {
       );
       if (syncedRows) console.log(`[inventory] batch ${after.id} disinkron ke ${syncedRows} baris nota`);
     }
-    if (global.io) global.io.emit('inventoryBatchUpdated', { product_id: after.product_id, batch_id: after.id });
     res.json(after);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -634,7 +633,6 @@ router.delete('/batches/:id', auth, async (req, res) => {
     }
     await client.query('UPDATE inventory_batches SET is_active = FALSE WHERE id = $1', [req.params.id]);
     await client.query('COMMIT');
-    if (global.io) global.io.emit('inventoryBatchUpdated', { product_id: batch.product_id, batch_id: batch.id });
     res.json({ message: 'Batch dihapus' });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -668,7 +666,6 @@ router.post('/batches/:id/adjust', auth, async (req, res) => {
       [batch.product_id, batch.id, diff > 0 ? 'in' : 'out', Math.abs(diff), `Adjust: ${oldQty} → ${newQty}. ${reason}`, req.user?.id || null]
     );
     await client.query('COMMIT');
-    if (global.io) global.io.emit('inventoryBatchUpdated', { product_id: batch.product_id, batch_id: batch.id });
     res.json({ message: `Adjustment ${diff > 0 ? '+' : ''}${diff} berhasil`, batch: { ...batch, qty_current: newQty } });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -749,7 +746,6 @@ router.post('/opname', auth, async (req, res) => {
   try {
     await client.query('BEGIN');
     const results = [];
-    const touchedProducts = new Set();
 
     for (const item of items) {
       const physicalQty = parseInt(item.physical_qty) || 0;
@@ -781,7 +777,6 @@ router.post('/opname', auth, async (req, res) => {
              req.user?.id || null]
           );
         }
-        touchedProducts.add(batch.product_id);
         continue;
       }
 
@@ -828,12 +823,8 @@ router.post('/opname', auth, async (req, res) => {
           }
         }
       }
-      touchedProducts.add(item.product_id);
     }
     await client.query('COMMIT');
-    if (global.io) {
-      for (const pid of touchedProducts) global.io.emit('inventoryBatchUpdated', { product_id: pid });
-    }
     res.status(201).json(results);
   } catch (err) {
     await client.query('ROLLBACK');

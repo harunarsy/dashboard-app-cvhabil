@@ -5,7 +5,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
-const { Server } = require('socket.io');
 const XLSX = require('xlsx');
 
 let passed = 0;
@@ -39,13 +38,10 @@ async function test(name, fn) {
     await pool.end();
   });
 
-  await test('Socket.io attaches to and closes an HTTP server', async () => {
-    const server = http.createServer();
-    const io = new Server(server, { serveClient: false });
-    assert.strictEqual(typeof io.on, 'function');
-    assert.strictEqual(typeof io.emit, 'function');
+  await test('HTTP server starts and closes cleanly', async () => {
+    const server = http.createServer((_req, res) => res.end('ok'));
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-    await new Promise((resolve) => io.close(resolve));
+    await new Promise((resolve) => server.close(resolve));
   });
 
   await test('XLSX workbook write/read round-trip', () => {

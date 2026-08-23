@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.18-stable] - 2026-08-23
+
+### Dihapus
+- **Socket.io dicabut dari backend setelah inventory membuktikan tidak ada frontend consumer.** Inisialisasi server, 10 emitter, test mock, compatibility contract lama, dependency langsung, dan 21 package transitif telah dihapus; sistem kini eksplisit memakai REST/HTTP.
+
+### Diverifikasi
+- Node 20 dan Bun masing-masing lulus HTTP smoke 14/14, compatibility 5/5, route regression 18/18, startup/health smoke, serta DB regression read-only dengan baseline tetap 15 pass dan tiga known failure.
+
 ## [v1.66.17-stable] - 2026-08-23
 
 ### Ditingkatkan

@@ -1,8 +1,8 @@
 # HABIL SUPERAPP
 
-Dashboard bisnis real-time untuk mengelola faktur, nota penjualan, stok, dan keuangan CV Habil Sejahtera Bersama.
+Dashboard bisnis terintegrasi untuk mengelola faktur, nota penjualan, stok, dan keuangan CV Habil Sejahtera Bersama.
 
-- **Versi**: v1.66.17-stable (23 Agustus 2026)
+- **Versi**: v1.66.18-stable (23 Agustus 2026)
 - **Status**: Production-stable
 
 ---
@@ -12,10 +12,10 @@ Dashboard bisnis real-time untuk mengelola faktur, nota penjualan, stok, dan keu
 | Aspek | Detail |
 |-------|--------|
 | **Frontend** | React 19, Vite 8, Tailwind CSS 4 lokal, React Router v7, Axios, Recharts, jsPDF |
-| **Backend** | Node.js + Express 5, PostgreSQL (via `pg`), Socket.io, JWT auth |
+| **Backend** | Node.js + Express 5, PostgreSQL (via `pg`), JWT auth |
 | **Database** | PostgreSQL 17 (Neon.tech, Singapore region) |
 | **Deploy** | Frontend: Vercel (`habil-dashboard.vercel.app`), Backend: Vercel (`habil-backend.vercel.app`) |
-| **Real-time** | Socket.io untuk emisi event (`invoiceCreated`, `invoiceUpdated`, `inventoryMutated`, dll) |
+| **Transport** | REST/HTTP request-response; tidak ada channel WebSocket aktif |
 
 ---
 

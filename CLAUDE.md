@@ -58,14 +58,14 @@ so each machine can differ; always read the startup log, not this doc.)
 
 ### Stack
 - **Frontend**: React 19, Vite 8, Tailwind CSS 4, React Router v7, Axios, Recharts, jsPDF
-- **Backend**: Node.js + Express 5, `pg` (PostgreSQL pool), Socket.io, JWT auth
+- **Backend**: Node.js + Express 5, `pg` (PostgreSQL pool), JWT auth
 - **DB**: PostgreSQL on Neon.tech (Singapore). Prod uses `DATABASE_URL`; local uses individual `DB_*` env vars.
 - **Deploy**: Frontend → Vercel (`habil-dashboard.vercel.app`). Backend → Vercel (`habil-backend.vercel.app`).
 
 ### Backend patterns
 - **Schema migration**: Each route file calls `ensureSchema()` on startup via `ALTER TABLE IF NOT EXISTS`. No migration runner needed — schema evolves in-place.
 - **Auth**: All routes use `middleware/auth.js` (JWT Bearer). Token decoded client-side for user state; 4-hour session (default `JWT_EXPIRE`, owner decision 19 Jun 2026).
-- **Real-time**: `global.io` emits events (`invoiceCreated`, `invoiceUpdated`, `invoiceDeleted`, etc.) after mutations.
+- **Transport**: REST/HTTP request-response. There is no active Socket.io/WebSocket layer; clients refresh data through API fetch/refetch flows.
 - **Env loading**: `server.js` auto-loads `.env.dev` if on `dev` git branch, else `.env`.
 
 ### Frontend patterns

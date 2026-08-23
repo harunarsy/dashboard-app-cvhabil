@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.17-stable",
+    version: "v1.66.18-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Backend lebih ringan setelah Socket.io dan seluruh emitter tanpa consumer dihapus; komunikasi aplikasi kini eksplisit melalui REST/HTTP.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.17-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",
