@@ -14,13 +14,13 @@ const {
 
 loadRuntimeEnv({ baseDir: path.join(__dirname, '..'), context: 'backend/test-route-regression' });
 ensureDbTargetSafety({ context: 'backend/test-route-regression', allowProdLocal: false, allowProdSmoke: true });
-const { Pool } = require('pg');
 const assert = require('assert');
+const { createReadOnlyPool } = require('./read-only-pool');
 
-const pool = new Pool({
+const pool = createReadOnlyPool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
-});
+}, { context: 'backend/test-route-regression' });
 
 let passed = 0;
 let failed = 0;

@@ -99,7 +99,7 @@ const ensureSchema = async () => {
     );
   `).catch(() => {});
 };
-ensureSchema().catch((e) => console.error('marketplace ensureSchema:', e.message));
+if (process.env.NODE_ENV !== 'test') ensureSchema().catch((e) => console.error('marketplace ensureSchema:', e.message));
 
 // ── helper matching ────────────────────────────────────────────────────────
 const normKey = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();

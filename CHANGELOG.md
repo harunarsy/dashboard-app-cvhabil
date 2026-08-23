@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.9-stable] - 2026-08-23
+
+### Diperbaiki
+- **HTTP smoke test tidak lagi memicu DDL marketplace.** `ensureSchema()` pada route marketplace kini dilewati ketika `NODE_ENV=test`, sehingga baseline test dapat berjalan dengan kebijakan database read-only tanpa mengubah logic schema pada runtime normal.
+
+### Catatan
+- Tidak ada query DDL atau perubahan database yang dijalankan. Pemindahan schema initialization ke migration/deployment step eksplisit dicatat sebagai pekerjaan jangka panjang dan tidak dikerjakan pada rilis ini.
+
 ## [v1.66.8-stable] - 2026-08-18
 
 ### Diperbaiki

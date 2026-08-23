@@ -1,5 +1,12 @@
 # Feedback Log
 
+## [2026-08-23] - Modernization Phase 0 Hard Stop
+- **Import HTTP smoke mencoba DDL database**: saat `backend/scripts/test-route-http.js` mengimpor aplikasi, `backend/routes/marketplace.js` langsung menjalankan `ensureSchema()` tanpa guard `NODE_ENV=test`.
+- **Query yang dicoba**: beberapa `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, dan `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` pada tabel marketplace.
+- **Proteksi berhasil**: test memakai DB mock fail-closed; query diblokir sebelum koneksi PostgreSQL dibuat. Tidak ada database write atau schema change yang terjadi.
+- **Dampak**: strict read-only roadmap memasuki HARD STOP sebelum DB regression baseline dijalankan.
+- **Perbaikan minimal**: `ensureSchema()` tidak dijalankan ketika `NODE_ENV=test`; seluruh Phase 0 kemudian diulang dan HTTP smoke membuktikan nol mutating-query attempt. Schema lifecycle jangka panjang tetap dicatat untuk dipindahkan ke migration/deployment step eksplisit, tetapi tidak dikerjakan pada fase ini.
+
 ## [2026-08-18] - v1.66.8 Data Integrity
 - **Batch pilihan pada Edit Nota tertimpa batch lama ketika HPP sama**: pada `HSB-NOTA-2608032`, form mengirim batch `26Q1102GU`, `26T0205GU`, dan `26R2004GU`, tetapi setelah disimpan data berubah menjadi `26T0205GU`, `26Q1102GU`, dan `26T0205GU`.
 - **Akar masalah**: `PUT /sales/:id` menulis ulang snapshot batch lama dengan pencocokan `produk + satuan + HPP`. Kombinasi ini tidak unik karena batch berbeda dapat memiliki HPP yang sama.

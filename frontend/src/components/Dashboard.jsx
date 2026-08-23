@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.66.9-stable",
+    date: "23 Agustus 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "HTTP smoke test kini melewati schema initialization marketplace agar baseline berjalan dalam mode database read-only.",
+      },
+    ],
+  },
+  {
     version: "v1.66.8-stable",
     date: "18 Agustus 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",

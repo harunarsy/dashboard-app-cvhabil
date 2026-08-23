@@ -14,6 +14,30 @@ loadRuntimeEnv({ baseDir: path.join(__dirname, '..'), context: 'backend/test-rou
 const supertest = require('supertest');
 const assert = require('assert');
 
+// HTTP smoke tests only validate middleware/route contracts. Keep them fully
+// DB-isolated so an accidental route change cannot mutate any environment.
+const databasePath = require.resolve('../config/database');
+let blockedDbMutations = 0;
+const readOnlyQueryMock = async (query) => {
+  const sql = typeof query === 'string' ? query : query?.text;
+  if (sql && !/^\s*(select|show|with)\b/i.test(sql)) {
+    blockedDbMutations += 1;
+    throw new Error(`[DB Read-Only Guard] HTTP smoke blocked query: ${sql.split(/\s+/)[0]}`);
+  }
+  return { rows: [], rowCount: 0 };
+};
+
+require.cache[databasePath] = {
+  id: databasePath,
+  filename: databasePath,
+  loaded: true,
+  exports: {
+    query: readOnlyQueryMock,
+    connect: async () => ({ query: readOnlyQueryMock, release: () => {} }),
+    on: () => {},
+  },
+};
+
 // Mock global.io before importing app
 global.io = { emit: () => {} };
 
@@ -111,6 +135,10 @@ async function run() {
         `Route ${url} should be mounted (not 404 or 500), got ${res.status}`);
     });
   }
+
+  await test('No mutating DB query attempted during import or HTTP smoke', async () => {
+    assert.strictEqual(blockedDbMutations, 0, `Blocked ${blockedDbMutations} mutating DB query attempt(s)`);
+  });
 
   // ─── Summary ───
   console.log(`\n═══ Results: ${passed} PASSED, ${failed} FAILED ═══\n`);
