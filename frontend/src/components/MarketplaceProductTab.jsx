@@ -279,7 +279,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
   );
 
   const btn = (kids, onClick, opts = {}) => (
-    <button onClick={onClick} disabled={opts.disabled} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 40, padding: opts.primary ? '9px 16px' : '9px 14px', backgroundColor: opts.primary ? 'var(--color-primary)' : (isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)'), color: opts.primary ? '#FFF' : text, border: opts.primary ? 'none' : `1px solid ${border}`, borderRadius: 10, cursor: opts.disabled ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 13, opacity: opts.disabled ? 0.5 : 1 }}>{kids}</button>
+    <button onClick={onClick} disabled={opts.disabled} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 40, padding: opts.primary ? '9px 16px' : '9px 14px', backgroundColor: opts.primary ? 'var(--color-action)' : (isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)'), color: opts.primary ? '#FFF' : text, border: opts.primary ? 'none' : `1px solid ${border}`, borderRadius: 10, cursor: opts.disabled ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 13, opacity: opts.disabled ? 0.5 : 1 }}>{kids}</button>
   );
 
   return (
@@ -293,7 +293,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {stores.map((s) => (
-            <div key={s.id} onClick={() => openStore(s)} className="ui-motion-card" style={{ cursor: 'pointer', padding: '10px 14px', borderRadius: 12, border: `1.5px solid ${storeId === s.id && !hasBuffer ? 'var(--color-primary)' : border}`, backgroundColor: cardBg, minWidth: 150, position: 'relative' }}>
+            <div key={s.id} onClick={() => openStore(s)} className="ui-motion-card" style={{ cursor: 'pointer', padding: '10px 14px', borderRadius: 12, border: `1.5px solid ${storeId === s.id && !hasBuffer ? 'var(--color-action)' : border}`, backgroundColor: cardBg, minWidth: 150, position: 'relative' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: text }}>{s.name}</span>
                 <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6, color: '#fff', backgroundColor: PLAT_COLOR[s.platform] || sub }}>{PLATFORM_LABEL[s.platform] || s.platform}</span>
@@ -301,7 +301,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
               <div style={{ fontSize: 11, color: sub, marginTop: 3 }}>{s.listing_count} produk · {s.matched_count} cocok</div>
             </div>
           ))}
-          <button onClick={() => fileRef.current?.click()} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 16px', borderRadius: 12, border: `1.5px dashed ${border}`, backgroundColor: 'transparent', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+          <button onClick={() => fileRef.current?.click()} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 16px', borderRadius: 12, border: `1.5px dashed ${border}`, backgroundColor: 'transparent', color: 'var(--color-action)', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
             <Upload size={15} /> Toko baru / upload file
           </button>
         </div>
@@ -327,7 +327,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {statChip('Produk', stats.total)}
               {statChip('Cocok', stats.matched, 'var(--color-success)')}
-              {statChip('Auto (cek)', stats.auto, stats.auto ? '#8B5CF6' : sub)}
+              {statChip('Auto (cek)', stats.auto, stats.auto ? 'var(--color-info)' : sub)}
               {statChip('Belum dipetakan', stats.unmatched, stats.unmatched ? 'var(--color-danger)' : sub)}
               {statChip('Perlu naik harga', stats.needUp, stats.needUp ? '#F59E0B' : sub)}
               {statChip('HPP kosong', stats.noHpp, stats.noHpp ? '#F59E0B' : sub)}
@@ -369,9 +369,9 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
                         {m ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: text }}>
-                              {m.auto ? <Sparkles size={13} color="#8B5CF6" /> : <CheckCircle2 size={14} color="var(--color-success)" />} {m.name}
+                              {m.auto ? <Sparkles size={13} color="var(--color-info)" /> : <CheckCircle2 size={14} color="var(--color-success)" />} {m.name}
                             </span>
-                            <button onClick={() => setMapRow(r)} style={{ alignSelf: 'flex-start', fontSize: 11, color: m.auto ? '#8B5CF6' : sub, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>{m.auto ? 'auto — cek / ganti' : 'ganti'}</button>
+                            <button onClick={() => setMapRow(r)} style={{ alignSelf: 'flex-start', fontSize: 11, color: m.auto ? 'var(--color-info)' : sub, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>{m.auto ? 'auto — cek / ganti' : 'ganti'}</button>
                           </div>
                         ) : (r.suggestions && r.suggestions.length ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -388,7 +388,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
                       <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
                         {m ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <input type="number" value={m.hpp_incl ?? ''} onChange={(e) => setHppOverride(r, e.target.value)} title="HPP per unit (bisa dikoreksi manual)" style={{ ...inputStyle, width: 92, color: m.hpp_source === 'override' ? '#8B5CF6' : text, fontWeight: m.hpp_source === 'override' ? 700 : 400 }} />
+                            <input type="number" value={m.hpp_incl ?? ''} onChange={(e) => setHppOverride(r, e.target.value)} title="HPP per unit (bisa dikoreksi manual)" style={{ ...inputStyle, width: 92, color: m.hpp_source === 'override' ? 'var(--color-info)' : text, fontWeight: m.hpp_source === 'override' ? 700 : 400 }} />
                             <span style={{ fontSize: 9, color: sub }}>{m.hpp_source === 'override' ? 'manual' : (m.hpp_source === 'master' ? 'dari master' : 'dari batch')}{m.bundle_qty && m.bundle_qty !== 1 ? ` · ×${m.bundle_qty} = ${fmtRp(m.hpp_bundle)}` : ''}</span>
                           </div>
                         ) : '—'}
@@ -402,10 +402,10 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
                       <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
                         {m ? (m.no_hpp ? <span style={{ fontSize: 11, color: '#F59E0B' }}>lengkapi HPP dulu</span> : (
                           <div>
-                            <div style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{fmtRp(m.recommended_price)}</div>
+                            <div style={{ fontWeight: 700, color: 'var(--color-action)' }}>{fmtRp(m.recommended_price)}</div>
                             <div style={{ fontSize: 10, color: sub }}>laba {fmtRp(m.estimasi_laba)} · {m.margin_laba}%</div>
                             {m.price_source && (
-                              <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 5, color: '#fff', background: m.price_source === 'pasar' ? 'var(--color-success)' : (m.price_source === 'cek' ? '#F59E0B' : 'var(--color-primary)') }}>
+                              <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 5, color: '#fff', background: m.price_source === 'pasar' ? 'var(--color-success)' : (m.price_source === 'cek' ? '#F59E0B' : 'var(--color-action)') }}>
                                 {m.price_source === 'pasar' ? 'harga pasar' : (m.price_source === 'cek' ? 'CEK (mungkin ecer)' : 'batas untung')}
                               </span>
                             )}
@@ -419,7 +419,7 @@ export default function MarketplaceProductTab({ isDarkMode, isMobile, flash }) {
                           <div style={{ display: 'flex', gap: 6, marginTop: 4, alignItems: 'center' }}>
                             <input type="number" placeholder="%" title="Ketik target margin %, Enter → harga otomatis (dibulatkan rapi)" defaultValue="" onKeyDown={(e) => { if (e.key === 'Enter') { applyMargin(r, e.target.value); } }} onBlur={(e) => { if (e.target.value !== '') applyMargin(r, e.target.value); }} style={{ ...inputStyle, width: 40, padding: '4px 5px', fontSize: 11 }} />
                             <button onClick={() => applyBand(r, 'bawah')} title="Batas untung (paling murah, masih untung)" className="ui-focus-ring" style={{ width: 34, height: 34, borderRadius: 6, border: `1px solid ${border}`, background: 'transparent', color: sub, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>↧</button>
-                            <button onClick={() => applyBand(r, 'tengah')} title="Harga rekomendasi" className="ui-focus-ring" style={{ width: 34, height: 34, borderRadius: 6, border: `1px solid ${border}`, background: 'transparent', color: 'var(--color-primary)', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>=</button>
+                            <button onClick={() => applyBand(r, 'tengah')} title="Harga rekomendasi" className="ui-focus-ring" style={{ width: 34, height: 34, borderRadius: 6, border: `1px solid ${border}`, background: 'transparent', color: 'var(--color-action)', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>=</button>
                             <button onClick={() => applyBand(r, 'atas')} title="Margin sehat (~18%)" className="ui-focus-ring" style={{ width: 34, height: 34, borderRadius: 6, border: `1px solid ${border}`, background: 'transparent', color: 'var(--color-success)', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>↥</button>
                           </div>
                         )}
@@ -495,7 +495,7 @@ function MapModal({ row, products, isDarkMode, onClose, onMap }) {
                 <input type="number" min={1} value={isi} onChange={(e) => setIsi(Math.max(1, parseInt(e.target.value, 10) || 1))} style={{ ...inputStyle, width: 70, padding: '6px 8px' }} />
                 <span>→ jual</span>
                 <input type="number" min={1} value={qtyJual} onChange={(e) => setQtyJual(Math.max(1, parseInt(e.target.value, 10) || 1))} style={{ ...inputStyle, width: 70, padding: '6px 8px' }} />
-                <span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>= HPP ×{effBundle}</span>
+                <span style={{ color: 'var(--color-action)', fontWeight: 700 }}>= HPP ×{effBundle}</span>
               </div>
             )}
           </div>

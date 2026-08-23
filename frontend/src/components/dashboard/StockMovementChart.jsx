@@ -133,7 +133,7 @@ export default function StockMovementChart({
         />
         <Tooltip
           content={tooltipContent}
-          cursor={{ stroke: "var(--color-primary)", strokeWidth: 1, strokeDasharray: "4 4" }}
+          cursor={{ stroke: "var(--color-action)", strokeWidth: 1, strokeDasharray: "4 4" }}
         />
         <Line
           type="monotone"

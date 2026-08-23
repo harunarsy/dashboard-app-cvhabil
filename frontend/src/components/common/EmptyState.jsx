@@ -17,8 +17,8 @@ const frameStyle = (compact) => ({
   placeItems: "center",
   borderRadius: "28px",
   background:
-    "radial-gradient(circle at top left, var(--color-primary-soft) 0%, transparent 65%)",
-  color: "var(--color-primary)",
+    "radial-gradient(circle at top left, var(--color-selection) 0%, transparent 65%)",
+  color: "var(--color-action)",
 });
 
 const svgProps = (compact) => ({
@@ -30,7 +30,7 @@ const svgProps = (compact) => ({
 });
 
 const BoxIcon = ({ compact }) => (
-  <svg {...svgProps(compact)} style={{ color: "var(--color-primary)" }}>
+  <svg {...svgProps(compact)} style={{ color: "var(--color-action)" }}>
     <rect x="28" y="40" width="84" height="58" rx="14" {...iconStroke} />
     <path d="M38 55l32-16 32 16-32 16-32-16Z" {...iconStroke} />
     <path d="M70 71v27" {...iconStroke} />
@@ -39,7 +39,7 @@ const BoxIcon = ({ compact }) => (
 );
 
 const InvoiceIcon = ({ compact }) => (
-  <svg {...svgProps(compact)} style={{ color: "var(--color-primary)" }}>
+  <svg {...svgProps(compact)} style={{ color: "var(--color-action)" }}>
     <path d="M40 24h44l16 16v72H40a8 8 0 0 1-8-8V32a8 8 0 0 1 8-8Z" {...iconStroke} />
     <path d="M84 24v16h16" {...iconStroke} />
     <path d="M52 60h36" {...iconStroke} />
@@ -49,7 +49,7 @@ const InvoiceIcon = ({ compact }) => (
 );
 
 const CartIcon = ({ compact }) => (
-  <svg {...svgProps(compact)} style={{ color: "var(--color-primary)" }}>
+  <svg {...svgProps(compact)} style={{ color: "var(--color-action)" }}>
     <circle cx="54" cy="95" r="6" {...iconStroke} />
     <circle cx="90" cy="95" r="6" {...iconStroke} />
     <path d="M30 34h14l8 44h42l10-28H49" {...iconStroke} />
@@ -59,7 +59,7 @@ const CartIcon = ({ compact }) => (
 );
 
 const ReceiptIcon = ({ compact }) => (
-  <svg {...svgProps(compact)} style={{ color: "var(--color-primary)" }}>
+  <svg {...svgProps(compact)} style={{ color: "var(--color-action)" }}>
     <path d="M42 24h56v86l-8-6-8 6-8-6-8 6-8-6-8 6V24Z" {...iconStroke} />
     <path d="M52 44h36" {...iconStroke} />
     <path d="M52 58h28" {...iconStroke} />
@@ -68,7 +68,7 @@ const ReceiptIcon = ({ compact }) => (
 );
 
 const UsersIcon = ({ compact }) => (
-  <svg {...svgProps(compact)} style={{ color: "var(--color-primary)" }}>
+  <svg {...svgProps(compact)} style={{ color: "var(--color-action)" }}>
     <circle cx="54" cy="54" r="14" {...iconStroke} />
     <path d="M30 96c0-13 11-24 24-24s24 11 24 24" {...iconStroke} />
     <circle cx="94" cy="58" r="10" {...iconStroke} />
@@ -77,7 +77,7 @@ const UsersIcon = ({ compact }) => (
 );
 
 const ChecklistIcon = ({ compact }) => (
-  <svg {...svgProps(compact)} style={{ color: "var(--color-primary)" }}>
+  <svg {...svgProps(compact)} style={{ color: "var(--color-action)" }}>
     <rect x="34" y="24" width="72" height="92" rx="16" {...iconStroke} />
     <path d="M50 48l6 6 10-12" {...iconStroke} />
     <path d="M50 70l6 6 10-12" {...iconStroke} />
@@ -89,17 +89,17 @@ const ChecklistIcon = ({ compact }) => (
 );
 
 const ChartIcon = ({ compact }) => (
-  <svg {...svgProps(compact)} style={{ color: "var(--color-primary)" }}>
+  <svg {...svgProps(compact)} style={{ color: "var(--color-action)" }}>
     <path d="M28 102h84" {...iconStroke} />
     <path d="M38 92V58" {...iconStroke} />
     <path d="M58 92V46" {...iconStroke} />
     <path d="M78 92V64" {...iconStroke} />
     <path d="M98 92V38" {...iconStroke} />
     <path d="M32 86l18-14 16 8 18-22 14 8" {...iconStroke} />
-    <circle cx="50" cy="72" r="3.5" fill="var(--color-primary-soft)" />
-    <circle cx="66" cy="80" r="3.5" fill="var(--color-primary-soft)" />
-    <circle cx="84" cy="58" r="3.5" fill="var(--color-primary-soft)" />
-    <circle cx="98" cy="66" r="3.5" fill="var(--color-primary-soft)" />
+    <circle cx="50" cy="72" r="3.5" fill="var(--color-selection)" />
+    <circle cx="66" cy="80" r="3.5" fill="var(--color-selection)" />
+    <circle cx="84" cy="58" r="3.5" fill="var(--color-selection)" />
+    <circle cx="98" cy="66" r="3.5" fill="var(--color-selection)" />
   </svg>
 );
 

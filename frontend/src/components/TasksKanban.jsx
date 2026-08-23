@@ -38,7 +38,7 @@ const COLUMNS = [
     id: "todo",
     label: "To Do",
     icon: Clock,
-    color: "var(--color-primary-hover)",
+    color: "var(--color-action-hover)",
   },
   {
     id: "doing",
@@ -132,7 +132,7 @@ const TasksKanban = ({ isDarkMode = false, isMobile = false }) => {
     "color-mix(in srgb, var(--color-border) 70%, transparent)";
   const text = "var(--color-text)";
   const sub = "var(--color-text-subtle)";
-  const accent = "var(--color-primary)";
+  const accent = "var(--color-action)";
   const danger = "var(--color-danger)";
   const dangerSoft = "var(--color-danger-soft)";
   useBodyScrollLock(showAddModal || showTrashModal || !!editingTask);

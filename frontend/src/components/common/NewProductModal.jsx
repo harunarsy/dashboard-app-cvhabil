@@ -210,14 +210,14 @@ export default function NewProductModal({
               width: "40px",
               height: "40px",
               borderRadius: "10px",
-              backgroundColor: "var(--color-primary-soft, rgba(59,130,246,0.15))",
+              backgroundColor: "var(--color-selection, rgba(59,130,246,0.15))",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
             }}
           >
-            <Package size={20} color="var(--color-primary, #3B82F6)" />
+            <Package size={20} color="var(--color-action, #3B82F6)" />
           </div>
           <h3
             id="new-product-modal-title"
@@ -267,7 +267,7 @@ export default function NewProductModal({
                     }}
                     style={{
                       border: "none",
-                      background: "var(--color-primary, #3B82F6)",
+                      background: "var(--color-action, #3B82F6)",
                       color: "#FFF",
                       borderRadius: "6px",
                       padding: "4px 8px",
@@ -407,7 +407,7 @@ export default function NewProductModal({
             style={{
               flex: 1,
               padding: "12px",
-              backgroundColor: "var(--color-primary, #3B82F6)",
+              backgroundColor: "var(--color-action, #3B82F6)",
               color: "#FFF",
               border: "none",
               borderRadius: "10px",

@@ -218,7 +218,7 @@ export default function DistributorList({
               gap: "6px",
               minHeight: "44px",
               padding: "10px 18px",
-              backgroundColor: "var(--color-primary)",
+              backgroundColor: "var(--color-action)",
               color: "#FFF",
               border: "none",
               borderRadius: "12px",
@@ -327,8 +327,8 @@ export default function DistributorList({
                           fontWeight: "700",
                           padding: "2px 8px",
                           borderRadius: "4px",
-                          backgroundColor: "var(--color-primary-soft)",
-                          color: "var(--color-primary)",
+                          backgroundColor: "var(--color-selection)",
+                          color: "var(--color-action)",
                         }}
                       >
                         <Tag size={10} /> {d.short_code}
@@ -354,7 +354,7 @@ export default function DistributorList({
                       className="ui-motion-button ui-focus-ring"
                       style={iconBtnStyle}
                     >
-                      <Icons.Edit2 size={16} color="var(--color-primary)" />
+                      <Icons.Edit2 size={16} color="var(--color-action)" />
                     </button>
                     <button
                       onClick={() => setDeleteConfirm({ name: d.name })}
@@ -394,7 +394,7 @@ export default function DistributorList({
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{
-                            color: "var(--color-primary)",
+                            color: "var(--color-action)",
                             textDecoration: "none",
                             fontWeight: 600,
                           }}
@@ -582,7 +582,7 @@ export default function DistributorList({
                       padding: "13px",
                       backgroundColor: isSaving
                         ? "var(--color-text-subtle)"
-                        : "var(--color-primary)",
+                        : "var(--color-action)",
                       color: "#FFF",
                       border: "none",
                       borderRadius: "10px",

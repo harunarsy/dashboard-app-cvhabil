@@ -250,7 +250,7 @@ export default function BulkEditModal({
                   borderRadius: "6px",
                   cursor: saving ? "wait" : "pointer",
                   background:
-                    mode === opt.key ? "var(--color-primary)" : "transparent",
+                    mode === opt.key ? "var(--color-action)" : "transparent",
                   color: mode === opt.key ? "#FFF" : sub,
                 }}
               >
@@ -503,7 +503,7 @@ export default function BulkEditModal({
                 style={{
                   padding: "10px 22px",
                   background:
-                    duplicates.length > 0 ? "#999" : "var(--color-primary)",
+                    duplicates.length > 0 ? "#999" : "var(--color-action)",
                   color: "#FFF",
                   border: "none",
                   borderRadius: "10px",

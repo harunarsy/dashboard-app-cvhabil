@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.23-stable",
+    version: "v1.67.0-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Sistem desain kini memakai token semantik untuk aksi, seleksi, fokus, informasi, dan status; komponen tidak lagi terikat pada doktrin vendor atau nama warna tertentu.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.23-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",
@@ -2964,7 +2975,7 @@ const RELEASES = [
       {
         type: "ui",
         text: "Tombol Simpan di modal Stok Masuk dulu hijau, sekarang biru — konsisten dgn semua tombol Simpan di modal lain (Edit Produk, Edit Batch). Warna hijau dipertahankan utk badge LUNAS/sukses, bukan tombol aksi.",
-        dev: "InventoryDashboard:761 primaryBtn(var(--color-success))→primaryBtn(var(--color-primary)) di Simpan Stok Masuk.",
+        dev: "InventoryDashboard:761 primaryBtn(var(--color-success))→primaryBtn(var(--color-action)) di Simpan Stok Masuk.",
       },
     ],
   },
@@ -4605,8 +4616,8 @@ export default function Dashboard({
     },
     fix: {
       label: "Fix",
-      color: "var(--color-primary)",
-      bg: "var(--color-primary-soft)",
+      color: "var(--color-action)",
+      bg: "var(--color-selection)",
     },
     feat: {
       label: "Fitur",
@@ -4615,8 +4626,8 @@ export default function Dashboard({
     },
     ui: {
       label: "UI/UX",
-      color: "var(--color-primary-hover)",
-      bg: "color-mix(in srgb, var(--color-primary-hover) 9%, transparent)",
+      color: "var(--color-action-hover)",
+      bg: "color-mix(in srgb, var(--color-action-hover) 9%, transparent)",
     },
     docs: {
       label: "Docs",
@@ -4925,7 +4936,7 @@ export default function Dashboard({
       : "var(--color-danger)";
   const channelColor = (channel) =>
     channel === "online"
-      ? "var(--color-primary)"
+      ? "var(--color-action)"
       : channel === "offline"
         ? "var(--color-text-subtle)"
         : "var(--color-warning)";
@@ -5030,12 +5041,12 @@ export default function Dashboard({
           <div>
             <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
-                <Sparkles size={18} style={{ color: "var(--color-primary)" }} />
+                <Sparkles size={18} style={{ color: "var(--color-action)" }} />
                 <h2 className="text-lg font-bold" style={{ color: text }}>
                   Ringkasan Minggu Ini
                 </h2>
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: "var(--color-primary-soft)", color: "var(--color-primary)" }}>
+                  style={{ backgroundColor: "var(--color-selection)", color: "var(--color-action)" }}>
                   Rule-based
                 </span>
               </div>
@@ -5212,7 +5223,7 @@ export default function Dashboard({
                 Saran Restock
               </h3>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: "var(--color-primary-soft)", color: "var(--color-primary)" }}>
+                style={{ backgroundColor: "var(--color-selection)", color: "var(--color-action)" }}>
                 Rule-based
               </span>
             </div>
@@ -5252,7 +5263,7 @@ export default function Dashboard({
                 <span className="text-[10.5px]" style={{ color: "var(--color-danger)" }}>{spDraft.msg}</span>
               )}
               <button onClick={() => navigate("/inventory")} className="text-xs font-semibold"
-                style={{ color: "var(--color-primary)" }}>
+                style={{ color: "var(--color-action)" }}>
                 Lihat semua →
               </button>
             </div>
@@ -5312,12 +5323,12 @@ export default function Dashboard({
                   Customer Perlu Follow-up
                 </h3>
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: "var(--color-primary-soft)", color: "var(--color-primary)" }}>
+                  style={{ backgroundColor: "var(--color-selection)", color: "var(--color-action)" }}>
                   Rule-based
                 </span>
               </div>
               <button onClick={() => navigate("/customers")} className="text-xs font-semibold"
-                style={{ color: "var(--color-primary)" }}>
+                style={{ color: "var(--color-action)" }}>
                 Lihat semua →
               </button>
             </div>
@@ -5588,7 +5599,7 @@ export default function Dashboard({
             </button>
             <div
               className="p-3 rounded-xl ml-1"
-              style={{ backgroundColor: "var(--color-primary-soft)", color: "var(--color-primary)" }}
+              style={{ backgroundColor: "var(--color-selection)", color: "var(--color-action)" }}
             >
               <BarChart3 size={22} />
             </div>
@@ -5639,7 +5650,7 @@ export default function Dashboard({
                 }
                 const intensity = Math.max(0, Math.min(1, cell.notaCount / maxHeatmapCount));
                 const fill = cell.notaCount
-                  ? `color-mix(in srgb, var(--color-primary) ${Math.round(18 + intensity * 52)}%, transparent)`
+                  ? `color-mix(in srgb, var(--color-action) ${Math.round(18 + intensity * 52)}%, transparent)`
                   : isDarkMode
                     ? "var(--color-surface-raised)"
                     : "var(--color-bg-subtle)";
@@ -5653,11 +5664,11 @@ export default function Dashboard({
                     style={{
                       backgroundColor: fill,
                       borderColor: isSelected
-                        ? "var(--color-primary)"
+                        ? "var(--color-action)"
                         : cell.notaCount
-                          ? "color-mix(in srgb, var(--color-primary) 26%, transparent)"
+                          ? "color-mix(in srgb, var(--color-action) 26%, transparent)"
                           : border,
-                      boxShadow: isSelected ? "0 0 0 2px var(--color-primary)" : undefined,
+                      boxShadow: isSelected ? "0 0 0 2px var(--color-action)" : undefined,
                       cursor: "pointer",
                     }}
                   >
@@ -5665,7 +5676,7 @@ export default function Dashboard({
                       {cell.dayLabel}
                     </span>
                     {cell.notaCount > 0 && (
-                      <span className="text-[11px] font-bold text-right leading-none" style={{ color: "var(--color-primary)" }}>
+                      <span className="text-[11px] font-bold text-right leading-none" style={{ color: "var(--color-action)" }}>
                         {cell.notaCount}
                       </span>
                     )}
@@ -5687,7 +5698,7 @@ export default function Dashboard({
           >
           <div
             className="rounded-2xl border p-4"
-            style={{ borderColor: "var(--color-primary-soft)", backgroundColor: isDarkMode ? "color-mix(in srgb, var(--color-primary) 8%, transparent)" : "var(--color-primary-soft)" }}
+            style={{ borderColor: "var(--color-selection)", backgroundColor: isDarkMode ? "color-mix(in srgb, var(--color-action) 8%, transparent)" : "var(--color-selection)" }}
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-semibold" style={{ color: text }}>
@@ -5750,8 +5761,8 @@ export default function Dashboard({
           <span className="inline-flex items-center gap-2">
             <span style={{ color: sub }}>Sepi</span>
             <span className="w-3 h-3 rounded-md border" title="Tidak ada / sedikit nota" style={{ backgroundColor: isDarkMode ? "var(--color-surface-raised)" : "var(--color-bg-subtle)", borderColor: border }} />
-            <span className="w-3 h-3 rounded-md border" title="Cukup banyak nota" style={{ backgroundColor: "color-mix(in srgb, var(--color-primary) 42%, transparent)", borderColor: "color-mix(in srgb, var(--color-primary) 30%, transparent)" }} />
-            <span className="w-3 h-3 rounded-md border" title="Paling ramai nota" style={{ backgroundColor: "color-mix(in srgb, var(--color-primary) 72%, transparent)", borderColor: "color-mix(in srgb, var(--color-primary) 48%, transparent)" }} />
+            <span className="w-3 h-3 rounded-md border" title="Cukup banyak nota" style={{ backgroundColor: "color-mix(in srgb, var(--color-action) 42%, transparent)", borderColor: "color-mix(in srgb, var(--color-action) 30%, transparent)" }} />
+            <span className="w-3 h-3 rounded-md border" title="Paling ramai nota" style={{ backgroundColor: "color-mix(in srgb, var(--color-action) 72%, transparent)", borderColor: "color-mix(in srgb, var(--color-action) 48%, transparent)" }} />
             <span style={{ color: sub }}>Ramai (makin ungu = makin banyak nota)</span>
           </span>
         </div>
@@ -5776,8 +5787,8 @@ export default function Dashboard({
             <div
               className="p-3 rounded-xl"
               style={{
-                backgroundColor: "var(--color-primary-soft)",
-                color: "var(--color-primary)",
+                backgroundColor: "var(--color-selection)",
+                color: "var(--color-action)",
               }}
             >
               <BarChart3 size={22} />
@@ -5977,8 +5988,8 @@ export default function Dashboard({
             <div
               className="p-3 rounded-xl"
               style={{
-                backgroundColor: "var(--color-primary-soft)",
-                color: "var(--color-primary)",
+                backgroundColor: "var(--color-selection)",
+                color: "var(--color-action)",
               }}
             >
               <Users size={22} />
@@ -6007,8 +6018,8 @@ export default function Dashboard({
                           <span
                             className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
                             style={{
-                              backgroundColor: "var(--color-primary-soft)",
-                              color: "var(--color-primary)",
+                              backgroundColor: "var(--color-selection)",
+                              color: "var(--color-action)",
                             }}
                           >
                             {idx + 1}
@@ -6027,7 +6038,7 @@ export default function Dashboard({
                       <div className="text-right shrink-0">
                         <div
                           className="flex items-center justify-end gap-1 text-sm font-bold"
-                          style={{ color: "var(--color-primary)" }}
+                          style={{ color: "var(--color-action)" }}
                         >
                           <TrendingUp size={14} />
                           {formatRupiah(row.spending)}
@@ -6052,7 +6063,7 @@ export default function Dashboard({
                         className="h-full rounded-full"
                         style={{
                           width: valueWidth,
-                          backgroundColor: "var(--color-primary)",
+                          backgroundColor: "var(--color-action)",
                         }}
                       />
                     </div>
@@ -6138,7 +6149,7 @@ export default function Dashboard({
             className="ui-motion-button ui-focus-ring w-full flex items-center justify-between gap-3 p-5 md:p-6 text-left"
           >
             <div className="flex items-center gap-2">
-              <ClipboardListIcon size={18} style={{ color: "var(--color-primary)" }} />
+              <ClipboardListIcon size={18} style={{ color: "var(--color-action)" }} />
               <h2 className="text-lg font-bold" style={{ color: text }}>
                 Manajemen Tugas
               </h2>
@@ -6187,7 +6198,7 @@ export default function Dashboard({
                 className="relative p-8 text-center"
                 style={{
                   background:
-                    "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)",
+                    "linear-gradient(135deg, var(--color-action) 0%, var(--color-action-hover) 100%)",
                 }}
               >
                 <button
@@ -6326,7 +6337,7 @@ export default function Dashboard({
                   data-magnetic="true"
                   style={{
                     background:
-                      "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)",
+                      "linear-gradient(135deg, var(--color-action) 0%, var(--color-action-hover) 100%)",
                   }}
                 >
                   Siap, Gas!
@@ -6411,11 +6422,11 @@ export default function Dashboard({
                               backgroundColor:
                                 rel.status === "latest"
                                   ? "var(--color-success-soft)"
-                                  : "var(--color-primary-soft)",
+                                  : "var(--color-selection)",
                               color:
                                 rel.status === "latest"
                                   ? "var(--color-success)"
-                                  : "var(--color-primary)",
+                                  : "var(--color-action)",
                             }}
                           >
                             {rel.status === "latest" ? "LATEST" : "STABLE"}
@@ -6474,7 +6485,7 @@ export default function Dashboard({
                                           }}
                                           className="text-[11px] font-semibold mt-1 hover:underline"
                                           style={{
-                                            color: "var(--color-primary)",
+                                            color: "var(--color-action)",
                                             background: "none",
                                             border: "none",
                                             padding: 0,

@@ -287,7 +287,7 @@ export default function PrintSettings({
               gap: "8px",
               minHeight: "44px",
               padding: "10px 20px",
-              backgroundColor: "var(--color-primary)",
+              backgroundColor: "var(--color-action)",
               color: "#FFF",
               border: "none",
               borderRadius: "10px",
@@ -652,7 +652,7 @@ export default function PrintSettings({
                       style={{
                         fontSize: "13px",
                         fontWeight: "800",
-                        color: "var(--color-primary)",
+                        color: "var(--color-action)",
                         marginBottom: "3px",
                       }}
                     >
@@ -696,7 +696,7 @@ export default function PrintSettings({
                 <div
                   style={{
                     height: "1.5px",
-                    backgroundColor: "var(--color-primary)",
+                    backgroundColor: "var(--color-action)",
                     marginBottom: "8px",
                     borderRadius: "2px",
                   }}
@@ -737,7 +737,7 @@ export default function PrintSettings({
                       {" "}
                       <tr
                         style={{
-                          backgroundColor: "var(--color-primary)",
+                          backgroundColor: "var(--color-action)",
                           color: "#FFF",
                         }}
                       >
@@ -945,7 +945,7 @@ export default function PrintSettings({
               >
                 {" "}
                 {[
-                  { color: "var(--color-primary)", label: "Nama Toko" },
+                  { color: "var(--color-action)", label: "Nama Toko" },
                   { color: "#555", label: "Alamat & Telepon" },
                   { color: "var(--color-danger)", label: "Ketentuan / Notes" },
                   { color: "#AEAEB2", label: "Footer / Catatan Kaki" },

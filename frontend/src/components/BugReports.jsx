@@ -45,8 +45,8 @@ const TYPE = {
   },
   feature: {
     label: "Fitur",
-    color: "var(--color-primary)",
-    bg: "var(--color-primary-soft)",
+    color: "var(--color-action)",
+    bg: "var(--color-selection)",
     icon: Lightbulb,
   },
 };
@@ -172,7 +172,7 @@ function BugCard({ bug, isDark, onStatusChange }) {
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  color: "var(--color-primary)",
+                  color: "var(--color-action)",
                   fontSize: "12px",
                   fontWeight: "600",
                   padding: 0,

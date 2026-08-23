@@ -170,8 +170,8 @@ function SuggestDrawer({ row, hpp, feeProfiles, isMobile, initialKey, onClose, o
           alignItems: "center",
           padding: "9px 12px",
           borderRadius: "10px",
-          backgroundColor: highlight ? "var(--color-primary-soft)" : "transparent",
-          border: highlight ? "1px solid var(--color-primary)" : `1px solid ${border}`,
+          backgroundColor: highlight ? "var(--color-selection)" : "transparent",
+          border: highlight ? "1px solid var(--color-action)" : `1px solid ${border}`,
           width: "100%",
           cursor: disabled ? "default" : "pointer",
           opacity: disabled ? 0.6 : 1,
@@ -179,14 +179,14 @@ function SuggestDrawer({ row, hpp, feeProfiles, isMobile, initialKey, onClose, o
         }}
       >
         <div>
-          <div style={{ fontSize: "12px", fontWeight: highlight ? 700 : 600, color: highlight ? "var(--color-primary)" : text }}>
+          <div style={{ fontSize: "12px", fontWeight: highlight ? 700 : 600, color: highlight ? "var(--color-action)" : text }}>
             {label}
           </div>
           {raw != null && rounded != null && raw !== rounded && (
             <div style={{ fontSize: "10px", color: sub }}>hitungan: {fmtRp(raw)}</div>
           )}
         </div>
-        <div style={{ fontSize: "14px", fontWeight: 700, color: highlight ? "var(--color-primary)" : text }}>
+        <div style={{ fontSize: "14px", fontWeight: 700, color: highlight ? "var(--color-action)" : text }}>
           {price != null ? fmtRp(price) : "—"}
         </div>
       </button>
@@ -274,9 +274,9 @@ function SuggestDrawer({ row, hpp, feeProfiles, isMobile, initialKey, onClose, o
                   fontSize: "12px",
                   fontWeight: 700,
                   cursor: "pointer",
-                  border: mode === m.key ? "1px solid var(--color-primary)" : `1px solid ${border}`,
-                  backgroundColor: mode === m.key ? "var(--color-primary-soft)" : "transparent",
-                  color: mode === m.key ? "var(--color-primary)" : sub,
+                  border: mode === m.key ? "1px solid var(--color-action)" : `1px solid ${border}`,
+                  backgroundColor: mode === m.key ? "var(--color-selection)" : "transparent",
+                  color: mode === m.key ? "var(--color-action)" : sub,
                 }}
               >
                 {m.label}
@@ -287,7 +287,7 @@ function SuggestDrawer({ row, hpp, feeProfiles, isMobile, initialKey, onClose, o
 
         <button
           onClick={() => setShowPromo((v) => !v)}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-primary)", fontSize: "12px", fontWeight: 700, textAlign: "left", padding: 0 }}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-action)", fontSize: "12px", fontWeight: 700, textAlign: "left", padding: 0 }}
         >
           {showPromo ? "▾" : "▸"} Biaya promo tambahan (diskon toko / affiliate / campaign)
         </button>
@@ -377,7 +377,7 @@ function SuggestDrawer({ row, hpp, feeProfiles, isMobile, initialKey, onClose, o
                 className="btn-primary ui-motion-button"
                 style={{
                   padding: "12px",
-                  backgroundColor: "var(--color-primary)",
+                  backgroundColor: "var(--color-action)",
                   color: "#FFF",
                   border: "none",
                   borderRadius: "10px",
@@ -556,9 +556,9 @@ function FeeProfilesModal({ feeProfiles, isMobile, onClose, onSaved, flash }) {
                   gap: "12px",
                   padding: "14px",
                   borderRadius: "14px",
-                  border: `1px solid ${dirty ? "var(--color-primary)" : border}`,
+                  border: `1px solid ${dirty ? "var(--color-action)" : border}`,
                   backgroundColor: "var(--color-surface)",
-                  boxShadow: dirty ? "0 0 0 3px var(--color-primary-soft)" : "none",
+                  boxShadow: dirty ? "0 0 0 3px var(--color-selection)" : "none",
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start" }}>
@@ -578,8 +578,8 @@ function FeeProfilesModal({ feeProfiles, isMobile, onClose, onSaved, flash }) {
                         borderRadius: "999px",
                         fontSize: "10px",
                         fontWeight: 800,
-                        color: "var(--color-primary)",
-                        backgroundColor: "var(--color-primary-soft)",
+                        color: "var(--color-action)",
+                        backgroundColor: "var(--color-selection)",
                         whiteSpace: "nowrap",
                       }}
                     >
@@ -626,9 +626,9 @@ function FeeProfilesModal({ feeProfiles, isMobile, onClose, onSaved, flash }) {
                   style={{
                     minHeight: "42px",
                     padding: "9px 14px",
-                    backgroundColor: dirty ? "var(--color-primary)" : "var(--color-bg-subtle)",
+                    backgroundColor: dirty ? "var(--color-action)" : "var(--color-bg-subtle)",
                     color: dirty ? "#FFF" : sub,
-                    border: dirty ? "1px solid var(--color-primary)" : `1px solid ${border}`,
+                    border: dirty ? "1px solid var(--color-action)" : `1px solid ${border}`,
                     borderRadius: "10px",
                     cursor: dirty ? "pointer" : "default",
                     fontWeight: 800,
@@ -1054,7 +1054,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
               minHeight: "34px",
               padding: "6px 9px",
               borderRadius: "8px",
-              border: `1.5px solid ${dirty ? "var(--color-primary)" : margin != null && margin <= 0 ? "var(--color-danger)" : border}`,
+              border: `1.5px solid ${dirty ? "var(--color-action)" : margin != null && margin <= 0 ? "var(--color-danger)" : border}`,
               backgroundColor: "var(--color-surface-elevated)",
               color: text,
               fontSize: "13px",
@@ -1073,9 +1073,9 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                 width: "32px",
                 height: "32px",
                 borderRadius: "8px",
-                border: `1px solid ${dirty ? "var(--color-primary)" : "transparent"}`,
-                backgroundColor: "var(--color-primary-soft)",
-                color: "var(--color-primary)",
+                border: `1px solid ${dirty ? "var(--color-action)" : "transparent"}`,
+                backgroundColor: "var(--color-selection)",
+                color: "var(--color-action)",
                 cursor: "pointer",
                 fontSize: "13px",
                 lineHeight: 1,
@@ -1087,7 +1087,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
         </div>
         <div style={{ fontSize: "11px", color: sub, lineHeight: 1.35, minHeight: "16px" }}>
           {dirty ? (
-            <span style={{ color: "var(--color-primary)", fontWeight: 800 }}>
+            <span style={{ color: "var(--color-action)", fontWeight: 800 }}>
               {saving ? "Menyimpan..." : "Enter = simpan ↵"}
             </span>
           ) : margin != null ? (
@@ -1170,7 +1170,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                     style={{
                       ...pillStyle(
                         onlyUnset
-                          ? "var(--color-primary)"
+                          ? "var(--color-action)"
                           : "color-mix(in srgb, var(--color-warning, #f59e0b) 16%, transparent)",
                         onlyUnset ? "#FFF" : "var(--color-warning, #b45309)",
                       ),
@@ -1201,8 +1201,8 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                     fontWeight: 700,
                     padding: "2px 7px",
                     borderRadius: "999px",
-                    backgroundColor: "var(--color-primary-soft)",
-                    color: "var(--color-primary)",
+                    backgroundColor: "var(--color-selection)",
+                    color: "var(--color-action)",
                   }}
                 >
                   Rule-based
@@ -1240,7 +1240,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
               gap: "6px",
               minHeight: "36px",
               padding: "7px 14px",
-              backgroundColor: "var(--color-primary)",
+              backgroundColor: "var(--color-action)",
               color: "#FFF",
               border: "none",
               borderRadius: "9px",
@@ -1314,7 +1314,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                     fontWeight: 800,
                     textTransform: "uppercase",
                     letterSpacing: "0.06em",
-                    color: "var(--color-primary)",
+                    color: "var(--color-action)",
                     padding: "6px 4px 0",
                   }}
                 >
@@ -1343,7 +1343,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: "11px", color: "var(--color-primary)", fontFamily: "monospace", margin: "2px 0 4px" }}>
+                          <div style={{ fontSize: "11px", color: "var(--color-action)", fontFamily: "monospace", margin: "2px 0 4px" }}>
                             {r.code}
                           </div>
                           <div style={{ fontSize: "11px", color: sub }}>
@@ -1452,8 +1452,8 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                           fontWeight: 800,
                           textTransform: "uppercase",
                           letterSpacing: "0.06em",
-                          color: "var(--color-primary)",
-                          backgroundColor: "var(--color-primary-soft)",
+                          color: "var(--color-action)",
+                          backgroundColor: "var(--color-selection)",
                           borderBottom: `1px solid ${border}`,
                           borderTop: `1px solid ${border}`,
                         }}
@@ -1485,7 +1485,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                                 </span>
                               )}
                             </div>
-                            <div style={{ fontSize: "11px", color: "var(--color-primary)", fontFamily: "monospace", marginTop: "3px" }}>{r.code || "tanpa kode"}</div>
+                            <div style={{ fontSize: "11px", color: "var(--color-action)", fontFamily: "monospace", marginTop: "3px" }}>{r.code || "tanpa kode"}</div>
                           </td>
                           <td style={{ padding: "9px 12px", color: sub, whiteSpace: "nowrap", borderBottom: `1px solid ${border}`, verticalAlign: "middle" }}>
                             {hpp > 0 ? (
@@ -1622,7 +1622,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
                   padding: "12px",
                   borderRadius: "10px",
                   border: "none",
-                  backgroundColor: "var(--color-primary)",
+                  backgroundColor: "var(--color-action)",
                   color: "#FFF",
                   fontWeight: 700,
                   fontSize: "13px",

@@ -172,8 +172,8 @@ export default function TaxPage({ isDarkMode, isMobile }) {
             fontWeight: 700,
             padding: "2px 7px",
             borderRadius: "999px",
-            backgroundColor: "var(--color-primary-soft)",
-            color: "var(--color-primary)",
+            backgroundColor: "var(--color-selection)",
+            color: "var(--color-action)",
           }}
         >
           {user?.role === "pajak" ? "Akses Konsultan Pajak" : "Direktur"}
@@ -200,7 +200,7 @@ export default function TaxPage({ isDarkMode, isMobile }) {
             padding: "7px 14px",
             borderRadius: "9px",
             border: "none",
-            backgroundColor: "var(--color-primary)",
+            backgroundColor: "var(--color-action)",
             color: "#FFF",
             fontWeight: 700,
             fontSize: "13px",
@@ -243,7 +243,7 @@ export default function TaxPage({ isDarkMode, isMobile }) {
         {kpi(
           "Omzet Barang Sumber-Nota",
           fmtRp(summary?.nota_sourced?.gross),
-          "var(--color-primary)",
+          "var(--color-action)",
           summary
             ? `PPN-nya beban penuh ±${fmtRp(summary.nota_sourced.ppn_beban)} (tanpa kredit masukan)`
             : "",
@@ -320,7 +320,7 @@ export default function TaxPage({ isDarkMode, isMobile }) {
                     {n.has_nota_sourced_item && (
                       <span
                         title="Ada item bersumber pembelian nota (tanpa kredit pajak masukan)"
-                        style={{ marginLeft: "6px", fontSize: "9.5px", fontWeight: 800, color: "var(--color-primary)" }}
+                        style={{ marginLeft: "6px", fontSize: "9.5px", fontWeight: 800, color: "var(--color-action)" }}
                       >
                         SUMBER-NOTA
                       </span>

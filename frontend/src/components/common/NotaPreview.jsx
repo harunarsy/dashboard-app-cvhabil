@@ -84,7 +84,7 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--color-primary)', marginBottom: '3px' }}>{companyName}</div>
+          <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--color-action)', marginBottom: '3px' }}>{companyName}</div>
           {npwp && <div style={{ fontSize: '11px', color: subText }}>NPWP: {npwp}</div>}
           {address && <div style={{ fontSize: '11px', color: subText, lineHeight: '1.45' }}>{address}</div>}
           {phone && <div style={{ fontSize: '11px', color: subText }}>{phone}</div>}
@@ -108,7 +108,7 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
         </div>
       </div>
 
-      <div style={{ height: '1.5px', backgroundColor: 'var(--color-primary)', marginBottom: '8px', borderRadius: '2px' }} />
+      <div style={{ height: '1.5px', backgroundColor: 'var(--color-action)', marginBottom: '8px', borderRadius: '2px' }} />
 
       {/* Customer — v1.23.0: No. HP & Alamat berlabel di bawah nama.
           v1.52.8: overflowWrap 'anywhere' supaya nama/HP/alamat panjang (mis. teks
@@ -121,10 +121,10 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
       </div>
 
       {/* Items table */}
-      <div style={{ backgroundColor: 'var(--color-bg)', borderRadius: '6px', overflow: 'hidden', marginBottom: '8px', border: '1px solid var(--color-primary)' }}>
+      <div style={{ backgroundColor: 'var(--color-bg)', borderRadius: '6px', overflow: 'hidden', marginBottom: '8px', border: '1px solid var(--color-action)' }}>
         <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ backgroundColor: 'var(--color-primary)', color: '#FFF' }}>
+            <tr style={{ backgroundColor: 'var(--color-action)', color: '#FFF' }}>
               <th style={{ padding: '5px 5px', textAlign: 'center', width: '24px' }}>No</th>
               <th style={{ padding: '5px 5px', textAlign: 'left' }}>Nama Barang</th>
               <th style={{ padding: '5px 5px', textAlign: 'center', width: '48px' }}>Qty</th>

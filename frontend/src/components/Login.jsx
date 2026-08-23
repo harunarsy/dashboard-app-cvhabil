@@ -64,7 +64,7 @@ export default function Login({
   const text = "var(--color-text)";
   const sub = "var(--color-text-muted)";
   const subtle = "var(--color-text-subtle)";
-  const focusRing = "var(--color-primary)";
+  const focusRing = "var(--color-action)";
   const TooltipButton = ({
     label,
     children,
@@ -148,7 +148,7 @@ export default function Login({
             className="ui-over-media-copy mt-3 px-3 py-1 text-xs font-semibold"
             style={{ color: sub }}
           >
-            HABIL SUPERAPP v1.66.23-stable — 2026
+            HABIL SUPERAPP v1.67.0-stable — 2026
           </p>
         </div>
 

@@ -58,13 +58,13 @@ const statusColors = {
     label: "Draft",
   },
   sent: {
-    bg: "var(--color-primary-soft)",
-    color: "var(--color-primary)",
+    bg: "var(--color-selection)",
+    color: "var(--color-action)",
     label: "Dikirim",
   },
   partial: {
-    bg: "color-mix(in srgb, var(--color-primary-hover) 9%, transparent)",
-    color: "var(--color-primary-hover)",
+    bg: "color-mix(in srgb, var(--color-action-hover) 9%, transparent)",
+    color: "var(--color-action-hover)",
     label: "Partial",
   },
   received: {
@@ -685,7 +685,7 @@ export default function PurchaseOrderList({
               alignItems: "center",
               gap: "6px",
               padding: "10px 18px",
-              backgroundColor: "var(--color-primary-hover)",
+              backgroundColor: "var(--color-action-hover)",
               color: "#FFF",
               border: "none",
               borderRadius: "10px",
@@ -854,7 +854,7 @@ export default function PurchaseOrderList({
                           style={{
                             padding: "12px 14px",
                             fontWeight: "600",
-                            color: "var(--color-primary-hover)",
+                            color: "var(--color-action-hover)",
                           }}
                         >
                           {o.po_number}
@@ -900,7 +900,7 @@ export default function PurchaseOrderList({
                             >
                               <FileText
                                 size={15}
-                                color="var(--color-primary-hover)"
+                                color="var(--color-action-hover)"
                               />
                             </TooltipButton>
                             {o.status !== "received" && (
@@ -928,7 +928,7 @@ export default function PurchaseOrderList({
                             >
                               <Icons.Edit2
                                 size={15}
-                                color="var(--color-primary)"
+                                color="var(--color-action)"
                               />
                             </TooltipButton>
                             <TooltipButton
@@ -1518,7 +1518,7 @@ export default function PurchaseOrderList({
                       onClick={addItem}
                       style={{
                         fontSize: "13px",
-                        color: "var(--color-primary-hover)",
+                        color: "var(--color-action-hover)",
                         background: "none",
                         border: "none",
                         cursor: "pointer",
@@ -1565,7 +1565,7 @@ export default function PurchaseOrderList({
                       style={{
                         flex: 1,
                         padding: "13px",
-                        backgroundColor: "var(--color-primary-hover)",
+                        backgroundColor: "var(--color-action-hover)",
                         color: "#FFF",
                         border: "none",
                         borderRadius: "10px",
@@ -1862,7 +1862,7 @@ export default function PurchaseOrderList({
                                   borderRadius: "8px",
                                   border: `1px solid ${border}`,
                                   background: "var(--color-surface-elevated)",
-                                  color: "var(--color-primary)",
+                                  color: "var(--color-action)",
                                   cursor: "pointer",
                                   display: "inline-flex",
                                   alignItems: "center",
@@ -2079,7 +2079,7 @@ export default function PurchaseOrderList({
                     style={{
                       flex: 1,
                       padding: "13px",
-                      backgroundColor: distributorSaving ? "var(--color-text-subtle)" : "var(--color-primary)",
+                      backgroundColor: distributorSaving ? "var(--color-text-subtle)" : "var(--color-action)",
                       color: "#FFF",
                       border: "none",
                       borderRadius: "10px",

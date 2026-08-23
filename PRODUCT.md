@@ -45,7 +45,7 @@ The product combines transaction entry with batch-aware inventory and determinis
 - Product name: **Habil SuperApp**.
 - Assistant name: **Habil Smart-Assistant**.
 - Voice: direct, concise, operational, trustworthy, and transparent about system limits.
-- Interface language follows the established premium Apple-HIG-inspired dashboard system and uses Inter typography, Lucide icons, restrained indigo accents, and responsive layouts.
+- Interface language is performance-first, accessible, and driven by semantic action, selection, focus, information, and status roles. The palette can change without rewriting components; Inter typography, Lucide icons, and responsive layouts remain implementation choices rather than vendor-style constraints.
 
 ## Evidence on Hand
 
@@ -62,6 +62,7 @@ The product combines transaction entry with batch-aware inventory and determinis
 3. Keep operator actions explicit and reversible where possible.
 4. Preserve one business rule across every surface that consumes it.
 5. Prefer clear operational language over impressive but misleading claims.
+6. Prefer semantic design roles over fixed hues or vendor-specific visual doctrine.
 
 ## Accessibility & Inclusion
 

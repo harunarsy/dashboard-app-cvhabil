@@ -1855,7 +1855,7 @@ export default function SalesOrderList({
             fontWeight: 700,
             fontSize: "13px",
             backgroundColor:
-              pageTab === t.key ? "var(--color-primary)" : "transparent",
+              pageTab === t.key ? "var(--color-action)" : "transparent",
             color: pageTab === t.key ? "#FFF" : isDarkMode ? "#FFF" : "#000",
           }}
         >
@@ -2021,7 +2021,7 @@ export default function SalesOrderList({
               className="btn-primary ui-motion-button ui-focus-ring"
               style={{
                 padding: "6px 12px",
-                backgroundColor: "var(--color-primary)",
+                backgroundColor: "var(--color-action)",
                 color: "white",
                 border: "none",
                 borderRadius: "8px",
@@ -2273,7 +2273,7 @@ export default function SalesOrderList({
                                 alignItems: "center",
                                 gap: "6px",
                                 padding: "8px 14px",
-                                backgroundColor: "var(--color-primary)",
+                                backgroundColor: "var(--color-action)",
                                 color: "#FFF",
                                 border: "none",
                                 borderRadius: "8px",
@@ -2388,10 +2388,10 @@ export default function SalesOrderList({
             style={{
               padding: "10px 14px",
               backgroundColor: showMobileFilters
-                ? "var(--color-primary-soft)"
+                ? "var(--color-selection)"
                 : "transparent",
-              color: showMobileFilters ? "var(--color-primary)" : sub,
-              border: `1px solid ${showMobileFilters ? "var(--color-primary)" : border}`,
+              color: showMobileFilters ? "var(--color-action)" : sub,
+              border: `1px solid ${showMobileFilters ? "var(--color-action)" : border}`,
               borderRadius: "10px",
               cursor: "pointer",
               fontWeight: 700,
@@ -2611,7 +2611,7 @@ export default function SalesOrderList({
             zIndex: 10,
             marginBottom: "10px",
             padding: "12px 16px",
-            background: "var(--color-primary)",
+            background: "var(--color-action)",
             color: "#FFF",
             borderRadius: "10px",
             boxShadow: "0 4px 12px rgba(0, 122, 255, 0.3)",
@@ -2663,7 +2663,7 @@ export default function SalesOrderList({
               style={{
                 padding: "8px 16px",
                 background: "#FFF",
-                color: "var(--color-primary)",
+                color: "var(--color-action)",
                 border: "none",
                 borderRadius: "8px",
                 cursor: exportingPdf ? "wait" : "pointer",
@@ -2756,7 +2756,7 @@ export default function SalesOrderList({
                       padding: "12px 14px",
                       textAlign: "left",
                       fontWeight: "700",
-                      color: isActive ? "var(--color-primary)" : sub,
+                      color: isActive ? "var(--color-action)" : sub,
                       fontSize: "11px",
                       textTransform: "uppercase",
                       letterSpacing: "0.05em",
@@ -2824,8 +2824,8 @@ export default function SalesOrderList({
                         cursor: "pointer",
                         backgroundColor: selectedNotaIds.has(o.id)
                           ? isDarkMode
-                            ? "var(--color-primary-soft)"
-                            : "color-mix(in srgb, var(--color-primary) 3%, transparent)"
+                            ? "var(--color-selection)"
+                            : "color-mix(in srgb, var(--color-action) 3%, transparent)"
                           : "transparent",
                       }}
                       onClick={() =>
@@ -2847,7 +2847,7 @@ export default function SalesOrderList({
                         style={{
                           padding: "12px 14px",
                           fontWeight: "600",
-                          color: "var(--color-primary)",
+                          color: "var(--color-action)",
                         }}
                       >
                         {o.order_number}
@@ -2868,11 +2868,11 @@ export default function SalesOrderList({
                               display: "inline-block",
                               backgroundColor:
                                 o.channel === "online"
-                                  ? "var(--color-primary-soft)"
+                                  ? "var(--color-selection)"
                                   : "color-mix(in srgb, var(--color-text-subtle) 8%, transparent)",
                               color:
                                 o.channel === "online"
-                                  ? "var(--color-primary)"
+                                  ? "var(--color-action)"
                                   : "var(--color-text-subtle)",
                             }}
                           >
@@ -3091,7 +3091,7 @@ export default function SalesOrderList({
                               justifyContent: "center",
                             }}
                           >
-                            <MessageCircle size={15} color="var(--color-primary)" />
+                            <MessageCircle size={15} color="var(--color-action)" />
                           </button>
                           <button
                             onClick={(e) => {
@@ -3150,7 +3150,7 @@ export default function SalesOrderList({
                           >
                             <Icons.Edit2
                               size={15}
-                              color="var(--color-primary)"
+                              color="var(--color-action)"
                             />
                           </button>
                           <button
@@ -3617,10 +3617,10 @@ export default function SalesOrderList({
                             border: "none",
                             borderBottom:
                               formTab === key
-                                ? "2px solid var(--color-primary)"
+                                ? "2px solid var(--color-action)"
                                 : "2px solid transparent",
                             color:
-                              formTab === key ? "var(--color-primary)" : sub,
+                              formTab === key ? "var(--color-action)" : sub,
                             fontWeight: 700,
                             fontSize: "13px",
                             cursor: "pointer",
@@ -4067,9 +4067,9 @@ export default function SalesOrderList({
                                   fontSize: "12px",
                                   fontWeight: "700",
                                   borderRadius: "8px",
-                                  border: `1px solid ${active ? "var(--color-primary)" : border}`,
+                                  border: `1px solid ${active ? "var(--color-action)" : border}`,
                                   backgroundColor: active
-                                    ? "var(--color-primary)"
+                                    ? "var(--color-action)"
                                     : "transparent",
                                   color: active ? "#FFF" : sub,
                                   cursor: "pointer",
@@ -4132,9 +4132,9 @@ export default function SalesOrderList({
                                 fontSize: "12px",
                                 fontWeight: "700",
                                 borderRadius: "8px",
-                                border: `1px solid ${active ? "var(--color-primary)" : isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
+                                border: `1px solid ${active ? "var(--color-action)" : isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
                                 backgroundColor: active
-                                  ? "var(--color-primary)"
+                                  ? "var(--color-action)"
                                   : "transparent",
                                 color: active
                                   ? "#FFF"
@@ -4228,7 +4228,7 @@ export default function SalesOrderList({
                             fontSize: "13px",
                             backgroundColor:
                               form.ppn_excluded === t.key
-                                ? "var(--color-primary)"
+                                ? "var(--color-action)"
                                 : "transparent",
                             color:
                               form.ppn_excluded === t.key
@@ -4663,11 +4663,11 @@ export default function SalesOrderList({
                             const chipStyle = (active) => ({
                               padding: "3px 9px",
                               borderRadius: "999px",
-                              border: `1px solid var(--color-primary)`,
+                              border: `1px solid var(--color-action)`,
                               backgroundColor: active
-                                ? "var(--color-primary)"
-                                : "var(--color-primary-soft)",
-                              color: active ? "#FFF" : "var(--color-primary)",
+                                ? "var(--color-action)"
+                                : "var(--color-selection)",
+                              color: active ? "#FFF" : "var(--color-action)",
                               fontSize: "10.5px",
                               fontWeight: 700,
                               cursor: "pointer",
@@ -4966,8 +4966,8 @@ export default function SalesOrderList({
                                   marginTop: "6px",
                                   padding: "7px 10px",
                                   borderRadius: "9px",
-                                  border: `1px solid var(--color-primary-border-strong)`,
-                                  backgroundColor: "var(--color-primary-soft)",
+                                  border: `1px solid var(--color-action-border-strong)`,
+                                  backgroundColor: "var(--color-selection)",
                                   fontSize: "11px",
                                   lineHeight: 1.45,
                                   display: "flex",
@@ -4976,7 +4976,7 @@ export default function SalesOrderList({
                                   gap: "6px",
                                 }}
                               >
-                                <span style={{ color: "var(--color-primary)", fontWeight: 700 }}>
+                                <span style={{ color: "var(--color-action)", fontWeight: 700 }}>
                                   💡 {cust} biasanya Rp{rec.toLocaleString("id-ID")}
                                 </span>
                                 {sellUmum > 0 && (
@@ -4993,7 +4993,7 @@ export default function SalesOrderList({
                                     padding: "3px 10px",
                                     borderRadius: "999px",
                                     border: "none",
-                                    backgroundColor: "var(--color-primary)",
+                                    backgroundColor: "var(--color-action)",
                                     color: "#FFF",
                                     fontSize: "10.5px",
                                     fontWeight: 700,
@@ -5040,9 +5040,9 @@ export default function SalesOrderList({
                                     style={{
                                       padding: "3px 9px",
                                       borderRadius: "999px",
-                                      border: `1px solid var(--color-primary)`,
-                                      backgroundColor: "var(--color-primary-soft)",
-                                      color: "var(--color-primary)",
+                                      border: `1px solid var(--color-action)`,
+                                      backgroundColor: "var(--color-selection)",
+                                      color: "var(--color-action)",
                                       fontSize: "11px",
                                       fontWeight: "700",
                                       cursor: addingInsightProduct ? "wait" : "pointer",
@@ -5076,8 +5076,8 @@ export default function SalesOrderList({
                                   backgroundColor: isDarkMode
                                     ? "var(--color-surface-elevated)"
                                     : "#F0F8FF",
-                                  border: `1px solid var(--color-primary-border-strong)`,
-                                  color: "var(--color-primary)",
+                                  border: `1px solid var(--color-action-border-strong)`,
+                                  color: "var(--color-action)",
                                 }}
                               >
                                 <option value="">Pilih Batch</option>
@@ -5133,7 +5133,7 @@ export default function SalesOrderList({
                         onClick={addItem}
                         style={{
                           fontSize: "13px",
-                          color: "var(--color-primary)",
+                          color: "var(--color-action)",
                           background: "none",
                           border: "none",
                           cursor: "pointer",
@@ -5336,7 +5336,7 @@ export default function SalesOrderList({
                       </span>
                       <strong
                         style={{
-                          color: "var(--color-primary)",
+                          color: "var(--color-action)",
                           fontSize: "20px",
                           lineHeight: 1.1,
                         }}
@@ -5607,14 +5607,14 @@ export default function SalesOrderList({
                         flex: 1,
                         padding: "12px",
                         borderRadius: "12px",
-                        border: `2px solid ${printOptions.format === f ? "var(--color-primary)" : border}`,
+                        border: `2px solid ${printOptions.format === f ? "var(--color-action)" : border}`,
                         backgroundColor:
                           printOptions.format === f
-                            ? "var(--color-primary-soft-weak)"
+                            ? "var(--color-selection-subtle)"
                             : "transparent",
                         color:
                           printOptions.format === f
-                            ? "var(--color-primary)"
+                            ? "var(--color-action)"
                             : text,
                         fontWeight: "700",
                         cursor: "pointer",
@@ -5718,7 +5718,7 @@ export default function SalesOrderList({
                 style={{
                   width: "100%",
                   padding: "14px",
-                  backgroundColor: "var(--color-primary)",
+                  backgroundColor: "var(--color-action)",
                   color: "#FFF",
                   border: "none",
                   borderRadius: "14px",
@@ -5790,7 +5790,7 @@ export default function SalesOrderList({
                   style={{
                     flex: 1,
                     padding: "12px",
-                    backgroundColor: "var(--color-primary)",
+                    backgroundColor: "var(--color-action)",
                     color: "#FFF",
                     border: "none",
                     borderRadius: "10px",

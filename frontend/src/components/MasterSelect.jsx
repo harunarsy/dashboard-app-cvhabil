@@ -118,7 +118,7 @@ export default function MasterSelect({
   const border = isDarkMode ? 'var(--color-border-strong)' : 'var(--color-border)';
   const txt = isDarkMode ? '#FFFFFF' : '#000000';
   const muted = 'var(--color-text-subtle)';
-  const accent = 'var(--color-primary)';
+  const accent = 'var(--color-action)';
 
   const triggerStyle = {
     display: 'flex',

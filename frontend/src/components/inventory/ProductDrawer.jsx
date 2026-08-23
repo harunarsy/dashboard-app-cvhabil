@@ -165,11 +165,11 @@ export default function ProductDrawer({
         flex: 1,
         padding: "10px 8px",
         background: tab === id ? bg : "transparent",
-        color: tab === id ? "var(--color-primary)" : sub,
+        color: tab === id ? "var(--color-action)" : sub,
         border: "none",
         borderBottom:
           tab === id
-            ? "2px solid var(--color-primary)"
+            ? "2px solid var(--color-action)"
             : "2px solid transparent",
         fontSize: "13px",
         fontWeight: "600",
@@ -252,11 +252,11 @@ export default function ProductDrawer({
               width: "44px",
               height: "44px",
               borderRadius: "12px",
-              background: "var(--color-primary-soft)",
+              background: "var(--color-selection)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "var(--color-primary)",
+              color: "var(--color-action)",
               flexShrink: 0,
             }}
           >
@@ -501,7 +501,7 @@ export default function ProductDrawer({
                     alignItems: "center",
                     gap: "6px",
                     padding: "8px 12px",
-                    background: "var(--color-primary)",
+                    background: "var(--color-action)",
                     color: "#FFF",
                     border: "none",
                     borderRadius: "10px",
@@ -598,7 +598,7 @@ export default function ProductDrawer({
                             }}
                             aria-label="Adjust qty"
                             className="ui-motion-button ui-focus-ring"
-                            style={iconBtn("var(--color-primary)", isDarkMode)}
+                            style={iconBtn("var(--color-action)", isDarkMode)}
                           >
                             <Sliders size={UI_SIZE.icon.sm} />
                           </button>
@@ -876,7 +876,7 @@ export default function ProductDrawer({
                 style={{
                   flex: 1,
                   padding: "12px",
-                  background: "var(--color-primary)",
+                  background: "var(--color-action)",
                   color: "#FFF",
                   border: "none",
                   borderRadius: "12px",

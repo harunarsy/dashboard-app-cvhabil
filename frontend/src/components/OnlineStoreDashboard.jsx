@@ -346,7 +346,7 @@ export default function OnlineStoreDashboard({
                     margin: "6px 0 0",
                     fontSize: "24px",
                     fontWeight: "800",
-                    color: "var(--color-primary)",
+                    color: "var(--color-action)",
                   }}
                 >
                   {fmtRp(totalNet)}

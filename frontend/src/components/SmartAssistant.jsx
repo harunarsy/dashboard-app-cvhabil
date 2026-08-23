@@ -61,8 +61,8 @@ const SEVERITY = {
   },
   info: {
     label: "Informasi",
-    color: "var(--assistant-primary-text)",
-    background: "var(--color-primary-soft)",
+    color: "var(--assistant-accent-text)",
+    background: "var(--color-selection)",
   },
 };
 
@@ -167,7 +167,7 @@ export default function SmartAssistant({ isDarkMode }) {
               className="mt-3 max-w-[68ch] text-sm leading-6 md:text-base"
               style={{ color: "var(--color-text-muted)" }}
             >
-              <strong style={{ color: "var(--assistant-primary-text)" }}>
+              <strong style={{ color: "var(--assistant-accent-text)" }}>
                 Rule-based smart suggestions.
               </strong>{" "}
               Membaca pola stok, customer, dan penjualan memakai aturan bisnis yang dapat dijelaskan—bukan jawaban generatif.
@@ -256,7 +256,7 @@ export default function SmartAssistant({ isDarkMode }) {
                       <RefreshCw
                         size={19}
                         className="smart-assistant-loader mt-0.5 shrink-0"
-                        style={{ color: "var(--color-primary)" }}
+                        style={{ color: "var(--color-action)" }}
                         aria-hidden="true"
                       />
                     <div>
@@ -290,7 +290,7 @@ export default function SmartAssistant({ isDarkMode }) {
                         type="button"
                         onClick={() => runAssistant(lastRequest)}
                         className="ui-focus-ring mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-extrabold"
-                        style={{ color: "var(--assistant-primary-text)", background: "var(--color-primary-soft)" }}
+                        style={{ color: "var(--assistant-accent-text)", background: "var(--color-selection)" }}
                       >
                         <RefreshCw size={16} aria-hidden="true" />
                         Coba lagi
@@ -376,7 +376,7 @@ export default function SmartAssistant({ isDarkMode }) {
                               type="button"
                               onClick={() => navigate(item.action.path)}
                               className="ui-focus-ring inline-flex min-h-11 shrink-0 items-center gap-1.5 self-start rounded-xl px-3 text-xs font-extrabold"
-                              style={{ color: "var(--assistant-primary-text)", background: "var(--color-primary-soft)" }}
+                              style={{ color: "var(--assistant-accent-text)", background: "var(--color-selection)" }}
                             >
                               {item.action.label}
                               <ArrowUpRight size={15} aria-hidden="true" />

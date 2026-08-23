@@ -82,7 +82,7 @@ export default function FinancePage({ isDarkMode }) {
         {/* Header */}
         <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl" style={{ backgroundColor: "var(--color-primary-soft)", color: "var(--color-primary)" }}>
+            <div className="p-3 rounded-2xl" style={{ backgroundColor: "var(--color-selection)", color: "var(--color-action)" }}>
               <DollarSign size={22} />
             </div>
             <div>
@@ -103,7 +103,7 @@ export default function FinancePage({ isDarkMode }) {
               onClick={handleDownload}
               disabled={downloading}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
-              style={{ backgroundColor: "var(--color-primary)", color: "#fff", opacity: downloading ? 0.6 : 1 }}
+              style={{ backgroundColor: "var(--color-action)", color: "#fff", opacity: downloading ? 0.6 : 1 }}
             >
               <Download size={15} />
               {downloading ? "Mengunduh..." : "Export Excel"}

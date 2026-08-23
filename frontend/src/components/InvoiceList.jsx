@@ -105,10 +105,10 @@ const formatLocalDate = (dateStr, opts) => {
 // Warna per distributor — auto-assign dari palette
 const DIST_COLORS = [
   {
-    bg: "color-mix(in srgb, var(--color-primary) 12%, transparent)",
-    border: "color-mix(in srgb, var(--color-primary) 31%, transparent)",
-    text: "var(--color-primary)",
-    dot: "var(--color-primary)",
+    bg: "color-mix(in srgb, var(--color-action) 12%, transparent)",
+    border: "color-mix(in srgb, var(--color-action) 31%, transparent)",
+    text: "var(--color-action)",
+    dot: "var(--color-action)",
   },
   {
     bg: "color-mix(in srgb, var(--color-success) 12%, transparent)",
@@ -123,10 +123,10 @@ const DIST_COLORS = [
     dot: "var(--color-warning)",
   },
   {
-    bg: "var(--color-primary-soft)",
-    border: "color-mix(in srgb, var(--color-primary-hover) 32%, transparent)",
-    text: "var(--color-primary-hover)",
-    dot: "var(--color-primary-hover)",
+    bg: "var(--color-selection)",
+    border: "color-mix(in srgb, var(--color-action-hover) 32%, transparent)",
+    text: "var(--color-action-hover)",
+    dot: "var(--color-action-hover)",
   },
   { bg: "#FF375F20", border: "#FF375F50", text: "#FF375F", dot: "#FF375F" },
   { bg: "#00C7BE20", border: "#00C7BE50", text: "#00C7BE", dot: "#00C7BE" },
@@ -1645,7 +1645,7 @@ export default function InvoiceList({
         </span>
       );
     return (
-      <span style={{ color: "var(--color-primary)", marginLeft: "4px" }}>
+      <span style={{ color: "var(--color-action)", marginLeft: "4px" }}>
         {sortDir === "asc" ? "↑" : "↓"}
       </span>
     );
@@ -1779,7 +1779,7 @@ export default function InvoiceList({
             label: "Jumlah Faktur",
             value: `${filteredInvoices.length} faktur`,
             icon: "📋",
-            color: "var(--color-primary-hover)",
+            color: "var(--color-action-hover)",
           },
         ].map((m, i) => (
           <div
@@ -1867,8 +1867,8 @@ export default function InvoiceList({
                 fontWeight: 700,
                 padding: "2px 7px",
                 borderRadius: "999px",
-                backgroundColor: "var(--color-primary-soft)",
-                color: "var(--color-primary)",
+                backgroundColor: "var(--color-selection)",
+                color: "var(--color-action)",
               }}
             >
               Rule-based
@@ -2145,7 +2145,7 @@ export default function InvoiceList({
             data-magnetic="true"
             style={{
               padding: "8px 14px",
-              backgroundColor: "var(--color-primary)",
+              backgroundColor: "var(--color-action)",
               color: "white",
               border: "none",
               borderRadius: "9px",
@@ -2212,7 +2212,7 @@ export default function InvoiceList({
             <button
               onClick={loadDraft}
               className="btn-primary ui-motion-button ui-focus-ring"
-              style={{ padding: "6px 12px", backgroundColor: "var(--color-primary)", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "12px" }}
+              style={{ padding: "6px 12px", backgroundColor: "var(--color-action)", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "12px" }}
             >
               Pulihkan
             </button>
@@ -2386,7 +2386,7 @@ export default function InvoiceList({
             style={{
               padding: "10px 16px",
               backgroundColor: showFilters
-                ? "var(--color-primary)"
+                ? "var(--color-action)"
                 : "var(--color-surface-elevated)",
               color: showFilters ? "white" : "var(--color-text)",
               border: "1px solid var(--color-border)",
@@ -2729,7 +2729,7 @@ export default function InvoiceList({
                 fontWeight: "700",
                 color:
                   sortKey === h.key
-                    ? "var(--color-primary)"
+                    ? "var(--color-action)"
                     : "var(--color-text-subtle)",
                 textTransform: "uppercase",
                 letterSpacing: "0.04em",
@@ -2905,11 +2905,11 @@ export default function InvoiceList({
                       onClick={() => setCurrentPage(p)}
                       style={{
                         padding: "6px 12px",
-                        border: `1px solid ${p === currentPage ? "var(--color-primary)" : isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
+                        border: `1px solid ${p === currentPage ? "var(--color-action)" : isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
                         borderRadius: "8px",
                         backgroundColor:
                           p === currentPage
-                            ? "var(--color-primary)"
+                            ? "var(--color-action)"
                             : isDarkMode
                               ? "var(--color-surface-raised)"
                               : "#FFF",
@@ -3155,7 +3155,7 @@ export default function InvoiceList({
                 onClick={handleDupLoadExisting}
                 style={{
                   padding: "13px",
-                  backgroundColor: "var(--color-primary)",
+                  backgroundColor: "var(--color-action)",
                   color: "white",
                   border: "none",
                   borderRadius: "10px",
@@ -3399,7 +3399,7 @@ export default function InvoiceList({
                     gap: "8px",
                   }}
                 >
-                  <History size={16} color="var(--color-primary)" /> Riwayat
+                  <History size={16} color="var(--color-action)" /> Riwayat
                   Perubahan
                 </h3>
                 <p
@@ -3449,8 +3449,8 @@ export default function InvoiceList({
                       icon: "✅",
                     },
                     UPDATE: {
-                      color: "var(--color-primary)",
-                      bg: "var(--color-primary-soft)",
+                      color: "var(--color-action)",
+                      bg: "var(--color-selection)",
                       label: "✏️ Diubah",
                       icon: "✏️",
                     },
@@ -3895,7 +3895,7 @@ function InvoiceRow({
             style={{
               fontWeight: "700",
               fontSize: "13px",
-              color: "var(--color-primary)",
+              color: "var(--color-action)",
             }}
           >
             {inv.invoice_number}
@@ -3933,7 +3933,7 @@ function InvoiceRow({
           <div
             style={{
               fontSize: "10px",
-              color: "var(--color-primary-hover)",
+              color: "var(--color-action-hover)",
               marginTop: "2px",
               fontWeight: "500",
             }}
@@ -4012,7 +4012,7 @@ function InvoiceRow({
             style={{
               fontSize: "13px",
               fontWeight: "700",
-              color: "var(--color-primary)",
+              color: "var(--color-action)",
             }}
           >
             {formatRp(inv.hna_plus_ppn)}
@@ -4150,7 +4150,7 @@ function InvoiceRow({
             onClick={onEdit}
             style={{
               padding: "6px 10px",
-              backgroundColor: "var(--color-primary)",
+              backgroundColor: "var(--color-action)",
               color: "white",
               border: "none",
               borderRadius: "8px",
@@ -4224,7 +4224,7 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
         backgroundColor: isDarkMode ? "#111" : "#FAFAFA",
         borderBottom: `1px solid ${isDarkMode ? "var(--color-surface-raised)" : "var(--color-border)"}`,
         padding: "8px 24px",
-        borderLeft: `3px solid ${distColor?.dot || "var(--color-primary)"}`,
+        borderLeft: `3px solid ${distColor?.dot || "var(--color-action)"}`,
       }}
     >
       <div
@@ -4356,7 +4356,7 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
             style={{
               fontSize: "13px",
               fontWeight: "700",
-              color: "var(--color-primary-hover)",
+              color: "var(--color-action-hover)",
             }}
           >
             {formatRp(
@@ -4581,12 +4581,12 @@ function InvoiceModal({
                         fontSize: "12px",
                         fontWeight: 700,
                         cursor: "pointer",
-                        border: `1.5px solid ${active ? "var(--color-primary)" : "var(--color-border)"}`,
+                        border: `1.5px solid ${active ? "var(--color-action)" : "var(--color-border)"}`,
                         background: active
-                          ? "var(--color-primary-soft)"
+                          ? "var(--color-selection)"
                           : "transparent",
                         color: active
-                          ? "var(--color-primary)"
+                          ? "var(--color-action)"
                           : "var(--color-text-muted)",
                       }}
                     >
@@ -4619,12 +4619,12 @@ function InvoiceModal({
                             fontSize: "12px",
                             fontWeight: 700,
                             cursor: "pointer",
-                            border: `1.5px solid ${active ? "var(--color-primary)" : "var(--color-border)"}`,
+                            border: `1.5px solid ${active ? "var(--color-action)" : "var(--color-border)"}`,
                             background: active
-                              ? "var(--color-primary-soft)"
+                              ? "var(--color-selection)"
                               : "transparent",
                             color: active
-                              ? "var(--color-primary)"
+                              ? "var(--color-action)"
                               : "var(--color-text-muted)",
                           }}
                         >
@@ -4695,10 +4695,10 @@ function InvoiceModal({
                     marginTop: "8px",
                     padding: "8px 10px",
                     borderRadius: "8px",
-                    background: "var(--color-primary-soft)",
-                    border: "1px solid color-mix(in srgb, var(--color-primary) 30%, transparent)",
+                    background: "var(--color-selection)",
+                    border: "1px solid color-mix(in srgb, var(--color-action) 30%, transparent)",
                     fontSize: "11px",
-                    color: "var(--color-primary)",
+                    color: "var(--color-action)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
@@ -4711,7 +4711,7 @@ function InvoiceModal({
                   <button
                     onClick={() => onSelectSP(matchingSPs[0].id)}
                     style={{
-                      background: "var(--color-primary)",
+                      background: "var(--color-action)",
                       color: "#fff",
                       border: "none",
                       borderRadius: "6px",
@@ -4795,9 +4795,9 @@ function InvoiceModal({
                           fontSize: "11px",
                           fontWeight: "600",
                           borderRadius: "6px",
-                          border: `1px solid ${active ? "var(--color-primary)" : isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
+                          border: `1px solid ${active ? "var(--color-action)" : isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
                           backgroundColor: active
-                            ? "var(--color-primary)"
+                            ? "var(--color-action)"
                             : "transparent",
                           color: active
                             ? "#FFF"
@@ -4833,7 +4833,7 @@ function InvoiceModal({
                 className="ui-motion-button ui-focus-ring"
                 style={{
                   padding: "7px 14px",
-                  backgroundColor: "var(--color-primary)",
+                  backgroundColor: "var(--color-action)",
                   color: "white",
                   border: "none",
                   borderRadius: "8px",
@@ -4962,7 +4962,7 @@ function InvoiceModal({
                       style={{
                         marginBottom: "6px",
                         fontSize: "11px",
-                        color: "var(--color-primary)",
+                        color: "var(--color-action)",
                         fontWeight: "600",
                         padding: "4px 10px",
                         background: isDarkMode ? "#0A2540" : "#E8F2FF",
@@ -5186,7 +5186,7 @@ function InvoiceModal({
                             cursor: "pointer",
                             background:
                               (item.disc_mode || "percent") === "percent"
-                                ? "var(--color-primary)"
+                                ? "var(--color-action)"
                                 : "transparent",
                             color:
                               (item.disc_mode || "percent") === "percent"
@@ -5212,7 +5212,7 @@ function InvoiceModal({
                             cursor: "pointer",
                             background:
                               item.disc_mode === "nominal"
-                                ? "var(--color-primary)"
+                                ? "var(--color-action)"
                                 : "transparent",
                             color:
                               item.disc_mode === "nominal"
@@ -5407,7 +5407,7 @@ function InvoiceModal({
                               <label
                                 style={{
                                   ...S.label,
-                                  color: "var(--color-primary-hover)",
+                                  color: "var(--color-action-hover)",
                                 }}
                               >
                                 HNA / Item
@@ -5415,7 +5415,7 @@ function InvoiceModal({
                               <input
                                 style={{
                                   ...S.computed,
-                                  color: "var(--color-primary-hover)",
+                                  color: "var(--color-action-hover)",
                                 }}
                                 value={formatRpInput(item.hna_per_item)}
                                 readOnly
@@ -5638,7 +5638,7 @@ function InvoiceModal({
                 />
               </div>
               <div>
-                <label style={{ ...S.label, color: "var(--color-primary)" }}>
+                <label style={{ ...S.label, color: "var(--color-action)" }}>
                   {form.tax_type === "nota"
                     ? "Total Bayar (tanpa PPN)"
                     : "HNA + PPN Masukan"}
@@ -5646,7 +5646,7 @@ function InvoiceModal({
                 <input
                   style={{
                     ...S.computed,
-                    color: "var(--color-primary)",
+                    color: "var(--color-action)",
                     fontSize: "15px",
                     fontWeight: "700",
                   }}
@@ -5711,7 +5711,7 @@ function InvoiceModal({
               style={{
                 flex: 1,
                 padding: "14px",
-                backgroundColor: isSaving ? "var(--color-text-subtle)" : "var(--color-primary)",
+                backgroundColor: isSaving ? "var(--color-text-subtle)" : "var(--color-action)",
                 color: "white",
                 border: "none",
                 borderRadius: "12px",

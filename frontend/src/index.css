@@ -16,36 +16,38 @@
   --ui-motion-page: 300ms;
   --ui-motion-skeleton: 1200ms;
 
-  --color-primary: #6366f1;
-  --color-primary-hover: #4f46e5;
-  --color-primary-pressed: #4338ca;
-  --color-primary-soft: color-mix(
+  --color-action: #4f46e5;
+  --color-action-hover: #4338ca;
+  --color-action-pressed: #3730a3;
+  --color-selection: color-mix(
     in srgb,
-    var(--color-primary) 12%,
+    var(--color-action) 12%,
     transparent
   );
-  --color-primary-soft-strong: color-mix(
+  --color-selection-strong: color-mix(
     in srgb,
-    var(--color-primary) 18%,
+    var(--color-action) 18%,
     transparent
   );
-  --color-primary-soft-weak: color-mix(
+  --color-selection-subtle: color-mix(
     in srgb,
-    var(--color-primary) 8%,
+    var(--color-action) 8%,
     transparent
   );
-  --color-primary-border: color-mix(
+  --color-action-border: color-mix(
     in srgb,
-    var(--color-primary) 28%,
+    var(--color-action) 28%,
     transparent
   );
-  --color-primary-border-strong: color-mix(
+  --color-action-border-strong: color-mix(
     in srgb,
-    var(--color-primary) 38%,
+    var(--color-action) 38%,
     transparent
   );
 
   --color-accent: #f59e0b;
+  --color-info: #6d28d9;
+  --color-info-soft: color-mix(in srgb, var(--color-info) 12%, transparent);
   --color-success: #10b981;
   --color-success-soft: color-mix(
     in srgb,
@@ -71,18 +73,18 @@
   --color-text: #0c0a09;
   --color-text-muted: #57534e;
   --color-text-subtle: #78716c;
-  --color-focus: color-mix(in srgb, var(--color-primary) 38%, white);
+  --color-focus: color-mix(in srgb, var(--color-action) 78%, white);
 
   --gradient-hero: linear-gradient(
     135deg,
-    #4f46e5 0%,
-    #6366f1 46%,
-    #8b5cf6 80%,
-    #f59e0b 150%
+    var(--color-action-hover) 0%,
+    var(--color-action) 46%,
+    var(--color-info) 80%,
+    var(--color-accent) 150%
   );
   --gradient-soft: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--color-primary) 16%, transparent) 0%,
+    color-mix(in srgb, var(--color-action) 16%, transparent) 0%,
     color-mix(in srgb, var(--color-accent) 10%, transparent) 100%
   );
 
@@ -115,34 +117,35 @@ body.dark {
   --color-text: #fafaf9;
   --color-text-muted: #d4d4d8;
   --color-text-subtle: #a1a1aa;
-  --color-focus: color-mix(in srgb, var(--color-primary) 46%, white);
+  --color-focus: color-mix(in srgb, var(--color-action) 40%, white);
+  --color-info: #c4b5fd;
   --color-success: #34d399;
   --color-warning: #fbbf24;
   --color-danger: #f87171;
 
-  --color-primary-soft: color-mix(
+  --color-selection: color-mix(
     in srgb,
-    var(--color-primary) 16%,
+    var(--color-action) 16%,
     transparent
   );
-  --color-primary-soft-strong: color-mix(
+  --color-selection-strong: color-mix(
     in srgb,
-    var(--color-primary) 24%,
+    var(--color-action) 24%,
     transparent
   );
-  --color-primary-soft-weak: color-mix(
+  --color-selection-subtle: color-mix(
     in srgb,
-    var(--color-primary) 10%,
+    var(--color-action) 10%,
     transparent
   );
-  --color-primary-border: color-mix(
+  --color-action-border: color-mix(
     in srgb,
-    var(--color-primary) 34%,
+    var(--color-action) 34%,
     transparent
   );
-  --color-primary-border-strong: color-mix(
+  --color-action-border-strong: color-mix(
     in srgb,
-    var(--color-primary) 46%,
+    var(--color-action) 46%,
     transparent
   );
 
@@ -221,7 +224,7 @@ samp {
 }
 
 .btn-primary {
-  background-color: var(--color-primary);
+  background-color: var(--color-action);
   color: white;
   box-shadow: var(--shadow-flat);
   will-change: auto;
@@ -243,7 +246,7 @@ samp {
 }
 
 .btn-primary:hover {
-  background-color: var(--color-primary-hover);
+  background-color: var(--color-action-hover);
 }
 
 .btn-primary[data-magnetic="true"]:hover {
@@ -258,7 +261,7 @@ samp {
 .btn-primary:disabled {
   background-color: color-mix(
     in srgb,
-    var(--color-primary) 40%,
+    var(--color-action) 40%,
     var(--color-bg)
   );
   cursor: not-allowed;
@@ -506,10 +509,10 @@ body.dark .ui-over-media-copy {
 }
 
 .ui-mode-toggle[data-mode="dark"] {
-  border-color: color-mix(in srgb, var(--color-primary) 36%, var(--color-border));
+  border-color: color-mix(in srgb, var(--color-action) 36%, var(--color-border));
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--color-primary) 18%, var(--color-surface)) 0%,
+    color-mix(in srgb, var(--color-action) 18%, var(--color-surface)) 0%,
     var(--color-surface) 100%
   );
 }
@@ -539,25 +542,25 @@ body.dark .ui-over-media-copy {
 
 /* Habil Smart-Assistant — deterministic recommendation workspace. */
 .smart-assistant-page {
-  --assistant-primary-text: #3730a3;
+  --assistant-accent-text: #3730a3;
   --assistant-success-text: #166534;
   --assistant-danger-text: #b91c1c;
   --assistant-warning-text: #92400e;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 82% 8%, var(--color-primary-soft-weak), transparent 28rem),
+    radial-gradient(circle at 82% 8%, var(--color-selection-subtle), transparent 28rem),
     var(--color-bg);
 }
 
 .dark .smart-assistant-page {
-  --assistant-primary-text: #c4b5fd;
+  --assistant-accent-text: #c4b5fd;
   --assistant-success-text: #86efac;
   --assistant-danger-text: #fca5a5;
   --assistant-warning-text: #fcd34d;
 }
 
 .smart-assistant-page .ui-focus-ring:focus-visible {
-  outline: 3px solid var(--color-primary);
+  outline: 3px solid var(--color-action);
   outline-offset: 2px;
   box-shadow: none;
 }
@@ -570,8 +573,8 @@ body.dark .ui-over-media-copy {
   justify-content: center;
   border-radius: 14px;
   color: white;
-  background: var(--color-primary);
-  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-primary) 24%, transparent);
+  background: var(--color-action);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-action) 24%, transparent);
 }
 
 .smart-assistant-shell {
@@ -617,9 +620,9 @@ body.dark .ui-over-media-copy {
 }
 
 .smart-assistant-scope[data-selected="true"] {
-  color: var(--assistant-primary-text);
-  background: var(--color-primary-soft);
-  border-color: color-mix(in srgb, var(--color-primary) 20%, var(--color-border));
+  color: var(--assistant-accent-text);
+  background: var(--color-selection);
+  border-color: color-mix(in srgb, var(--color-action) 20%, var(--color-border));
 }
 
 .smart-assistant-scope:disabled {
@@ -646,13 +649,13 @@ body.dark .ui-over-media-copy {
   padding: 10px 12px;
   border-radius: 12px;
   color: var(--color-text);
-  background: var(--color-primary-soft);
+  background: var(--color-selection);
 }
 
 .smart-assistant-query span {
   display: block;
   margin-bottom: 2px;
-  color: var(--assistant-primary-text);
+  color: var(--assistant-accent-text);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -689,7 +692,7 @@ body.dark .ui-over-media-copy {
   width: 42%;
   height: 100%;
   border-radius: inherit;
-  background: var(--color-primary);
+  background: var(--color-action);
   animation: smart-assistant-progress 1.4s var(--ui-motion-standard) infinite;
 }
 
@@ -735,7 +738,7 @@ body.dark .ui-over-media-copy {
 }
 
 .smart-assistant-composer:focus-within {
-  border-color: var(--color-primary);
+  border-color: var(--color-action);
   box-shadow: 0 0 0 3px var(--color-focus);
 }
 
@@ -755,7 +758,7 @@ body.dark .ui-over-media-copy {
   border: 0;
   border-radius: 11px;
   color: white;
-  background: var(--color-primary);
+  background: var(--color-action);
   font-size: 13px;
   font-weight: 850;
   cursor: pointer;
@@ -857,10 +860,10 @@ body.dark .ui-over-media-copy {
 }
 
 .ui-form-field:focus {
-  border-color: var(--color-primary);
+  border-color: var(--color-action);
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--color-primary) 42%, transparent);
+    0 0 0 3px color-mix(in srgb, var(--color-action) 16%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-action) 42%, transparent);
 }
 
 .ui-form-field:disabled {
@@ -929,7 +932,7 @@ body.dark .ui-over-media-copy {
   background:
     radial-gradient(
       circle at top left,
-      color-mix(in srgb, var(--color-primary) 10%, transparent) 0%,
+      color-mix(in srgb, var(--color-action) 10%, transparent) 0%,
       transparent 55%
     ),
     var(--color-surface);
@@ -1034,8 +1037,8 @@ body.dark .ui-over-media-copy {
 }
 
 .ui-search-box__clear:hover {
-  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
-  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-action) 10%, transparent);
+  color: var(--color-action);
 }
 
 .ui-toast-notice {
@@ -1090,7 +1093,7 @@ body.dark .ui-over-media-copy {
 }
 
 .ui-toast-notice[data-type="info"] svg {
-  color: var(--color-primary);
+  color: var(--color-action);
 }
 
 .ui-motion-card {
@@ -1132,7 +1135,7 @@ body.dark .ui-over-media-copy {
   transform: translateY(-2px);
   box-shadow:
     var(--shadow-hover),
-    0 0 0 1px color-mix(in srgb, var(--color-primary) 14%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--color-action) 14%, transparent);
 }
 
 tr.ui-row.ui-hover-delight {
@@ -1145,12 +1148,12 @@ tr.ui-row.ui-hover-delight:hover,
 tr.ui-row.ui-hover-delight:focus-within {
   background-color: color-mix(
     in srgb,
-    var(--color-primary) 6%,
+    var(--color-action) 6%,
     transparent
   ) !important;
   box-shadow:
-    inset 3px 0 0 var(--color-primary),
-    inset 0 -1px 0 color-mix(in srgb, var(--color-primary) 22%, transparent);
+    inset 3px 0 0 var(--color-action),
+    inset 0 -1px 0 color-mix(in srgb, var(--color-action) 22%, transparent);
   transform: none;
 }
 
@@ -1158,12 +1161,12 @@ tr.ui-row.ui-hover-delight:focus-within {
 .dark .ui-hover-delight:hover,
 .dark .ui-hover-delight:focus-within {
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--color-primary) 28%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-action) 28%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.03),
     var(--shadow-hover);
   border-color: color-mix(
     in srgb,
-    var(--color-primary) 30%,
+    var(--color-action) 30%,
     var(--color-border)
   );
 }
@@ -1200,10 +1203,10 @@ tr.ui-row.ui-hover-delight:focus-within {
 .ui-onboarding-spotlight {
   position: absolute;
   border-radius: 18px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 45%, white);
+  border: 1px solid color-mix(in srgb, var(--color-action) 45%, white);
   box-shadow:
     0 0 0 9999px rgba(0, 0, 0, 0.28),
-    0 0 0 6px color-mix(in srgb, var(--color-primary) 16%, transparent),
+    0 0 0 6px color-mix(in srgb, var(--color-action) 16%, transparent),
     0 18px 44px rgba(0, 0, 0, 0.22);
   pointer-events: none;
 }
@@ -1226,8 +1229,8 @@ tr.ui-row.ui-hover-delight:focus-within {
   margin-bottom: 12px;
   padding: 5px 9px;
   border-radius: 999px;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  background: var(--color-selection);
+  color: var(--color-action);
   font-size: 11px;
   font-weight: 800;
 }
@@ -1265,7 +1268,7 @@ tr.ui-row.ui-hover-delight:focus-within {
 
 .ui-onboarding-actions .btn-primary {
   border-color: transparent;
-  background: var(--color-primary);
+  background: var(--color-action);
   color: #fff;
 }
 
@@ -1286,7 +1289,7 @@ tr.ui-row.ui-hover-delight:focus-within {
 
 .ui-section-header__icon {
   display: inline-flex;
-  color: var(--color-primary);
+  color: var(--color-action);
 }
 
 .ui-section-header__description {

@@ -617,11 +617,11 @@ export default function OpnameModal({
                       background: isHighlighted
                         ? "color-mix(in srgb, var(--color-success) 13%, transparent)"
                         : isSelected
-                          ? "var(--color-primary-soft)"
+                          ? "var(--color-selection)"
                           : "transparent",
                       border: "none",
                       borderLeft: isSelected
-                        ? "3px solid var(--color-primary)"
+                        ? "3px solid var(--color-action)"
                         : "3px solid transparent",
                       cursor: "pointer",
                       display: "flex",
@@ -830,7 +830,7 @@ export default function OpnameModal({
                     data-magnetic="true"
                     style={{
                       padding: "8px 14px",
-                      background: "var(--color-primary)",
+                      background: "var(--color-action)",
                       color: "#FFF",
                       border: "none",
                       borderRadius: "8px",
@@ -885,7 +885,7 @@ export default function OpnameModal({
                       data-magnetic="true"
                       style={{
                         padding: "8px 16px",
-                        background: "var(--color-primary)",
+                        background: "var(--color-action)",
                         color: "#FFF",
                         border: "none",
                         borderRadius: "8px",
@@ -1265,8 +1265,8 @@ export default function OpnameModal({
             style={{
               padding: "10px 14px",
               background: bg,
-              color: changedItems.length > 0 ? "var(--color-primary)" : sub,
-              border: `1px solid ${changedItems.length > 0 ? "var(--color-primary)" : border}`,
+              color: changedItems.length > 0 ? "var(--color-action)" : sub,
+              border: `1px solid ${changedItems.length > 0 ? "var(--color-action)" : border}`,
               borderRadius: "10px",
               fontWeight: "600",
               fontSize: "13px",
@@ -1476,7 +1476,7 @@ export default function OpnameModal({
                 style={{
                   flex: 1,
                   padding: "10px",
-                  background: "var(--color-primary)",
+                  background: "var(--color-action)",
                   color: "#FFF",
                   border: "none",
                   borderRadius: "10px",

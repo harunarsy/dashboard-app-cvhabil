@@ -127,7 +127,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
           <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0, color: text }}>📒 Buku Besar</h1>
           <p style={{ margin: '4px 0 0', fontSize: 14, color: sub }}>Khusus Direktur · mutasi bank → kategori → laporan amplop bulanan</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 44, padding: '10px 18px', backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 14 }}><Plus size={18} /> Entry Manual</button>
+        <button onClick={() => setShowModal(true)} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 44, padding: '10px 18px', backgroundColor: 'var(--color-action-hover)', color: '#FFF', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 14 }}><Plus size={18} /> Entry Manual</button>
       </div>
 
       <div style={{ display: 'flex', gap: 4, backgroundColor: isDarkMode ? 'var(--color-surface-elevated)' : 'var(--color-border)', borderRadius: 10, padding: 3, marginBottom: '1.2rem', maxWidth: 620, overflowX: 'auto' }}>
@@ -148,10 +148,10 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
             </label>
             <button onClick={fetchEntries} className="ui-motion-button ui-focus-ring" style={{ ...inputStyle, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}><RefreshCw size={13} /> Muat ulang</button>
             {selected.size > 0 && (
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '6px 10px', borderRadius: 10, backgroundColor: 'rgba(10,132,255,0.1)', border: '1px solid var(--color-primary)' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-primary)' }}>{selected.size} dipilih →</span>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '6px 10px', borderRadius: 10, backgroundColor: 'rgba(10,132,255,0.1)', border: '1px solid var(--color-action)' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-action)' }}>{selected.size} dipilih →</span>
                 <select value={bulkCat} onChange={(e) => setBulkCat(e.target.value)} style={{ ...inputStyle, padding: '5px 8px' }}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>
-                <button onClick={applyBulk} className="ui-motion-button ui-focus-ring" style={{ padding: '6px 12px', border: 'none', borderRadius: 8, backgroundColor: 'var(--color-primary)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Terapkan</button>
+                <button onClick={applyBulk} className="ui-motion-button ui-focus-ring" style={{ padding: '6px 12px', border: 'none', borderRadius: 8, backgroundColor: 'var(--color-action)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Terapkan</button>
               </div>
             )}
           </div>
@@ -208,7 +208,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
                 {[['Laba Kotor (ledger)', scopeRep.laba_kotor, 'var(--color-success)'],
                   ['Total Pengeluaran', scopeRep.total_pengeluaran, 'var(--color-danger)'],
-                  ['Laba Bersih', scopeRep.laba_bersih, 'var(--color-primary)'],
+                  ['Laba Bersih', scopeRep.laba_bersih, 'var(--color-action)'],
                   ['Pembanding: Laba Nota (sistem)', report.pembanding_sistem?.laba_nota, sub]].map(([l, v, c], i) => (
                   <div key={i} className="ui-motion-card" style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: 12, padding: 16 }}>
                     <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: sub, textTransform: 'uppercase' }}>{l}</p>
@@ -270,7 +270,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
             </select>
             <input type="number" placeholder="Nominal" value={loanForm.amount} onChange={(e) => setLoanForm((f) => ({ ...f, amount: e.target.value }))} style={{ ...inputStyle, width: 130 }} />
             <input placeholder="Keterangan" value={loanForm.note} onChange={(e) => setLoanForm((f) => ({ ...f, note: e.target.value }))} style={{ ...inputStyle, minWidth: 160 }} />
-            <button onClick={saveLoan} className="ui-motion-button ui-focus-ring" style={{ padding: '9px 16px', border: 'none', borderRadius: 10, backgroundColor: 'var(--color-primary)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Simpan</button>
+            <button onClick={saveLoan} className="ui-motion-button ui-focus-ring" style={{ padding: '9px 16px', border: 'none', borderRadius: 10, backgroundColor: 'var(--color-action)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Simpan</button>
           </div>
           <div style={{ backgroundColor: cardBg, border: `1px solid ${border}`, borderRadius: 12, overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 640 }}>
@@ -331,7 +331,7 @@ export default function LedgerPage({ isDarkMode, isSidebarOpen, isMobile }) {
                 <div><label style={{ fontSize: 10, fontWeight: 700, color: sub }}>KELUAR (kredit)</label><input type="number" min="0" value={form.credit} onChange={(e) => setForm((f) => ({ ...f, credit: Math.max(0, parseFloat(e.target.value) || 0) }))} style={{ ...inputStyle, width: '100%' }} /></div>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={handleSave} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: 12, backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 14 }}>Simpan</button>
+                <button onClick={handleSave} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: 12, backgroundColor: 'var(--color-action-hover)', color: '#FFF', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 14 }}>Simpan</button>
                 <button onClick={() => setShowModal(false)} className="ui-focus-ring" style={{ flex: 1, padding: 12, backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>Batal</button>
               </div>
             </div>

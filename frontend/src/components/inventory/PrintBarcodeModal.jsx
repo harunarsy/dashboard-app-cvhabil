@@ -166,7 +166,7 @@ export default function PrintBarcodeModal({
               }}
             >
               {" "}
-              <Barcode size={18} color="var(--color-primary)" /> Cetak Stiker
+              <Barcode size={18} color="var(--color-action)" /> Cetak Stiker
               Barcode{" "}
             </h3>{" "}
             <p style={{ margin: "4px 0 0", fontSize: "12px", color: sub }}>
@@ -241,9 +241,9 @@ export default function PrintBarcodeModal({
                     minHeight: "38px",
                     padding: "0 14px",
                     borderRadius: "12px",
-                    border: `1px solid ${layout === key ? "var(--color-primary)" : border}`,
+                    border: `1px solid ${layout === key ? "var(--color-action)" : border}`,
                     background:
-                      layout === key ? "var(--color-primary)" : surface,
+                      layout === key ? "var(--color-action)" : surface,
                     color: layout === key ? "#FFF" : text,
                     fontWeight: "800",
                     fontSize: "12px",
@@ -529,7 +529,7 @@ export default function PrintBarcodeModal({
                 background:
                   printableRows.length === 0
                     ? "var(--color-text-subtle)"
-                    : "var(--color-primary)",
+                    : "var(--color-action)",
                 color: "#FFF",
                 border: "none",
                 borderRadius: "12px",

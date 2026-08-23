@@ -143,7 +143,7 @@ export default function BarcodeScanner({ onScan, onClose, isDarkMode }) {
             <Camera size={38} style={{ color: 'var(--color-warning)', marginBottom: '12px' }} />
             <p style={{ margin: '0 0 16px', fontSize: '14px', fontWeight: '700', lineHeight: 1.5 }}>{error}</p>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button type="button" onClick={retry} className="ui-motion-button ui-focus-ring" style={{ flex: 1, minHeight: '44px', border: 'none', borderRadius: '12px', background: 'var(--color-primary)', color: '#FFF', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <button type="button" onClick={retry} className="ui-motion-button ui-focus-ring" style={{ flex: 1, minHeight: '44px', border: 'none', borderRadius: '12px', background: 'var(--color-action)', color: '#FFF', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <RefreshCw size={16} /> Coba Lagi
               </button>
               <button type="button" onClick={onClose} className="ui-motion-button ui-focus-ring" style={{ flex: 1, minHeight: '44px', border: `1px solid ${border}`, borderRadius: '12px', background: panel, color: text, fontWeight: '800', cursor: 'pointer' }}>

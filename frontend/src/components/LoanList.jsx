@@ -719,7 +719,7 @@ export default function LoanList({ isDarkMode, isMobile }) {
                             <div style={{ fontSize: "12px", color: sub, minWidth: "170px" }}>
                               pinjam <b style={{ color: text }}>{it.qty}</b> · kembali{" "}
                               <b style={{ color: "var(--color-success)" }}>{it.qty_returned}</b> · dibeli{" "}
-                              <b style={{ color: "var(--color-primary)" }}>{it.qty_purchased}</b> · sisa{" "}
+                              <b style={{ color: "var(--color-action)" }}>{it.qty_purchased}</b> · sisa{" "}
                               <b style={{ color: sisa > 0 ? "var(--color-warning)" : text }}>{sisa}</b>
                             </div>
                             {sisa > 0 && (
@@ -762,7 +762,7 @@ export default function LoanList({ isDarkMode, isMobile }) {
                         <button
                           onClick={() => openConvert(loan)}
                           className="ui-motion-button"
-                          style={smallBtn("var(--color-primary)")}
+                          style={smallBtn("var(--color-action)")}
                         >
                           <ShoppingCart size={12} /> Jadikan Nota
                         </button>
@@ -1052,8 +1052,8 @@ export default function LoanList({ isDarkMode, isMobile }) {
                 onClick={addItemRow}
                 className="ui-motion-button"
                 style={{
-                  ...smallBtn("transparent", "var(--color-primary)"),
-                  border: `1px dashed var(--color-primary)`,
+                  ...smallBtn("transparent", "var(--color-action)"),
+                  border: `1px dashed var(--color-action)`,
                   marginTop: "8px",
                 }}
               >
@@ -1333,7 +1333,7 @@ export default function LoanList({ isDarkMode, isMobile }) {
                   onClick={saveConvert}
                   disabled={saving}
                   className="ui-motion-button"
-                  style={{ ...smallBtn("var(--color-primary)"), opacity: saving ? 0.6 : 1 }}
+                  style={{ ...smallBtn("var(--color-action)"), opacity: saving ? 0.6 : 1 }}
                 >
                   {saving ? "Membuat nota…" : "Buat Nota"}
                 </button>

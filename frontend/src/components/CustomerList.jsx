@@ -265,7 +265,7 @@ export default function CustomerList({
               gap: "6px",
               minHeight: "44px",
               padding: "10px 18px",
-              backgroundColor: "var(--color-primary)",
+              backgroundColor: "var(--color-action)",
               color: "#FFF",
               border: "none",
               borderRadius: "12px",
@@ -360,8 +360,8 @@ export default function CustomerList({
                 fontWeight: 600,
                 padding: "2px 6px",
                 borderRadius: 999,
-                backgroundColor: "var(--color-primary-soft)",
-                color: "var(--color-primary)",
+                backgroundColor: "var(--color-selection)",
+                color: "var(--color-action)",
               }}
             >
               Rule-based
@@ -604,14 +604,14 @@ export default function CustomerList({
                               c.type === "reseller"
                                 ? "var(--color-warning-soft)"
                                 : c.type === "institusi"
-                                  ? "color-mix(in srgb, var(--color-primary-hover) 9%, transparent)"
-                                  : "var(--color-primary-soft)",
+                                  ? "color-mix(in srgb, var(--color-action-hover) 9%, transparent)"
+                                  : "var(--color-selection)",
                             color:
                               c.type === "reseller"
                                 ? "var(--color-warning)"
                                 : c.type === "institusi"
-                                  ? "var(--color-primary-hover)"
-                                  : "var(--color-primary)",
+                                  ? "var(--color-action-hover)"
+                                  : "var(--color-action)",
                           }}
                         >
                           {c.type === "reseller"
@@ -642,7 +642,7 @@ export default function CustomerList({
                         className="ui-motion-button ui-focus-ring"
                         style={iconBtnStyle}
                       >
-                        <Icons.Edit2 size={16} color="var(--color-primary)" />
+                        <Icons.Edit2 size={16} color="var(--color-action)" />
                       </button>
                       <button
                         onClick={() => handleDelete(c.id)}
@@ -767,7 +767,7 @@ export default function CustomerList({
                     {hasActivity && (
                       <MetaBadge
                         label={compact(totalSpent)}
-                        color="var(--color-primary)"
+                        color="var(--color-action)"
                         sub={sub}
                         cardBg={surface}
                       />
@@ -808,7 +808,7 @@ export default function CustomerList({
                       style={{
                         marginTop: "4px",
                         padding: "10px 18px",
-                        background: "var(--color-primary)",
+                        background: "var(--color-action)",
                         color: "#FFF",
                         border: "none",
                         borderRadius: "10px",
@@ -988,7 +988,7 @@ export default function CustomerList({
                   style={{
                     flex: 1,
                     padding: "13px",
-                    backgroundColor: isSaving ? "var(--color-text-subtle)" : "var(--color-primary)",
+                    backgroundColor: isSaving ? "var(--color-text-subtle)" : "var(--color-action)",
                     color: "#FFF",
                     border: "none",
                     borderRadius: "10px",

@@ -4,7 +4,7 @@
   background:
     radial-gradient(
       circle at 12% -8%,
-      color-mix(in srgb, var(--color-primary) 10%, transparent) 0,
+      color-mix(in srgb, var(--color-action) 10%, transparent) 0,
       transparent 34rem
     ),
     radial-gradient(
@@ -80,8 +80,8 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
+  border-color: var(--color-action);
+  box-shadow: 0 0 0 3px var(--color-selection);
 }
 
 .form-group input:disabled {
@@ -107,7 +107,7 @@
 .btn-login {
   width: 100%;
   padding: 0.75rem 1rem;
-  background-color: var(--color-primary);
+  background-color: var(--color-action);
   color: white;
   border: none;
   border-radius: 0.75rem;
@@ -121,7 +121,7 @@
 }
 
 .btn-login:hover {
-  background-color: var(--color-primary-hover);
+  background-color: var(--color-action-hover);
   box-shadow: var(--shadow-card);
 }
 
@@ -132,7 +132,7 @@
 .btn-login:disabled {
   background-color: color-mix(
     in srgb,
-    var(--color-primary) 44%,
+    var(--color-action) 44%,
     var(--color-bg)
   );
   cursor: not-allowed;

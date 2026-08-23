@@ -54,7 +54,7 @@ export default function EmployeesPage({ isDarkMode, isSidebarOpen, isMobile }) {
           <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0, color: text }}>👥 Karyawan</h1>
           <p style={{ margin: '4px 0 0', fontSize: 14, color: sub }}>{activeEmp.length} aktif · gaji {month}: <b style={{ color: text }}>{fmtRp(monthTotal)}</b></p>
         </div>
-        <button onClick={() => setShowEmp(true)} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 44, padding: '10px 18px', backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 14 }}><Plus size={18} /> Karyawan</button>
+        <button onClick={() => setShowEmp(true)} className="ui-motion-button ui-focus-ring" style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 44, padding: '10px 18px', backgroundColor: 'var(--color-action-hover)', color: '#FFF', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 14 }}><Plus size={18} /> Karyawan</button>
       </div>
 
       {/* kartu karyawan */}
@@ -64,7 +64,7 @@ export default function EmployeesPage({ isDarkMode, isSidebarOpen, isMobile }) {
             <div style={{ fontWeight: 700, color: text, fontSize: 15 }}>{e.name}</div>
             <div style={{ fontSize: 11, color: sub }}>{e.role || 'Karyawan'}{parseFloat(e.daily_wage) > 0 ? ` · ${fmtRp(e.daily_wage)}/hari` : ''}</div>
             <div style={{ fontSize: 12, color: sub, marginTop: 8 }}>Total dibayar</div>
-            <div style={{ fontWeight: 800, color: 'var(--color-primary)', fontSize: 16 }}>{fmtRp(e.total_paid)}</div>
+            <div style={{ fontWeight: 800, color: 'var(--color-action)', fontSize: 16 }}>{fmtRp(e.total_paid)}</div>
             {e.last_paid && <div style={{ fontSize: 10, color: sub }}>terakhir {new Date(e.last_paid).toLocaleDateString('id-ID')}</div>}
           </div>
         ))}
@@ -80,7 +80,7 @@ export default function EmployeesPage({ isDarkMode, isSidebarOpen, isMobile }) {
         <input type="date" value={payForm.pay_date} onChange={(e) => setPayForm((f) => ({ ...f, pay_date: e.target.value }))} style={inputStyle} />
         <input type="number" placeholder="Nominal" value={payForm.amount} onChange={(e) => setPayForm((f) => ({ ...f, amount: e.target.value }))} style={{ ...inputStyle, width: 120 }} />
         <input placeholder="Catatan" value={payForm.note} onChange={(e) => setPayForm((f) => ({ ...f, note: e.target.value }))} style={{ ...inputStyle, minWidth: 140 }} />
-        <button onClick={savePay} className="ui-motion-button ui-focus-ring" style={{ padding: '9px 16px', border: 'none', borderRadius: 10, backgroundColor: 'var(--color-primary)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Simpan</button>
+        <button onClick={savePay} className="ui-motion-button ui-focus-ring" style={{ padding: '9px 16px', border: 'none', borderRadius: 10, backgroundColor: 'var(--color-action)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Simpan</button>
         <span style={{ flex: 1 }} />
         <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} style={inputStyle} />
       </div>
@@ -96,7 +96,7 @@ export default function EmployeesPage({ isDarkMode, isSidebarOpen, isMobile }) {
               <tr key={r.id} style={{ borderBottom: `1px solid ${border}` }}>
                 <td style={{ padding: '8px 12px', color: text, whiteSpace: 'nowrap' }}>{new Date(r.pay_date).toLocaleDateString('id-ID')}</td>
                 <td style={{ padding: '8px 12px', fontWeight: 700, color: text }}>{r.employee_name}</td>
-                <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--color-primary)' }}>{fmtRp(r.amount)}</td>
+                <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--color-action)' }}>{fmtRp(r.amount)}</td>
                 <td style={{ padding: '8px 12px', color: /sudah/i.test(r.status || '') ? 'var(--color-success)' : '#F59E0B', fontWeight: 600, fontSize: 12 }}>{r.status}</td>
                 <td style={{ padding: '8px 12px', color: sub }}>{r.note}</td>
                 <td style={{ padding: '8px 6px' }}><button onClick={async () => { await ledgerAPI.removeSalary(r.id); load(); }} aria-label="Hapus" className="ui-focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><Trash2 size={13} color="var(--color-danger)" /></button></td>
@@ -122,7 +122,7 @@ export default function EmployeesPage({ isDarkMode, isSidebarOpen, isMobile }) {
               </select>
               <input type="number" value={empForm.daily_wage} onChange={(e) => setEmpForm((f) => ({ ...f, daily_wage: e.target.value }))} placeholder="Upah harian (Rp)" style={inputStyle} />
               <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={saveEmp} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: 12, backgroundColor: 'var(--color-primary-hover)', color: '#FFF', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 14 }}>Simpan</button>
+                <button onClick={saveEmp} className="ui-motion-button ui-focus-ring" style={{ flex: 1, padding: 12, backgroundColor: 'var(--color-action-hover)', color: '#FFF', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 14 }}>Simpan</button>
                 <button onClick={() => setShowEmp(false)} className="ui-focus-ring" style={{ flex: 1, padding: 12, backgroundColor: isDarkMode ? 'var(--color-surface-raised)' : 'var(--color-bg)', color: text, border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>Batal</button>
               </div>
             </div>

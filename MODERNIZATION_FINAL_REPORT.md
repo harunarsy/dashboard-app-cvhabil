@@ -1,10 +1,10 @@
 # Habil SuperApp Modernization — Final Report
 
-Status: **PASS through Fase 7D; modernization loop remains in progress**
+Status: **PASS through Fase 7E; Fase 8 safety gate remains**
 
 Branch: `codex/bun-modernization-audit`
 
-Current version: `v1.66.23-stable`
+Current version: `v1.67.0-stable`
 
 Execution date: 23 August 2026
 
@@ -16,6 +16,7 @@ Execution date: 23 August 2026
 - Socket.io and every repository-local emitter are removed after confirming there is no frontend consumer.
 - Habil Smart-Assistant is implemented as a transparent deterministic rule engine. It does not use an LLM SDK, Python, RAG, or a vector database.
 - `PRODUCT.md`, `DESIGN.md`, the Smart-Assistant surface brief, and the Impeccable sidecar preserve the shipped product and visual decisions for future agents.
+- Frontend interaction styling now uses semantic action, selection, focus, information, and status roles instead of hue-bound component tokens or vendor-style doctrine.
 - PostgreSQL remained read-only throughout execution. No DML, DDL, migration, or schema mutation was executed.
 
 ## Phase Ledger
@@ -33,6 +34,7 @@ Execution date: 23 August 2026
 | 7B — Node 24 promotion | v1.66.21 | phase commit | Node 24.19.0 default, engine/CI parity |
 | 7C — Bundle optimization | v1.66.22 | phase commit | Workbook loaded on demand; all chunks below 500 kB |
 | 7D — Explicit schema lifecycle | v1.66.23 | phase commit | 17 route schema initializers extracted; normal startup executes zero DDL |
+| 7E — Design-system liberation | v1.67.0 | phase commit | Semantic interaction roles, accessible contrast, and doctrine-neutral product/design contracts |
 
 ## Smart-Assistant Architecture
 
@@ -51,7 +53,7 @@ Execution date: 23 August 2026
 
 | Gate | Node 20.20.2 | Node 24.19.0 | Bun 1.4.0 |
 |---|---:|---:|---:|
-| Frontend Vitest | 9 files / 23 tests | 10 / 25 | 10 / 25 |
+| Frontend Vitest | 9 files / 23 tests | 11 / 28 | 11 / 28 |
 | Frontend production build | PASS | PASS | PASS |
 | Assistant contract | 5 / 5 | 5 / 5 | 5 / 5 |
 | HTTP smoke | 17 / 17, zero mutation | 17 / 17, zero mutation | 17 / 17, zero mutation |
@@ -92,6 +94,8 @@ These are pre-existing production-data findings. They were not modified or maske
 - Frontend and backend `npm audit` report zero advisories after targeted upgrades, including SheetJS 0.20.3 from its official distribution.
 - Node 20 results are retained above only as historical rollback evidence; Node 24.19.0 is the supported default.
 - Route imports are now DDL-free. The extracted migration registry is deployment-only, fails closed without explicit enablement and exact-host confirmation, and was **not executed** during modernization.
+- Design tokens are now role-based; current color values are replaceable defaults. The detailed inventory and contrast evidence are recorded in `DESIGN_LIBERATION_REPORT.md`.
+- The one-time final Impeccable detector returned zero errors and six bounded pre-existing warnings; no finding was suppressed or misreported.
 
 ## Rollback
 

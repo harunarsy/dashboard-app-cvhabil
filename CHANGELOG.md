@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.0-stable] - 2026-08-23
+
+### Ditingkatkan
+- **Sistem desain dibebaskan dari ketergantungan nama warna dan doktrin vendor.** Token `primary` diganti dengan peran semantik `action`, `selection`, `focus`, `info`, dan status sehingga palet dapat berubah tanpa menulis ulang komponen.
+- `DESIGN.md` dan `PRODUCT.md` kini menetapkan performance-first, accessibility, serta UI yang bersih dan teroptimasi sebagai prinsip utama. Nilai warna saat ini menjadi default implementasi, bukan aturan merek permanen.
+
+### Diverifikasi
+- Seluruh sumber frontend bebas token warna lama dan utility Tailwind yang mengunci warna; kontrak desain baru dilindungi regression test.
+- Node 24.19.0 dan Bun 1.4 masing-masing lulus 11 file/28 frontend test serta production build. Rasio kontras peran kritis memenuhi target yang didokumentasikan di `DESIGN_LIBERATION_REPORT.md`.
+- Detector Impeccable final mencatat 0 error dan 6 warning lama yang dibatasi sebagai debt terpisah: lima animasi properti layout dan satu side-accent card.
+
 ## [v1.66.23-stable] - 2026-08-23
 
 ### Ditingkatkan

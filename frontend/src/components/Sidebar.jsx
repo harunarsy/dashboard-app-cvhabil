@@ -262,7 +262,7 @@ export default function Sidebar({
   const sub = isDarkMode
     ? "var(--color-text-subtle)"
     : "var(--color-text-muted)";
-  const appVersion = "v1.66.23-stable";
+  const appVersion = "v1.67.0-stable";
   const TooltipButton = ({
     label,
     children,
@@ -480,7 +480,7 @@ export default function Sidebar({
                     className="h-11 w-11 rounded-2xl shadow-sm flex items-center justify-center text-white font-black tracking-tight"
                     style={{
                       background:
-                        "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)",
+                        "linear-gradient(135deg, var(--color-action) 0%, var(--color-action-hover) 100%)",
                     }}
                     aria-hidden="true"
                   >
@@ -601,12 +601,12 @@ export default function Sidebar({
                   padding: showLabel ? "0.78rem 0.95rem" : "0.78rem 0",
                   marginBottom: "0.35rem",
                   borderRadius: "0.9rem",
-                  border: `1px solid ${isCurrent ? (isDarkMode ? "rgba(10,132,255,0.25)" : "var(--color-primary-soft-strong)") : "transparent"}`,
+                  border: `1px solid ${isCurrent ? (isDarkMode ? "rgba(10,132,255,0.25)" : "var(--color-selection-strong)") : "transparent"}`,
                   cursor: isActive ? "pointer" : "not-allowed",
                   backgroundColor: isCurrent
                     ? isDarkMode
                       ? "rgba(10,132,255,0.16)"
-                      : "var(--color-primary-soft)"
+                      : "var(--color-selection)"
                     : isActive
                       ? isDarkMode
                         ? "var(--color-surface-elevated)"
@@ -615,7 +615,7 @@ export default function Sidebar({
                   color: isCurrent
                     ? isDarkMode
                       ? "#FFF"
-                      : "var(--color-primary-hover)"
+                      : "var(--color-action-hover)"
                     : isActive
                       ? txt
                       : isDarkMode
@@ -720,7 +720,7 @@ export default function Sidebar({
               border: `1px solid ${
                 isDarkMode
                   ? "color-mix(in srgb, var(--color-warning) 42%, var(--color-border))"
-                  : "color-mix(in srgb, var(--color-primary) 36%, var(--color-border))"
+                  : "color-mix(in srgb, var(--color-action) 36%, var(--color-border))"
               }`,
               cursor: "pointer",
               color: txt,
@@ -906,7 +906,7 @@ export default function Sidebar({
                   className="ui-motion-button ui-focus-ring"
                   style={{
                     padding: "12px 28px",
-                    backgroundColor: "var(--color-primary)",
+                    backgroundColor: "var(--color-action)",
                     color: "white",
                     border: "none",
                     borderRadius: "10px",
@@ -935,7 +935,7 @@ export default function Sidebar({
                 >
                   {[
                     ["bug", "🐛 Laporkan Bug", "var(--color-danger)"],
-                    ["feature", "💡 Saran Fitur", "var(--color-primary)"],
+                    ["feature", "💡 Saran Fitur", "var(--color-action)"],
                   ].map(([key, label, color]) => (
                     <button
                       key={key}
@@ -1170,7 +1170,7 @@ export default function Sidebar({
                       backgroundColor:
                         bugType === "bug"
                           ? "var(--color-danger)"
-                          : "var(--color-primary)",
+                          : "var(--color-action)",
                       color: "white",
                       border: "none",
                       borderRadius: "10px",

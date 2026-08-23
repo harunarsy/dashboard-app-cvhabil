@@ -1,6 +1,6 @@
 # Habil SuperApp Modernization Execution Plan
 
-Status: in progress — Fase 7D passed; Fase 7E and Fase 8 remain
+Status: in progress — Fase 7E passed; Fase 8 safety gate remains
 
 Source version: `v1.66.8-stable`
 
@@ -152,3 +152,16 @@ Status: **completed in v1.66.23-stable**. No migration or database mutation was 
 ## Resolved Long-Term Item
 
 - Schema initialization has moved from route imports to an explicit migration/deployment step. Production execution remains a separately authorized deployment action.
+
+## Phase 7E — Design-System Liberation
+
+1. Replace hue-bound interaction tokens with semantic action, selection, focus, information, and status roles.
+2. Remove vendor-style and fixed-hue doctrine from the product and design contracts.
+3. Make performance, accessibility, and clean optimized interfaces the non-negotiable design principles.
+4. Protect the boundary with static regression tests and validate the final frontend with Impeccable, Node 24, and Bun.
+
+Status: **completed in v1.67.0-stable**. The rendered product behavior is preserved while future palette changes are decoupled from component code.
+
+## Phase 8 — Deep-Freeze Transaction Testing
+
+Status: **safety gate pending**. Any mutating integration test requires a dedicated disposable PostgreSQL target and a proven same-connection transaction rollback. Shared, audit, staging, or production-like databases remain strictly read-only.

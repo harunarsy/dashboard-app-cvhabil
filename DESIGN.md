@@ -2,12 +2,14 @@
 name: "Habil SuperApp"
 description: "A premium operational interface for transparent, evidence-led business decisions."
 colors:
-  primary: "#6366f1"
-  primary-hover: "#4f46e5"
-  primary-pressed: "#4338ca"
-  primary-soft: "color-mix(in srgb, #6366f1 12%, transparent)"
-  primary-soft-dark: "color-mix(in srgb, #6366f1 16%, transparent)"
+  action: "#4f46e5"
+  action-hover: "#4338ca"
+  action-pressed: "#3730a3"
+  selection: "color-mix(in srgb, #4f46e5 12%, transparent)"
+  selection-dark: "color-mix(in srgb, #4f46e5 16%, transparent)"
   accent: "#f59e0b"
+  info: "#6d28d9"
+  info-dark: "#c4b5fd"
   success: "#10b981"
   success-dark: "#34d399"
   warning: "#f59e0b"
@@ -34,10 +36,10 @@ colors:
   text-dark: "#fafaf9"
   text-muted-dark: "#d4d4d8"
   text-subtle-dark: "#a1a1aa"
-  focus: "color-mix(in srgb, #6366f1 38%, white)"
-  focus-dark: "color-mix(in srgb, #6366f1 46%, white)"
-  assistant-primary-text: "#3730a3"
-  assistant-primary-text-dark: "#c4b5fd"
+  focus: "color-mix(in srgb, #4f46e5 78%, white)"
+  focus-dark: "color-mix(in srgb, #4f46e5 40%, white)"
+  assistant-accent-text: "#3730a3"
+  assistant-accent-text-dark: "#c4b5fd"
   assistant-success-text: "#166534"
   assistant-success-text-dark: "#86efac"
   assistant-danger-text: "#b91c1c"
@@ -112,13 +114,13 @@ spacing:
   s9: "96px"
 components:
   button-primary:
-    backgroundColor: "{colors.primary}"
+    backgroundColor: "{colors.action}"
     textColor: "{colors.surface}"
     typography: "{typography.input}"
     rounded: "{rounded.r8}"
     padding: "8px 16px"
   button-primary-hover:
-    backgroundColor: "{colors.primary-hover}"
+    backgroundColor: "{colors.action-hover}"
     textColor: "{colors.surface}"
     rounded: "{rounded.r8}"
   search-field:
@@ -129,8 +131,8 @@ components:
     padding: "8px 38px 8px 34px"
     height: "38px"
   nav-item-active:
-    backgroundColor: "{colors.primary-soft}"
-    textColor: "{colors.primary-hover}"
+    backgroundColor: "{colors.selection}"
+    textColor: "{colors.action-hover}"
     typography: "{typography.body}"
     rounded: "{rounded.nav}"
     padding: "0.78rem 0.95rem"
@@ -143,8 +145,8 @@ components:
     padding: "10px 12px"
     height: "46px"
   assistant-scope-selected:
-    backgroundColor: "{colors.primary-soft}"
-    textColor: "{colors.assistant-primary-text}"
+    backgroundColor: "{colors.selection}"
+    textColor: "{colors.assistant-accent-text}"
     typography: "{typography.control}"
     rounded: "{rounded.r12}"
     padding: "10px 12px"
@@ -161,7 +163,7 @@ components:
     padding: "7px 8px 7px 16px"
     height: "56px"
   assistant-send:
-    backgroundColor: "{colors.primary}"
+    backgroundColor: "{colors.action}"
     textColor: "{colors.surface}"
     typography: "{typography.control}"
     rounded: "{rounded.r11}"
@@ -181,55 +183,80 @@ components:
 
 **Creative North Star: "The Transparent Operations Desk"**
 
-The system feels like a calm, premium operations desk: warm neutral surfaces, compact evidence, and a restrained indigo signal that helps operators find the next action without turning the dashboard into a spectacle. Habil Smart-Assistant is its clearest expression—assistant-shaped, but visibly deterministic, read-only, and accountable to business evidence.
+The system is a calm, efficient operations desk: stable surfaces, compact evidence, and clear interaction roles help operators find the next action without spectacle. Habil Smart-Assistant is its clearest expression—assistant-shaped, but visibly deterministic, read-only, and accountable to business evidence.
 
-Apple-HIG influence appears through precise hierarchy, generous touch targets, softened geometry, quiet elevation, and responsive reflow. Density is intentional on desktop and simplified on mobile; decoration never competes with the reason, evidence, status, or destination behind an operational recommendation.
+The design is not tied to a vendor aesthetic or named brand hue. Hierarchy, touch safety, responsive reflow, contrast, and rendering cost decide whether an interface choice belongs. Desktop density is intentional and mobile flows simplify without hiding critical evidence.
 
 **Key Characteristics:**
 
-- Warm neutral surfaces with a single restrained indigo action voice.
+- Role-based action, selection, focus, information, and status tokens that can be remapped independently.
 - Structured evidence before decoration: summary, reason, figures, then action.
 - Compact desktop density with opaque, touch-safe mobile reflow.
 - Light and dark themes preserve semantic hierarchy and readable status contrast.
 - Lucide line icons support labels; they do not replace operational language.
 
+## Non-Negotiable Principles
+
+### Performance First
+
+- Reserve layout space before asynchronous content appears; avoid layout shift and hidden reflow.
+- Prefer CSS, static assets, and route-level loading over render-blocking effects or decorative runtimes.
+- Animate compositor-friendly properties only, honor reduced motion, and keep state feedback bounded.
+- Treat bundle size, first paint, and interaction latency as design constraints, not cleanup tasks.
+
+### Accessibility
+
+- Meet WCAG AA contrast for text and controls in light and dark themes.
+- Preserve visible keyboard focus, semantic control roles, logical focus order, and keyboard-equivalent actions.
+- Keep touch targets at least 44px and editable mobile text at least 16px.
+- Never use color as the only carrier of status, severity, validation, or selection.
+
+### Clean and Optimized UI
+
+- Components consume semantic roles rather than named hues or one-off color literals.
+- Density must improve scanning; decoration cannot compete with data, reason, status, or next action.
+- Reuse a compact spacing, typography, radius, and elevation vocabulary.
+- A palette change must be possible at the token layer without component rewrites.
+
 ## Colors
 
-The palette combines warm stone neutrals with indigo emphasis and explicit semantic status colors; light and dark values are paired rather than mechanically inverted.
+Color is defined by purpose. Current defaults provide a tested implementation, but no hue is a permanent product rule. Light and dark values are paired intentionally rather than mechanically inverted.
 
-### Primary
+### Interaction Roles
 
-- **Operational Indigo** (`primary`, `primary-hover`, `primary-pressed`): primary actions, selected scopes, focus emphasis, and the Smart-Assistant mark.
-- **Indigo Wash** (`primary-soft`, `primary-soft-dark`): selected controls, query surfaces, quiet badges, and low-attention emphasis.
+- **Action** (`action`, `action-hover`, `action-pressed`): explicit forward actions and the Smart-Assistant mark.
+- **Selection** (`selection`, `selection-dark`): selected controls, current navigation, query surfaces, and low-attention emphasis.
+- **Focus** (`focus`, `focus-dark`): keyboard focus only; it must remain visible against every adjacent surface.
+- **Information** (`info`, `info-dark`): explanatory or automated states that are neither success, warning, nor danger.
 
-### Secondary
+### Status Roles
 
-- **Verified Green** (`success`, `success-dark`, `assistant-success-text`, `assistant-success-text-dark`): read-only verification, successful checks, and safe empty states.
-- **Operational Amber** (`warning`, `warning-dark`, `assistant-warning-text`, `assistant-warning-text-dark`): conditions that need review but are not destructive.
-- **Critical Red** (`danger`, `danger-dark`, `assistant-danger-text`, `assistant-danger-text-dark`): failed checks, critical recommendations, and destructive actions.
+- **Success** (`success`, `success-dark`, `assistant-success-text`, `assistant-success-text-dark`): verified checks, completed work, and safe empty states.
+- **Warning** (`warning`, `warning-dark`, `assistant-warning-text`, `assistant-warning-text-dark`): conditions that need review but are not destructive.
+- **Danger** (`danger`, `danger-dark`, `assistant-danger-text`, `assistant-danger-text-dark`): failed checks, critical recommendations, and destructive actions.
 
-### Tertiary
+### Supporting Accent
 
-- **Warm Accent** (`accent`): a limited supporting note in gradients; it is not a second action color.
+- **Accent** (`accent`): a limited supporting note in gradients; it is not a second action role.
 
 ### Neutral
 
-- **Warm Canvas** (`background`, `background-subtle`): page field and nested operational regions in light mode.
-- **Paper Surfaces** (`surface`, `surface-elevated`, `surface-raised`): cards, fields, dialogs, and elevated containers in light mode.
-- **Stone Structure** (`border`, `border-strong`): separators and control boundaries.
-- **Ink Hierarchy** (`text`, `text-muted`, `text-subtle`): primary copy, explanatory copy, and metadata.
-- **Night Canvas and Surfaces** (`background-dark`, `background-subtle-dark`, `surface-dark`, `surface-elevated-dark`, `surface-raised-dark`): dark-mode layers with preserved separation.
-- **Night Structure and Ink** (`border-dark`, `border-strong-dark`, `text-dark`, `text-muted-dark`, `text-subtle-dark`): dark-mode boundaries and text hierarchy.
+- **Canvas** (`background`, `background-subtle`): page field and nested operational regions in light mode.
+- **Surfaces** (`surface`, `surface-elevated`, `surface-raised`): cards, fields, dialogs, and elevated containers in light mode.
+- **Structure** (`border`, `border-strong`): separators and control boundaries.
+- **Text hierarchy** (`text`, `text-muted`, `text-subtle`): primary copy, explanatory copy, and metadata.
+- **Dark canvas and surfaces** (`background-dark`, `background-subtle-dark`, `surface-dark`, `surface-elevated-dark`, `surface-raised-dark`): dark-mode layers with preserved separation.
+- **Dark structure and text** (`border-dark`, `border-strong-dark`, `text-dark`, `text-muted-dark`, `text-subtle-dark`): dark-mode boundaries and text hierarchy.
 
-**The One Action Voice Rule.** Indigo owns selection, focus, and forward action; semantic colors communicate state and must not become competing calls to action.
+**The Role Separation Rule.** Action, selection, focus, information, and status have separate tokens. A palette may map them to related hues, but components must not collapse their meanings.
 
 **The Evidence Before Accent Rule.** Color may prioritize evidence, but severity must also remain legible through labels, icons, borders, or structure.
 
 ## Typography
 
-**Display Font:** Inter (with Apple and Segoe UI fallbacks)
+**Display Font:** Inter (with system UI fallbacks)
 
-**Body Font:** Inter (with Apple and Segoe UI fallbacks)
+**Body Font:** Inter (with system UI fallbacks)
 
 **Label/Mono Font:** JetBrains Mono (with system monospace fallbacks)
 
@@ -291,8 +318,8 @@ The form language is softly geometric. Compact controls use the lower `r8`–`r1
 ### Buttons
 
 - **Shape:** compact primary buttons use `r8`; assistant actions use `r11` or `r12` and maintain a 44px minimum touch height.
-- **Primary:** solid Operational Indigo with white text; hover moves to `primary-hover`, press scales subtly, and disabled states lose emphasis without disappearing.
-- **Focus:** the shared focus treatment is clearly visible; Smart-Assistant strengthens it to a three-pixel indigo outline with offset.
+- **Primary:** solid `action` with contrast-safe text; hover moves to `action-hover`, press scales subtly, and disabled states lose emphasis without disappearing.
+- **Focus:** the shared `focus` treatment is clearly visible; Smart-Assistant strengthens it to a three-pixel outline with offset.
 - **Secondary / Ghost:** solid neutral or transparent surfaces keep a structural border and inherit the same focus and press behavior.
 
 ### Chips
@@ -311,16 +338,16 @@ The form language is softly geometric. Compact controls use the lower `r8`–`r1
 ### Inputs / Fields
 
 - **Style:** solid surface, one-pixel neutral border, and `r9`–`r14` corners depending on context.
-- **Focus:** border shifts to Operational Indigo with a visible focus ring; the assistant composer applies focus to the containing field group.
-- **Error / Disabled:** errors use Critical Red plus a soft field treatment; disabled controls use muted surfaces, muted text, and an explicit non-interactive cursor.
+- **Focus:** border shifts to the `action` role with a visible `focus` ring; the assistant composer applies focus to the containing field group.
+- **Error / Disabled:** errors use the `danger` role plus a soft field treatment; disabled controls use muted surfaces, muted text, and an explicit non-interactive cursor.
 
 ### Navigation
 
-- **Style:** sidebar items are 44px minimum-height controls with icon-plus-label structure. The active item uses Indigo Wash, stronger text, and `aria-current`; the mobile variant becomes an opaque focus-trapped drawer.
+- **Style:** sidebar items are 44px minimum-height controls with icon-plus-label structure. The active item uses the `selection` role, stronger text, and `aria-current`; the mobile variant becomes an opaque focus-trapped drawer.
 
 ### Scope Selector
 
-- **Style:** scope choices are `r12` radio buttons with Lucide icons, compact labels, and a selected Indigo Wash state.
+- **Style:** scope choices are `r12` radio buttons with Lucide icons, compact labels, and a selected `selection` state.
 - **Behavior:** use semantic radiogroup markup, roving tabindex, and Arrow/Home/End navigation. Selection immediately runs the bounded rule set and must remain keyboard-equivalent to pointer use.
 
 ### Recommendation Evidence
@@ -335,7 +362,7 @@ The form language is softly geometric. Compact controls use the lower `r8`–`r1
 - **Do** keep assistant capability copy explicit: rule-based, non-generative, read-only, and advisory.
 - **Do** pair every recommendation with a reason, numerical evidence, severity label, and owning-module action.
 - **Do** preserve 44px touch targets, visible keyboard focus, 16px mobile inputs, and reduced-motion behavior.
-- **Do** use solid surfaces and restrained Indigo Wash to maintain trust in light and dark modes.
+- **Do** use semantic surface and selection roles consistently in light and dark modes.
 - **Do** keep dense information scannable through tabular numerals, short labels, and consistent evidence order.
 
 ### Don't:

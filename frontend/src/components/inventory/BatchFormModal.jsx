@@ -271,7 +271,7 @@ export default function BatchFormModal({
             style={{
               flex: 1,
               padding: "12px",
-              background: "var(--color-primary)",
+              background: "var(--color-action)",
               color: "#FFF",
               border: "none",
               borderRadius: "12px",

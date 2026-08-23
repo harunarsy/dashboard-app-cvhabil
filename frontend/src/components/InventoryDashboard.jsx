@@ -879,14 +879,14 @@ export default function InventoryDashboard({
               : { display: "flex", gap: "8px", flexWrap: "wrap" }
           }
         >
-          {headerBtn("var(--color-primary)", Plus, "Produk", openAddProduct)}
+          {headerBtn("var(--color-action)", Plus, "Produk", openAddProduct)}
           {headerBtn("var(--color-success)", ArrowDownCircle, "Stok Masuk", () =>
             openStockIn(null),
           )}
           {headerBtn("var(--color-warning)", ArrowUpCircle, "Stok Keluar", () =>
             openStockOut(null),
           )}
-          {headerBtn("var(--color-primary-hover)", ClipboardCheck, "Opname", () =>
+          {headerBtn("var(--color-action-hover)", ClipboardCheck, "Opname", () =>
             setShowModal("opname"),
           )}
           {headerBtn(
@@ -1220,7 +1220,7 @@ export default function InventoryDashboard({
                             style={{
                               borderBottom: `1px solid ${border}`,
                               background: isSelected
-                                ? "color-mix(in srgb, var(--color-primary) 10%, transparent)"
+                                ? "color-mix(in srgb, var(--color-action) 10%, transparent)"
                                 : isExpanded
                                   ? surface
                                   : "transparent",
@@ -1529,7 +1529,7 @@ export default function InventoryDashboard({
                                   onClick={() => openEditProduct(p)}
                                   label="Edit Produk"
                                   Icon={Icons.Edit2}
-                                  color="var(--color-primary)"
+                                  color="var(--color-action)"
                                 />
                                 <IconBtn
                                   onClick={() => setDeleteConfirmId(p.id)}
@@ -1604,7 +1604,7 @@ export default function InventoryDashboard({
                               data-magnetic="true"
                               style={{
                                 padding: "10px 14px",
-                                backgroundColor: "var(--color-primary)",
+                                backgroundColor: "var(--color-action)",
                                 color: "#FFF",
                                 border: "none",
                                 borderRadius: "10px",
@@ -2286,7 +2286,7 @@ export default function InventoryDashboard({
                         onClick={addTier}
                         type="button"
                         style={{
-                          background: "var(--color-primary)",
+                          background: "var(--color-action)",
                           color: "#FFF",
                           border: "none",
                           padding: "4px 10px",
@@ -2531,7 +2531,7 @@ export default function InventoryDashboard({
                     disabled={modalSaving}
                     className="btn-primary ui-motion-button ui-focus-ring"
                     data-magnetic="true"
-                    style={primaryBtn("var(--color-primary)", modalSaving)}
+                    style={primaryBtn("var(--color-action)", modalSaving)}
                   >
                     {modalSaving
                       ? "Menyimpan..."
@@ -2703,7 +2703,7 @@ export default function InventoryDashboard({
                   disabled={modalSaving}
                   className="btn-primary ui-motion-button ui-focus-ring"
                   data-magnetic="true"
-                  style={primaryBtn("var(--color-primary)", modalSaving)}
+                  style={primaryBtn("var(--color-action)", modalSaving)}
                 >
                   {modalSaving ? "Menyimpan..." : "Simpan"}
                 </button>
@@ -2963,7 +2963,7 @@ export default function InventoryDashboard({
           }}
         >
           <span>
-            <strong style={{ color: "var(--color-primary)" }}>
+            <strong style={{ color: "var(--color-action)" }}>
               {selectedProductIds.size}
             </strong>{" "}
             produk dipilih
@@ -2972,7 +2972,7 @@ export default function InventoryDashboard({
             onClick={() => setBulkEditOpen(true)}
             style={{
               padding: "8px 14px",
-              background: "var(--color-primary)",
+              background: "var(--color-action)",
               color: "#FFF",
               border: "none",
               borderRadius: "8px",
@@ -3206,7 +3206,7 @@ export default function InventoryDashboard({
                 disabled={batchActionSaving}
                 className="btn-primary ui-motion-button ui-focus-ring"
                 data-magnetic="true"
-                style={primaryBtn("var(--color-primary)", batchActionSaving)}
+                style={primaryBtn("var(--color-action)", batchActionSaving)}
               >
                 {batchActionSaving ? "Menyimpan..." : "Simpan"}
               </button>
@@ -3384,7 +3384,7 @@ function ExpandedBatches({
           className="ui-motion-button ui-focus-ring"
           style={{
             background: "transparent",
-            color: "var(--color-primary)",
+            color: "var(--color-action)",
             border: "none",
             cursor: "pointer",
             fontSize: "12px",
@@ -3574,7 +3574,7 @@ function ExpandedBatches({
                       onClick={() => onEditBatch?.(b)}
                       label="Edit batch"
                       Icon={Edit2}
-                      color="var(--color-primary)"
+                      color="var(--color-action)"
                     />
                     <IconBtn
                       onClick={() => onAdjustBatch?.(b)}
@@ -3658,7 +3658,7 @@ function ProductBatchPanel({
           style={{
             minHeight: "38px",
             padding: "0 14px",
-            background: "var(--color-primary)",
+            background: "var(--color-action)",
             color: "#FFF",
             border: "none",
             borderRadius: "10px",
@@ -3683,7 +3683,7 @@ function ProductBatchPanel({
               className="btn-primary ui-motion-button ui-focus-ring"
               data-magnetic="true"
               style={{
-                background: "var(--color-primary)",
+                background: "var(--color-action)",
                 color: "#FFF",
                 border: "none",
                 padding: "10px 14px",
@@ -3821,7 +3821,7 @@ function ProductBatchPanel({
                             onClick={() => onEditBatch(b)}
                             label="Edit batch"
                             Icon={Edit2}
-                            color="var(--color-primary)"
+                            color="var(--color-action)"
                           />
                           <IconBtn
                             onClick={() => onAdjustBatch(b)}
