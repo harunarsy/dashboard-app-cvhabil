@@ -34,7 +34,7 @@ The product combines transaction entry with batch-aware inventory and determinis
 ## Capabilities and Constraints
 
 - React 19 frontend with Vite 8 and local Tailwind CSS 4.
-- Express 5 backend with PostgreSQL through `pg`; Node 20 remains the default runtime and Bun 1.4 is a parallel pilot.
+- Express 5 backend with PostgreSQL through `pg`; Node 24.19.0 LTS is the default runtime and Bun 1.4 remains a parallel pilot.
 - JWT authentication and role-based authorization.
 - Database access during modernization verification is strictly read-only.
 - Habil Smart-Assistant is deterministic and rule-based. It must not imply LLM or generative capability.

@@ -4,7 +4,7 @@ React 19 frontend dengan Vite 8, Tailwind CSS 4 lokal, React Router 7, dan Vites
 
 ## Persyaratan
 
-- Node.js 20.20.2 atau Node.js 24
+- Node.js 24.19.0 LTS
 - npm 10.x (default) atau Bun 1.4 sebagai package-manager pilot
 
 ## Perintah

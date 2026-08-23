@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.20-stable",
+    version: "v1.66.21-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Node 24.19.0 LTS kini menjadi runtime default untuk development, package engines, dan CI.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.20-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",

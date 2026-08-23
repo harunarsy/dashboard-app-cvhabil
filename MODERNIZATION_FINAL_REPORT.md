@@ -4,13 +4,13 @@ Status: **PASS**
 
 Branch: `codex/bun-modernization-audit`
 
-Final version: `v1.66.19-stable`
+Current version: `v1.66.21-stable`
 
 Execution date: 23 August 2026
 
 ## Outcome
 
-- Node 20/npm remains the official production fallback.
+- Node 24.19.0 LTS is the official default runtime; Node 20 has been retired from engines and CI after reaching EOL.
 - Bun 1.4 is available as a reversible package-manager and backend-runtime pilot; Node remains default because Bun used about 22% more RSS in the final startup benchmark.
 - Frontend now uses Vite 8, Vitest 4, and local Tailwind 4/PostCSS. CRA and Tailwind CDN are removed.
 - Socket.io and every repository-local emitter are removed after confirming there is no frontend consumer.
@@ -29,6 +29,8 @@ Execution date: 23 August 2026
 | 4A–4E — Frontend | v1.66.13–v1.66.17 | `975ecb4`–`f493f0a` | Vite/Vitest/Tailwind migration, CRA removal, UI hardening |
 | 5 — Socket.io cleanup | v1.66.18 | `aeb8bef` | Dead realtime infrastructure removed |
 | 6 — Smart-Assistant | v1.66.19 | final phase commit | Rule engine, secured API, premium transparent UI |
+| 7A — Dead weight/security | v1.66.20 | `c0dbc3d` | Three/Vanta removal and zero npm advisories |
+| 7B — Node 24 promotion | v1.66.21 | phase commit | Node 24.19.0 default, engine/CI parity |
 
 ## Smart-Assistant Architecture
 
@@ -49,12 +51,12 @@ Execution date: 23 August 2026
 |---|---:|---:|---:|
 | Frontend Vitest | 9 files / 23 tests | 9 / 23 | 9 / 23 |
 | Frontend production build | PASS | PASS | PASS |
-| Assistant contract | 5 / 5 | — | 5 / 5 |
-| HTTP smoke | 17 / 17, zero mutation | — | 17 / 17, zero mutation |
-| Route regression | 18 / 18, read-only proven | — | 18 / 18, read-only proven |
-| Live assistant integration | 8/8 bounded; read-only proven | — | 8/8 bounded; read-only proven |
+| Assistant contract | 5 / 5 | 5 / 5 | 5 / 5 |
+| HTTP smoke | 17 / 17, zero mutation | 17 / 17, zero mutation | 17 / 17, zero mutation |
+| Route regression | 18 / 18, read-only proven | 18 / 18, read-only proven | 18 / 18, read-only proven |
+| Live assistant integration | 8/8 bounded; read-only proven | 8/8 bounded; read-only proven | 8/8 bounded; read-only proven |
 | Bun compatibility | — | — | 5 / 5 |
-| Startup/health/graceful shutdown | PASS | — | PASS |
+| Startup/health/graceful shutdown | PASS | PASS | PASS |
 
 Live assistant source rows were `restock=9`, `dormant=48`, and `weekly=1`. The npm and Bun direct frontend trees resolve the same Tailwind `4.3.3`, PostCSS `8.5.26`, Vite `8.2.2`, and Vitest `4.1.11` versions.
 
@@ -84,8 +86,8 @@ These are pre-existing production-data findings. They were not modified or maske
 ## Accepted Tradeoffs and Follow-up
 
 - Vite still warns about a chunk above 500 kB; this is pre-existing bundle debt and not a release blocker.
-- Frontend lock-only audit reports six dependency advisories (one moderate, five high). No automatic audit fix was applied because that could introduce unrelated breaking upgrades.
-- Node 20 is retained for deployment compatibility even though it is no longer the preferred long-term runtime line; CI also covers Node 24.
+- Frontend and backend `npm audit` report zero advisories after targeted upgrades, including SheetJS 0.20.3 from its official distribution.
+- Node 20 results are retained above only as historical rollback evidence; Node 24.19.0 is the supported default.
 - **LONG-TERM:** move schema initialization from route import to an explicit migration/deployment step. This execution intentionally did not perform that migration.
 
 ## Rollback

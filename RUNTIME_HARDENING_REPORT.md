@@ -1,35 +1,41 @@
-# Phase 1 Runtime Hardening Report
+# Runtime Hardening and Promotion Report
 
 Status: **PASS**
 
-## Runtime Policy
+## Current Runtime Policy
 
-- Node `20.20.2` is pinned as the legacy deployment-compatibility baseline requested by the owner.
-- npm `10.9.9` is the official fallback package manager.
-- Package engine ranges also allow supported Node 22/24 so migration can be tested without manifest churn.
-- CI runs Node `20.20.2` and Node `24` in parallel.
+- Node `24.19.0` LTS is pinned in `.nvmrc` and `.node-version` and is the only supported Node engine (`>=24.19.0 <25`).
+- npm `10.9.9` remains the default package manager.
+- Bun `1.4.0` remains a reversible package-manager and backend-runtime pilot, not the production default.
+- CI runs mandatory frontend and DB-independent backend gates on Node `24.19.0`.
 
-## Security Note
-
-Node 20 reached official end-of-life on 24 March 2026 and no longer receives upstream security fixes. It is retained only to reproduce the current deployment baseline. Node 24 LTS is the supported comparison lane and should replace Node 20 after application/deployment parity is verified.
-
-Official reference: <https://nodejs.org/en/about/eol>
+Node 20 reached EOL on 24 March 2026 and was removed from engines and CI after Node 24 parity passed. Official references: <https://nodejs.org/en/about/eol> and <https://nodejs.org/en/about/previous-releases>.
 
 ## CI Scope
 
-- Frontend: clean install, Jest/RTL suite, production build.
+- Frontend: clean npm install, Vitest suite, production build.
 - Backend: DB-independent route regression, DB-isolated HTTP smoke, pricing engine tests.
-- Database regression remains local/manual and requires the fail-closed read-only guard plus an explicit audit credential.
+- Database regression remains local/manual and must use the fail-closed read-only guard unless a dedicated isolated test database is explicitly provisioned.
 
 No database secrets or write-capable database steps are present in CI.
 
-## Verification
+## Node 24 Promotion Verification
 
-| Runtime | Frontend | Backend DB-independent suites |
-|---|---|---|
-| Node 20.20.2 | 16/16 tests and production build pass | 15 route + 14 HTTP + 38 pricing tests pass |
-| Node 24 | 16/16 tests and production build pass | 15 route + 14 HTTP + 38 pricing tests pass |
+| Gate | Node 24.19.0 |
+|---|---:|
+| Frontend tests | 9 files / 23 tests |
+| Frontend build | PASS |
+| Backend compatibility | 5 / 5 |
+| Smart-Assistant contract | 5 / 5 |
+| Pricing engine | 38 / 38 |
+| HTTP smoke | 17 / 17, zero mutation |
+| Route regression | 18 / 18, read-only proven |
+| Live assistant | 8 / 8 bounded, read-only proven |
+| DB regression | 15 pass / 3 known failures, exact baseline |
+| Startup/health/shutdown | PASS |
 
-Node 24 production build emits a CRA dependency deprecation warning for `fs.F_OK`, but compiles successfully. This is additional evidence for replacing CRA during Phase 4; it is not an application regression.
+The remaining 529.37 kB frontend chunk warning is a bundle concern assigned to Fase 7C, not a Node 24 compatibility regression.
 
-The committed backend lockfile now makes `npm ci` reproducible. The frontend lockfile remains synchronized from Phase 0.
+## Historical Baseline
+
+Fase 1 originally pinned Node `20.20.2` and ran Node 20/24 in parallel to establish migration evidence. Those results remain available in Git history and `BASELINE_REPORT.md`; they are no longer the active runtime policy.

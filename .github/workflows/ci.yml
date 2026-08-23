@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20.20.2, 24]
+        node: [24.19.0]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20.20.2, 24]
+        node: [24.19.0]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

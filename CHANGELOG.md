@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.21-stable] - 2026-08-23
+
+### Ditingkatkan
+- **Node 24.19.0 LTS resmi menjadi runtime default.** Pin developer, package engines, dokumentasi, dan CI frontend/backend kini selaras pada Node 24; Node 20 yang sudah EOL dikeluarkan dari supported runtime.
+- npm 10 tetap package manager default dan Bun 1.4 tetap pilot paralel; migrasi runtime tidak mencampur keputusan package manager.
+
+### Diverifikasi
+- Node 24 lulus 23/23 frontend test dan build, 5/5 compatibility, 5/5 Smart-Assistant, 38/38 pricing, 17/17 HTTP smoke, 18/18 route regression, live assistant 8/8, serta startup/health/graceful shutdown.
+- DB regression tetap persis 15 pass/3 known failures setelah guard membuktikan `transaction_read_only=on`; tidak ada DML/DDL atau regresi baru.
+
 ## [v1.66.20-stable] - 2026-08-23
 
 ### Ditingkatkan

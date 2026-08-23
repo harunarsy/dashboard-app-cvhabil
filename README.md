@@ -2,7 +2,7 @@
 
 Dashboard bisnis terintegrasi untuk mengelola faktur, nota penjualan, stok, dan keuangan CV Habil Sejahtera Bersama.
 
-- **Versi**: v1.66.20-stable (23 Agustus 2026)
+- **Versi**: v1.66.21-stable (23 Agustus 2026)
 - **Status**: Production-stable
 
 ---
@@ -22,7 +22,7 @@ Dashboard bisnis terintegrasi untuk mengelola faktur, nota penjualan, stok, dan 
 ## Jalankan Lokal
 
 ### Persyaratan
-- Node.js 20.20.2 atau Node.js 24
+- Node.js 24.19.0 LTS
 - PostgreSQL (atau koneksi ke database cloud)
 - npm atau pnpm
 
