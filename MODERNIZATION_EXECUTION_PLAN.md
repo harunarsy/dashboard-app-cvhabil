@@ -10,7 +10,7 @@ Worktree: `/Users/harunalrasyid/Projects/dashboard-app-bun-modernization`
 
 ## Non-Negotiable Rules
 
-1. Database PostgreSQL is strictly read-only throughout this roadmap. No `INSERT`, `UPDATE`, `DELETE`, DDL, migration, or mutating script may be executed.
+1. PostgreSQL shared, audit, staging, production-smoke, and production targets remain strictly read-only throughout this roadmap. Fase 8 may write only to a local disposable test/CI database, inside a same-connection transaction that must roll back.
 2. Database test sessions must fail closed in read-only mode and prove `transaction_read_only = on` before data-dependent tests run.
 3. Every reported result must come from actual command output.
 4. Existing Node/npm paths remain available until replacement parity is proven.
@@ -181,3 +181,7 @@ Status: **completed in v1.67.3-stable**. Deep-freeze mode now dispatches the rou
 ### Phase 8D — Safety Net and Monitoring
 
 Status: **completed in v1.67.4-stable**. Row-count restoration is asserted through `assertRollbackRestored()` and emits a `ROLLBACK_FAILED` error with baseline/after details on mismatch. A dedicated dummy-row test proves the row is visible inside the transaction and absent afterward. Node 24 and Bun both pass the safety-net test with zero DDL during testing.
+
+### Phase 8E — Documentation and Commit
+
+Status: **completed in v1.67.5-stable**. `BASELINE_REPORT.md` records the boundary between the original read-only baseline and disposable Fase 8 coverage. `TESTING_GUIDE.md` documents provisioning, environment gates, Node/Bun commands, expected evidence, and cleanup. The wrapper probe uses an existing baseline fixture relation, so the documented suite requires no hidden test-only table or in-test DDL.

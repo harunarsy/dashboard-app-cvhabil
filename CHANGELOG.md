@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.5-stable] - 2026-08-23
+
+### Didokumentasikan
+- `TESTING_GUIDE.md` menjelaskan provisioning PostgreSQL disposable, guard environment, seluruh command Node/Bun, evidence yang wajib, dan cleanup.
+- `BASELINE_REPORT.md` memisahkan baseline Fase 0 yang read-only dari coverage write Fase 8 yang terisolasi dan selalu rollback.
+- Wrapper rollback probe kini memakai relation fixture aplikasi yang sudah ada; tidak ada hidden table atau DDL saat test.
+
+### Finalisasi
+- Fase 8A–8D terverifikasi pada Node 24.19.0 dan Bun 1.4; Fase 8E menutup dokumentasi dan final handoff.
+
 ## [v1.67.4-stable] - 2026-08-23
 
 ### Ditambahkan

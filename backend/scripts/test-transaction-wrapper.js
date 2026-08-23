@@ -34,7 +34,7 @@ async function test(name, fn) {
 }
 
 async function countProbeRows() {
-  const { rows } = await verificationPool.query('SELECT COUNT(*)::int AS count FROM phase8_transaction_probe');
+  const { rows } = await verificationPool.query('SELECT COUNT(*)::int AS count FROM distributors');
   return rows[0].count;
 }
 
@@ -58,11 +58,13 @@ async function run() {
   await test('successful body observes its write before real rollback', async () => {
     const result = await runWithRollback(async (client) => {
       await client.query(
-        'INSERT INTO phase8_transaction_probe (id, note) VALUES ($1, $2)',
-        [810001, 'success-path'],
+        `INSERT INTO distributors
+          (id, name, short_code, salesman_name, salesman_phone)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [810001, 'Wrapper Success Probe', 'WSP', 'Wrapper Test', '080000000002'],
       );
       const { rows } = await client.query(
-        'SELECT COUNT(*)::int AS count FROM phase8_transaction_probe WHERE id = $1',
+        'SELECT COUNT(*)::int AS count FROM distributors WHERE id = $1',
         [810001],
       );
       assert.strictEqual(rows[0].count, 1);
@@ -70,7 +72,7 @@ async function run() {
     }, { logger: logQuery });
 
     assert.strictEqual(result.value, 1);
-    assert.ok(result.queryLog.some((entry) => entry.sql.startsWith('INSERT INTO phase8_transaction_probe')));
+    assert.ok(result.queryLog.some((entry) => entry.sql.startsWith('INSERT INTO distributors')));
     assert.strictEqual(result.queryLog.at(-1).sql, 'ROLLBACK');
     assert.strictEqual(await countProbeRows(), baseline);
   });
@@ -80,8 +82,10 @@ async function run() {
     await assert.rejects(
       runWithRollback(async (client) => {
         await client.query(
-          'INSERT INTO phase8_transaction_probe (id, note) VALUES ($1, $2)',
-          [810002, 'exception-path'],
+          `INSERT INTO distributors
+            (id, name, short_code, salesman_name, salesman_phone)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [810002, 'Wrapper Exception Probe', 'WEP', 'Wrapper Test', '080000000003'],
         );
         throw intentional;
       }, { logger: logQuery }),
@@ -105,8 +109,10 @@ async function run() {
     await assert.rejects(
       runWithRollback(async (client) => {
         await client.query(
-          'INSERT INTO phase8_transaction_probe (id, note) VALUES ($1, $2)',
-          [810003, 'timeout-path'],
+          `INSERT INTO distributors
+            (id, name, short_code, salesman_name, salesman_phone)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [810003, 'Wrapper Timeout Probe', 'WTP', 'Wrapper Test', '080000000004'],
         );
         await new Promise((resolve) => setTimeout(resolve, 60));
       }, { timeoutMs: 25, logger: logQuery }),
@@ -119,11 +125,21 @@ async function run() {
   console.log(`Rollback baseline preserved: ${baseline} rows`);
 }
 
-run()
-  .catch((error) => {
-    console.error(`FATAL: ${error.message}`);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
+async function runAndClose() {
+  try {
+    await run();
+  } finally {
     await verificationPool.end();
-  });
+  }
+}
+
+if (require.main === module) {
+  runAndClose()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      console.error(`FATAL: ${error.message}`);
+      process.exit(1);
+    });
+}
+
+module.exports = { run: runAndClose };

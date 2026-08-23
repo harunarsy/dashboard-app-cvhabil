@@ -65,3 +65,14 @@ The database regression baseline remains exactly 15 pass and three known failure
 - One active inventory batch with negative stock.
 
 Every query in the DB regression run executed only after the test guard printed `transaction_read_only=on`. No database write or schema mutation occurred.
+
+## Deep-Freeze Coverage Added After Baseline
+
+The Phase 0 baseline itself remains read-only. Subsequent Fase 8 tests use a separate disposable local PostgreSQL database named with `test` and never use `DATABASE_URL` as a fallback:
+
+- Fase 8A wrapper proves success, exception, timeout, target rejection, and same-connection rollback.
+- Fase 8B covers six direct database write scenarios with row/value restoration and explicit-ID sequence fingerprints.
+- Fase 8C covers six actual Express write routes through a savepoint adapter; Node 24 and Bun each pass 6/6 with zero DDL during tests.
+- Fase 8D adds `ROLLBACK_FAILED` row-count monitoring and explicit dummy-row absence verification after rollback.
+
+Full setup and command details are in `TESTING_GUIDE.md`. These writes are isolated to the disposable test cluster and do not change the Phase 0 production-data baseline.

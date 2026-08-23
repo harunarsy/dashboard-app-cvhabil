@@ -1,8 +1,8 @@
 # Habil SuperApp — Deep-Freeze Testing Report
 
-Status: **PASS through Fase 8D; testing guide remains**
+Status: **COMPLETE — Fase 8E passed**
 
-Current version: `v1.67.4-stable`
+Current version: `v1.67.5-stable`
 
 Date: 23 August 2026
 
@@ -92,3 +92,10 @@ Route-generated serial IDs are deliberately not included in the HTTP sequence fi
 `assertRollbackRestored(before, after, context)` compares row-count snapshots using deep equality. A mismatch raises `DeepFreezeSafetyError` with code `ROLLBACK_FAILED`, includes the baseline and after values, prints an explicit `[ROLLBACK FAILED]` alert, and fails the process. Existing direct-write and HTTP route suites use this assertion after each rollback.
 
 The dedicated `backend/scripts/test-deep-freeze-safety.js` test inserts a fixed dummy distributor, verifies it is visible inside the transaction, checks the wrapper's final query is `ROLLBACK`, then verifies the dummy is absent and the distributor count is unchanged. Node 24.19.0 and Bun 1.4.0 each pass; DDL during the test is zero.
+
+## Fase 8E — Documentation and Finalization
+
+- `BASELINE_REPORT.md` records the original read-only baseline separately from disposable Fase 8 write coverage.
+- `TESTING_GUIDE.md` documents the disposable PostgreSQL provisioning flow, mandatory safety environment, Node/Bun commands, evidence requirements, and cleanup.
+- The wrapper's rollback probe uses the existing `distributors` fixture relation with explicit IDs; no hidden `phase8_transaction_probe` table or test-time DDL is required.
+- Final review confirms production/shared targets remain read-only, Fase 8 local writes are wrapped and rolled back, and no temporary cluster remains after verification.
