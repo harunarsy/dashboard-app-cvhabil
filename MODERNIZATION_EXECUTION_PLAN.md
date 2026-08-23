@@ -1,6 +1,6 @@
 # Habil SuperApp Modernization Execution Plan
 
-Status: in progress — Fase 8C passed; Fase 8D–8E remain
+Status: in progress — Fase 8D passed; Fase 8E remains
 
 Source version: `v1.66.8-stable`
 
@@ -177,3 +177,7 @@ Status: **completed in v1.67.2-stable**. Six business write scenarios run agains
 ### Phase 8C — Existing Suite Integration
 
 Status: **completed in v1.67.3-stable**. Deep-freeze mode now dispatches the route regression, HTTP smoke, and DB regression entrypoints to the transactional suites while preserving the default read-only/mock behavior. Six actual Express write routes pass on Node 24 and Bun through a same-connection outer transaction with route `BEGIN`/`COMMIT` mapped to savepoints. Row counts and fixture values restore after every route; DDL during tests is zero. Sequence identity is intentionally not asserted for route-generated serial IDs, and the disposable cluster is destroyed after verification.
+
+### Phase 8D — Safety Net and Monitoring
+
+Status: **completed in v1.67.4-stable**. Row-count restoration is asserted through `assertRollbackRestored()` and emits a `ROLLBACK_FAILED` error with baseline/after details on mismatch. A dedicated dummy-row test proves the row is visible inside the transaction and absent afterward. Node 24 and Bun both pass the safety-net test with zero DDL during testing.

@@ -1,10 +1,10 @@
 # Habil SuperApp Modernization — Final Report
 
-Status: **PASS through Fase 8C; Fase 8D–8E remain**
+Status: **PASS through Fase 8D; Fase 8E remains**
 
 Branch: `codex/bun-modernization-audit`
 
-Current version: `v1.67.3-stable`
+Current version: `v1.67.4-stable`
 
 Execution date: 23 August 2026
 
@@ -20,6 +20,7 @@ Execution date: 23 August 2026
 - Deep-freeze write tests now have a fail-closed, same-connection rollback wrapper restricted to local disposable test databases.
 - Six write-operation scenarios now prove rollback for PO, nota, inventory, delete, authentication, and batch flows without changing row/value or sequence fingerprints.
 - Six actual Express write routes now run through the same-connection deep-freeze adapter; row counts and fixture values restore for Node and Bun with zero DDL during test.
+- A dedicated safety net now hard-fails row-count mismatches as `ROLLBACK_FAILED` and verifies a dummy row disappears after rollback.
 - PostgreSQL remained read-only throughout execution. No DML, DDL, migration, or schema mutation was executed.
 
 ## Phase Ledger
@@ -41,6 +42,7 @@ Execution date: 23 August 2026
 | 8A — Transaction wrapper | v1.67.1 | phase commit | Local/test-only target guard; success/error/timeout rollback parity on Node and Bun |
 | 8B — Write coverage | v1.67.2 | phase commit | Six full-schema scenarios; row/value and sequence fingerprints unchanged |
 | 8C — Existing suite integration | v1.67.3 | current phase commit | Six HTTP write routes; row/value rollback parity on Node and Bun; zero DDL |
+| 8D — Safety net and monitoring | v1.67.4 | current phase commit | Row-count mismatch hard-fail and explicit dummy rollback verification |
 
 ## Smart-Assistant Architecture
 
@@ -64,6 +66,7 @@ Execution date: 23 August 2026
 | Assistant contract | 5 / 5 | 5 / 5 | 5 / 5 |
 | HTTP smoke | 17 / 17, zero mutation | 17 / 17, zero mutation | 17 / 17, zero mutation |
 | Deep-freeze HTTP routes | — | 6 / 6; rows/values restored | 6 / 6; rows/values restored |
+| Deep-freeze safety net | — | PASS; count restored | PASS; count restored |
 | Route regression | 18 / 18, read-only proven | 18 / 18, read-only proven | 18 / 18, read-only proven |
 | Live assistant integration | 8/8 bounded; read-only proven | 8/8 bounded; read-only proven | 8/8 bounded; read-only proven |
 | Schema boundary | — | 9 / 9; zero startup statement | 9 / 9; zero startup statement |

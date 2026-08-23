@@ -1,8 +1,8 @@
 # Habil SuperApp — Deep-Freeze Testing Report
 
-Status: **PASS through Fase 8C; safety-net and guide work remain**
+Status: **PASS through Fase 8D; testing guide remains**
 
-Current version: `v1.67.3-stable`
+Current version: `v1.67.4-stable`
 
 Date: 23 August 2026
 
@@ -86,3 +86,9 @@ Six actual write routes were exercised against the fully provisioned disposable 
 | Bun 1.4.0 | 6 / 6 PASS | 0 | disposable cluster removed |
 
 Route-generated serial IDs are deliberately not included in the HTTP sequence fingerprint claim. The cluster is disposable and is destroyed after both runtime passes; direct Fase 8B tests retain the stronger sequence-fingerprint assertion using explicit IDs.
+
+## Fase 8D — Safety Net and Monitoring
+
+`assertRollbackRestored(before, after, context)` compares row-count snapshots using deep equality. A mismatch raises `DeepFreezeSafetyError` with code `ROLLBACK_FAILED`, includes the baseline and after values, prints an explicit `[ROLLBACK FAILED]` alert, and fails the process. Existing direct-write and HTTP route suites use this assertion after each rollback.
+
+The dedicated `backend/scripts/test-deep-freeze-safety.js` test inserts a fixed dummy distributor, verifies it is visible inside the transaction, checks the wrapper's final query is `ROLLBACK`, then verifies the dummy is absent and the distributor count is unchanged. Node 24.19.0 and Bun 1.4.0 each pass; DDL during the test is zero.

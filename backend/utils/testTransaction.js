@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const { isDeepStrictEqual } = require('util');
 const { isLocalHostname } = require('../config/runtimeEnv');
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -108,6 +109,19 @@ function recordQuery(queryLog, sql, source, logger) {
   queryLog.push(entry);
   if (typeof logger === 'function') logger(entry);
   return entry;
+}
+
+function assertRollbackRestored(before, after, context = 'deep-freeze test') {
+  if (isDeepStrictEqual(before, after)) return true;
+
+  const error = new DeepFreezeSafetyError(
+    `ROLLBACK FAILED: ${context}: baseline ${JSON.stringify(before)} != after ${JSON.stringify(after)}`,
+    'ROLLBACK_FAILED',
+  );
+  error.before = before;
+  error.after = after;
+  console.error(`[ROLLBACK FAILED] ${error.message}`);
+  throw error;
 }
 
 async function createTestClient(options = {}) {
@@ -247,6 +261,7 @@ module.exports = {
   DeepFreezeSafetyError,
   assertDeepFreezeTarget,
   assertSafeTestQuery,
+  assertRollbackRestored,
   createTestClient,
   normalizeSql,
   runWithRollback,

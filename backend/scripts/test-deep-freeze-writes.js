@@ -9,7 +9,11 @@ const assert = require('assert');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
-const { assertDeepFreezeTarget, runWithRollback } = require('../utils/testTransaction');
+const {
+  assertDeepFreezeTarget,
+  assertRollbackRestored,
+  runWithRollback,
+} = require('../utils/testTransaction');
 
 const target = assertDeepFreezeTarget();
 const verificationPool = new Pool({
@@ -39,7 +43,7 @@ async function test(name, tables, body, verifyAfterRollback) {
   const before = await snapshotCounts(verificationPool, tables);
   const { queryLog } = await runWithRollback(body, { logger: logQuery });
   const after = await snapshotCounts(verificationPool, tables);
-  assert.deepStrictEqual(after, before, `${name}: row counts changed after rollback`);
+  assertRollbackRestored(before, after, `${name}: row counts changed after rollback`);
   assert.strictEqual(queryLog.at(-1)?.sql, 'ROLLBACK');
   if (verifyAfterRollback) await verifyAfterRollback();
   passed += 1;

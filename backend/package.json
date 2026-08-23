@@ -23,6 +23,7 @@
     "test-schema-boundary": "node scripts/test-schema-boundary.js",
     "test:transaction": "node scripts/test-transaction-wrapper.js",
     "test:deep-freeze-writes": "node scripts/test-deep-freeze-writes.js",
+    "test:deep-freeze-safety": "node scripts/test-deep-freeze-safety.js",
     "test-db:deep-freeze": "NODE_ENV=test ALLOW_DEEP_FREEZE_WRITES=true DEEP_FREEZE_MODE=true node scripts/test-regression.js",
     "migrate:schema": "node scripts/migrate.js",
     "migrate:schema:list": "node scripts/migrate.js --list",

@@ -39,13 +39,13 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.67.3-stable",
+    version: "v1.67.4-stable",
     date: "23 Agustus 2026",
     status: "latest",
     changes: [
       {
         type: "improvement",
-        text: "Deep-freeze kini menguji enam operasi write bisnis dan enam route HTTP pada database disposable; row dan nilai baseline kembali identik setelah rollback.",
+        text: "Deep-freeze kini menguji operasi write bisnis dan route HTTP dengan safety net row-count serta verifikasi dummy rollback.",
       },
     ],
   },

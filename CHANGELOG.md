@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.4-stable] - 2026-08-23
+
+### Ditambahkan
+- **Fase 8D safety net:** assertion row-count terpusat mendeteksi mismatch sebagai `ROLLBACK_FAILED`, mencetak baseline/after detail, dan memutus test.
+- Verifikasi khusus dummy rollback: row terlihat di dalam transaksi lalu dipastikan hilang setelah rollback.
+
+### Diverifikasi
+- Node 24.19.0 dan Bun 1.4 lulus safety-net test pada schema disposable; DDL selama test nol dan row count distributor kembali ke baseline.
+
 ## [v1.67.3-stable] - 2026-08-23
 
 ### Ditambahkan
