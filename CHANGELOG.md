@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.66.23-stable] - 2026-08-23
+
+### Ditingkatkan
+- **Lifecycle schema dipisahkan total dari runtime HTTP.** Tujuh belas initializer route, seed, sequence repair, dan backfill dipindahkan ke registry migrasi eksplisit; import route pada development/test/production tidak lagi menjalankan query database.
+- Runner deployment baru menolak `NODE_ENV=test`, membutuhkan `ALLOW_SCHEMA_MIGRATION=true` serta konfirmasi hostname persis, memblok target audit/prod-smoke, menerapkan timeout, dan melakukan rollback pada kegagalan.
+
+### Diverifikasi
+- Static boundary scan menemukan 0 DDL/initializer di `backend/routes`; mocked development import menjalankan 0 statement DB; HTTP smoke lulus 17/17 dengan 0 mutating attempt.
+- Registry 17 langkah lulus dry-run/list tanpa koneksi DB serta execution/idempotency test terhadap mock. Tidak ada migration, DDL, DML, atau perubahan database yang dijalankan pada fase ini.
+
 ## [v1.66.22-stable] - 2026-08-23
 
 ### Ditingkatkan

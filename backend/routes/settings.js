@@ -9,25 +9,6 @@ const DEFAULT_PROFIT_THRESHOLDS = {
   thin: 0
 };
 
-const ensureSchema = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS app_settings (
-      id SERIAL PRIMARY KEY,
-      setting_key VARCHAR(50) UNIQUE NOT NULL,
-      setting_value JSONB NOT NULL,
-      created_at TIMESTAMP DEFAULT NOW(),
-      updated_at TIMESTAMP DEFAULT NOW()
-    )
-  `);
-
-  await pool.query(
-    `INSERT INTO app_settings (setting_key, setting_value)
-     VALUES ('profit_thresholds', $1::jsonb)
-     ON CONFLICT (setting_key) DO NOTHING`,
-    [JSON.stringify(DEFAULT_PROFIT_THRESHOLDS)]
-  );
-};
-if (process.env.NODE_ENV !== 'test') ensureSchema().catch(console.error);
 
 router.use(auth);
 

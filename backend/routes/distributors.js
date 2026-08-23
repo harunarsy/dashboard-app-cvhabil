@@ -3,35 +3,6 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 
-const ensureTable = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS distributors (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(100) UNIQUE NOT NULL,
-      short_code VARCHAR(50),
-      salesman_name VARCHAR(150),
-      salesman_phone VARCHAR(50),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    ALTER TABLE distributors ADD COLUMN IF NOT EXISTS short_code VARCHAR(50);
-    ALTER TABLE distributors ADD COLUMN IF NOT EXISTS salesman_name VARCHAR(150);
-    ALTER TABLE distributors ADD COLUMN IF NOT EXISTS salesman_phone VARCHAR(50);
-    
-    CREATE TABLE IF NOT EXISTS product_distributors (
-      id SERIAL PRIMARY KEY,
-      product_id INT NOT NULL,
-      distributor_id INT NOT NULL REFERENCES distributors(id) ON DELETE CASCADE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(product_id, distributor_id)
-    );
-    
-    -- Auto-migrate old distributors from invoices to the distributors table
-    INSERT INTO distributors (name)
-    SELECT DISTINCT distributor_name FROM invoices WHERE distributor_name IS NOT NULL
-    ON CONFLICT (name) DO NOTHING;
-  `);
-};
-if (process.env.NODE_ENV !== 'test') ensureTable().catch(console.error);
 
 // GET all distributors (with limit)
 router.get('/', auth, async (req, res) => {

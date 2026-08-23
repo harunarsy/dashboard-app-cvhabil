@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
-const { recommendPrice, DEFAULT_FEE_PROFILES } = require('../utils/pricingEngine');
+const { recommendPrice } = require('../utils/pricingEngine');
 
 // ─── Daftar Harga (v1.24.0) ─────────────────────────────────────────────────
 // Harga jual yang di-set manual per produk, terpisah dari sell_price master:
@@ -10,59 +10,6 @@ const { recommendPrice, DEFAULT_FEE_PROFILES } = require('../utils/pricingEngine
 // printout bisa bilang "Berlaku per <tanggal>". HPP referensi diambil dari
 // batch pembelian TERBARU (bukan FEFO) — tujuan halaman ini menentukan harga
 // jual berdasarkan harga beli terkini.
-const ensureSchema = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS price_list_entries (
-      id SERIAL PRIMARY KEY,
-      product_id INT NOT NULL REFERENCES product_master(id) ON DELETE CASCADE,
-      price DECIMAL(15,2) NOT NULL,
-      effective_date DATE NOT NULL DEFAULT CURRENT_DATE,
-      created_by INT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_price_list_product
-      ON price_list_entries(product_id, effective_date DESC, id DESC)
-  `);
-  // v1.26.0: harga per saluran jual — offline | shopee | tokopedia_tiktok
-  await pool.query(`
-    ALTER TABLE price_list_entries ADD COLUMN IF NOT EXISTS channel TEXT NOT NULL DEFAULT 'offline'
-  `);
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_price_list_product_channel
-      ON price_list_entries(product_id, channel, effective_date DESC, id DESC)
-  `);
-  // Fee marketplace bisa berubah sewaktu-waktu → disimpan di DB, editable dari dashboard.
-  // source: official (rate resmi) | historical_order (dari transaksi nyata) | manual_override.
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS marketplace_fee_profiles (
-      id SERIAL PRIMARY KEY,
-      platform TEXT NOT NULL,
-      category_key TEXT NOT NULL DEFAULT 'default',
-      label TEXT,
-      admin_rate NUMERIC(7,5) DEFAULT 0,
-      service_rate NUMERIC(7,5) DEFAULT 0,
-      fixed_order_fee NUMERIC(12,2) DEFAULT 0,
-      safe_effective_fee_rate NUMERIC(7,5) DEFAULT 0,
-      source TEXT NOT NULL DEFAULT 'official',
-      active BOOLEAN DEFAULT TRUE,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(platform, category_key)
-    )
-  `);
-  // Seed default — DO NOTHING supaya edit admin tidak ketimpa saat cold start berikutnya.
-  for (const p of DEFAULT_FEE_PROFILES) {
-    await pool.query(
-      `INSERT INTO marketplace_fee_profiles
-         (platform, category_key, label, admin_rate, service_rate, fixed_order_fee, safe_effective_fee_rate, source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       ON CONFLICT (platform, category_key) DO NOTHING`,
-      [p.platform, p.category_key, p.label, p.admin_rate, p.service_rate, p.fixed_order_fee, p.safe_effective_fee_rate, p.source]
-    );
-  }
-};
-if (process.env.NODE_ENV !== 'test') ensureSchema().catch(e => console.error('priceList ensureSchema:', e));
 
 // GET / — semua produk aktif + HPP batch terbaru + harga list saat ini + harga sebelumnya.
 // Satu pass window function (bukan 3 LATERAL per produk) — temuan audit perf.

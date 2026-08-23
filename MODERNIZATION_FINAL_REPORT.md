@@ -1,10 +1,10 @@
 # Habil SuperApp Modernization — Final Report
 
-Status: **PASS**
+Status: **PASS through Fase 7D; modernization loop remains in progress**
 
 Branch: `codex/bun-modernization-audit`
 
-Current version: `v1.66.22-stable`
+Current version: `v1.66.23-stable`
 
 Execution date: 23 August 2026
 
@@ -32,6 +32,7 @@ Execution date: 23 August 2026
 | 7A — Dead weight/security | v1.66.20 | `c0dbc3d` | Three/Vanta removal and zero npm advisories |
 | 7B — Node 24 promotion | v1.66.21 | phase commit | Node 24.19.0 default, engine/CI parity |
 | 7C — Bundle optimization | v1.66.22 | phase commit | Workbook loaded on demand; all chunks below 500 kB |
+| 7D — Explicit schema lifecycle | v1.66.23 | phase commit | 17 route schema initializers extracted; normal startup executes zero DDL |
 
 ## Smart-Assistant Architecture
 
@@ -50,12 +51,13 @@ Execution date: 23 August 2026
 
 | Gate | Node 20.20.2 | Node 24.19.0 | Bun 1.4.0 |
 |---|---:|---:|---:|
-| Frontend Vitest | 9 files / 23 tests | 9 / 23 | 9 / 23 |
+| Frontend Vitest | 9 files / 23 tests | 10 / 25 | 10 / 25 |
 | Frontend production build | PASS | PASS | PASS |
 | Assistant contract | 5 / 5 | 5 / 5 | 5 / 5 |
 | HTTP smoke | 17 / 17, zero mutation | 17 / 17, zero mutation | 17 / 17, zero mutation |
 | Route regression | 18 / 18, read-only proven | 18 / 18, read-only proven | 18 / 18, read-only proven |
 | Live assistant integration | 8/8 bounded; read-only proven | 8/8 bounded; read-only proven | 8/8 bounded; read-only proven |
+| Schema boundary | — | 9 / 9; zero startup statement | 9 / 9; zero startup statement |
 | Bun compatibility | — | — | 5 / 5 |
 | Startup/health/graceful shutdown | PASS | PASS | PASS |
 
@@ -89,7 +91,7 @@ These are pre-existing production-data findings. They were not modified or maske
 - Vite chunk warning is resolved without raising the threshold: Online Store fell from 529.37 kB to 40.47 kB and the on-demand workbook chunk is 489.21 kB.
 - Frontend and backend `npm audit` report zero advisories after targeted upgrades, including SheetJS 0.20.3 from its official distribution.
 - Node 20 results are retained above only as historical rollback evidence; Node 24.19.0 is the supported default.
-- **LONG-TERM:** move schema initialization from route import to an explicit migration/deployment step. This execution intentionally did not perform that migration.
+- Route imports are now DDL-free. The extracted migration registry is deployment-only, fails closed without explicit enablement and exact-host confirmation, and was **not executed** during modernization.
 
 ## Rollback
 

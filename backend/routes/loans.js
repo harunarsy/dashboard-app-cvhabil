@@ -10,62 +10,6 @@ const auth = require('../middleware/auth');
 const tax = require('../utils/tax');
 const { generateMonthlyDocNumber } = require('../utils/docNumbers');
 
-const ensureSchema = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS loans (
-      id SERIAL PRIMARY KEY,
-      loan_number VARCHAR(50) NOT NULL,
-      customer_id INT,
-      customer_name VARCHAR(150) NOT NULL,
-      customer_address TEXT,
-      customer_phone VARCHAR(30),
-      loan_date DATE NOT NULL DEFAULT CURRENT_DATE,
-      due_days INT DEFAULT 7,
-      due_date DATE,
-      status VARCHAR(20) DEFAULT 'aktif',
-      total_value DECIMAL(15,2) DEFAULT 0,
-      notes TEXT,
-      is_deleted BOOLEAN DEFAULT FALSE,
-      created_by INT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS loan_items (
-      id SERIAL PRIMARY KEY,
-      loan_id INT NOT NULL REFERENCES loans(id) ON DELETE CASCADE,
-      product_id INT,
-      product_name VARCHAR(255) NOT NULL,
-      qty INT NOT NULL,
-      unit VARCHAR(30) DEFAULT 'pcs',
-      unit_price DECIMAL(15,2) DEFAULT 0,
-      unit_hpp DECIMAL(15,2) DEFAULT 0,
-      unit_hpp_tax_type VARCHAR(20) DEFAULT 'faktur',
-      unit_hpp_ppn_rate DECIMAL(5,4),
-      batch_id_snapshot INT,
-      batch_no_snapshot VARCHAR(100),
-      expired_date_snapshot DATE,
-      qty_returned INT DEFAULT 0,
-      qty_purchased INT DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS loan_conversions (
-      id SERIAL PRIMARY KEY,
-      loan_id INT NOT NULL REFERENCES loans(id) ON DELETE CASCADE,
-      loan_item_id INT NOT NULL,
-      sales_order_id INT NOT NULL,
-      qty INT NOT NULL,
-      is_reverted BOOLEAN DEFAULT FALSE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE UNIQUE INDEX IF NOT EXISTS loans_number_active_idx
-      ON loans(loan_number) WHERE is_deleted = FALSE;
-    CREATE INDEX IF NOT EXISTS idx_loan_items_loan ON loan_items(loan_id);
-    CREATE INDEX IF NOT EXISTS idx_loan_conversions_order ON loan_conversions(sales_order_id);
-  `);
-  // Link nota hasil konversi → dokumen pinjaman asal (buat blok edit + revert saat hapus).
-  await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS source_loan_id INT`);
-};
-if (process.env.NODE_ENV !== 'test') ensureSchema().catch(e => console.error('loans ensureSchema:', e));
 
 const outstandingOf = (it) => Number(it.qty) - Number(it.qty_returned) - Number(it.qty_purchased);
 

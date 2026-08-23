@@ -3,40 +3,6 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 
-// ─── Auto-create tables ─────────────────────────────────────────────────────
-const ensureSchema = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS online_store_sales (
-      id SERIAL PRIMARY KEY,
-      platform VARCHAR(30) NOT NULL,
-      order_id VARCHAR(100),
-      order_date DATE,
-      product_name VARCHAR(255),
-      qty INT DEFAULT 1,
-      sell_price DECIMAL(15,2) DEFAULT 0,
-      shipping_fee DECIMAL(15,2) DEFAULT 0,
-      platform_fee DECIMAL(15,2) DEFAULT 0,
-      net_amount DECIMAL(15,2) DEFAULT 0,
-      buyer_name VARCHAR(255),
-      status VARCHAR(30) DEFAULT 'completed',
-      batch_import_id VARCHAR(100),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS online_store_withdrawals (
-      id SERIAL PRIMARY KEY,
-      platform VARCHAR(30) NOT NULL,
-      amount DECIMAL(15,2) NOT NULL,
-      withdrawal_date DATE DEFAULT CURRENT_DATE,
-      notes TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE INDEX IF NOT EXISTS idx_oss_platform ON online_store_sales(platform);
-    CREATE INDEX IF NOT EXISTS idx_oss_date ON online_store_sales(order_date DESC);
-    CREATE INDEX IF NOT EXISTS idx_oss_batch ON online_store_sales(batch_import_id);
-  `);
-};
-if (process.env.NODE_ENV !== 'test') ensureSchema().catch(e => console.error('online_store ensureSchema:', e));
-
 // ══════════════════════════════════════════════════════════════════════════════
 // CSV IMPORT
 // ══════════════════════════════════════════════════════════════════════════════

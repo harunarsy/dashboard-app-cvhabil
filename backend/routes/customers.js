@@ -3,28 +3,6 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 
-// ─── Auto-create table ──────────────────────────────────────────────────────
-const ensureTable = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS customers (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(150) NOT NULL,
-      address TEXT,
-      phone VARCHAR(30),
-      type VARCHAR(30) DEFAULT 'offline',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  // Index for search-by-name
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_customers_name_lc ON customers (LOWER(name))`);
-  // Sync sequence to MAX(id) to prevent duplicate key after data migration
-  await pool.query(`
-    SELECT setval('customers_id_seq', COALESCE((SELECT MAX(id) FROM customers), 0) + 1, false)
-  `);
-};
-if (process.env.NODE_ENV !== 'test') ensureTable().catch(e => console.error('customers ensureTable:', e));
-
 // GET all (with aggregate sales metadata + limit + q search)
 router.get('/', auth, async (req, res) => {
   try {

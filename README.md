@@ -2,7 +2,7 @@
 
 Dashboard bisnis terintegrasi untuk mengelola faktur, nota penjualan, stok, dan keuangan CV Habil Sejahtera Bersama.
 
-- **Versi**: v1.66.22-stable (23 Agustus 2026)
+- **Versi**: v1.66.23-stable (23 Agustus 2026)
 - **Status**: Production-stable
 
 ---
@@ -72,8 +72,9 @@ npm test
 dashboard-app/
 ├── backend/
 │   ├── routes/           # Endpoint per domain (invoices, sales, inventory, dll)
+│   ├── migrations/       # Registry perubahan schema eksplisit
 │   ├── middleware/       # Auth JWT, error handling
-│   ├── scripts/          # DB check, migration
+│   ├── scripts/          # DB check, test, runner migration eksplisit
 │   ├── server.js         # Entry point Express
 │   └── package.json
 ├── frontend/
@@ -120,7 +121,7 @@ Modal "Apa yang Baru" harus muncul setiap login (bukan di-cache), karena satu ak
 
 ### Database
 - **Source of Truth**: PostgreSQL (Neon.tech)
-- **Schema**: Auto-update melalui `ensureSchema()` di setiap route startup (ALTER TABLE IF NOT EXISTS)
+- **Schema**: Route tidak menjalankan DDL saat startup. Perubahan schema hanya melalui `npm run migrate:schema` dengan opt-in dan konfirmasi host eksplisit; `npm run migrate:schema:list` aman untuk inventaris tanpa koneksi DB.
 - **Auth**: JWT Bearer (4 jam session)
 
 ### Stok & HPP
@@ -145,4 +146,4 @@ Tim: Harun (arsitek), Fivin (operasi), Ferry (input data)
 
 ---
 
-_HABIL SUPERAPP v1.64.1-stable. Didukung oleh React 19, Node.js, PostgreSQL, Vercel._
+_HABIL SUPERAPP v1.66.23-stable. Didukung oleh React 19, Node.js, PostgreSQL, Vercel._

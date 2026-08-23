@@ -9,13 +9,6 @@ const auth = require('../middleware/auth');
 const roleGuard = require('../middleware/roleGuard');
 const tax = require('../utils/tax');
 
-const ensureSchema = async () => {
-  // Default FALSE = semua nota masuk PPN keluaran (posisi aman).
-  await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS ppn_excluded BOOLEAN DEFAULT FALSE`);
-  await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS ppn_marked_by VARCHAR(100)`);
-  await pool.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS ppn_marked_at TIMESTAMP`);
-};
-if (process.env.NODE_ENV !== 'test') ensureSchema().catch(e => console.error('tax ensureSchema:', e));
 
 router.use(auth, roleGuard('direktur', 'pajak'));
 

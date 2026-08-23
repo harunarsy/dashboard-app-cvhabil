@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.66.22-stable",
+    version: "v1.66.23-stable",
     date: "23 Agustus 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Startup backend kini bebas DDL; perubahan schema dipindahkan ke runner migrasi deployment yang terkunci dan dapat diaudit.",
+      },
+    ],
+  },
+  {
+    version: "v1.66.22-stable",
+    date: "23 Agustus 2026",
+    status: "stable",
     changes: [
       {
         type: "improvement",

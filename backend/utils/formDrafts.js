@@ -3,17 +3,6 @@
 // transaksi FOR UPDATE tiap autosave dan harus difilter di semua query list.
 // Di sini draft BUKAN dokumen — tidak punya nomor, tidak menyentuh stok.
 
-const ensureTable = async (db) => {
-  await db.query(`CREATE TABLE IF NOT EXISTS form_drafts (
-    id SERIAL PRIMARY KEY,
-    doc_type VARCHAR(20) NOT NULL,
-    owner_id VARCHAR(40) NOT NULL DEFAULT '',
-    draft_data JSONB NOT NULL DEFAULT '{}',
-    updated_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE(doc_type, owner_id)
-  )`);
-};
-
 const getDraft = async (db, docType, ownerId) => {
   const { rows } = await db.query(
     `SELECT draft_data, updated_at FROM form_drafts
@@ -45,4 +34,4 @@ const clearDraft = async (db, docType, ownerId) => {
   );
 };
 
-module.exports = { ensureTable, getDraft, saveDraft, clearDraft };
+module.exports = { getDraft, saveDraft, clearDraft };

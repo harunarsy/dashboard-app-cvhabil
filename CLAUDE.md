@@ -63,7 +63,7 @@ so each machine can differ; always read the startup log, not this doc.)
 - **Deploy**: Frontend → Vercel (`habil-dashboard.vercel.app`). Backend → Vercel (`habil-backend.vercel.app`).
 
 ### Backend patterns
-- **Schema migration**: Each route file calls `ensureSchema()` on startup via `ALTER TABLE IF NOT EXISTS`. No migration runner needed — schema evolves in-place.
+- **Schema migration**: Route imports are DDL-free. Use the explicit `backend/scripts/migrate.js` deployment runner; normal server startup must never create or alter schema. Listing is DB-free via `npm run migrate:schema:list`. Execution requires both `ALLOW_SCHEMA_MIGRATION=true` and an exact `MIGRATION_TARGET_CONFIRM` hostname.
 - **Auth**: All routes use `middleware/auth.js` (JWT Bearer). Token decoded client-side for user state; 4-hour session (default `JWT_EXPIRE`, owner decision 19 Jun 2026).
 - **Transport**: REST/HTTP request-response. There is no active Socket.io/WebSocket layer; clients refresh data through API fetch/refetch flows.
 - **Env loading**: `server.js` auto-loads `.env.dev` if on `dev` git branch, else `.env`.

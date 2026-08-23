@@ -4,16 +4,6 @@ const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const { seedProductAlias } = require('../utils/productAliases');
 
-const ensureTable = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS product_catalog (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(255) UNIQUE NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-};
-if (process.env.NODE_ENV !== 'test') ensureTable().catch(console.error);
 
 // GET all products (catalog + from invoice_items), with limit + q search
 router.get('/', auth, async (req, res) => {

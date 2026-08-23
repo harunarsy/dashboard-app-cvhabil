@@ -18,6 +18,9 @@
     "test-assistant:bun": "bun scripts/test-smart-assistant.js",
     "test-assistant-db": "node scripts/test-smart-assistant-readonly.js",
     "test-assistant-db:bun": "bun scripts/test-smart-assistant-readonly.js",
+    "test-schema-boundary": "node scripts/test-schema-boundary.js",
+    "migrate:schema": "node scripts/migrate.js",
+    "migrate:schema:list": "node scripts/migrate.js --list",
     "test-compat:bun": "bun scripts/test-bun-compatibility.js",
     "health": "node scripts/health-check-prod.js"
   },

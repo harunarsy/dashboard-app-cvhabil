@@ -36,48 +36,6 @@ const getServerError = (err) => (
   process.env.NODE_ENV === 'production' ? 'Terjadi kesalahan server' : err.message
 );
 
-// ─── Auto-create users table with role support ──────────────────────────────
-const ensureTable = async () => {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS app_users (
-      id SERIAL PRIMARY KEY,
-      username VARCHAR(50) UNIQUE NOT NULL,
-      password VARCHAR(255) NOT NULL,
-      display_name VARCHAR(100),
-      role VARCHAR(20) NOT NULL DEFAULT 'admin',
-      is_active BOOLEAN DEFAULT TRUE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  // Seed default users if empty.
-  // v1.64.1: password seed TIDAK BOLEH ditulis mati di kode — dulu literalnya
-  // ada di sini dan ikut ter-commit ke repo. Sekarang
-  // wajib lewat env; kalau tidak diset, seeding dilewati dengan peringatan
-  // (lebih baik tidak ada user sama sekali daripada user berpassword tebakan).
-  const { rowCount } = await pool.query('SELECT 1 FROM app_users LIMIT 1');
-  if (!rowCount) {
-    const seedDirektur = process.env.SEED_DIREKTUR_PASSWORD;
-    const seedAdmin = process.env.SEED_ADMIN_PASSWORD;
-    if (!seedDirektur || !seedAdmin) {
-      console.warn(
-        '[Auth] app_users kosong tapi SEED_DIREKTUR_PASSWORD/SEED_ADMIN_PASSWORD belum diset — seeding dilewati. ' +
-        'Set kedua env itu lalu jalankan ulang untuk membuat user awal.'
-      );
-    } else {
-      const hashDirektur = await bcrypt.hash(seedDirektur, 12);
-      const hashAdmin = await bcrypt.hash(seedAdmin, 12);
-      await pool.query(
-        `INSERT INTO app_users (username, password, display_name, role) VALUES
-          ($1, $2, 'Direktur CV Habil', 'direktur'),
-          ($3, $4, 'Admin Toko',        'admin')`,
-        ['direktur', hashDirektur, 'admin', hashAdmin]
-      );
-      console.log('[Auth] Seeded default users: direktur / admin');
-    }
-  }
-};
-if (process.env.NODE_ENV !== 'test') ensureTable().catch(e => console.error('app_users ensureTable:', e));
-
 // ─── Login ──────────────────────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;

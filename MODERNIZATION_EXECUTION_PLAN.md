@@ -1,6 +1,6 @@
 # Habil SuperApp Modernization Execution Plan
 
-Status: completed — all phase gates passed
+Status: in progress — Fase 7D passed; Fase 7E and Fase 8 remain
 
 Source version: `v1.66.8-stable`
 
@@ -139,6 +139,16 @@ Run unit, route, HTTP, frontend, build, accessibility, and read-only DB checks. 
 - Review commit boundaries and rollback paths.
 - Deliver a final implementation report with measured results, accepted tradeoffs, and remaining known issues.
 
-## Long-Term TODO — Not Part of This Execution
+## Phase 7D — Explicit Schema Lifecycle
 
-- **LONG-TERM:** Move schema initialization from route import to explicit migration/deployment step.
+1. Remove all route-level `ensureSchema`, `ensureTable`, import-time DDL, seed, sequence repair, and backfill execution.
+2. Preserve that logic in an ordered migration registry under `backend/migrations/`.
+3. Expose a deployment-only runner guarded by an explicit enable flag, exact-host confirmation, environment target checks, lock/statement timeouts, and rollback on failure.
+4. Keep normal Node/Bun startup DDL-free and make missing schema fail at the requesting route instead of silently mutating the database.
+5. Prove the boundary through static inventory, mocked development import, HTTP smoke, and runner refusal tests.
+
+Status: **completed in v1.66.23-stable**. No migration or database mutation was executed during this phase.
+
+## Resolved Long-Term Item
+
+- Schema initialization has moved from route imports to an explicit migration/deployment step. Production execution remains a separately authorized deployment action.

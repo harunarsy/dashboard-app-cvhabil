@@ -4,7 +4,8 @@
  *
  * Run: node scripts/test-route-http.js
  */
-// Force test mode so route modules skip import-time schema init (no prod DB writes during smoke test)
+// Force deterministic test behavior. Schema changes now live behind the explicit
+// migration runner and route imports must remain side-effect free in every mode.
 process.env.NODE_ENV = 'test';
 const path = require('path');
 const fs = require('fs');

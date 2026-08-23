@@ -51,6 +51,8 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: npm ci --ignore-scripts
         working-directory: backend
+      - run: npm run test-schema-boundary
+        working-directory: backend
       - run: npm run test-route
         working-directory: backend
         env:
