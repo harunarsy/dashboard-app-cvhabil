@@ -23,6 +23,7 @@ import {
   copyTextToClipboard,
 } from "../utils/waMessage";
 import { importWithReload } from "../utils/importWithReload";
+import { dateOnlyTimestamp } from "../utils/dateOnly";
 
 // v1.54.0: Peminjaman produk — "nota gantung": stok sudah keluar saat pinjam,
 // belum dihitung penjualan sampai dikembalikan atau dikonversi jadi nota.
@@ -73,17 +74,19 @@ const loanOutstanding = (loan) =>
 // FEFO: batch in-stock & belum ED (ED terdekat) duluan
 const pickFefoBatch = (batches) => {
   if (!batches || !batches.length) return null;
-  const today = new Date(new Date().toDateString());
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayTime = today.getTime();
   const sortByEd = (arr) =>
     [...arr].sort((a, b) => {
-      const ea = a.expired_date ? new Date(a.expired_date).getTime() : Infinity;
-      const eb = b.expired_date ? new Date(b.expired_date).getTime() : Infinity;
+      const ea = dateOnlyTimestamp(a.expired_date) ?? Infinity;
+      const eb = dateOnlyTimestamp(b.expired_date) ?? Infinity;
       return ea - eb;
     });
   const inStock = batches.filter(
     (b) =>
       (parseFloat(b.qty_current) || 0) > 0 &&
-      (!b.expired_date || new Date(b.expired_date) >= today),
+      (!b.expired_date || dateOnlyTimestamp(b.expired_date) >= todayTime),
   );
   return sortByEd(inStock)[0] || null;
 };

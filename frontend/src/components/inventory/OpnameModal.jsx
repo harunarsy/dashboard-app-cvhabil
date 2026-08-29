@@ -27,17 +27,15 @@ import ConfirmModal from "../common/ConfirmModal";
 import { UI_MOTION, uiTransition } from "../../constants/ui";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import { importWithReload } from "../../utils/importWithReload";
+import { daysUntilDateOnly, formatDateOnly } from "../../utils/dateOnly";
 
-const fmtDate = (d) =>
-  d
-    ? new Date(d).toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : "-";
-const daysUntil = (d) =>
-  d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
+const DATE_DISPLAY_OPTIONS = {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+};
+const fmtDate = (d) => formatDateOnly(d, DATE_DISPLAY_OPTIONS);
+const daysUntil = (d) => daysUntilDateOnly(d);
 
 function expiryBadge(date, sub) {
   if (!date) return { color: sub, bg: "transparent", text: "-" };

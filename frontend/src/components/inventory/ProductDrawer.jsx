@@ -17,6 +17,7 @@ import { UI_MOTION, UI_SIZE, uiTransition } from "../../constants/ui";
 import Icons from "../common/Icon";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import FieldError from "../common/FieldError";
+import { daysUntilDateOnly, formatDateOnly } from "../../utils/dateOnly";
 
 const fmtRp = (n, decimals = 0) =>
   new Intl.NumberFormat("id-ID", {
@@ -25,14 +26,12 @@ const fmtRp = (n, decimals = 0) =>
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(n || 0);
-const fmtDate = (d) =>
-  d
-    ? new Date(d).toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : "-";
+const DATE_DISPLAY_OPTIONS = {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+};
+const fmtDate = (d) => formatDateOnly(d, DATE_DISPLAY_OPTIONS);
 const fmtDateTime = (d) =>
   d
     ? new Date(d).toLocaleString("id-ID", {
@@ -43,8 +42,7 @@ const fmtDateTime = (d) =>
         minute: "2-digit",
       })
     : "-";
-const daysUntil = (d) =>
-  d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
+const daysUntil = (d) => daysUntilDateOnly(d);
 
 const getDisplayHna = (data) => parseFloat(data?.latest_hna ?? data?.hna) || 0;
 

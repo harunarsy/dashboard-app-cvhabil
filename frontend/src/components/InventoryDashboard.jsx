@@ -42,6 +42,7 @@ import Icons from "./common/Icon";
 import { UI_MOTION, UI_SIZE, uiTransition } from "../constants/ui";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import { importWithReload } from "../utils/importWithReload";
+import { daysUntilDateOnly, formatDateOnly } from "../utils/dateOnly";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -53,16 +54,13 @@ const fmtRp = (n, decimals = 0) =>
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(n || 0);
-const fmtDate = (d) =>
-  d
-    ? new Date(d).toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : "-";
-const daysUntil = (d) =>
-  d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
+const DATE_DISPLAY_OPTIONS = {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+};
+const fmtDate = (d) => formatDateOnly(d, DATE_DISPLAY_OPTIONS);
+const daysUntil = (d) => daysUntilDateOnly(d);
 
 const getProductDisplayHna = (product) => {
   // v1.66.2: `batch_cost_tiers` = rincian harga BELI per batch (dari daftar produk).

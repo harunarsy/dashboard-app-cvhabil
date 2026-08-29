@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.8-stable] - 2026-08-29
+
+### Diperbaiki
+- **Tanggal faktur tanpa timezone shift:** PostgreSQL `DATE` kini dipertahankan sebagai literal `YYYY-MM-DD`, sehingga tanggal belanja, jatuh tempo, pembayaran, dan kedaluwarsa tidak mundur satu hari saat dikirim ke frontend.
+- **Qty edit faktur multi-unit:** form Edit/Duplikasi kini memakai `qty_in_unit` sebagai qty yang diketik operator, dengan fallback ke qty basis untuk data lama.
+- **Countdown dan FEFO tanggal lokal:** badge kedaluwarsa serta pemilihan batch menghitung hari kalender lokal, bukan offset UTC.
+
+### Diverifikasi
+- Frontend 35/35 test dan production build lulus; backend schema boundary 9/9, route regression 16/16, HTTP smoke 17/17, dan pricing 38/38 lulus pada Node 24.19.0.
+- Tidak ada route stok, migration, DDL, atau generic stock-rebuild yang ditambahkan.
+
 ## [v1.67.6-stable] - 2026-08-23
 
 ### Diperbaiki

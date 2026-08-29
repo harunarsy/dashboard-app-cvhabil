@@ -48,6 +48,7 @@ import {
   usePurchaseOrders,
 } from "../hooks/useMasterData";
 import { qk } from "../lib/queryClient";
+import { invoiceFormQuantity } from "../utils/invoiceForm";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -1243,7 +1244,7 @@ export default function InvoiceList({
                   product_id: i.product_id || null,
                   batch_number: i.batch_number || "",
                   expired_date: i.expired_date?.split("T")[0] || "",
-                  quantity: i.quantity || "",
+                  quantity: invoiceFormQuantity(i),
                   hna: i.hna || i.unit_price || "",
                   hna_times_qty: i.hna_times_qty || 0,
                   disc_percent: i.disc_percent || "",
@@ -1298,7 +1299,7 @@ export default function InvoiceList({
                   product_id: i.product_id || null,
                   batch_number: i.batch_number || "",
                   expired_date: i.expired_date?.split("T")[0] || "",
-                  quantity: i.quantity || "",
+                  quantity: invoiceFormQuantity(i),
                   hna: i.hna || i.unit_price || "",
                   hna_times_qty: i.hna_times_qty || 0,
                   disc_percent: i.disc_percent || "",

@@ -4,7 +4,7 @@ Status: **COMPLETE — Fase 8E passed**
 
 Branch: `codex/bun-modernization-audit`
 
-Current version: `v1.67.6-stable`
+Current version: `v1.67.8-stable`
 
 Execution date: 23 August 2026
 

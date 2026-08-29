@@ -148,7 +148,7 @@ export default function Login({
             className="ui-over-media-copy mt-3 px-3 py-1 text-xs font-semibold"
             style={{ color: sub }}
           >
-            HABIL SUPERAPP v1.67.6-stable — 2026
+            HABIL SUPERAPP v1.67.8-stable — 2026
           </p>
         </div>
 

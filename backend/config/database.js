@@ -1,4 +1,7 @@
 const { Pool } = require('pg');
+const { installPgDateParser } = require('../utils/pgDate');
+
+installPgDateParser();
 
 
 // SSL dikontrol via objek `ssl` di bawah (rejectUnauthorized:false untuk Neon).

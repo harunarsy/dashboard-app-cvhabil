@@ -63,6 +63,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { qk } from "../lib/queryClient";
 import Pagination from "./common/Pagination";
 import { importWithReload } from "../utils/importWithReload";
+import { dateOnlyTimestamp, formatDateOnly } from "../utils/dateOnly";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -105,28 +106,28 @@ const fmtKg = (gram) =>
 // fallback ke batch pertama (mis. semua stok 0) supaya nota tetap punya source batch+ED.
 const pickFefoBatch = (batches) => {
   if (!batches || !batches.length) return null;
-  const today = new Date(new Date().toDateString());
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayTime = today.getTime();
   const sortByEd = (arr) =>
     [...arr].sort((a, b) => {
-      const ea = a.expired_date ? new Date(a.expired_date).getTime() : Infinity;
-      const eb = b.expired_date ? new Date(b.expired_date).getTime() : Infinity;
+      const ea = dateOnlyTimestamp(a.expired_date) ?? Infinity;
+      const eb = dateOnlyTimestamp(b.expired_date) ?? Infinity;
       return ea - eb;
     });
   const inStock = batches.filter(
     (b) =>
       (parseFloat(b.qty_current) || 0) > 0 &&
-      (!b.expired_date || new Date(b.expired_date) >= today),
+      (!b.expired_date || dateOnlyTimestamp(b.expired_date) >= todayTime),
   );
   return sortByEd(inStock)[0] || sortByEd(batches)[0];
 };
 const fmtDate = (d) =>
-  d
-    ? new Date(d).toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : "-";
+  formatDateOnly(d, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 // Tanggal + nama hari (mis. "Selasa, 01 Jul 2026") — buat info jatuh tempo.
 const fmtDateDay = (d) => {
   if (!d) return "-";

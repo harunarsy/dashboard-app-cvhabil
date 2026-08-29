@@ -1,5 +1,12 @@
 # Feedback Log
 
+## [2026-08-29] - Invoice Reconciliation: DATE & Multi-Unit Form Boundary
+- **PostgreSQL DATE bergeser satu hari di boundary aplikasi**: hasil read-only pada invoice `INVSB1260800500` menunjukkan database menyimpan tanggal `2026-08-05`/`2026-08-26`, sementara UI menampilkan `04/08/2026`/`25/08/2026`. `pg` default mem-parse OID 1082 sebagai JavaScript `Date`; serialisasi UTC kemudian dapat mundur satu hari.
+- **Edit form memakai qty basis, bukan qty satuan faktur**: loader edit/duplikasi membaca `invoice_items.quantity`, padahal untuk unit pack nilai yang diketik operator tersimpan di `qty_in_unit`. Contoh 4 karton dengan pack size 60 dapat terbaca 240 karton.
+- **Bukti kasus `INVSB1260800500`**: snapshot read-only menunjukkan invoice id `275` berisi Strawberry Jam qty 12, sedangkan dokumen sumber `IMG_3116.HEIC` berisi NFDM qty 1 dan Diabtx qty 120. Invoice kemudian sudah masuk Trash dan mutasi pembatalan membuat stok salah kembali neto 0.
+- **Keputusan keselamatan**: guard perubahan produk/qty/harga setelah stock posting dipertahankan. Generic stock rebuild ditolak karena blast radius-nya tidak sebanding. Koreksi kasus ini memakai alur resmi Trash → permanent delete → create ulang, dengan precondition dan post-verification hanya untuk invoice id `275`.
+- **Pre-merge review blocker**: setelah backend mengirim `DATE` literal, tiga countdown inventory masih memakai `new Date('YYYY-MM-DD')` (UTC) dan dapat meleset satu hari. Merge ditahan sampai seluruh consumer expired-date memakai parser kalender lokal dan memiliki regression test.
+
 ## [2026-08-23] - Modernization Phase 0 Hard Stop
 - **Import HTTP smoke mencoba DDL database**: saat `backend/scripts/test-route-http.js` mengimpor aplikasi, `backend/routes/marketplace.js` langsung menjalankan `ensureSchema()` tanpa guard `NODE_ENV=test`.
 - **Query yang dicoba**: beberapa `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, dan `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` pada tabel marketplace.

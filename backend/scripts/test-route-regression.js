@@ -26,6 +26,8 @@ const {
 loadRuntimeEnv({ baseDir: path.join(__dirname, '..'), context: 'backend/test-route-regression' });
 ensureDbTargetSafety({ context: 'backend/test-route-regression', allowProdLocal: false, allowProdSmoke: true });
 const assert = require('assert');
+const { types } = require('pg');
+const { PG_DATE_OID, installPgDateParser } = require('../utils/pgDate');
 const { createReadOnlyPool } = require('./read-only-pool');
 
 const pool = createReadOnlyPool({
@@ -43,6 +45,15 @@ function test(name, fn) {
 
 async function run() {
   console.log('═══ Route Regression Tests ═══\n');
+
+  console.log('── PostgreSQL DATE boundary ──');
+
+  test('DATE OID 1082 tetap literal YYYY-MM-DD tanpa timezone shift', () => {
+    installPgDateParser();
+    const parser = types.getTypeParser(PG_DATE_OID, 'text');
+    assert.strictEqual(parser('2026-08-05'), '2026-08-05');
+    assert.strictEqual(parser('2029-05-31'), '2029-05-31');
+  });
 
   // ─── Test: resolveSelectedBatchForSale priority ───
   console.log('── Helper: resolveSelectedBatchForSale priority ──');

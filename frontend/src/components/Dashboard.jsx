@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.67.8-stable",
+    date: "29 Agustus 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Tanggal faktur tidak lagi mundur satu hari dan qty pada form edit kini mengikuti satuan asli faktur.",
+      },
+    ],
+  },
+  {
     version: "v1.67.6-stable",
     date: "23 Agustus 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "improvement",
