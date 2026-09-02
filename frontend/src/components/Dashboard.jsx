@@ -47,6 +47,14 @@ const RELEASES = [
         type: "fix",
         text: "Nota A6 dengan tiga item kini tetap satu halaman. Nota panjang membagi tabel secara seimbang dan menyimpan total, catatan, rekening, serta tanda tangan di halaman terakhir.",
       },
+      {
+        type: "perf",
+        text: "Backend Vercel kini berjalan di Singapore (sin1), lebih dekat ke database Neon Singapore untuk mempercepat request login dan data dashboard.",
+      },
+      {
+        type: "improvement",
+        text: "Health check database dan workflow keep-warm setiap lima menit membantu mengurangi cold-start koneksi Neon tanpa mengubah data production.",
+      },
     ],
   },
   {
