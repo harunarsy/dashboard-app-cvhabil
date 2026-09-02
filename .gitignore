@@ -21,6 +21,7 @@ dist/
 # password teks polos. Dump/backup DB WAJIB tinggal di lokal.
 *backup*.sql
 *dump*.sql
+*.dump
 cloud_migration_backup.sql
 backend/backups/
 CREDENTIALS*.md

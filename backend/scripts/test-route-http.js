@@ -110,6 +110,13 @@ async function run() {
     assert.ok(res.body.timestamp);
   });
 
+  await test('/api/health/db returns database reachability', async () => {
+    const res = await request.get('/api/health/db');
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.status, 'Database reachable');
+    assert.strictEqual(typeof res.body.latencyMs, 'number');
+  });
+
   // 2. 404 for unknown routes
   await test('unknown route returns 404', async () => {
     const res = await request.get('/api/nonexistent');

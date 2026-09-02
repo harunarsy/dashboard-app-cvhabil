@@ -15,6 +15,7 @@ const {
 // ─── Environment Loading ───
 loadRuntimeEnv({ baseDir: __dirname, context: 'backend/app' });
 ensureDbTargetSafety({ context: 'backend/app', allowProdLocal: false, allowProdSmoke: false });
+const pool = require('./config/database');
 
 const app = express();
 
@@ -72,6 +73,24 @@ app.use('/api', apiLimiter);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Backend running', timestamp: new Date().toISOString(), uptime: process.uptime() });
+});
+
+app.get('/api/health/db', async (req, res) => {
+  const startedAt = Date.now();
+  try {
+    await pool.query('SELECT 1');
+    res.json({
+      status: 'Database reachable',
+      latencyMs: Date.now() - startedAt,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[Health DB] Database check failed:', error.message);
+    res.status(503).json({
+      status: 'Database unavailable',
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 app.use('/api/auth/login', loginLimiter);

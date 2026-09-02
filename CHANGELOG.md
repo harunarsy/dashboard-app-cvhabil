@@ -10,9 +10,12 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
 ### Developer Experience
 - Root project kini menyediakan satu perintah `bun dev` untuk frontend dan backend. Jika environment lokal menunjuk database remote, koneksi backend dipaksa read-only agar inspeksi dan generate PDF tidak dapat mengubah data produksi. Bun hanya menjadi task runner; runtime aplikasi tetap mengikuti konfigurasi Node.js yang sudah terverifikasi.
+- Backend Vercel dikunci ke region Singapore (`sin1`) agar jalur Vercel ke Neon Singapore tidak melintasi North America.
+- Endpoint `/api/health/db` menjalankan `SELECT 1` dan dipakai workflow keep-warm setiap lima menit. Neon Free tetap dapat scale-to-zero karena jadwal GitHub tidak memiliki jaminan real-time.
 
 ### Diverifikasi
 - Frontend `npm test` lulus: 13 test files, 41 tests. Production build Vite lulus. Fixture regression pagination sudah dianonimisasi tanpa data pelanggan nyata.
+- Backend HTTP smoke test lulus 18/18 dan version consistency lulus. Regression terhadap database dev menghasilkan 15 pass/3 fail karena temuan integritas data yang sudah ada; tidak ada data database yang diubah oleh release ini.
 
 ## [v1.67.9-stable] - 2026-09-02
 

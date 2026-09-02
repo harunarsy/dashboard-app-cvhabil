@@ -11,7 +11,10 @@
 - Root `package.json` menyediakan satu perintah `bun dev` untuk full stack. Database remote lokal dipaksa read-only; operasi tulis membutuhkan database dev terpisah.
 - Dua linked worktree lama sudah dilepas; branch Git-nya tetap disimpan. Folder utama belum di-rename agar path lokal aktif tidak rusak saat verifikasi.
 - Verifikasi: frontend 41/41 tests, Vite production build, HTTP frontend/backend 200, pool remote read-only aktif, dan version checker lulus.
-- Commit berikutnya sengaja lokal saja; belum ada push untuk patch ini.
+- Versi v1.67.10 siap dipush setelah verifikasi deployment backend.
+- Neon production dikonfirmasi Free plan, region Singapore, scale-to-zero setelah 5 menit; tidak ada perubahan setting provider.
+- Endpoint `/api/health/db` dan cron keep-warm `*/5` sudah dibuat lokal. Smoke test backend 18/18 lulus dan local HTTP DB health 200.
+- Patch keep-warm siap dideploy setelah commit ini; region `sin1` sudah dipilih di Vercel dan endpoint production akan diverifikasi pascapush.
 
 ## ⚠️ Pekerjaan HABIL selalu menyangkut DUA folder
 

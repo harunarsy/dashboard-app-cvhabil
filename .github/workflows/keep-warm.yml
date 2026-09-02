@@ -1,12 +1,13 @@
-name: Keep Backend Warm
+name: Keep Backend and Database Warm
 
-# v1.41.x: ping /api/health berkala biar fungsi serverless Vercel tetap hangat
-# (kurangi cold-start ~1-2 dtk saat halaman pertama dibuka setelah idle).
+# Ping endpoint database berkala agar fungsi serverless Vercel dan koneksi Neon
+# ikut terbangun. Neon Free tetap dapat scale-to-zero setelah 5 menit karena
+# cron GitHub dapat terlambat; ini mengurangi cold-start, bukan SLA always-on.
 # Repo public → GitHub Actions gratis. Cron bisa molor sedikit di free tier, wajar.
 
 on:
   schedule:
-    - cron: "*/10 * * * *" # tiap 10 menit
+    - cron: "*/5 * * * *" # target tiap 5 menit
   workflow_dispatch: {}
 
 concurrency:
@@ -17,10 +18,10 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping backend health
+      - name: Ping backend and database health
         run: |
           for url in \
-            "https://habil-backend.vercel.app/api/health" \
+            "https://habil-backend.vercel.app/api/health/db" \
             "https://habil-dashboard.vercel.app"; do
             code=$(curl -s -m 30 -o /dev/null -w "%{http_code}" "$url" || echo "000")
             echo "$url -> $code"
