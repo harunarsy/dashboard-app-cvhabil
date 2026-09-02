@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.67.9-stable",
+    date: "02 September 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Pagination Nota Penjualan kini menjaga tabel multi-item tetap utuh dan menempatkan total, catatan, rekening, serta tanda tangan di halaman terakhir.",
+      },
+    ],
+  },
+  {
     version: "v1.67.8-stable",
     date: "29 Agustus 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",

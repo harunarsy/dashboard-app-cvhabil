@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.9-stable] - 2026-09-02
+
+### Diperbaiki
+- **Pagination Nota Penjualan multi-item.** AutoTable kini menjadi sumber kebenaran page break, header lanjutan muncul saat tabel berlanjut, dan total, catatan, rekening, serta tanda tangan ditempatkan bersama setelah tabel terakhir tanpa halaman kosong yang tidak perlu.
+
+### Diverifikasi
+- Frontend `npm test` lulus: 13 test files, 36 tests. Production build Vite lulus.
+
 ## [v1.67.8-stable] - 2026-08-29
 
 ### Diperbaiki

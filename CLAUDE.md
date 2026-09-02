@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## System Identity
 
-**HABIL SUPERAPP** — v1.66.x-stable line. Business dashboard for invoice, orders, inventory, and financials. Design language: Stripe Modern premium SaaS, token-driven via `frontend/src/constants/ui.js`.
+**HABIL SUPERAPP** — the current stable release is defined by the first stable heading in `CHANGELOG.md`. Do not hardcode a version in this file. Business dashboard for invoice, orders, inventory, and financials. Design language: Stripe Modern premium SaaS, token-driven via `frontend/src/constants/ui.js`.
 
 ---
 
@@ -97,19 +97,22 @@ so each machine can differ; always read the startup log, not this doc.)
 ## Critical Protocols
 
 ### Auto-Versioning (MANDATORY before any commit)
-Version must be consistent across **all** of these files:
-- `frontend/src/components/Login.jsx`
-- `frontend/src/components/Sidebar.jsx`
-- `frontend/src/components/Dashboard.jsx` (badge + release modal RELEASES array)
-- `frontend/src/index.js`
-- `CHANGELOG.md`
-- `SUPERAPP_BRAIN.md`
+`CHANGELOG.md` is the single source of truth. Read its first stable heading to determine the current
+release; this file must never contain a manually maintained current-version number.
 
-Verify with:
+Before committing, verify the branch is based on the latest `origin/main`, then run:
 ```bash
-grep -rn "v1\.14\." frontend/src --include="*.jsx" --include="*.js"
+git fetch origin main
+git log --oneline HEAD..origin/main
+node scripts/check-version-consistency.mjs
 ```
-If any file differs → fix before committing.
+The checker validates the live version in `Login.jsx`, `Sidebar.jsx`, `Dashboard.jsx` (`RELEASES[0]`),
+`index.js`, `SUPERAPP_BRAIN.md`, and `README.md`. It also fails when the newest changelog heading is
+not reflected in any of those files. Historical reports intentionally keep the version they recorded.
+
+When shipping a change on top of `vX.Y.Z-stable`, use `vX.Y.(Z+1)-stable`, update `CHANGELOG.md`
+first, then update the checked live files. Do not use a stale version-specific grep or a hardcoded
+"current tracking" value.
 
 ### Release modal storage
 Use `sessionStorage`, key: `habil_release_seen_${VERSION.replace(/\./g, '_')}`.

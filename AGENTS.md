@@ -36,21 +36,30 @@ Welcome, Agent. You are assisting with the **Habil SuperApp**, an integrated bus
 ## 🛡️ Critical Protocols (Must Follow)
 1.  **Supabase Connection:** ALWAYS use **Port 6543** (Session Pooler) for database connections to avoid IPv4/DNS issues.
 2.  **Source of Truth:** PostgreSQL is the MASTER source of truth. PDF documents are transient and can be regenerated from DB data.
-3.  **Auto-Versioning:** Before every commit, ensure the version string in **ALL** of the following files matches the latest entry in `CHANGELOG.md`. Missing even one will cause version mismatch visible to users.
+3.  **Auto-Versioning:** `CHANGELOG.md` is the only version source of truth. Always read its first
+    stable heading; never infer the version from stale docs, a local branch, a deployment screenshot,
+    or a hardcoded "current tracking" line.
 
-    **Files that MUST be updated every version bump (run grep to verify):**
+    Before editing or committing, sync the branch context and run the checker:
+    ```bash
+    git fetch origin main
+    git log --oneline HEAD..origin/main
+    node scripts/check-version-consistency.mjs
     ```
-    grep -rn "v1\.3\." frontend/src/ --include="*.jsx" --include="*.js"
-    ```
-    | File | Location | What to change |
-    |------|----------|----------------|
-    | `frontend/src/components/Login.jsx` | line ~45 | subtitle text `HABIL SUPERAPP vX.X.XX-stable — 2026` |
-    | `frontend/src/components/Dashboard.jsx` | `RELEASES` array top | add new entry as `status: 'latest'`, demote old to `status: 'stable'` |
-    | `frontend/src/components/Sidebar.jsx` | `const appVersion` | string literal |
-    | `frontend/src/index.js` | lines ~11,15,16 | `<p>` text + `document.title` + comment |
-    | `CHANGELOG.md` | top of file | add new `## [vX.X.XX-stable]` section |
+    If `HEAD..origin/main` is non-empty, update the local branch baseline before choosing a new
+    version. A release fix on top of `vX.Y.Z-stable` becomes `vX.Y.(Z+1)-stable`.
 
-    **Current tracking:** `v1.66.x`
+    **Files that MUST match the latest stable heading:**
+    - `frontend/src/components/Login.jsx` — visible login version label.
+    - `frontend/src/components/Dashboard.jsx` — `RELEASES[0]` must be `status: "latest"`.
+    - `frontend/src/components/Sidebar.jsx` — visible `appVersion`.
+    - `frontend/src/index.js` — document title and version marker.
+    - `SUPERAPP_BRAIN.md` — current system version.
+    - `README.md` — current version references.
+    - `CHANGELOG.md` — newest `## [vX.Y.Z-stable]` entry.
+
+    Run `node scripts/check-version-consistency.mjs` instead of a version-specific grep. Historical
+    reports may retain the version they documented and are not part of the live-version check.
 4.  **Critical Error Logging:** If you encounter a system-breaking error (e.g., "Relation missing"), you MUST log the findings into `FEEDBACK_LOG.md` BEFORE applying a fix.
 5.  **Design Standard:** Always prioritize Apple HIG principles: subtle gradients, high-quality typography (Inter/Roboto), and smooth micro-animations.
 
