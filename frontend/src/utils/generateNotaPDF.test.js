@@ -96,5 +96,27 @@ describe('generateNotaPDF compact pagination', () => {
     expect(doc.getNumberOfPages()).toBe(2);
     expect(secondPageCommands).toContain('NOTE:');
     expect(secondPageCommands).toContain('REK BCA CV HABIL SEJAHTERA BERSAMA 5603004174');
+    expect(secondPageCommands).toContain('26T0507GU');
+  });
+
+  it('keeps the final tail with the last table page for many A5 items', () => {
+    const order = createMultiBatchOrder();
+    order.items = Array.from({ length: 8 }, (_, index) => ({
+      ...order.items[0],
+      product_name: `Produk Panjang ${index + 1}`,
+      batch_no_snapshot: `BATCH-${index + 1}`,
+    }));
+
+    const doc = generateNotaPDF(order, {
+      format: 'A5',
+      settings,
+    });
+    const lastPageCommands = doc.internal.pages[doc.getNumberOfPages()].join('\n');
+
+    expect(doc.getNumberOfPages()).toBeGreaterThan(1);
+    expect(lastPageCommands).toContain('Produk Panjang 8');
+    expect(lastPageCommands).toContain('GRAND TOTAL:');
+    expect(lastPageCommands).toContain('NOTE:');
+    expect(lastPageCommands).toContain('REK BCA CV HABIL SEJAHTERA BERSAMA 5603004174');
   });
 });

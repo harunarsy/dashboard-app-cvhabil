@@ -292,6 +292,103 @@ export function generateNotaPDF(order, options = {}) {
     margin + (isA6 ? 24 : (isA5 ? 31 : 33)),
     addressY + (isA6 ? 3 : 4)
   );
+
+  // Reserve the complete post-table tail before AutoTable lays out rows. This
+  // keeps its page breaks authoritative while leaving room for the tail on
+  // the final table page.
+  const lineH = isA6 ? 2.1 : (isA5 ? 2.6 : 4);
+  const footerGap = isA6 ? 1.5 : (isA5 ? 2.5 : 4);
+  const sigGap = isA6 ? 3 : (isA5 ? 4 : 5);
+  const sigLineOffset = isA6 ? 8 : (isA5 ? 12 : 19);
+  const sigNameOffset = isA6 ? 12 : (isA5 ? 17 : 24);
+  const sigHalfWidth = isA6 ? 30 : 45;
+  const sigCenter = isA6 ? 15 : 22;
+  const tableGap = compactPaper ? 3.5 : 5;
+  const notesTopGap = isA6 ? 1.2 : (isA5 ? 2 : 3);
+  const noteHeadingAdvance = isA6 ? 2.5 : (isA5 ? 3 : 4);
+  const bankLead = isA6 ? 2.5 : (isA5 ? 3.5 : 5);
+  const bankLineAdvance = isA6 ? 2.5 : (isA5 ? 3.3 : 4);
+  const bankAdvance = bankInfo && type !== 'terima' && !isLoan
+    ? bankLead + bankLineAdvance + (qrisText ? bankLineAdvance : 0)
+    : 0;
+  const compactSigY = pageHeight - 4 - footerGap - sigNameOffset;
+
+  // Use the same font metrics as the tail renderers so the reserve follows
+  // wrapped NOTE and pinjaman text instead of a fixed page threshold.
+  doc.setFontSize(baseFontSize - 2);
+  const loanNote = isLoan
+    ? doc.splitTextToSize(
+      'Barang berstatus PINJAMAN — belum termasuk penjualan. Mohon dikembalikan atau dikonfirmasi pembelian sebelum batas pengembalian.',
+      pageWidth - margin * 2
+    )
+    : [];
+  const ketentuanRows = ketentuan && type !== 'terima' && !isLoan
+    ? ketentuan.split('\n').filter((line) => line.trim()).map((line, index) => ({
+      wrapped: doc.splitTextToSize(`${index + 1}. ${line}`, pageWidth - margin * 2),
+    }))
+    : [];
+  const ketentuanBlockH = ketentuanRows.length
+    ? notesTopGap + noteHeadingAdvance + ketentuanRows.reduce((height, row) => height + row.wrapped.length * lineH, 0)
+    : 0;
+  const notesLines = order.notes
+    ? doc.splitTextToSize(`Catatan: ${String(order.notes || '')}`, pageWidth - margin * 2)
+    : [];
+  const notesBlockH = notesLines.length ? Math.max(5, notesLines.length * lineH) : 0;
+
+  const summaryAdvance = (() => {
+    if (isLoan) {
+      return (
+        (isA6 ? 2.6 : (isA5 ? 3.6 : 5)) +
+        (isA6 ? 2.6 : (isA5 ? 4 : 6)) +
+        loanNote.length * (isA6 ? 2.6 : (isA5 ? 3.3 : 4.2))
+      );
+    }
+    if (type === 'terima') return 0;
+
+    let advance = 0;
+    if (!order.ppn_excluded) {
+      advance += isA6 ? 2.4 : (isA5 ? 3.3 : 4.5);
+      advance += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
+    }
+    if ((parseFloat(order.ongkir) || 0) > 0) {
+      advance += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
+    }
+    if (order.payment_fee_mode === 'pass_on' && (parseFloat(order.payment_fee) || 0) > 0) {
+      advance += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
+    }
+    advance += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
+    advance += isA6 ? 2.6 : (isA5 ? 4 : 6);
+    if ((parseInt(order.est_weight_gram) || 0) > 0) {
+      advance += isA6 ? 2.6 : (isA5 ? 4 : 6);
+    }
+    return advance;
+  })();
+  const tailContentH = summaryAdvance + notesBlockH + ketentuanBlockH + bankAdvance;
+  const signatureReserve = compactPaper
+    ? Math.max(sigGap + (pageHeight - compactSigY), sigGap + sigNameOffset + 4 + footerGap)
+    : sigGap + sigNameOffset + 4 + footerGap;
+  const tableBottomMargin = tableGap + tailContentH + signatureReserve;
+
+  let continuationStarted = false;
+  const continuationLineY = margin + 11;
+  const drawContinuationHeader = (pageNumber) => {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(baseFontSize + 1);
+    doc.setTextColor(...accentColor);
+    doc.text(String(companyName), margin, margin + 4);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(baseFontSize);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`${docTitle} - Lanjutan`, margin, margin + 8);
+    doc.text(`No: ${String(order.order_number || '-')}`, infoX, margin + 4, { align: 'right' });
+    doc.text(`Halaman ${pageNumber}`, infoX, margin + 8, { align: 'right' });
+
+    doc.setDrawColor(...accentColor);
+    doc.setLineWidth(0.3);
+    doc.line(margin, continuationLineY, pageWidth - margin, continuationLineY);
+  };
+
   autoTable(doc, {
     startY: tableStartY,
     head: tableHead,
@@ -315,13 +412,25 @@ export function generateNotaPDF(order, options = {}) {
       cellPadding: isA6 ? 0.45 : (isA5 ? 0.6 : 1.8),
       lineWidth: 0,
     },
+    rowPageBreak: 'avoid',
     columnStyles: {
       0: { halign: 'center', cellWidth: isA6 ? 7 : 10 },
       2: { halign: 'center', cellWidth: isA6 ? 14 : 20 },
       3: { halign: 'right' },
       4: { halign: 'right' },
     },
-    margin: { left: margin, right: margin },
+    margin: {
+      top: continuationLineY + (isA6 ? 4 : 5),
+      right: margin,
+      bottom: tableBottomMargin,
+      left: margin,
+    },
+    willDrawPage: (data) => {
+      if (data.pageNumber > 1) {
+        continuationStarted = true;
+        drawContinuationHeader(doc.getNumberOfPages());
+      }
+    },
   });
 
   // v1.8.5.8: hapus outer rounded PERMANENT. jsPDF native gak support true rounded:
@@ -335,7 +444,30 @@ export function generateNotaPDF(order, options = {}) {
 
   // ─── Summary ──────────────────────────────────────────────────────────
   const tableEndY = (doc.lastAutoTable?.finalY || 0);
-  let finalY = tableEndY > 0 ? tableEndY + (compactPaper ? 3.5 : 5) : margin + (isA6 ? 28 : 50);
+  let finalY = tableEndY > 0 ? tableEndY + tableGap : margin + (isA6 ? 28 : 50);
+  const tailFitsOnCurrentPage = compactPaper && !continuationStarted
+    ? finalY + tailContentH + sigGap <= compactSigY
+    : finalY + tailContentH + sigGap + sigNameOffset <= pageHeight - 4 - footerGap;
+
+  if (!tailFitsOnCurrentPage) {
+    doc.addPage();
+    continuationStarted = true;
+    drawContinuationHeader(doc.getNumberOfPages());
+    finalY = continuationLineY + (isA6 ? 4 : 5);
+  }
+
+  // Debug behind localStorage flag — set `localStorage.pdfDebug = '1'` di console untuk lihat values
+  if (typeof window !== 'undefined' && window.localStorage?.getItem('pdfDebug')) {
+    console.log('[generateNotaPDF DEBUG]', {
+      format,
+      pageHeight,
+      margin,
+      finalY,
+      tailContentH,
+      tableBottomMargin,
+      threshold: compactPaper && !continuationStarted ? compactSigY : pageHeight - 4 - footerGap,
+    });
+  }
 
   if (isLoan) {
     // v1.54.0: pinjaman = bukan tagihan → total nilai barang saja (tanpa DPP/PPN),
@@ -354,10 +486,6 @@ export function generateNotaPDF(order, options = {}) {
     finalY += (isA6 ? 2.6 : (isA5 ? 4 : 6));
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(255, 59, 48);
-    const loanNote = doc.splitTextToSize(
-      'Barang berstatus PINJAMAN — belum termasuk penjualan. Mohon dikembalikan atau dikonfirmasi pembelian sebelum batas pengembalian.',
-      pageWidth - margin * 2
-    );
     doc.text(loanNote, margin, finalY);
     finalY += loanNote.length * (isA6 ? 2.6 : (isA5 ? 3.3 : 4.2));
     doc.setTextColor(0);
@@ -423,103 +551,19 @@ export function generateNotaPDF(order, options = {}) {
     doc.setTextColor(0);
   }
 
-  if (order.notes) {
+  if (notesLines.length) {
     doc.setFontSize(baseFontSize - 2);
     doc.setTextColor(120);
-    doc.text(`Catatan: ${String(order.notes || '')}`, margin, finalY);
-    finalY += 5;
+    doc.text(notesLines, margin, finalY);
+    finalY += notesBlockH;
     doc.setTextColor(0);
   }
 
-  // v1.66.4: reserve a deliberate signature footprint so label, line, name,
-  // and footer remain separated on A4/A5/A6.
-  const lineH = isA6 ? 2.1 : (isA5 ? 2.6 : 4);
-  const sigBlockH = isA6 ? 15 : (isA5 ? 19 : 28);
-  const footerGap = isA6 ? 1.5 : (isA5 ? 2.5 : 4);
-  const sigGap = isA6 ? 3 : (isA5 ? 4 : 5);
-  const sigLineOffset = isA6 ? 8 : (isA5 ? 12 : 19);
-  const sigNameOffset = isA6 ? 12 : (isA5 ? 17 : 24);
-  const sigHalfWidth = isA6 ? 30 : 45;
-  const sigCenter = isA6 ? 15 : 22;
-
-  let bankH = 0;
-  if (bankInfo && type !== 'terima' && !isLoan) {
-    bankH = isA6 ? 7 : (isA5 ? 8 : 10);
-    if (qrisText) bankH += isA6 ? 2.5 : (isA5 ? 3.5 : 5);
-  }
-  const tailGroupH = bankH + sigBlockH + footerGap;
-  const tailThreshold = pageHeight - margin;
-
-  const bankLead = isA6 ? 2.5 : (isA5 ? 3.5 : 5);
-  const bankLineAdvance = isA6 ? 2.5 : (isA5 ? 3.3 : 4);
-  const bankAdvance = bankInfo && type !== 'terima' && !isLoan
-    ? bankLead + bankLineAdvance + (qrisText ? bankLineAdvance : 0)
-    : 0;
-  const compactSigY = pageHeight - 4 - footerGap - sigNameOffset;
-  let continuationStarted = false;
-
-  const startContinuationPage = () => {
-    doc.addPage();
-    continuationStarted = true;
-    const pageNumber = doc.getNumberOfPages();
-    const continuationLineY = margin + 11;
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(baseFontSize + 1);
-    doc.setTextColor(...accentColor);
-    doc.text(String(companyName), margin, margin + 4);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(baseFontSize);
-    doc.setTextColor(60, 60, 60);
-    doc.text(`${docTitle} - Lanjutan`, margin, margin + 8);
-    doc.text(`No: ${String(order.order_number || '-')}`, infoX, margin + 4, { align: 'right' });
-    doc.text(`Halaman ${pageNumber}`, infoX, margin + 8, { align: 'right' });
-
-    doc.setDrawColor(...accentColor);
-    doc.setLineWidth(0.3);
-    doc.line(margin, continuationLineY, pageWidth - margin, continuationLineY);
-    finalY = continuationLineY + (isA6 ? 4 : 5);
-  };
-
-  const ensureSpace = (heightNeeded) => {
-    if (finalY + heightNeeded > tailThreshold) {
-      startContinuationPage();
-    }
-  };
-
-  // Debug behind localStorage flag — set `localStorage.pdfDebug = '1'` di console untuk lihat values
-  if (typeof window !== 'undefined' && window.localStorage?.getItem('pdfDebug')) {
-    console.log('[generateNotaPDF DEBUG]', { format, pageHeight, margin, finalY, bankH, sigBlockH, tailGroupH, threshold: tailThreshold });
-  }
-
-  // ─── Ketentuan / Notes (adaptive line-by-line) ────────────────────────
-  // Ketentuan, rekening, dan tanda tangan adalah satu kelompok cetak. Saat
-  // tidak muat di A5/A6, pindahkan kelompok ini bersama-sama ke halaman
-  // lanjutan, bukan membuat halaman kedua yang nyaris kosong hanya untuk TTD.
-  const notesTopGap = isA6 ? 1.2 : (isA5 ? 2 : 3);
-  const noteHeadingAdvance = isA6 ? 2.5 : (isA5 ? 3 : 4);
-  const ketentuanRows = ketentuan && type !== 'terima' && !isLoan
-    ? ketentuan.split('\n').filter((line) => line.trim()).map((line, index) => ({
-      wrapped: doc.splitTextToSize(`${index + 1}. ${line}`, pageWidth - margin * 2),
-    }))
-    : [];
-  const ketentuanBlockH = ketentuanRows.length
-    ? notesTopGap + noteHeadingAdvance + ketentuanRows.reduce((height, row) => height + row.wrapped.length * lineH, 0)
-    : 0;
-
-  if (
-    compactPaper &&
-    ketentuanBlockH > 0 &&
-    finalY + ketentuanBlockH + bankAdvance + sigGap > compactSigY
-  ) {
-    startContinuationPage();
-  }
-
-  // v1.8.5.4: A6 include ketentuan kembali. Kalau overflow → fallback addPage acceptable.
+  // ─── Ketentuan / Notes ────────────────────────────────────────────────
+  // Tail fit was decided before rendering, so NOTE, rekening, and signatures
+  // stay together after the final table page.
   if (ketentuanRows.length) {
     finalY += notesTopGap;
-    ensureSpace(isA6 ? 2.5 : (isA5 ? 3 : 4));
     doc.setFontSize(baseFontSize - 2);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(255, 59, 48);
@@ -527,22 +571,10 @@ export function generateNotaPDF(order, options = {}) {
     finalY += isA6 ? 2.5 : (isA5 ? 3 : 4);
     doc.setFont('helvetica', 'normal');
     ketentuanRows.forEach(({ wrapped }) => {
-      ensureSpace(wrapped.length * lineH);
       doc.text(wrapped, margin, finalY);
       finalY += wrapped.length * lineH;
     });
     doc.setTextColor(0);
-  }
-
-  // Compact paper: anchor the signature block near the footer instead of
-  // reserving a conservative tail that can create an almost-empty page.
-  // A5/A6 still add a page when the content genuinely reaches the signature.
-  if (compactPaper) {
-    if (finalY + bankAdvance + sigGap > compactSigY) {
-      startContinuationPage();
-    }
-  } else if (finalY + tailGroupH > pageHeight - margin) {
-    startContinuationPage();
   }
 
   // ─── Bank Info ────────────────────────────────────────────────────────
