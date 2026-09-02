@@ -2,6 +2,18 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.10-stable] - 2026-09-02
+
+### Diperbaiki
+- **Nota A6 tiga item kembali satu halaman.** Perhitungan tinggi tabel kini memakai ukuran baris hasil wrapping AutoTable, bukan reserve footer global yang sebelumnya memaksa item kedua dan ketiga pindah meski halaman pertama masih kosong.
+- **Pembagian nota panjang lebih seimbang.** Halaman awal diisi baris item secara proporsional; tabel dan tail panjang dapat melintasi banyak halaman, sementara rekening serta tanda tangan tetap di halaman final.
+
+### Developer Experience
+- Root project kini menyediakan satu perintah `bun dev` untuk frontend dan backend. Jika environment lokal menunjuk database remote, koneksi backend dipaksa read-only agar inspeksi dan generate PDF tidak dapat mengubah data produksi. Bun hanya menjadi task runner; runtime aplikasi tetap mengikuti konfigurasi Node.js yang sudah terverifikasi.
+
+### Diverifikasi
+- Frontend `npm test` lulus: 13 test files, 41 tests. Production build Vite lulus. Fixture regression pagination sudah dianonimisasi tanpa data pelanggan nyata.
+
 ## [v1.67.9-stable] - 2026-09-02
 
 ### Diperbaiki

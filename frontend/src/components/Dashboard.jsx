@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.67.9-stable",
+    version: "v1.67.10-stable",
     date: "02 September 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Nota A6 dengan tiga item kini tetap satu halaman. Nota panjang membagi tabel secara seimbang dan menyimpan total, catatan, rekening, serta tanda tangan di halaman terakhir.",
+      },
+    ],
+  },
+  {
+    version: "v1.67.9-stable",
+    date: "02 September 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

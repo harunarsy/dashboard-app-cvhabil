@@ -34,6 +34,13 @@ poolConfig.max = process.env.VERCEL ? 5 : 20;
 poolConfig.idleTimeoutMillis = 30000;
 poolConfig.connectionTimeoutMillis = 5000;
 
+const remoteDevReadOnly = process.env.HABIL_REMOTE_DEV_READ_ONLY === '1' && !!process.env.DATABASE_URL;
+if (remoteDevReadOnly) {
+  poolConfig.verify = (client, done) => {
+    client.query('SET default_transaction_read_only = on', (error) => done(error));
+  };
+}
+
 const pool = new Pool(poolConfig);
 
 // Connection logic logging
@@ -43,6 +50,10 @@ console.log(`[DB] Attempting to connect to ${isRemote ? 'Cloud' : 'Local Host'}.
 pool.on('connect', () => {
   console.log(`[DB] ✅ Connected to ${isRemote ? 'Cloud' : 'Local'} database successfully.`);
 });
+
+if (remoteDevReadOnly) {
+  console.warn('[DB] Remote development connection is READ-ONLY.');
+}
 
 pool.on('error', (err) => {
   console.error('[DB] ❌ Unexpected error on idle client:', err.message);

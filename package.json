@@ -1,0 +1,13 @@
+{
+  "name": "habil-superapp",
+  "private": true,
+  "packageManager": "bun@1.4.0",
+  "scripts": {
+    "dev": "bun run --parallel dev:backend dev:frontend",
+    "dev:backend": "HABIL_REMOTE_DEV_READ_ONLY=1 sh -c 'node scripts/check-local-dev-db.mjs && npm --prefix backend run dev'",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:full": "bun dev",
+    "test": "npm --prefix backend test && npm --prefix frontend test",
+    "build": "npm --prefix frontend run build"
+  }
+}

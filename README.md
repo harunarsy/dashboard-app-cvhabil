@@ -2,7 +2,7 @@
 
 Dashboard bisnis terintegrasi untuk mengelola faktur, nota penjualan, stok, dan keuangan CV Habil Sejahtera Bersama.
 
-- **Versi**: v1.67.9-stable (02 September 2026)
+- **Versi**: v1.67.10-stable (02 September 2026)
 - **Status**: Production-stable
 
 ---
@@ -69,7 +69,7 @@ npm test
 ## Struktur Folder
 
 ```
-dashboard-app/
+dashboard-app/              # folder lokal; nama aplikasi tetap HABIL SUPERAPP
 ├── backend/
 │   ├── routes/           # Endpoint per domain (invoices, sales, inventory, dll)
 │   ├── migrations/       # Registry perubahan schema eksplisit
@@ -94,6 +94,32 @@ dashboard-app/
 ├── CLAUDE.md             # Guidance untuk Claude Code
 └── README.md             # File ini
 ```
+
+---
+
+## Menjalankan Lokal
+
+Install dependency sekali dari masing-masing aplikasi:
+
+```bash
+npm --prefix backend install
+npm --prefix frontend install
+```
+
+Jalankan frontend dan backend dari root project:
+
+```bash
+bun dev
+```
+
+Itu satu-satunya command yang diperlukan. Karena konfigurasi lokal saat ini menunjuk database remote,
+backend otomatis memakai transaksi read-only: login, membaca data, dan generate PDF tetap berjalan,
+sedangkan insert/update/delete ditolak PostgreSQL. Siapkan PostgreSQL lokal atau Neon branch
+development untuk menguji operasi tulis. Perintah terpisah tersedia sebagai `bun run dev:frontend`
+dan `bun run dev:backend`; `bun run dev:full` tetap tersedia sebagai alias.
+
+Bun di root berfungsi sebagai task runner; runtime produksi tetap Node.js sampai branch modernisasi
+Bun diaudit dan digabungkan secara eksplisit.
 
 ---
 
@@ -146,4 +172,4 @@ Tim: Harun (arsitek), Fivin (operasi), Ferry (input data)
 
 ---
 
-_HABIL SUPERAPP v1.67.9-stable. Didukung oleh React 19, Node.js, PostgreSQL, Vercel._
+_HABIL SUPERAPP v1.67.10-stable. Didukung oleh React 19, Node.js, PostgreSQL, Vercel._

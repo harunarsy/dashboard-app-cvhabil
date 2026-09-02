@@ -4,6 +4,15 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 02 Sep 2026 - Local, Belum Dipush
+- Pagination `generateNotaPDF` diubah dari reserve footer global menjadi pengukuran tinggi baris AutoTable dan pembagian tabel adaptif.
+- Kasus nota A6 tiga item dengan jatuh tempo dan NOTE panjang kini satu halaman; fixture pelanggan nyata sudah dianonimisasi.
+- Nota panjang diuji membagi A6 enam item menjadi 3+3 dan A5 delapan item menjadi 4+4, dengan tail tetap pada halaman terakhir.
+- Root `package.json` menyediakan satu perintah `bun dev` untuk full stack. Database remote lokal dipaksa read-only; operasi tulis membutuhkan database dev terpisah.
+- Dua linked worktree lama sudah dilepas; branch Git-nya tetap disimpan. Folder utama belum di-rename agar path lokal aktif tidak rusak saat verifikasi.
+- Verifikasi: frontend 41/41 tests, Vite production build, HTTP frontend/backend 200, pool remote read-only aktif, dan version checker lulus.
+- Commit berikutnya sengaja lokal saja; belum ada push untuk patch ini.
+
 ## ⚠️ Pekerjaan HABIL selalu menyangkut DUA folder
 
 1. **`~/Projects/dashboard-app`** — aplikasinya (repo ini).

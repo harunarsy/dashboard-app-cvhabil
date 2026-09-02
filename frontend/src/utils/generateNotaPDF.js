@@ -86,7 +86,7 @@ export function generateNotaPDF(order, options = {}) {
   const barcodeValue = String(order.order_number || '').trim();
   if (barcodeValue && type !== 'terima') {
     const barcodeW = isA6 ? 26 : (isA5 ? 32 : 38);
-    const barcodeH = isA6 ? 5 : (isA5 ? 6 : 7);
+    const barcodeH = isA6 ? 4 : (isA5 ? 6 : 7);
     try {
       const canvas = document.createElement('canvas');
       JsBarcode(canvas, barcodeValue, {
@@ -110,13 +110,26 @@ export function generateNotaPDF(order, options = {}) {
   const saleDateStr = order.sale_date
     ? new Date(order.sale_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
     : '-';
-  doc.text(saleDateStr, infoX, titleY + 9 + infoShift, { align: 'right' });
   // v1.8.1: tampilkan Jatuh Tempo di header kalau ada AND non-cash
   // v1.54.0: nota pinjaman → label "Batas Pengembalian" (selalu tampil kalau ada due_date)
   const hasDueDate = Boolean(
     order.due_date && (isLoan || (order.payment_method !== 'Tunai' && type !== 'terima'))
   );
-  if (hasDueDate) {
+  const compactDueDate = isA6 && hasDueDate && !isLoan;
+  const infoDateY = titleY + 9 + infoShift;
+  if (compactDueDate) {
+    const saleDateWidth = doc.getTextWidth(saleDateStr);
+    const dueStr = new Date(order.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    doc.text(saleDateStr, infoX, infoDateY, { align: 'right' });
+    doc.setTextColor(255, 59, 48);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`JT: ${dueStr}`, infoX - saleDateWidth - 2, infoDateY, { align: 'right' });
+    doc.setTextColor(60, 60, 60);
+    doc.setFont('helvetica', 'normal');
+  } else {
+    doc.text(saleDateStr, infoX, infoDateY, { align: 'right' });
+  }
+  if (hasDueDate && !compactDueDate) {
     const dueStr = new Date(order.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
     doc.setTextColor(255, 59, 48);
     doc.setFont('helvetica', 'bold');
@@ -128,7 +141,7 @@ export function generateNotaPDF(order, options = {}) {
   // Blue Line Divider — follow the last right-side metadata line. This keeps
   // the barcode clear while recovering the unused vertical space it used to
   // add to every section below the header.
-  const lastInfoY = titleY + (hasDueDate ? 13 : 9) + infoShift;
+  const lastInfoY = titleY + (hasDueDate && !compactDueDate ? 13 : 9) + infoShift;
   const dividerBaseY = margin + (isA6 ? 18 : 24);
   const dividerClearance = isA6 ? 1.5 : (isA5 ? 3 : 4);
   const dividerY = Math.max(dividerBaseY, lastInfoY + dividerClearance);
@@ -137,7 +150,7 @@ export function generateNotaPDF(order, options = {}) {
   doc.line(margin, dividerY, pageWidth - margin, dividerY);
 
   // ─── Customer & Payment ───────────────────────────────────────────────
-  const customerGap = isA6 ? 5 : 6;
+  const customerGap = isA6 ? 3 : 6;
   const customerY = dividerY + customerGap;
   doc.setFontSize(baseFontSize);
   doc.setTextColor(0);
@@ -293,9 +306,9 @@ export function generateNotaPDF(order, options = {}) {
     addressY + (isA6 ? 3 : 4)
   );
 
-  // Reserve the complete post-table tail before AutoTable lays out rows. This
-  // keeps its page breaks authoritative while leaving room for the tail on
-  // the final table page.
+  // Measure the post-table tail before AutoTable lays out rows. The tail is
+  // reserved only on the final table page; reserving it globally wastes the
+  // lower half of earlier pages on compact paper.
   const lineH = isA6 ? 2.1 : (isA5 ? 2.6 : 4);
   const footerGap = isA6 ? 1.5 : (isA5 ? 2.5 : 4);
   const sigGap = isA6 ? 3 : (isA5 ? 4 : 5);
@@ -303,7 +316,7 @@ export function generateNotaPDF(order, options = {}) {
   const sigNameOffset = isA6 ? 12 : (isA5 ? 17 : 24);
   const sigHalfWidth = isA6 ? 30 : 45;
   const sigCenter = isA6 ? 15 : 22;
-  const tableGap = compactPaper ? 3.5 : 5;
+  const tableGap = isA6 ? 2.5 : (isA5 ? 3.5 : 5);
   const notesTopGap = isA6 ? 1.2 : (isA5 ? 2 : 3);
   const noteHeadingAdvance = isA6 ? 2.5 : (isA5 ? 3 : 4);
   const bankLead = isA6 ? 2.5 : (isA5 ? 3.5 : 5);
@@ -364,13 +377,19 @@ export function generateNotaPDF(order, options = {}) {
     return advance;
   })();
   const tailContentH = summaryAdvance + notesBlockH + ketentuanBlockH + bankAdvance;
-  const signatureReserve = compactPaper
-    ? Math.max(sigGap + (pageHeight - compactSigY), sigGap + sigNameOffset + 4 + footerGap)
-    : sigGap + sigNameOffset + 4 + footerGap;
-  const tableBottomMargin = tableGap + tailContentH + signatureReserve;
+  const tailContentBottomY = pageHeight - 4 - footerGap;
+  const tailLimitY = tailContentBottomY - sigNameOffset;
 
   let continuationStarted = false;
   const continuationLineY = margin + 11;
+  const continuationTableStartY = continuationLineY + (isA6 ? 4 : 5);
+  const tailFitsSinglePage = continuationTableStartY + tailContentH + sigGap <= tailLimitY;
+  const tailTableEndY = tailFitsSinglePage
+    ? tailLimitY - tailContentH - sigGap - tableGap
+    : pageHeight - margin;
+  const tailTableBottomMargin = tailFitsSinglePage
+    ? Math.max(margin, pageHeight - tailTableEndY)
+    : margin;
   const drawContinuationHeader = (pageNumber) => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(baseFontSize + 1);
@@ -389,10 +408,8 @@ export function generateNotaPDF(order, options = {}) {
     doc.line(margin, continuationLineY, pageWidth - margin, continuationLineY);
   };
 
-  autoTable(doc, {
-    startY: tableStartY,
+  const tableStyles = {
     head: tableHead,
-    body: tableData,
     theme: 'striped',
     headStyles: {
       fillColor: accentColor,
@@ -419,41 +436,93 @@ export function generateNotaPDF(order, options = {}) {
       3: { halign: 'right' },
       4: { halign: 'right' },
     },
-    margin: {
-      top: continuationLineY + (isA6 ? 4 : 5),
-      right: margin,
-      bottom: tableBottomMargin,
-      left: margin,
-    },
-    willDrawPage: (data) => {
-      if (data.pageNumber > 1) {
-        continuationStarted = true;
-        drawContinuationHeader(doc.getNumberOfPages());
-      }
-    },
-  });
+  };
 
-  // v1.8.5.8: hapus outer rounded PERMANENT. jsPDF native gak support true rounded:
-  // - clip API: roundedRect tanpa style default 'S' = stroke vertical-line bug
-  // - triangle mask: putih notch visible jelek
-  // - thick outer stroke: nyebar ke garis TTD inherit + tebel berlebihan
-  // HTML preview pakai CSS overflow:hidden — gak ada equivalent di jsPDF.
-  // Match preview style sebisanya: theme striped + blue header bg + body white/gray stripe.
+  // Use a scratch document to get AutoTable's real wrapped row heights. This
+  // lets us retain a one-page nota when it truly fits and balance longer
+  // orders across the initial and final table pages.
+  const measurementDoc = new jsPDF(orientation, 'mm', format.toLowerCase());
+  autoTable(measurementDoc, {
+    ...tableStyles,
+    startY: 0,
+    body: tableData,
+    margin: { top: 0, right: margin, bottom: 0, left: margin },
+  });
+  const measuredTable = measurementDoc.lastAutoTable;
+  const tableHeadHeight = measuredTable.head.reduce((height, row) => height + row.height, 0);
+  const bodyHeights = measuredTable.body.map((row) => row.height);
+  const completeTableEndY = tableStartY + tableHeadHeight + bodyHeights.reduce((sum, height) => sum + height, 0);
+  const tableFitsWithTail = completeTableEndY <= tailTableEndY;
+
+  let maxFinalRows = 0;
+  let finalRowsHeight = 0;
+  const finalRowsCapacity = tailTableEndY - continuationTableStartY - tableHeadHeight;
+  for (let index = bodyHeights.length - 1; index >= 0; index -= 1) {
+    if (finalRowsHeight + bodyHeights[index] > finalRowsCapacity) break;
+    finalRowsHeight += bodyHeights[index];
+    maxFinalRows += 1;
+  }
+  const balancedFinalRows = Math.min(
+    Math.max(maxFinalRows, 1),
+    Math.ceil(tableData.length / 2),
+  );
+  const initialTableRows = tableData.length - balancedFinalRows;
+  const splitTableForTail = tailFitsSinglePage && !tableFitsWithTail && initialTableRows > 0;
+
+  const renderTable = (body, startY, bottomMargin) => {
+    autoTable(doc, {
+      ...tableStyles,
+      startY,
+      body,
+      margin: {
+        top: continuationTableStartY,
+        right: margin,
+        bottom: bottomMargin,
+        left: margin,
+      },
+      willDrawPage: () => {
+        if (doc.getNumberOfPages() > 1) {
+          continuationStarted = true;
+          drawContinuationHeader(doc.getNumberOfPages());
+        }
+      },
+    });
+  };
+
+  if (splitTableForTail) {
+    renderTable(tableData.slice(0, initialTableRows), tableStartY, margin);
+    doc.addPage();
+    renderTable(tableData.slice(initialTableRows), continuationTableStartY, tailTableBottomMargin);
+  } else {
+    renderTable(tableData, tableStartY, tailTableBottomMargin);
+  }
+
   // Reset lineWidth standar buat sig line + dividers.
   doc.setLineWidth(0.2);
 
   // ─── Summary ──────────────────────────────────────────────────────────
   const tableEndY = (doc.lastAutoTable?.finalY || 0);
   let finalY = tableEndY > 0 ? tableEndY + tableGap : margin + (isA6 ? 28 : 50);
+  const addTailContinuationPage = () => {
+    doc.addPage();
+    continuationStarted = true;
+    drawContinuationHeader(doc.getNumberOfPages());
+    finalY = continuationTableStartY;
+  };
+  const ensureTailSpace = (height) => {
+    if (finalY + height <= tailContentBottomY) return false;
+    addTailContinuationPage();
+    return true;
+  };
   const tailFitsOnCurrentPage = compactPaper && !continuationStarted
     ? finalY + tailContentH + sigGap <= compactSigY
     : finalY + tailContentH + sigGap + sigNameOffset <= pageHeight - 4 - footerGap;
 
   if (!tailFitsOnCurrentPage) {
-    doc.addPage();
-    continuationStarted = true;
-    drawContinuationHeader(doc.getNumberOfPages());
-    finalY = continuationLineY + (isA6 ? 4 : 5);
+    addTailContinuationPage();
+  }
+  if (!tailFitsSinglePage && summaryAdvance) {
+    ensureTailSpace(summaryAdvance);
   }
 
   // Debug behind localStorage flag — set `localStorage.pdfDebug = '1'` di console untuk lihat values
@@ -464,8 +533,9 @@ export function generateNotaPDF(order, options = {}) {
       margin,
       finalY,
       tailContentH,
-      tableBottomMargin,
-      threshold: compactPaper && !continuationStarted ? compactSigY : pageHeight - 4 - footerGap,
+      tailTableBottomMargin,
+      tableFitsWithTail,
+      splitTableForTail,
     });
   }
 
@@ -552,17 +622,30 @@ export function generateNotaPDF(order, options = {}) {
   }
 
   if (notesLines.length) {
-    doc.setFontSize(baseFontSize - 2);
-    doc.setTextColor(120);
-    doc.text(notesLines, margin, finalY);
-    finalY += notesBlockH;
+    const setNotesStyle = () => {
+      doc.setFontSize(baseFontSize - 2);
+      doc.setTextColor(120);
+    };
+    setNotesStyle();
+    if (tailFitsSinglePage) {
+      doc.text(notesLines, margin, finalY);
+      finalY += notesBlockH;
+    } else {
+      notesLines.forEach((line) => {
+        if (ensureTailSpace(lineH)) setNotesStyle();
+        doc.text(line, margin, finalY);
+        finalY += lineH;
+      });
+      finalY += Math.max(0, notesBlockH - notesLines.length * lineH);
+    }
     doc.setTextColor(0);
   }
 
   // ─── Ketentuan / Notes ────────────────────────────────────────────────
-  // Tail fit was decided before rendering, so NOTE, rekening, and signatures
-  // stay together after the final table page.
   if (ketentuanRows.length) {
+    if (!tailFitsSinglePage) {
+      ensureTailSpace(notesTopGap + noteHeadingAdvance + lineH);
+    }
     finalY += notesTopGap;
     doc.setFontSize(baseFontSize - 2);
     doc.setFont('helvetica', 'bold');
@@ -571,13 +654,26 @@ export function generateNotaPDF(order, options = {}) {
     finalY += isA6 ? 2.5 : (isA5 ? 3 : 4);
     doc.setFont('helvetica', 'normal');
     ketentuanRows.forEach(({ wrapped }) => {
-      doc.text(wrapped, margin, finalY);
-      finalY += wrapped.length * lineH;
+      if (tailFitsSinglePage) {
+        doc.text(wrapped, margin, finalY);
+        finalY += wrapped.length * lineH;
+        return;
+      }
+      wrapped.forEach((line) => {
+        if (ensureTailSpace(lineH)) {
+          doc.setFontSize(baseFontSize - 2);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(255, 59, 48);
+        }
+        doc.text(line, margin, finalY);
+        finalY += lineH;
+      });
     });
     doc.setTextColor(0);
   }
 
   // ─── Bank Info ────────────────────────────────────────────────────────
+  ensureTailSpace(bankAdvance + sigGap + sigNameOffset);
   if (bankInfo && type !== 'terima' && !isLoan) {
     finalY += bankLead;
     doc.setFontSize(baseFontSize - 1);
