@@ -25,6 +25,7 @@ dist/
 cloud_migration_backup.sql
 backend/backups/
 CREDENTIALS*.md
+*.env.*.bak*
 *_fulldiff.tmp.js
 aistudio.zip
 
