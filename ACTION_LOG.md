@@ -4,7 +4,7 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
-## Update 02 Sep 2026 - Local, Belum Dipush
+## Update 02 Sep 2026 - v1.67.10 Deployed
 - Pagination `generateNotaPDF` diubah dari reserve footer global menjadi pengukuran tinggi baris AutoTable dan pembagian tabel adaptif.
 - Kasus nota A6 tiga item dengan jatuh tempo dan NOTE panjang kini satu halaman; fixture pelanggan nyata sudah dianonimisasi.
 - Nota panjang diuji membagi A6 enam item menjadi 3+3 dan A5 delapan item menjadi 4+4, dengan tail tetap pada halaman terakhir.
@@ -34,8 +34,8 @@ dan ambil HPP fresh dari DB — jangan pakai angka hardcode di `engine_laba.py`.
 
 ---
 
-**Terakhir diperbarui:** 27 Jul 2026 (malam)
-**Status:** ✅ **v1.65.1-stable SUDAH DI-PUSH ke `main`** (29 Jul) — barcode nota, tombol WA di daftar, filter PPN, fix chunk gagal muat. Sebelumnya v1.65.0 (nota dengan/tanpa PPN) & v1.64.1-stable — Vercel deploy otomatis. Tag `v1.64.1` sudah ada di GitHub.
+**Terakhir diperbarui:** 02 Sep 2026
+**Status:** ✅ **v1.67.10-stable SUDAH DI-PUSH dan dideploy** — backend Vercel `sin1`, health database, keep-warm, browser benchmark, dan GitHub Release sudah diverifikasi.
 
 ### 📦 GitHub Releases dirapikan total (28 Jul 2026)
 Sebelumnya berhenti di `v1.0.1` (Mar 2026) padahal kode sudah v1.64.1 — melompat 4 bulan.
