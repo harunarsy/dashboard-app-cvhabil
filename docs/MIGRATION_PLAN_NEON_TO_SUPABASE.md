@@ -48,6 +48,30 @@ server-side sekitar 0,05-0,34 ms; mayoritas latency berasal dari round-trip jari
 pooler. Supabase unggul tipis sekitar 7-15% pada warm read, belum cukup menjadi bukti bahwa
 cutover wajib dilakukan. P95 juga perlu diukur dari Vercel region aktual sebelum keputusan final.
 
+#### Pengukuran Browser Production - 02 September 2026
+
+Pengukuran dilakukan dengan Microsoft Edge headless pada frontend production, lima run,
+viewport 1440x900. Semua 50 request dashboard mendapat HTTP 200. Untuk menjaga data tetap
+aman, probe login memakai username acak dan password invalid sehingga mengukur round-trip
+endpoint login tanpa mengubah data; ini bukan pengukuran bcrypt login sukses.
+
+| Metrik | p50 | Rentang 5 run |
+|---|---:|---:|
+| Load halaman login sampai DOMContentLoaded | 371 ms | 239-1.107 ms |
+| Login API probe (HTTP 401) | 658 ms | 296-867 ms |
+| Navigasi `/dashboard` sampai DOMContentLoaded | 101 ms | 95-617 ms |
+| Dashboard data-ready (response API terakhir) | 729 ms | 651-1.452 ms |
+| API dashboard terlama dalam satu run | 338 ms | 233-523 ms |
+| First Contentful Paint dashboard | 484 ms | 448-1.076 ms |
+
+Sebelum patch, deployment backend belum dikunci region sehingga routing Vercel tercatat
+`sin1 -> iad1`; endpoint health saat itu belum tersedia. Sesudah patch, routing tercatat
+`sin1 -> sin1` dan `/api/health/db` konsisten HTTP 200. Pengukuran browser before yang
+sepenuhnya identik tidak dapat diulang karena deployment lama tidak memiliki alias publik
+yang bisa dipanggil langsung. Karena `/api/dashboard/stats` sudah memakai `Promise.all`
+dan tidak ada endpoint yang konsisten menjadi outlier, belum ada rewrite SQL tambahan;
+cold-start dan network round-trip tetap menjadi target utama.
+
 ### Fase 2: Setup Target Supabase
 - Buat project Supabase di region **Singapore (`ap-southeast-1`)**.
 - Gunakan minimal tier Pro untuk performa setara/lebih tinggi (compute tidak auto-pause).

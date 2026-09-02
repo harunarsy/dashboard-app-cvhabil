@@ -15,6 +15,9 @@
 - Neon production dikonfirmasi Free plan, region Singapore, scale-to-zero setelah 5 menit; tidak ada perubahan setting provider.
 - Endpoint `/api/health/db` dan cron keep-warm `*/5` sudah dibuat lokal. Smoke test backend 18/18 lulus dan local HTTP DB health 200.
 - Deployment Vercel backend dan frontend sukses. Backend `sin1` merespons `/api/health/db` HTTP 200; manual keep-warm run `33623774761` juga sukses, dengan dashboard HTTP 200.
+- GitHub Release `v1.67.10-stable` dibuat pada tag final; in-app RELEASES juga sudah menampilkan PDF fix, backend `sin1`, dan keep-warm.
+- Browser production benchmark 5 run: login API probe p50 658 ms (HTTP 401, username acak), dashboard data-ready p50 729 ms, API terlama p50 338 ms, FCP p50 484 ms; seluruh 50 request dashboard HTTP 200.
+- Analisis query: `/api/dashboard/stats` sudah paralel via `Promise.all`; belum ada rewrite SQL karena variasi utama berasal dari cold-start/network, bukan satu query konsisten yang dominan.
 
 ## ⚠️ Pekerjaan HABIL selalu menyangkut DUA folder
 
