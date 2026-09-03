@@ -20,6 +20,7 @@
 - Analisis query: `/api/dashboard/stats` sudah paralel via `Promise.all`; belum ada rewrite SQL karena variasi utama berasal dari cold-start/network, bukan satu query konsisten yang dominan.
 - Reminder keamanan pasca benchmark: rotate credential Supabase/Neon dan GitHub PAT yang pernah tersimpan/terpapar di file lokal atau sesi; jangan memasukkan nilainya ke repo atau laporan.
 - Update dependensi non-breaking & resolusi vulnerabilitas `qs` via commit `67b068c` sukses dideploy ke Vercel frontend & backend (CI lulus).
+- Auto-release popup "Apa yang Baru?" dinonaktifkan di `Dashboard.jsx`; changelog manual tetap tersedia di tombol versi. Tetap di v1.67.10-stable.
 
 ## ⚠️ Pekerjaan HABIL selalu menyangkut DUA folder
 

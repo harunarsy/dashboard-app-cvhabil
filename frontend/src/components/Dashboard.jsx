@@ -4658,11 +4658,7 @@ export default function Dashboard({
   const { data: weekly } = useWeeklySummary();
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   const onboarding = useOnboarding(true);
-  // Show release modal once per session (per new login), reset on new version
-  const [showReleaseModal, setShowReleaseModal] = useState(false);
-  const releaseVersion = RELEASES[0]?.version || "v1.28.4-stable";
-  const releaseStorageKey = `habil_release_seen_${releaseVersion.replace(/\./g, "_")}`;
-  useBodyScrollLock(showModal || showReleaseModal);
+  useBodyScrollLock(showModal);
 
   // v1.8.7: dark mode lebih layered + translucent (Vanta-friendly + text readable via backdrop blur)
   const bg = "var(--color-bg)";
@@ -4903,40 +4899,6 @@ export default function Dashboard({
 
   // v1.46.0: weekly summary + dashboard stats kini via TanStack Query (hook di atas) —
   // di-cache & refresh diam-diam; tak perlu useEffect fetch manual lagi.
-
-  useEffect(() => {
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      if (cancelled) return;
-      try {
-        setShowReleaseModal(!sessionStorage.getItem(releaseStorageKey));
-      } catch {
-        setShowReleaseModal(false);
-      }
-    }, UI_MOTION.duration.page);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [releaseStorageKey]);
-
-  const closeReleaseModal = useCallback(() => {
-    setShowReleaseModal(false);
-    try {
-      sessionStorage.setItem(releaseStorageKey, "true");
-    } catch {}
-  }, [releaseStorageKey]);
-
-  // Escape key closes release modal
-  useEffect(() => {
-    if (!showReleaseModal) return;
-    const handler = (e) => {
-      if (e.key === "Escape") closeReleaseModal();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [showReleaseModal, closeReleaseModal]);
 
   const formatRupiah = (number) => {
     const n = parseFloat(number) || 0;
@@ -6248,171 +6210,8 @@ export default function Dashboard({
       </div>
 
 
-      {/* Auto-Release Popup v1.2.1 */}
-      {showReleaseModal &&
-        createPortal(
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 transition-opacity">
-            <div
-              className="ui-surface-panel ui-motion-modal ui-modal-shell w-full max-w-[min(1040px,calc(100vw-32px))] max-h-[calc(100dvh-32px)] overflow-hidden rounded-3xl shadow-2xl flex flex-col transform transition-all scale-100"
-              style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
-            >
-              {/* Spotlight Header */}
-              <div
-                className="relative p-8 text-center"
-                style={{
-                  background:
-                    "linear-gradient(135deg, var(--color-action) 0%, var(--color-action-hover) 100%)",
-                }}
-              >
-                <button
-                  onClick={closeReleaseModal}
-                  aria-label="Tutup popup rilis"
-                  className="ui-motion-button ui-focus-ring absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
-                >
-                  <X size={20} />
-                </button>
-                <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4 shadow-inner backdrop-blur-sm">
-                  <span className="text-3xl">🚀</span>
-                </div>
-                <h2 className="text-2xl font-extrabold text-white tracking-tight">
-                  APA YANG BARU?
-                </h2>
-                <p className="text-white/80 font-medium mt-1">
-                  Habil SuperApp {RELEASES[0]?.version} telah mengudara!
-                </p>
-              </div>
-
-              {/* Content Highlights — auto-sourced dari RELEASES[0].changes */}
-              <div className="p-6 pb-2" style={{ backgroundColor: bg }}>
-                <div className="flex flex-col gap-3 max-h-[55vh] overflow-y-auto pr-1">
-                  {(RELEASES[0]?.changes || []).slice(0, 6).map((c, idx) => {
-                    const typeMeta = {
-                      feat: {
-                        Icon: Sparkles,
-                        bg: "bg-blue-50 dark:bg-blue-900/30",
-                        fg: "text-blue-600 dark:text-blue-400",
-                        label: "BARU",
-                      },
-                      new: {
-                        Icon: Sparkles,
-                        bg: "bg-blue-50 dark:bg-blue-900/30",
-                        fg: "text-blue-600 dark:text-blue-400",
-                        label: "BARU",
-                      },
-                      fix: {
-                        Icon: Wrench,
-                        bg: "bg-green-50 dark:bg-green-900/30",
-                        fg: "text-green-600 dark:text-green-400",
-                        label: "FIX",
-                      },
-                      ui: {
-                        Icon: Palette,
-                        bg: "bg-purple-50 dark:bg-purple-900/30",
-                        fg: "text-purple-600 dark:text-purple-400",
-                        label: "UI",
-                      },
-                      perf: {
-                        Icon: Zap,
-                        bg: "bg-orange-50 dark:bg-orange-900/30",
-                        fg: "text-orange-600 dark:text-orange-400",
-                        label: "CEPAT",
-                      },
-                    }[c.type] || {
-                      Icon: Activity,
-                      bg: "bg-gray-50 dark:bg-gray-800",
-                      fg: "text-gray-500",
-                      label: c.type?.toUpperCase(),
-                    };
-                    const TypeIcon = typeMeta.Icon;
-                    const [headLine, ...rest] = (c.text || "").split(":");
-                    const heading = rest.length
-                      ? headLine
-                      : headLine.length > 60
-                        ? headLine.slice(0, 60) + "…"
-                        : headLine;
-                    const body = rest.length ? rest.join(":").trim() : "";
-                    return (
-                      <div
-                        key={idx}
-                        className="ui-hover-delight flex gap-3 items-start p-3.5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700"
-                      >
-                        <div
-                          className={`p-2 rounded-xl ${typeMeta.bg} ${typeMeta.fg} flex-shrink-0`}
-                        >
-                          <TypeIcon size={18} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h3
-                              className="font-bold leading-tight text-sm"
-                              style={{
-                                color: isDarkMode
-                                  ? "#FFFFFF"
-                                  : "var(--color-text)",
-                              }}
-                            >
-                              {heading}
-                            </h3>
-                            <span
-                              className={`text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded ${typeMeta.bg} ${typeMeta.fg}`}
-                            >
-                              {typeMeta.label}
-                            </span>
-                          </div>
-                          {body && (
-                            <p
-                              className="text-xs font-medium leading-relaxed"
-                              style={{
-                                color: isDarkMode
-                                  ? "var(--color-text-subtle)"
-                                  : "var(--color-text-muted)",
-                              }}
-                            >
-                              {body}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {(RELEASES[0]?.changes?.length || 0) > 6 && (
-                    <p className="text-xs text-center text-gray-500 dark:text-gray-400 italic py-1">
-                      + {RELEASES[0].changes.length - 6} perubahan lainnya di
-                      Changelog
-                    </p>
-                  )}
-                  {(RELEASES[0]?.changes?.length || 0) === 0 && (
-                    <p className="text-sm text-center text-gray-500 dark:text-gray-400 py-4">
-                      Tidak ada catatan perubahan untuk versi ini.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* CTA Button */}
-              <div
-                className="p-6 pt-4 flex justify-center"
-                style={{ backgroundColor: bg }}
-              >
-                <button
-                  onClick={closeReleaseModal}
-                  className="btn-primary ui-motion-button ui-focus-ring w-full py-3.5 rounded-xl text-white font-bold text-base shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all outline-none focus:ring-4 focus:ring-blue-500/50"
-                  data-magnetic="true"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, var(--color-action) 0%, var(--color-action-hover) 100%)",
-                  }}
-                >
-                  Siap, Gas!
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
-
       <OnboardingTour
-        active={onboarding.active && !showReleaseModal}
+        active={onboarding.active}
         currentStep={onboarding.currentStep}
         stepIndex={onboarding.stepIndex}
         steps={onboarding.steps}
