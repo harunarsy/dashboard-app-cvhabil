@@ -126,6 +126,16 @@ export function useWeeklySummary(options = {}) {
   });
 }
 
+export function useDashboardBootstrap(month, options = {}) {
+  return useQuery({
+    queryKey: ["dashboard", "bootstrap", month || "current"],
+    queryFn: async () => (await dashboardAPI.getBootstrap(month)).data,
+    staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
+    ...options,
+  });
+}
+
 // dashboardAPI mungkin belum ada → guard supaya tidak crash kalau API absen.
 // v1.58.0: statistik dashboard bisa difilter per bulan (YYYY-MM). queryKey memuat
 // month → tiap bulan cache sendiri (tidak silang). keepPreviousData → angka bulan

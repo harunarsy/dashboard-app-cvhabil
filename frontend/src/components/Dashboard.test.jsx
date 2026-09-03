@@ -18,6 +18,7 @@ vi.mock("../services/api", () => ({
     getHistory: vi.fn(() => Promise.resolve({ data: [] })),
   },
   dashboardAPI: {
+    getBootstrap: vi.fn(),
     getStats: vi.fn(),
     getHeatmap: vi.fn(),
     getDailyNotas: vi.fn(),
@@ -116,6 +117,7 @@ describe("Dashboard Component - Loading State", () => {
     const apiPromise = new Promise((resolve) => {
       resolveApi = resolve;
     });
+    dashboardAPI.getBootstrap.mockReturnValue(apiPromise);
     dashboardAPI.getStats.mockReturnValue(apiPromise);
 
     vi.useFakeTimers();
@@ -133,7 +135,7 @@ describe("Dashboard Component - Loading State", () => {
 
     // Resolve the API
     await act(async () => {
-      resolveApi({ data: mockStats });
+      resolveApi({ data: { stats: mockStats, heatmap: [] } });
     });
 
     // Wait for the labels to be present (getAllByText: "Total Penjualan" juga

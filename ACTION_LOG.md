@@ -22,6 +22,7 @@
 - Update dependensi non-breaking & resolusi vulnerabilitas `qs` via commit `67b068c` sukses dideploy ke Vercel frontend & backend (CI lulus).
 - Auto-release popup "Apa yang Baru?" dinonaktifkan di `Dashboard.jsx`; changelog manual tetap tersedia di tombol versi. Tetap di v1.67.10-stable.
 - Optimasi main-thread & UX animasi: listener global pointermove dicabut, RouteFade instan 140ms murni opacity, skeleton KPI layout shift fixed, active feedback tombol distandarisasi scale(0.97).
+- Optimasi aset & jaringan: font subsetting Latin-only (hemat 43 kB CSS gzipped & 50+ file font), endpoint komposit `/api/dashboard/bootstrap` memangkas 2 request awal jadi 1 round-trip.
 
 ## ⚠️ Pekerjaan HABIL selalu menyangkut DUA folder
 

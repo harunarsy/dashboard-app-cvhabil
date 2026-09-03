@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Icons from "./common/Icon";
 import api, { insightsAPI, loansAPI, purchaseOrdersAPI } from "../services/api";
 import { normalizeIndonesianPhone } from "../utils/waMessage";
-import { useDashboardStats, useWeeklySummary } from "../hooks/useMasterData";
+import { useDashboardBootstrap, useWeeklySummary } from "../hooks/useMasterData";
 import TasksKanban from "./TasksKanban";
 import Skeleton from "./common/Skeleton";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
@@ -4654,7 +4654,9 @@ export default function Dashboard({
   });
   // v1.46.0: stats & weekly via TanStack Query — instan saat balik ke Dashboard.
   // v1.58.0: stats ikut bulan terpilih (heatmapMonth).
-  const { data: statsRaw, isLoading: loading } = useDashboardStats(heatmapMonth);
+  // v1.67.10: bootstrap tunggal memuat stats & heatmap sekaligus via 1 network round-trip.
+  const { data: bootstrapData, isLoading: loading } = useDashboardBootstrap(heatmapMonth);
+  const statsRaw = bootstrapData?.stats;
   const { data: weekly } = useWeeklySummary();
   const [expandedChanges, setExpandedChanges] = useState(new Set());
   const onboarding = useOnboarding(true);
@@ -4846,17 +4848,13 @@ export default function Dashboard({
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    setHeatmapLoading(true);
-    api
-      .get(`/dashboard/heatmap?month=${heatmapMonth}`)
-      .then(({ data }) => {
-        if (!cancelled) setHeatmapData(Array.isArray(data) ? data : []);
-      })
-      .catch((e) => console.error("Failed to fetch heatmap", e))
-      .finally(() => { if (!cancelled) setHeatmapLoading(false); });
-    return () => { cancelled = true; };
-  }, [heatmapMonth]);
+    if (bootstrapData?.heatmap) {
+      setHeatmapData(bootstrapData.heatmap);
+      setHeatmapLoading(false);
+    } else if (loading) {
+      setHeatmapLoading(true);
+    }
+  }, [bootstrapData?.heatmap, loading]);
 
   const handleDayClick = useCallback((day) => {
     if (selectedDay === day) { setSelectedDay(null); setDayNotas([]); return; }

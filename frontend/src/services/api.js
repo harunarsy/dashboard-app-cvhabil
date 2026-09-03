@@ -405,6 +405,7 @@ export const financeAPI = {
 
 // v1.45.0: dashboard endpoints (sebelumnya dipanggil via api.get langsung di Dashboard.jsx)
 export const dashboardAPI = {
+  getBootstrap: (month) => api.get('/dashboard/bootstrap', month ? { params: { month } } : undefined),
   getStats: (month) => api.get('/dashboard/stats', month ? { params: { month } } : undefined),
   getHeatmap: (month) => api.get(`/dashboard/heatmap`, { params: { month } }),
   getDailyNotas: (date) => api.get(`/dashboard/daily-notas`, { params: { date } }),
