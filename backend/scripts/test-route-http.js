@@ -132,6 +132,7 @@ async function run() {
     { method: 'get', url: '/api/inventory/products', label: 'GET /api/inventory/products' },
     { method: 'get', url: '/api/distributors', label: 'GET /api/distributors' },
     { method: 'get', url: '/api/customers', label: 'GET /api/customers' },
+    { method: 'get', url: '/api/dashboard/bootstrap', label: 'GET /api/dashboard/bootstrap' },
     { method: 'get', url: '/api/insights/customer/1', label: 'GET /api/insights/customer/:id' },
     { method: 'post', url: '/api/ai/recommendations', label: 'POST /api/ai/recommendations' },
   ]) {
