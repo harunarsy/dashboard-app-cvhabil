@@ -8,6 +8,7 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 - **Nota A6 tiga item kembali satu halaman.** Perhitungan tinggi tabel kini memakai ukuran baris hasil wrapping AutoTable, bukan reserve footer global yang sebelumnya memaksa item kedua dan ketiga pindah meski halaman pertama masih kosong.
 - **Pembagian nota panjang lebih seimbang.** Halaman awal diisi baris item secara proporsional; tabel dan tail panjang dapat melintasi banyak halaman, sementara rekening serta tanda tangan tetap di halaman final.
 - **Auto-release popup dinonaktifkan.** Popup "Apa yang Baru?" yang otomatis muncul pasca-login dicabut agar alur kerja pengguna tidak terinterupsi; log rilis tetap dapat diakses manual via tombol versi di header.
+- **Micro-stutter kursor & scroll dieliminasi.** Global `pointermove` capture listener di `App.jsx` dicabut dan digantikan oleh CSS `:active` GPU-accelerated murni; transisi halaman dibuat instan (murni opacity 140ms), dan dimensi skeleton KPI dikunci untuk mencegah Cumulative Layout Shift (CLS).
 
 ### Developer Experience
 - Root project kini menyediakan satu perintah `bun dev` untuk frontend dan backend. Jika environment lokal menunjuk database remote, koneksi backend dipaksa read-only agar inspeksi dan generate PDF tidak dapat mengubah data produksi. Bun hanya menjadi task runner; runtime aplikasi tetap mengikuti konfigurasi Node.js yang sudah terverifikasi.

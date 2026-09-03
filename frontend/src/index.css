@@ -227,35 +227,22 @@ samp {
   background-color: var(--color-action);
   color: white;
   box-shadow: var(--shadow-flat);
-  will-change: auto;
-}
-
-.btn-primary[data-magnetic="true"] {
-  --magnetic-x: 0px;
-  --magnetic-y: 0px;
-  --magnetic-scale: 1;
-  transform: translate3d(var(--magnetic-x), var(--magnetic-y), 0)
-    scale(var(--magnetic-scale));
-  will-change: transform;
   transition:
-    background-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 180ms cubic-bezier(0.16, 1, 0.3, 1),
-    color 180ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
+    background-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 100ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-primary:hover {
   background-color: var(--color-action-hover);
-}
-
-.btn-primary[data-magnetic="true"]:hover {
   box-shadow: var(--shadow-card);
 }
 
+.btn-primary:active,
 .btn-primary[data-magnetic="true"]:active {
-  transform: translate3d(var(--magnetic-x), var(--magnetic-y), 0)
-    scale(calc(var(--magnetic-scale) * 0.98));
+  transform: scale(0.97);
 }
 
 .btn-primary:disabled {
@@ -1102,11 +1089,20 @@ body.dark .ui-over-media-copy {
     box-shadow var(--ui-motion-base) var(--ui-motion-enter),
     border-color var(--ui-motion-base) var(--ui-motion-enter),
     background-color var(--ui-motion-base) var(--ui-motion-enter);
-  will-change: transform, box-shadow;
 }
 
-.ui-motion-card:hover {
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .ui-motion-card:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.ui-action-button:active {
+  transform: scale(0.97);
 }
 
 .ui-motion-button {
@@ -1349,23 +1345,12 @@ tr.ui-row.ui-hover-delight:focus-within {
 
 .route-fade {
   opacity: 0;
-  transform: scale(0.985) translateY(4px);
-  transition:
-    opacity var(--route-fade-duration, var(--ui-motion-page))
-      var(--ui-motion-enter),
-    transform var(--route-fade-duration, var(--ui-motion-page))
-      var(--ui-motion-enter);
-  will-change: opacity, transform;
+  transition: opacity var(--route-fade-duration, 140ms) var(--ui-motion-enter);
+  will-change: opacity;
 }
 
-/* v1.65.5: WAJIB lepas will-change setelah transisi selesai. `will-change: transform`
-   menjadikan elemen ini containing block untuk SEMUA anak position:fixed — dan itu
-   bertahan walau transform sudah none. Akibatnya toast, tooltip, dan onboarding layer
-   berpatokan ke wadah halaman, bukan viewport, lalu ikut hanyut saat di-scroll.
-   Melepasnya juga praktik yang dianjurkan: will-change hanya untuk selama animasi. */
 .route-fade--entered {
   opacity: 1;
-  transform: none;
   will-change: auto;
 }
 

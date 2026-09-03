@@ -5467,7 +5467,7 @@ export default function Dashboard({
           return (
             <div
               key={i}
-              className={`ui-hover-delight flex flex-col gap-1.5 p-4 md:p-5 ${
+              className={`ui-hover-delight flex flex-col justify-between min-h-[108px] md:min-h-[120px] gap-1.5 p-4 md:p-5 ${
                 i >= 2 ? "border-t lg:border-t-0" : ""
               } ${i % 2 === 1 ? "border-l" : ""} ${i >= 1 ? "lg:border-l" : ""}`}
               style={{ borderColor: border }}
