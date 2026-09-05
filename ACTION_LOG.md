@@ -25,6 +25,7 @@
 - Optimasi aset & jaringan: font subsetting Latin-only (hemat 43 kB CSS gzipped & 50+ file font), endpoint komposit `/api/dashboard/bootstrap` memangkas 2 request awal jadi 1 round-trip.
 - Workflow adjustment sales dibangun futureproof dan dipush pada commit `2f480f0`: paid-sale guard, notes-only audit, multi-item exchange, source invoice, condition/disposition, idempotency, settlement, void reversal, history API, dan PDF adjustment A5/A6. Tidak ada write production.
 - Targeted schema migration adjustment production berhasil setelah backup PostgreSQL 17.11 berukuran 1.6M; `sales_audit_log`, `sales_adjustments`, `sales_adjustment_items`, dan `sales_settlements` terverifikasi ada. Tidak ada business-data write.
+- Schema delta adjustment production berhasil diterapkan setelah backup kedua PostgreSQL 17.11. Commit `d8e006b` sukses dideploy; `/api/sales/368/adjustments` dan `/api/sales/383/adjustments` authenticated `200`, adjustment/settlement count tetap `0 -> 0`. Tidak ada nota, stok, atau ledger yang diubah.
 
 ## ⚠️ Pekerjaan HABIL selalu menyangkut DUA folder
 

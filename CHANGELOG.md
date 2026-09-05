@@ -13,6 +13,7 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 - **Endpoint komposit `/api/dashboard/bootstrap`.** Menggabungkan pengambilan statistik dashboard dan heatmap per bulan dalam satu network round-trip terpadu, mengurangi koneksi simultan dari browser ke backend serverless.
 - **Workflow retur/tukar barang futureproof.** Nota lunas kini immutable untuk edit/hapus biasa; adjustment mendukung multi-item, batch/ED, invoice sumber, kondisi saleable/rusak/karantina, idempotency, settlement selisih, histori, void inventory, dan dokumen PDF retur/tukar A5/A6.
 - **Production schema adjustment aktif.** Empat tabel adjustment sudah dibuat melalui targeted transactional migration setelah backup; tidak ada nota, stok, atau pembayaran bisnis yang diubah.
+- **Adjustment production siap dites.** Schema delta untuk snapshot nominal, batch/ED, kondisi `expired`, settlement status, dan ledger link sudah diterapkan setelah backup kedua; endpoint histori authenticated mengembalikan `200` dengan data kosong.
 
 ### Developer Experience
 - Root project kini menyediakan satu perintah `bun dev` untuk frontend dan backend. Jika environment lokal menunjuk database remote, koneksi backend dipaksa read-only agar inspeksi dan generate PDF tidak dapat mengubah data produksi. Bun hanya menjadi task runner; runtime aplikasi tetap mengikuti konfigurasi Node.js yang sudah terverifikasi.
