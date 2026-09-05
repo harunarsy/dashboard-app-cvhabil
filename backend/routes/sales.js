@@ -796,7 +796,7 @@ router.post('/:id/adjustments', auth, async (req, res) => {
         const { rows: [quarantineBatch] } = await client.query(
           `INSERT INTO inventory_batches
            (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, tax_type, ppn_rate, is_active, notes)
-           SELECT product_id, CONCAT(COALESCE(batch_no, 'NO-BATCH'), '-RET-', $1), expired_date, $2, hna,
+           SELECT product_id, CONCAT(COALESCE(batch_no, 'NO-BATCH'), '-RET-', $1::text), expired_date, $2, hna,
                   'sale-adjustment-return', $1, tax_type, ppn_rate, FALSE, $3
             FROM inventory_batches WHERE id = $4
             RETURNING id`,
