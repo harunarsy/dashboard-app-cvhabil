@@ -1034,6 +1034,17 @@ const migrations = [
       `);
     },
   },
+  {
+    id: '20260905_019_sales_adjustments_void_audit',
+    async up(db) {
+      await db.query(`
+        ALTER TABLE sales_adjustments
+          ADD COLUMN IF NOT EXISTS voided_by INTEGER,
+          ADD COLUMN IF NOT EXISTS void_reason TEXT,
+          ADD COLUMN IF NOT EXISTS payload_hash VARCHAR(64);
+      `);
+    },
+  },
 ];
 
 const listRouteSchemaMigrations = () => migrations.map(({ id }) => id);

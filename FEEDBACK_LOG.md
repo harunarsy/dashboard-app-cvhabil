@@ -1,5 +1,11 @@
 # Feedback Log
 
+## [2026-09-05] - Staging Gate: Void 500 via CONCAT Untyped Parameter
+- **Seluruh void adjustment gagal HTTP 500** pada staging gate PostgreSQL terisolasi: `could not determine data type of parameter $2`.
+- **Akar masalah**: `POST /sales/adjustments/:adjustmentId/void` memakai `notes = CONCAT(COALESCE(notes, ''), ' | void adjustment: ', $2)`; PostgreSQL tidak dapat menginfer tipe `$2` di dalam `CONCAT`.
+- **Dampak**: tanpa fix, setiap void di production akan 500 setelah stok reversal ditulis — transaksi di-rollback penuh sehingga tidak ada korupsi, tetapi void tidak pernah bisa sukses.
+- **Tindakan**: cast eksplisit `$2::text` (satu baris, `backend/routes/sales.js`). Seluruh gate diulang hijau: konkurensi 6/6, HTTP 17/17, rollback 3/3. Tidak ada production database yang tersentuh selama investigasi.
+
 ## [2026-09-05] - Sales Adjustment Quantity Mismatch
 - **Adjustment nyata `ADJ-260905-0002` sudah dipost di production saat uji UI.** Nota asal `HSB-NOTA-2609003` menerima retur 3 pcs Tropicana Slim Kecap Manis 200 ml batch `ANPF03VB` senilai Rp87.000, tetapi replacement yang terpost adalah 10 pcs batch `ANQD02VB` senilai Rp325.000.
 - **Dampak finansial saat ini:** adjustment mencatat additional charge Rp238.000 dan settlement masih `pending`; tidak ada ledger entry yang dibuat.

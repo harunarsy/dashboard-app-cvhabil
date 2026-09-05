@@ -2,6 +2,23 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.11-stable] - 2026-09-05
+
+### Diperbaiki
+- **P0 hardening adjustment/retur-tukar.** Harga replacement negatif, NaN, atau Infinity kini ditolak backend (HTTP 400); invariant nominal `refund ≤ nilai retur` ditegakkan untuk return/exchange dan `refund ≤ total nota` untuk koreksi nominal, sehingga refund tidak dapat digelembungkan.
+- **Qty pack dihitung backend sebagai sumber kebenaran.** `qty_base` dari client tidak lagi memengaruhi konversi stok; retur memakai snapshot `pack_size_at_sale` nota asal dan replacement memakai master produk pengganti. Payload lama `qty_base`-only pada produk pack ditolak, retur pack pecahan ditolak, dan satuan replacement yang tidak dikenal ditolak.
+- **Void adjustment dikunci ke direktur + audit wajib.** Endpoint void kini memakai `roleGuard('direktur')` (operator/admin mendapat 403), `void_reason` wajib diisi, dan `voided_by`/`voided_at`/`void_reason` selalu ditulis (fail-closed) plus jejak `VOID_ADJUSTMENT` di `sales_audit_log`. Migrasi `20260905_019` (kolom audit + `payload_hash`) adalah prasyarat deploy.
+- **Idempotency ketat anti-replay siluman.** Setiap adjustment menyimpan hash SHA-256 kanonis (termasuk alasan dan nominal); key sama + payload sama diputar ulang (200), key sama + payload berbeda ditolak (409).
+- **Settle vs void bebas deadlock dan anti-ganda.** Kedua route mengunci baris adjustment dulu (`FOR UPDATE`) dalam satu transaksi; balapan settle/settle, void/void, maupun settle/void selalu menghasilkan tepat satu pemenang dan satu 409 tanpa state campuran.
+- **Bug void 500 tertangkap staging gate.** `CONCAT(..., $2)` tanpa cast tipe membuat seluruh void gagal; diperbaiki dengan `$2::text` dan dibuktikan lewat integrasi PostgreSQL nyata sebelum rilis.
+
+### Developer Experience
+- **Staging gate PostgreSQL terisolasi.** Migrasi s.d. 019, konkurensi nyata (6 checks), integrasi HTTP 18 skenario, dan rollback incl. fault-injection trigger (3 checks) lulus di cluster disposable loopback-only; production database tidak tersentuh.
+- **Default `npm test` kini 100% offline.** `test-regression` dan `test-route-regression` (baca live DB) pindah ke `test:db`/`test-route` eksplisit; default menjadi `test-schema-boundary` + `test-route-http` + `test-adjustment-hardening`. Skrip integrasi staging (`test:integration`, `test:staging`) no-op aman tanpa environment terisolasi.
+
+### Diverifikasi
+- Backend `npm test` hijau offline (76 checks, exit 0); staging gate hijau di DB dari-nol (migrasi 19/19, konkurensi 6/6, HTTP 17/17, rollback 3/3). Frontend `npm test` lulus: 14 test files, 43 tests. Production build Vite lulus.
+
 ## [v1.67.10-stable] - 2026-09-02
 
 ### Diperbaiki

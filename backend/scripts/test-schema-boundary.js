@@ -25,6 +25,7 @@ const expectedMigrationIds = [
   '20260823_016_ledger',
   '20260823_017_tax',
   '20260905_018_sales_adjustments',
+  '20260905_019_sales_adjustments_void_audit',
 ];
 
 let passed = 0;

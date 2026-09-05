@@ -7,6 +7,7 @@ const tax = require('../utils/tax');
 const uom = require('../utils/uom');
 const formDrafts = require('../utils/formDrafts');
 const { generateMonthlyDocNumber } = require('../utils/docNumbers');
+const adjustmentRules = require('../utils/adjustmentRules');
 
 // v1.65.0: Normalisasi ppn_excluded ke boolean (terima true/false dan string 'true'/'false')
 const normalizeBooleanField = (val) => {
@@ -197,34 +198,45 @@ router.get('/trash', auth, async (req, res) => {
 });
 
 router.get('/:id/adjustments', auth, async (req, res) => {
-  const { rows } = await pool.query(
-    `SELECT sa.*,
-            COALESCE(sa.original_order_number, so.order_number) AS order_number,
-            COALESCE(sa.original_customer_name, so.customer_name) AS customer_name,
-            COALESCE(sa.original_payment_status, so.payment_status) AS payment_status,
-            ss.id AS settlement_id, ss.type AS settlement_type,
-            ss.amount AS settlement_amount, ss.settlement_status,
-            ss.payment_method AS settlement_payment_method,
-            ss.settlement_date,
-            COALESCE(json_agg(sai ORDER BY sai.id) FILTER (WHERE sai.id IS NOT NULL), '[]') AS items
-     FROM sales_adjustments sa
-     JOIN sales_orders so ON so.id = sa.original_sales_order_id
-     LEFT JOIN sales_adjustment_items sai ON sai.adjustment_id = sa.id
-     LEFT JOIN LATERAL (
-       SELECT id, type, amount, settlement_status, payment_method, settlement_date
-       FROM sales_settlements
-       WHERE adjustment_id = sa.id
-       ORDER BY id DESC
-       LIMIT 1
-     ) ss ON TRUE
-     WHERE sa.original_sales_order_id = $1
-     GROUP BY sa.id, so.order_number, so.customer_name, so.payment_status,
-              ss.id, ss.type, ss.amount, ss.settlement_status,
-              ss.payment_method, ss.settlement_date
-     ORDER BY sa.created_at DESC`,
-    [req.params.id],
-  );
-  res.json(rows);
+  let orderId;
+  try {
+    orderId = adjustmentRules.parsePositiveIntId(req.params.id, 'ID nota');
+  } catch (err) {
+    return res.status(err.statusCode || 400).json({ error: err.message });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT sa.*,
+              COALESCE(sa.original_order_number, so.order_number) AS order_number,
+              COALESCE(sa.original_customer_name, so.customer_name) AS customer_name,
+              COALESCE(sa.original_payment_status, so.payment_status) AS payment_status,
+              ss.id AS settlement_id, ss.type AS settlement_type,
+              ss.amount AS settlement_amount, ss.settlement_status,
+              ss.payment_method AS settlement_payment_method,
+              ss.settlement_date,
+              COALESCE(json_agg(sai ORDER BY sai.id) FILTER (WHERE sai.id IS NOT NULL), '[]') AS items
+       FROM sales_adjustments sa
+       JOIN sales_orders so ON so.id = sa.original_sales_order_id
+       LEFT JOIN sales_adjustment_items sai ON sai.adjustment_id = sa.id
+       LEFT JOIN LATERAL (
+         SELECT id, type, amount, settlement_status, payment_method, settlement_date
+         FROM sales_settlements
+         WHERE adjustment_id = sa.id
+         ORDER BY id DESC
+         LIMIT 1
+       ) ss ON TRUE
+       WHERE sa.original_sales_order_id = $1
+       GROUP BY sa.id, so.order_number, so.customer_name, so.payment_status,
+                ss.id, ss.type, ss.amount, ss.settlement_status,
+                ss.payment_method, ss.settlement_date
+       ORDER BY sa.created_at DESC`,
+      [orderId],
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/:id', auth, async (req, res) => {
@@ -529,6 +541,13 @@ router.patch('/:id/notes', auth, async (req, res) => {
 
 // POST return/exchange adjustment. The original paid sale and its mutations stay intact.
 router.post('/:id/adjustments', auth, async (req, res) => {
+  let orderId;
+  try {
+    orderId = adjustmentRules.parsePositiveIntId(req.params.id, 'ID nota');
+  } catch (err) {
+    return res.status(err.statusCode || 400).json({ error: err.message });
+  }
+
   const {
     type = 'exchange',
     reason,
@@ -556,11 +575,46 @@ router.post('/:id/adjustments', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    const payloadHash = adjustmentRules.computeAdjustmentPayloadHash({
+      orderId,
+      type,
+      reason,
+      notes,
+      paymentMethod,
+      adjustmentDate,
+      differenceAmount: req.body?.difference_amount,
+      items,
+    });
+
     const { rows: [existingAdjustment] } = await client.query(
       'SELECT * FROM sales_adjustments WHERE idempotency_key = $1 FOR UPDATE',
       [String(idempotencyKey).trim()],
     );
     if (existingAdjustment) {
+      // 1. Direct hash comparison if stored
+      if (existingAdjustment.payload_hash && existingAdjustment.payload_hash !== payloadHash) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'USER: Idempotency key sudah digunakan untuk payload adjustment yang berbeda' });
+      }
+
+      // 2. Semantic fallback comparison for legacy records
+      if (Number(existingAdjustment.original_sales_order_id) !== orderId || existingAdjustment.type !== type) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'USER: Idempotency key sudah digunakan untuk nota atau tipe yang berbeda' });
+      }
+
+      if (type === 'price_difference') {
+        const diff = Number(req.body?.difference_amount);
+        const expRefund = Math.max(0, -diff);
+        const expCharge = Math.max(0, diff);
+        if (Math.abs(expRefund - Number(existingAdjustment.refund_amount)) > 0.001 ||
+            Math.abs(expCharge - Number(existingAdjustment.additional_charge)) > 0.001) {
+          await client.query('ROLLBACK');
+          return res.status(409).json({ error: 'USER: Idempotency key sudah digunakan untuk nominal difference yang berbeda' });
+        }
+      }
+
       const { rows: settlementRows } = await client.query(
         'SELECT * FROM sales_settlements WHERE adjustment_id = $1 ORDER BY id',
         [existingAdjustment.id],
@@ -577,7 +631,7 @@ router.post('/:id/adjustments', auth, async (req, res) => {
     const { rows: [sale] } = await client.query(
       `SELECT id, order_number, customer_name, sale_date, total, payment_status, paid_at, is_deleted
        FROM sales_orders WHERE id = $1 FOR UPDATE`,
-      [req.params.id],
+      [orderId],
     );
     if (!sale || sale.is_deleted) {
       await client.query('ROLLBACK');
@@ -589,32 +643,47 @@ router.post('/:id/adjustments', auth, async (req, res) => {
     }
 
     if (type === 'price_difference') {
-      const difference = Number(req.body.difference_amount);
+      const rawDifference = req.body?.difference_amount;
+      const difference = Number(rawDifference);
+      if (!Number.isFinite(difference)) {
+        throw Object.assign(new Error('USER: difference_amount wajib berupa angka valid untuk koreksi nominal'), { statusCode: 400 });
+      }
+
       const refundAmount = Math.max(0, -difference);
       const additionalCharge = Math.max(0, difference);
+
+      adjustmentRules.assertNominalInvariants({
+        type: 'price_difference',
+        returnedValue: 0,
+        replacementValue: 0,
+        refundAmount,
+        additionalCharge,
+        originalTotal: sale.total,
+      });
+
       const { rows: [adjustment] } = await client.query(
         `INSERT INTO sales_adjustments
          (adjustment_number, original_sales_order_id, type, status, reason, adjustment_date,
           original_order_number, original_sale_date, original_total, original_payment_status,
           original_paid_amount, original_paid_at, original_customer_name,
           returned_value, replacement_value, refund_amount, additional_charge, payment_method,
-          notes, idempotency_key, created_by, posted_at)
+          notes, idempotency_key, created_by, posted_at, payload_hash)
          VALUES ('ADJ-' || TO_CHAR(CURRENT_DATE, 'YYMMDD') || '-' || LPAD(NEXTVAL('sales_adjustments_id_seq')::text, 4, '0'),
           $1, $2, 'posted', $3, COALESCE($4::date, CURRENT_DATE),
           $5, $6, $7, $8, $9, $10, $11,
-          0, 0, $12, $13, $14, $15, $16, $17, NOW())
+          0, 0, $12, $13, $14, $15, $16, $17, NOW(), $18)
          RETURNING *`,
-        [req.params.id, type, String(reason).trim(), adjustmentDate,
+        [orderId, type, String(reason).trim(), adjustmentDate,
           sale.order_number, sale.sale_date, sale.total, sale.payment_status,
           sale.payment_status === 'paid' ? sale.total : 0, sale.paid_at, sale.customer_name,
-          refundAmount, additionalCharge, paymentMethod, notes, String(idempotencyKey).trim(), req.user?.id || null],
+          refundAmount, additionalCharge, paymentMethod, notes, String(idempotencyKey).trim(), req.user?.id || null, payloadHash],
       );
       if (refundAmount > 0 || additionalCharge > 0) {
         await client.query(
           `INSERT INTO sales_settlements
            (sales_order_id, adjustment_id, type, amount, payment_method, settlement_date, notes, created_by, settlement_status)
            VALUES ($1, $2, $3, $4, $5, COALESCE($6::date, CURRENT_DATE), $7, $8, 'pending')`,
-          [req.params.id, adjustment.id, refundAmount > 0 ? 'refund' : 'additional_charge',
+          [orderId, adjustment.id, refundAmount > 0 ? 'refund' : 'additional_charge',
             refundAmount || additionalCharge, paymentMethod, adjustmentDate,
             `Settlement dari ${adjustment.adjustment_number}`, req.user?.id || null],
         );
@@ -639,15 +708,14 @@ router.post('/:id/adjustments', auth, async (req, res) => {
     let replacementValue = 0;
 
     for (const item of returned) {
-      const qty = Number(item.qty_base);
-      if (!Number.isFinite(qty) || qty <= 0) {
-        throw Object.assign(new Error('USER: qty retur harus lebih besar dari 0'), { statusCode: 400 });
-      }
       const { rows: [original] } = await client.query(
         'SELECT * FROM sales_items WHERE id = $1 AND sales_order_id = $2 FOR UPDATE',
-        [item.original_sales_item_id, req.params.id],
+        [item.original_sales_item_id, orderId],
       );
       if (!original) throw Object.assign(new Error('USER: Item nota asal tidak ditemukan'), { statusCode: 400 });
+
+      // Authoritative base qty and display qty resolution from original snapshot
+      const { qtyBase, qtyInUnit } = adjustmentRules.resolveReturnedQuantities(original, item);
 
       const { rows: [{ returned_qty }] } = await client.query(
         `SELECT COALESCE(SUM(sai.qty_base), 0) AS returned_qty
@@ -657,11 +725,13 @@ router.post('/:id/adjustments', auth, async (req, res) => {
            AND sa.status = 'posted'
            AND sai.original_sales_item_id = $2
            AND sai.direction = 'returned'`,
-        [req.params.id, original.id],
+        [orderId, original.id],
       );
-      const available = Number(original.qty) - Number(returned_qty || 0);
-      if (qty > available) {
-        throw Object.assign(new Error(`USER: Qty retur melebihi sisa yang dapat diretur (${available})`), { statusCode: 400 });
+      const availableBase = Number(original.qty) - Number(returned_qty || 0);
+      if (qtyBase > availableBase) {
+        const packSizeAtSale = Number(original.pack_size_at_sale) || 1;
+        const availableInUnit = packSizeAtSale > 1 ? availableBase / packSizeAtSale : availableBase;
+        throw Object.assign(new Error(`USER: Qty retur melebihi sisa yang dapat diretur (${availableInUnit} ${original.unit || 'pcs'})`), { statusCode: 400 });
       }
 
       const batchId = Number(original.batch_id_snapshot);
@@ -679,7 +749,7 @@ router.post('/:id/adjustments', auth, async (req, res) => {
         throw Object.assign(new Error('USER: Kondisi retur perlu keterangan'), { statusCode: 400 });
       }
 
-      const value = Number(item.qty_in_unit || qty) * Number(original.unit_price || 0);
+      const value = qtyInUnit * Number(original.unit_price || 0);
       returnedValue += value;
       normalized.push({
         direction: 'returned',
@@ -690,9 +760,9 @@ router.post('/:id/adjustments', auth, async (req, res) => {
         originalBatchNo: batch.batch_no,
         originalExpiredDate: batch.expired_date,
         replacementBatchId: null,
-        qty,
-        qtyInUnit: Number(item.qty_in_unit || qty),
-        unit: item.unit || original.unit || 'pcs',
+        qty: qtyBase,
+        qtyInUnit,
+        unit: original.unit || 'pcs',
         unitPrice: Number(original.unit_price || 0),
         value,
         condition: returnCondition,
@@ -703,23 +773,29 @@ router.post('/:id/adjustments', auth, async (req, res) => {
     }
 
     for (const item of replacements) {
-      const qty = Number(item.qty_base);
       const batchId = Number(item.replacement_batch_id);
-      if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(batchId)) {
-        throw Object.assign(new Error('USER: qty dan batch replacement wajib valid'), { statusCode: 400 });
+      if (!Number.isFinite(batchId) || batchId <= 0) {
+        throw Object.assign(new Error('USER: Batch replacement wajib dipilih'), { statusCode: 400 });
       }
+
       const { rows: [batch] } = await client.query(
-        `SELECT b.id, b.product_id, b.qty_current, b.batch_no, b.expired_date, p.name
+        `SELECT b.id, b.product_id, b.qty_current, b.batch_no, b.expired_date,
+                p.id AS product_id, p.name AS product_name, p.base_unit, p.pack_unit, p.pack_size
          FROM inventory_batches b
          JOIN product_master p ON p.id = b.product_id
          WHERE b.id = $1 AND COALESCE(b.is_active, TRUE) = TRUE
-         FOR UPDATE`,
+         FOR UPDATE OF b`,
         [batchId],
       );
       if (!batch) throw Object.assign(new Error('USER: Batch replacement tidak ditemukan'), { statusCode: 400 });
-      if (Number(batch.qty_current) < qty) {
-        throw Object.assign(new Error(`USER: Stok replacement tidak cukup (tersedia ${batch.qty_current})`), { statusCode: 400 });
+
+      // Authoritative replacement base qty conversion and strict UOM validation using replacement product
+      const { qtyBase, qtyInUnit, unit: targetUnit } = adjustmentRules.resolveReplacementQuantities(batch, item);
+
+      if (Number(batch.qty_current) < qtyBase) {
+        throw Object.assign(new Error(`USER: Stok replacement tidak cukup (tersedia ${batch.qty_current} ${batch.base_unit || 'pcs'}, butuh ${qtyBase})`), { statusCode: 400 });
       }
+
       const sourceInvoiceId = Number(item.source_invoice_id);
       const sourceInvoiceNumber = String(item.source_invoice_number || '').trim();
       if (sourceInvoiceId || sourceInvoiceNumber) {
@@ -733,21 +809,22 @@ router.post('/:id/adjustments', auth, async (req, res) => {
         );
         if (!rowCount) throw Object.assign(new Error('USER: Batch replacement tidak berasal dari invoice yang dipilih'), { statusCode: 400 });
       }
-      const unitPrice = Number(item.unit_price || 0);
-      const value = Number(item.qty_in_unit || qty) * unitPrice;
+
+      const unitPrice = adjustmentRules.validateReplacementPrice(item.unit_price);
+      const value = qtyInUnit * unitPrice;
       replacementValue += value;
       normalized.push({
         direction: 'replacement',
         originalSalesItemId: null,
         productId: batch.product_id,
-        productName: item.product_name || batch.name,
+        productName: item.product_name || batch.product_name,
         originalBatchId: null,
         replacementBatchId: batchId,
         replacementBatchNo: batch.batch_no,
         replacementExpiredDate: batch.expired_date,
-        qty,
-        qtyInUnit: Number(item.qty_in_unit || qty),
-        unit: item.unit || 'pcs',
+        qty: qtyBase,
+        qtyInUnit,
+        unit: targetUnit,
         unitPrice,
         value,
         condition: null,
@@ -758,21 +835,32 @@ router.post('/:id/adjustments', auth, async (req, res) => {
 
     const refundAmount = Math.max(0, returnedValue - replacementValue);
     const additionalCharge = Math.max(0, replacementValue - returnedValue);
+
+    // Assert business and nominal invariants
+    adjustmentRules.assertNominalInvariants({
+      type,
+      returnedValue,
+      replacementValue,
+      refundAmount,
+      additionalCharge,
+      originalTotal: sale.total,
+    });
+
     const { rows: [adjustment] } = await client.query(
       `INSERT INTO sales_adjustments
        (adjustment_number, original_sales_order_id, type, status, reason, adjustment_date,
         original_order_number, original_sale_date, original_total, original_payment_status,
         original_paid_amount, original_paid_at, original_customer_name,
-        returned_value, replacement_value, refund_amount, additional_charge, payment_method, notes, idempotency_key, created_by, posted_at)
+        returned_value, replacement_value, refund_amount, additional_charge, payment_method, notes, idempotency_key, created_by, posted_at, payload_hash)
        VALUES ('ADJ-' || TO_CHAR(CURRENT_DATE, 'YYMMDD') || '-' || LPAD(NEXTVAL('sales_adjustments_id_seq')::text, 4, '0'),
          $1, $2, 'posted', $3, COALESCE($4::date, CURRENT_DATE),
          $5, $6, $7, $8, $9, $10, $11,
-         $12, $13, $14, $15, $16, $17, $18, $19, NOW())
+         $12, $13, $14, $15, $16, $17, $18, $19, NOW(), $20)
        RETURNING *`,
-      [req.params.id, type, String(reason).trim(), adjustmentDate,
+      [orderId, type, String(reason).trim(), adjustmentDate,
         sale.order_number, sale.sale_date, sale.total, sale.payment_status,
         sale.payment_status === 'paid' ? sale.total : 0, sale.paid_at, sale.customer_name,
-        returnedValue, replacementValue, refundAmount, additionalCharge, paymentMethod, notes, String(idempotencyKey).trim(), req.user?.id || null],
+        returnedValue, replacementValue, refundAmount, additionalCharge, paymentMethod, notes, String(idempotencyKey).trim(), req.user?.id || null, payloadHash],
     );
 
     for (const item of normalized) {
@@ -824,7 +912,7 @@ router.post('/:id/adjustments', auth, async (req, res) => {
         `INSERT INTO sales_settlements
          (sales_order_id, adjustment_id, type, amount, payment_method, settlement_date, notes, created_by, settlement_status)
          VALUES ($1, $2, $3, $4, $5, COALESCE($6::date, CURRENT_DATE), $7, $8, 'pending')`,
-        [req.params.id, adjustment.id, refundAmount > 0 ? 'refund' : 'additional_charge',
+        [orderId, adjustment.id, refundAmount > 0 ? 'refund' : 'additional_charge',
           refundAmount || additionalCharge, paymentMethod, adjustmentDate,
           `Settlement dari ${adjustment.adjustment_number}`, req.user?.id || null],
       );
@@ -840,24 +928,59 @@ router.post('/:id/adjustments', auth, async (req, res) => {
 });
 
 router.post('/adjustments/:adjustmentId/settle', auth, roleGuard('direktur'), async (req, res) => {
+  let adjustmentId;
+  try {
+    adjustmentId = adjustmentRules.parsePositiveIntId(req.params.adjustmentId, 'ID adjustment');
+  } catch (err) {
+    return res.status(err.statusCode || 400).json({ error: err.message });
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { rows: [settlement] } = await client.query(
-      `SELECT ss.*, sa.adjustment_number, sa.original_sales_order_id
-       FROM sales_settlements ss
-       JOIN sales_adjustments sa ON sa.id = ss.adjustment_id
-       WHERE ss.adjustment_id = $1 AND ss.settlement_status = 'pending'
+
+    // Concurrency Lock Step 1: Always lock sales_adjustments first
+    const { rows: [adjustment] } = await client.query(
+      `SELECT id, status, settlement_status, adjustment_number, original_sales_order_id
+       FROM sales_adjustments
+       WHERE id = $1
        FOR UPDATE`,
-      [req.params.adjustmentId],
+      [adjustmentId],
+    );
+    if (!adjustment) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Adjustment tidak ditemukan' });
+    }
+    if (adjustment.status !== 'posted') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Adjustment tidak berstatus posted (tidak dapat disettle)' });
+    }
+    if (adjustment.settlement_status === 'confirmed') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Settlement adjustment ini sudah terkonfirmasi sebelumnya' });
+    }
+    if (adjustment.settlement_status === 'void') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Adjustment sudah dibatalkan (void)' });
+    }
+
+    // Concurrency Lock Step 2: Lock pending settlement row
+    const { rows: [settlement] } = await client.query(
+      `SELECT * FROM sales_settlements
+       WHERE adjustment_id = $1 AND settlement_status = 'pending'
+       ORDER BY id DESC
+       LIMIT 1
+       FOR UPDATE`,
+      [adjustmentId],
     );
     if (!settlement) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Settlement pending tidak ditemukan' });
     }
+
     const debit = settlement.type === 'refund' ? Number(settlement.amount) : 0;
     const credit = settlement.type === 'additional_charge' ? Number(settlement.amount) : 0;
-    const description = `${settlement.type === 'refund' ? 'Refund' : 'Tambahan pembayaran'} ${settlement.adjustment_number}`;
+    const description = `${settlement.type === 'refund' ? 'Refund' : 'Tambahan pembayaran'} ${adjustment.adjustment_number}`;
     const { rows: [entry] } = await client.query(
       `INSERT INTO ledger_entries
        (entry_date, account_name, description, debit, credit, category, reference_type, reference_id, source, auto_cat, created_by)
@@ -865,28 +988,47 @@ router.post('/adjustments/:adjustmentId/settle', auth, roleGuard('direktur'), as
        RETURNING *`,
       [req.body?.settlement_date || null, req.body?.account_name || 'Kas/Bank', description, debit, credit, settlement.type, settlement.adjustment_id, req.user?.id || null],
     );
-    const { rows: [updated] } = await client.query(
+
+    const { rows: [updatedSettlement] } = await client.query(
       `UPDATE sales_settlements SET settlement_status = 'confirmed', ledger_entry_id = $1 WHERE id = $2 RETURNING *`,
       [entry.id, settlement.id],
     );
+
+    await client.query(
+      `UPDATE sales_adjustments SET settlement_status = 'confirmed' WHERE id = $1`,
+      [adjustmentId],
+    );
+
     await client.query('COMMIT');
-    res.json({ settlement: updated, ledger_entry: entry });
+    res.json({ settlement: updatedSettlement, ledger_entry: entry });
   } catch (err) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
   } finally { client.release(); }
 });
 
-router.post('/adjustments/:adjustmentId/void', auth, async (req, res) => {
+router.post('/adjustments/:adjustmentId/void', auth, roleGuard('direktur'), async (req, res) => {
+  let adjustmentId;
+  let voidReason;
+  try {
+    adjustmentId = adjustmentRules.parsePositiveIntId(req.params.adjustmentId, 'ID adjustment');
+    voidReason = adjustmentRules.validateVoidReason(req.body?.void_reason || req.body?.reason);
+  } catch (err) {
+    return res.status(err.statusCode || 400).json({ error: err.message });
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    // Concurrency Lock Step 1: Always lock sales_adjustments first
     const { rows: [adjustment] } = await client.query(
       `SELECT sa.*, so.order_number
        FROM sales_adjustments sa
        JOIN sales_orders so ON so.id = sa.original_sales_order_id
-       WHERE sa.id = $1 FOR UPDATE`,
-      [req.params.adjustmentId],
+       WHERE sa.id = $1
+       FOR UPDATE OF sa`,
+      [adjustmentId],
     );
     if (!adjustment) {
       await client.query('ROLLBACK');
@@ -896,14 +1038,21 @@ router.post('/adjustments/:adjustmentId/void', auth, async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(409).json({ error: 'Hanya adjustment posted yang dapat di-void' });
     }
+
+    // Concurrency Lock Step 2: Lock settlements
     const { rows: settlements } = await client.query(
       'SELECT id, settlement_status FROM sales_settlements WHERE adjustment_id = $1 FOR UPDATE',
       [adjustment.id],
     );
-    if (settlements.some((settlement) => settlement.settlement_status === 'confirmed')) {
+    if (
+      adjustment.settlement_status === 'confirmed' ||
+      settlements.some((settlement) => settlement.settlement_status === 'confirmed')
+    ) {
       await client.query('ROLLBACK');
-      return res.status(409).json({ error: 'Adjustment dengan settlement terkonfirmasi perlu reversal ledger sebelum void' });
+      return res.status(409).json({ error: 'Adjustment dengan settlement terkonfirmasi tidak dapat di-void (perlu reversal ledger)' });
     }
+
+    // Lock and reverse inventory mutations
     const { rows: mutations } = await client.query(
       `SELECT * FROM inventory_mutations
        WHERE reference_type = 'sale-adjustment' AND reference_id = $1
@@ -918,21 +1067,41 @@ router.post('/adjustments/:adjustmentId/void', auth, async (req, res) => {
          (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by, qty_unit, qty_in_unit)
          VALUES ($1, $2, $3, $4, 'sale-adjustment-void', $5, $6, $7, $8, $9)`,
         [mutation.product_id, mutation.batch_id, mutation.type === 'in' ? 'out' : 'in', mutation.qty,
-          adjustment.id, `Void adjustment ${adjustment.adjustment_number}`, req.user?.id || null, mutation.qty_unit, mutation.qty_in_unit],
+          adjustment.id, `Void adjustment ${adjustment.adjustment_number}: ${voidReason}`, req.user?.id || null, mutation.qty_unit, mutation.qty_in_unit],
       );
     }
-    const { rows: [updated] } = await client.query(
-      `UPDATE sales_adjustments SET status = 'void', settlement_status = 'void', voided_at = NOW() WHERE id = $1 RETURNING *`,
-      [adjustment.id],
+
+    // Fail closed: voided_by, voided_at, and void_reason are mandatory audit fields.
+    // Migration 20260905_019_sales_adjustments_void_audit is a hard requirement.
+    const { rows: [updatedAdjustment] } = await client.query(
+      `UPDATE sales_adjustments
+       SET status = 'void', settlement_status = 'void', voided_at = NOW(), voided_by = $2, void_reason = $3
+       WHERE id = $1 RETURNING *`,
+      [adjustment.id, req.user?.id || null, voidReason],
     );
+
     await client.query(
       `UPDATE sales_settlements
-       SET settlement_status = 'void', notes = CONCAT(COALESCE(notes, ''), ' | void adjustment')
+       SET settlement_status = 'void', notes = CONCAT(COALESCE(notes, ''), ' | void adjustment: ', $2::text)
        WHERE adjustment_id = $1 AND settlement_status = 'pending'`,
-      [adjustment.id],
+      [adjustment.id, voidReason],
     );
+
+    // Audit trail in sales_audit_log
+    await client.query(
+      `INSERT INTO sales_audit_log (sales_order_id, action, changed_by, before_snapshot, after_snapshot, note)
+       VALUES ($1, 'VOID_ADJUSTMENT', $2, $3, $4, $5)`,
+      [
+        adjustment.original_sales_order_id,
+        req.user?.id || null,
+        JSON.stringify({ status: adjustment.status, settlement_status: adjustment.settlement_status }),
+        JSON.stringify({ status: 'void', settlement_status: 'void', void_reason: voidReason, voided_by: req.user?.id || null }),
+        `Void ${adjustment.adjustment_number}: ${voidReason}`,
+      ],
+    );
+
     await client.query('COMMIT');
-    res.json({ adjustment: updated, reversed_mutations: mutations.length });
+    res.json({ adjustment: updatedAdjustment, reversed_mutations: mutations.length, void_reason: voidReason });
   } catch (err) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });

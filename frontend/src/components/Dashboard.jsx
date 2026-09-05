@@ -39,9 +39,28 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.67.11-stable",
+    date: "05 September 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Adjustment retur/tukar kini divalidasi penuh di backend: harga negatif ditolak, qty pack dihitung dari snapshot, dan refund tidak dapat melebihi nilai retur.",
+      },
+      {
+        type: "fix",
+        text: "Void adjustment hanya untuk direktur dengan alasan wajib, tercatat lengkap, dan bebas deadlock saat balapan dengan settlement.",
+      },
+      {
+        type: "improvement",
+        text: "Idempotency ketat mencegah duplikasi adjustment saat retry; key sama dengan payload berbeda ditolak.",
+      },
+    ],
+  },
+  {
     version: "v1.67.10-stable",
     date: "02 September 2026",
-    status: "latest",
+    status: "stable",
     changes: [
       {
         type: "fix",

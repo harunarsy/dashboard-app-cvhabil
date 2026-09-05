@@ -1449,12 +1449,14 @@ export default function SalesOrderList({
       const product = products.find(
         (candidate) => candidate.name?.trim().toLowerCase() === item.product_name?.trim().toLowerCase(),
       );
+      const replacementUnit = product?.base_unit || product?.unit || "pcs";
       return {
         originalItemId: String(item.id),
         item,
         selected: false,
         replacementProductId: String(product?.id || ""),
         replacementProductName: product?.name || item.product_name,
+        replacementUnit,
         returnQty: String(item.qty_in_unit || item.qty || 1),
         replacementQty: String(item.qty_in_unit || item.qty || 1),
         replacementBatchId: "",
@@ -1552,9 +1554,8 @@ export default function SalesOrderList({
           {
             direction: "replacement",
             replacement_batch_id: Number(line.replacementBatchId),
-            qty_base: Number(line.replacementQty),
             qty_in_unit: Number(line.replacementQty),
-            unit: line.item.unit || "pcs",
+            unit: line.replacementUnit || "pcs",
             product_name: line.replacementProductName,
             unit_price: Number(line.replacementUnitPrice) || 0,
             source_invoice_number: line.sourceInvoiceNumber.trim() || undefined,
@@ -1668,8 +1669,17 @@ export default function SalesOrderList({
 
   const confirmVoidAdjustment = async () => {
     if (!voidAdjustmentTarget || !adjustmentModal.order) return;
+    const voidReason = window.prompt(
+      `Masukkan alasan pembatalan untuk ${voidAdjustmentTarget.adjustment_number}:`,
+      "Pembatalan retur/tukar barang",
+    );
+    if (!voidReason || !voidReason.trim()) {
+      flash("Alasan pembatalan wajib diisi", "error");
+      setVoidAdjustmentTarget(null);
+      return;
+    }
     try {
-      await salesAPI.voidAdjustment(voidAdjustmentTarget.id);
+      await salesAPI.voidAdjustment(voidAdjustmentTarget.id, { void_reason: voidReason.trim() });
       flash(`Adjustment ${voidAdjustmentTarget.adjustment_number} dibatalkan dan stok dikembalikan`);
       const { data } = await salesAPI.getAdjustments(adjustmentModal.order.id);
       setAdjustmentHistory(Array.isArray(data) ? data : []);
@@ -6374,7 +6384,20 @@ export default function SalesOrderList({
                     <label style={labelStyle}>Qty Retur<input type="number" min="0.01" step="0.01" value={line.returnQty} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, returnQty: e.target.value } : candidate) }))} style={inputStyle} /></label>
                     <label style={labelStyle}>Qty Ganti<input type="number" min="0.01" step="0.01" value={line.replacementQty} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, replacementQty: e.target.value } : candidate) }))} style={inputStyle} /></label>
                   </div>
-                  <label style={{ ...labelStyle, marginTop: "10px" }}>Produk Pengganti<select value={line.replacementProductId} onChange={(e) => { const product = products.find((candidate) => String(candidate.id) === e.target.value); setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, replacementProductId: e.target.value, replacementProductName: product?.name || "" } : candidate) })); loadLineBatches(index, e.target.value); }} style={inputStyle}>
+                  <label style={{ ...labelStyle, marginTop: "10px" }}>Produk Pengganti<select value={line.replacementProductId} onChange={(e) => {
+                    const product = products.find((candidate) => String(candidate.id) === e.target.value);
+                    const repUnit = product?.base_unit || product?.unit || "pcs";
+                    setAdjustmentModal((prev) => ({
+                      ...prev,
+                      lines: prev.lines.map((candidate, i) => i === index ? {
+                        ...candidate,
+                        replacementProductId: e.target.value,
+                        replacementProductName: product?.name || "",
+                        replacementUnit: repUnit,
+                      } : candidate)
+                    }));
+                    loadLineBatches(index, e.target.value);
+                  }} style={inputStyle}>
                     {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
                   </select></label>
                   <label style={{ ...labelStyle, marginTop: "10px" }}>Batch Pengganti<select value={line.replacementBatchId} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, replacementBatchId: e.target.value } : candidate) }))} disabled={line.loading} style={inputStyle}>
