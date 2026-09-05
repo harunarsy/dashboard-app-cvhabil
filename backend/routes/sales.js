@@ -897,12 +897,12 @@ router.post('/adjustments/:adjustmentId/void', auth, async (req, res) => {
       return res.status(409).json({ error: 'Hanya adjustment posted yang dapat di-void' });
     }
     const { rows: settlements } = await client.query(
-      'SELECT id FROM sales_settlements WHERE adjustment_id = $1 LIMIT 1',
+      'SELECT id, settlement_status FROM sales_settlements WHERE adjustment_id = $1 FOR UPDATE',
       [adjustment.id],
     );
-    if (settlements.length) {
+    if (settlements.some((settlement) => settlement.settlement_status === 'confirmed')) {
       await client.query('ROLLBACK');
-      return res.status(409).json({ error: 'Adjustment dengan settlement perlu reversal settlement sebelum void' });
+      return res.status(409).json({ error: 'Adjustment dengan settlement terkonfirmasi perlu reversal ledger sebelum void' });
     }
     const { rows: mutations } = await client.query(
       `SELECT * FROM inventory_mutations
@@ -923,6 +923,12 @@ router.post('/adjustments/:adjustmentId/void', auth, async (req, res) => {
     }
     const { rows: [updated] } = await client.query(
       `UPDATE sales_adjustments SET status = 'void', voided_at = NOW() WHERE id = $1 RETURNING *`,
+      [adjustment.id],
+    );
+    await client.query(
+      `UPDATE sales_settlements
+       SET settlement_status = 'void', notes = CONCAT(COALESCE(notes, ''), ' | void adjustment')
+       WHERE adjustment_id = $1 AND settlement_status = 'pending'`,
       [adjustment.id],
     );
     await client.query('COMMIT');

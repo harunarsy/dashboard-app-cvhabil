@@ -306,6 +306,7 @@ export default function SalesOrderList({
   const [adjustmentHistory, setAdjustmentHistory] = useState([]);
   const [adjustmentHistoryLoading, setAdjustmentHistoryLoading] = useState(false);
   const [adjustmentPrint, setAdjustmentPrint] = useState({ open: false, data: null, format: "A5", saving: false });
+  const [voidAdjustmentTarget, setVoidAdjustmentTarget] = useState(null);
   const [adjustmentModal, setAdjustmentModal] = useState({
     open: false,
     order: null,
@@ -1662,6 +1663,21 @@ export default function SalesOrderList({
       setAdjustmentHistory(Array.isArray(data) ? data : []);
     } catch (error) {
       flash(error.response?.data?.error || error.message, "error");
+    }
+  };
+
+  const confirmVoidAdjustment = async () => {
+    if (!voidAdjustmentTarget || !adjustmentModal.order) return;
+    try {
+      await salesAPI.voidAdjustment(voidAdjustmentTarget.id);
+      flash(`Adjustment ${voidAdjustmentTarget.adjustment_number} dibatalkan dan stok dikembalikan`);
+      const { data } = await salesAPI.getAdjustments(adjustmentModal.order.id);
+      setAdjustmentHistory(Array.isArray(data) ? data : []);
+      fetchOrders();
+    } catch (error) {
+      flash(error.response?.data?.error || error.message, "error");
+    } finally {
+      setVoidAdjustmentTarget(null);
     }
   };
 
@@ -6391,6 +6407,7 @@ export default function SalesOrderList({
                     <div>Refund {fmtRp(entry.refund_amount)} · Tambahan {fmtRp(entry.additional_charge)}</div>
                     <div>Settlement: {entry.settlement_status === "confirmed" ? "Sudah dikonfirmasi" : Number(entry.refund_amount || entry.additional_charge) > 0 ? "Belum dikonfirmasi" : "Tidak diperlukan"}</div>
                     <button type="button" onClick={() => openAdjustmentPrint(entry)} style={{ marginTop: "6px", padding: "6px 8px", border: `1px solid ${border}`, borderRadius: "7px", background: "transparent", color: "var(--color-action)", fontWeight: 700, fontSize: "11px" }}>Cetak ulang A5/A6</button>
+                    {entry.status === "posted" && entry.settlement_status !== "confirmed" && <button type="button" onClick={() => setVoidAdjustmentTarget(entry)} style={{ marginTop: "6px", marginLeft: "6px", padding: "6px 8px", border: "1px solid var(--color-danger)", borderRadius: "7px", background: "transparent", color: "var(--color-danger)", fontWeight: 700, fontSize: "11px" }}>Void adjustment</button>}
                   </div>
                 ))}
                 {adjustmentHistory.map((entry) => entry.settlement_status === "pending" && Number(entry.refund_amount || entry.additional_charge) > 0 && (
@@ -6427,6 +6444,15 @@ export default function SalesOrderList({
             </div>
           </div>,
         )}
+
+      <ConfirmModal
+        isOpen={!!voidAdjustmentTarget}
+        onClose={() => setVoidAdjustmentTarget(null)}
+        onConfirm={confirmVoidAdjustment}
+        title="Void Adjustment"
+        message={`Batalkan ${voidAdjustmentTarget?.adjustment_number || "adjustment"}? Stok akan dikembalikan dan settlement pending dibatalkan. Settlement yang sudah masuk Buku Besar tidak dapat di-void dari sini.`}
+        isDarkMode={isDarkMode}
+      />
 
       {/* Delete Confirm Modal */}
       <ConfirmModal
