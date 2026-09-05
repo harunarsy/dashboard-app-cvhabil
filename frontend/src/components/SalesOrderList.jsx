@@ -299,6 +299,7 @@ export default function SalesOrderList({
     mode: "pay",
   });
   const [paymentSaving, setPaymentSaving] = useState(false);
+  const [notesEdit, setNotesEdit] = useState({ open: false, order: null, notes: "", saving: false });
   // v1.49.0: tandai lunas massal (centang beberapa nota → lunas + tanggal serentak)
   const [bulkPay, setBulkPay] = useState({ open: false, date: "", saving: false });
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -1342,6 +1343,22 @@ export default function SalesOrderList({
       flash(e.response?.data?.error || e.message, "error");
     } finally {
       setRestoringId(null);
+    }
+  };
+
+  const openNotesEdit = (order) => setNotesEdit({ open: true, order, notes: order.notes || "", saving: false });
+  const saveNotesEdit = async () => {
+    if (!notesEdit.order || notesEdit.saving) return;
+    setNotesEdit((prev) => ({ ...prev, saving: true }));
+    try {
+      const { data } = await salesAPI.updateNotes(notesEdit.order.id, notesEdit.notes);
+      upsertOrderCache(data);
+      flash("Catatan nota diperbarui");
+      setNotesEdit({ open: false, order: null, notes: "", saving: false });
+      fetchOrders();
+    } catch (e) {
+      flash(e.response?.data?.error || e.message, "error");
+      setNotesEdit((prev) => ({ ...prev, saving: false }));
     }
   };
 
@@ -3121,6 +3138,10 @@ export default function SalesOrderList({
                               e.stopPropagation();
                               // v1.54.0: nota hasil konversi pinjaman dikunci dari edit
                               // (stok sudah keluar saat pinjam — edit bakal motong dobel).
+                              if (o.payment_status === "paid") {
+                                openNotesEdit(o);
+                                return;
+                              }
                               if (o.source_loan_id) {
                                 flash(
                                   "Nota hasil konversi pinjaman tidak bisa diedit. Hapus nota (item balik berstatus dipinjam) lalu konversi ulang dari tab Pinjaman.",
@@ -3132,9 +3153,11 @@ export default function SalesOrderList({
                             }}
                             aria-label={`Edit nota ${o.order_number}`}
                             title={
-                              o.source_loan_id
-                                ? "Terkunci — nota hasil konversi pinjaman"
-                                : "Edit"
+                              o.payment_status === "paid"
+                                ? "Edit catatan nota lunas"
+                                : o.source_loan_id
+                                  ? "Terkunci — nota hasil konversi pinjaman"
+                                  : "Edit"
                             }
                           style={{
                               background: "var(--color-surface-elevated)",
@@ -5987,6 +6010,33 @@ export default function SalesOrderList({
                 >
                   Batal
                 </button>
+              </div>
+            </div>
+          </div>,
+        )}
+
+      {notesEdit.open &&
+        renderPortal(
+          <div
+            onClick={() => setNotesEdit({ open: false, order: null, notes: "", saving: false })}
+            style={{ position: "fixed", inset: 0, zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backgroundColor: "rgba(0,0,0,0.5)" }}
+          >
+            <div onClick={(e) => e.stopPropagation()} className="ui-motion-modal ui-modal-shell" style={{ width: "100%", maxWidth: "520px", padding: "24px", backgroundColor: cardBg, borderRadius: "20px", boxShadow: "0 20px 40px rgba(0,0,0,0.25)" }}>
+              <h3 style={{ margin: "0 0 8px", color: text, fontSize: "18px" }}>Edit Catatan Nota Lunas</h3>
+              <p style={{ margin: "0 0 18px", color: sub, fontSize: "13px" }}>
+                {notesEdit.order?.order_number} tetap lunas dan nominal tidak berubah.
+              </p>
+              <textarea
+                value={notesEdit.notes}
+                onChange={(e) => setNotesEdit((prev) => ({ ...prev, notes: e.target.value }))}
+                rows={5}
+                autoFocus
+                style={{ ...inputStyle, width: "100%", resize: "vertical", boxSizing: "border-box" }}
+                placeholder="Contoh: Retur 3 pcs batch ANPF03VB, diganti dari faktur 4844989."
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "16px" }}>
+                <button type="button" onClick={() => setNotesEdit({ open: false, order: null, notes: "", saving: false })} disabled={notesEdit.saving} style={{ padding: "10px 16px", border: `1px solid ${border}`, borderRadius: "10px", backgroundColor: "transparent", color: text, fontWeight: 700 }}>Batal</button>
+                <button type="button" onClick={saveNotesEdit} disabled={notesEdit.saving} className="btn-primary" style={{ border: "none", borderRadius: "10px", padding: "10px 16px", color: "#fff", fontWeight: 700 }}>{notesEdit.saving ? "Menyimpan..." : "Simpan Catatan"}</button>
               </div>
             </div>
           </div>,

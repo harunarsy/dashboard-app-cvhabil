@@ -476,6 +476,250 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
+// PATCH notes-only update: safe metadata correction for paid/final notes.
+router.patch('/:id/notes', auth, async (req, res) => {
+  const notes = typeof req.body.notes === 'string' ? req.body.notes : null;
+  if (notes === null) return res.status(400).json({ error: 'notes wajib berupa teks' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows: [existing] } = await client.query('SELECT id, notes FROM sales_orders WHERE id = $1 AND is_deleted = FALSE FOR UPDATE', [req.params.id]);
+    if (!existing) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
+    const { rows: [updated] } = await client.query('UPDATE sales_orders SET notes = $1, updated_at = NOW() WHERE id = $2 RETURNING id, order_number, notes, payment_status, paid_at, total, gross_profit', [notes, req.params.id]);
+    await client.query('INSERT INTO sales_audit_log (sales_order_id, action, changed_by, before_snapshot, after_snapshot, note) VALUES ($1, $2, $3, $4, $5, $6)', [req.params.id, 'NOTES_UPDATE', req.user?.id || null, JSON.stringify({ notes: existing.notes }), JSON.stringify({ notes }), 'Notes-only update; inventory and payment fields untouched']);
+    await client.query('COMMIT');
+    res.json(updated);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally { client.release(); }
+});
+
+// POST return/exchange adjustment. The original paid sale and its mutations stay intact.
+router.post('/:id/adjustments', auth, async (req, res) => {
+  const {
+    type = 'exchange',
+    reason,
+    notes = null,
+    adjustment_date: adjustmentDate = null,
+    payment_method: paymentMethod = null,
+    items = [],
+  } = req.body || {};
+
+  if (!['return', 'exchange', 'price_difference'].includes(type)) {
+    return res.status(400).json({ error: 'type harus return, exchange, atau price_difference' });
+  }
+  if (!String(reason || '').trim()) return res.status(400).json({ error: 'Alasan penyesuaian wajib diisi' });
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Minimal satu item adjustment diperlukan' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows: [sale] } = await client.query(
+      'SELECT id, order_number, payment_status, is_deleted FROM sales_orders WHERE id = $1 FOR UPDATE',
+      [req.params.id],
+    );
+    if (!sale || sale.is_deleted) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Nota not found' });
+    }
+    if (sale.payment_status !== 'paid') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Adjustment hanya dapat dibuat untuk nota lunas' });
+    }
+
+    const returned = items.filter((item) => item.direction === 'returned');
+    const replacements = items.filter((item) => item.direction === 'replacement');
+    if (type === 'exchange' && (!returned.length || !replacements.length)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Exchange wajib memiliki item retur dan pengganti' });
+    }
+    if (type === 'return' && replacements.length) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Return tidak boleh memiliki item pengganti' });
+    }
+
+    const normalized = [];
+    let returnedValue = 0;
+    let replacementValue = 0;
+
+    for (const item of returned) {
+      const qty = Number(item.qty_base);
+      if (!Number.isFinite(qty) || qty <= 0) {
+        throw Object.assign(new Error('USER: qty retur harus lebih besar dari 0'), { statusCode: 400 });
+      }
+      const { rows: [original] } = await client.query(
+        'SELECT * FROM sales_items WHERE id = $1 AND sales_order_id = $2 FOR UPDATE',
+        [item.original_sales_item_id, req.params.id],
+      );
+      if (!original) throw Object.assign(new Error('USER: Item nota asal tidak ditemukan'), { statusCode: 400 });
+
+      const { rows: [{ returned_qty }] } = await client.query(
+        `SELECT COALESCE(SUM(sai.qty_base), 0) AS returned_qty
+         FROM sales_adjustment_items sai
+         JOIN sales_adjustments sa ON sa.id = sai.adjustment_id
+         WHERE sa.original_sales_order_id = $1
+           AND sa.status = 'posted'
+           AND sai.original_sales_item_id = $2
+           AND sai.direction = 'returned'`,
+        [req.params.id, original.id],
+      );
+      const available = Number(original.qty) - Number(returned_qty || 0);
+      if (qty > available) {
+        throw Object.assign(new Error(`USER: Qty retur melebihi sisa yang dapat diretur (${available})`), { statusCode: 400 });
+      }
+
+      const batchId = Number(original.batch_id_snapshot);
+      if (!Number.isFinite(batchId)) throw Object.assign(new Error('USER: Batch asal item tidak tersedia'), { statusCode: 400 });
+      const { rows: [batch] } = await client.query(
+        'SELECT id, product_id FROM inventory_batches WHERE id = $1 FOR UPDATE',
+        [batchId],
+      );
+      if (!batch) throw Object.assign(new Error('USER: Batch asal tidak ditemukan'), { statusCode: 400 });
+      if ((item.condition || 'saleable') !== 'saleable') {
+        throw Object.assign(new Error('USER: Kondisi retur selain saleable belum diaktifkan'), { statusCode: 400 });
+      }
+
+      const value = qty * Number(original.unit_price || 0);
+      returnedValue += value;
+      normalized.push({
+        direction: 'returned',
+        originalSalesItemId: original.id,
+        productId: batch.product_id,
+        productName: original.product_name,
+        originalBatchId: batchId,
+        replacementBatchId: null,
+        qty,
+        qtyInUnit: Number(item.qty_in_unit || qty),
+        unit: item.unit || original.unit || 'pcs',
+        unitPrice: Number(original.unit_price || 0),
+        value,
+        condition: 'saleable',
+        sourceInvoiceId: null,
+      });
+    }
+
+    for (const item of replacements) {
+      const qty = Number(item.qty_base);
+      const batchId = Number(item.replacement_batch_id);
+      if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(batchId)) {
+        throw Object.assign(new Error('USER: qty dan batch replacement wajib valid'), { statusCode: 400 });
+      }
+      const { rows: [batch] } = await client.query(
+        `SELECT b.id, b.product_id, b.qty_current, p.name
+         FROM inventory_batches b
+         JOIN product_master p ON p.id = b.product_id
+         WHERE b.id = $1 AND COALESCE(b.is_active, TRUE) = TRUE
+         FOR UPDATE`,
+        [batchId],
+      );
+      if (!batch) throw Object.assign(new Error('USER: Batch replacement tidak ditemukan'), { statusCode: 400 });
+      if (Number(batch.qty_current) < qty) {
+        throw Object.assign(new Error(`USER: Stok replacement tidak cukup (tersedia ${batch.qty_current})`), { statusCode: 400 });
+      }
+      if (item.source_invoice_id) {
+        const { rowCount } = await client.query(
+          `SELECT 1 FROM inventory_mutations
+           WHERE batch_id = $1 AND reference_type = 'faktur' AND reference_id = $2 AND type = 'in'
+           LIMIT 1`,
+          [batchId, item.source_invoice_id],
+        );
+        if (!rowCount) throw Object.assign(new Error('USER: Batch replacement tidak berasal dari invoice yang dipilih'), { statusCode: 400 });
+      }
+      const unitPrice = Number(item.unit_price || 0);
+      const value = qty * unitPrice;
+      replacementValue += value;
+      normalized.push({
+        direction: 'replacement',
+        originalSalesItemId: null,
+        productId: batch.product_id,
+        productName: item.product_name || batch.name,
+        originalBatchId: null,
+        replacementBatchId: batchId,
+        qty,
+        qtyInUnit: Number(item.qty_in_unit || qty),
+        unit: item.unit || 'pcs',
+        unitPrice,
+        value,
+        condition: null,
+        sourceInvoiceId: item.source_invoice_id || null,
+      });
+    }
+
+    const refundAmount = Math.max(0, returnedValue - replacementValue);
+    const additionalCharge = Math.max(0, replacementValue - returnedValue);
+    const { rows: [adjustment] } = await client.query(
+      `INSERT INTO sales_adjustments
+       (adjustment_number, original_sales_order_id, type, status, reason, adjustment_date,
+        refund_amount, additional_charge, payment_method, notes, created_by, posted_at)
+       VALUES ('ADJ-' || TO_CHAR(CURRENT_DATE, 'YYMMDD') || '-' || LPAD(NEXTVAL('sales_adjustments_id_seq')::text, 4, '0'),
+        $1, $2, 'posted', $3, COALESCE($4::date, CURRENT_DATE), $5, $6, $7, $8, $9, NOW())
+       RETURNING *`,
+      [req.params.id, type, String(reason).trim(), adjustmentDate, refundAmount, additionalCharge, paymentMethod, notes, req.user?.id || null],
+    );
+
+    for (const item of normalized) {
+      await client.query(
+        `INSERT INTO sales_adjustment_items
+         (adjustment_id, original_sales_item_id, product_id, product_name_snapshot,
+          original_batch_id, replacement_batch_id, qty_base, qty_in_unit, unit,
+          unit_price, line_amount, direction, condition, source_invoice_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+        [adjustment.id, item.originalSalesItemId, item.productId, item.productName,
+          item.originalBatchId, item.replacementBatchId, item.qty, item.qtyInUnit,
+          item.unit, item.unitPrice, item.value, item.direction, item.condition,
+          item.sourceInvoiceId],
+      );
+      const isReturn = item.direction === 'returned';
+      const batchId = isReturn ? item.originalBatchId : item.replacementBatchId;
+      await client.query(
+        'UPDATE inventory_batches SET qty_current = qty_current ' + (isReturn ? '+' : '-') + ' $1 WHERE id = $2',
+        [item.qty, batchId],
+      );
+      await client.query(
+        `INSERT INTO inventory_mutations
+         (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by, qty_unit, qty_in_unit)
+         VALUES ($1, $2, $3, $4, 'sale-adjustment', $5, $6, $7, $8, $9)`,
+        [item.productId, batchId, isReturn ? 'in' : 'out', item.qty, adjustment.id,
+          `${isReturn ? 'Retur' : 'Replacement'} dari nota ${sale.order_number} (${adjustment.adjustment_number})`,
+          req.user?.id || null, item.unit, item.qtyInUnit],
+      );
+    }
+
+    if (refundAmount > 0 || additionalCharge > 0) {
+      await client.query(
+        `INSERT INTO sales_settlements
+         (sales_order_id, adjustment_id, type, amount, payment_method, settlement_date, notes, created_by)
+         VALUES ($1, $2, $3, $4, $5, COALESCE($6::date, CURRENT_DATE), $7, $8)`,
+        [req.params.id, adjustment.id, refundAmount > 0 ? 'refund' : 'additional_charge',
+          refundAmount || additionalCharge, paymentMethod, adjustmentDate,
+          `Settlement dari ${adjustment.adjustment_number}`, req.user?.id || null],
+      );
+    }
+
+    await client.query('COMMIT');
+    res.status(201).json({ adjustment, refund_amount: refundAmount, additional_charge: additionalCharge });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message.replace('USER: ', '') });
+    res.status(500).json({ error: err.message });
+  } finally { client.release(); }
+});
+
+router.get('/:id/adjustments', auth, async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT sa.*, COALESCE(json_agg(sai ORDER BY sai.id) FILTER (WHERE sai.id IS NOT NULL), '[]') AS items
+     FROM sales_adjustments sa
+     LEFT JOIN sales_adjustment_items sai ON sai.adjustment_id = sa.id
+     WHERE sa.original_sales_order_id = $1
+     GROUP BY sa.id ORDER BY sa.created_at DESC`,
+    [req.params.id],
+  );
+  res.json(rows);
+});
+
 // PUT update
 router.put('/:id', auth, async (req, res) => {
   const { customer_id, customer_name, customer_address, customer_phone, sale_date, notes, items, status, payment_method, payment_details, channel: rawChannel, due_date, payment_terms, ongkir: rawOngkir, ongkir_cost: rawOngkirCost, package_weight_gram: rawPackageWeightGram, ppn_excluded: rawPpnExcluded } = req.body;
@@ -506,9 +750,13 @@ router.put('/:id', auth, async (req, res) => {
 
     // v1.65.0: Ambil ppn_excluded lama (untuk tracking perubahan di audit fields)
     const { rows: [noteOld] } = await client.query(
-      'SELECT ppn_excluded FROM sales_orders WHERE id = $1 AND is_deleted = FALSE',
+      'SELECT ppn_excluded, payment_status FROM sales_orders WHERE id = $1 AND is_deleted = FALSE FOR UPDATE',
       [req.params.id]
     );
+    if (noteOld?.payment_status === 'paid') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Nota lunas tidak bisa diedit langsung. Gunakan Retur/Tukar Barang atau Edit Catatan.' });
+    }
     const oldPpnExcluded = noteOld?.ppn_excluded ?? false;
     // Tentukan nilai baru (jika tidak dikirim, pertahankan lama)
     const newPpnExcluded = rawPpnExcluded !== undefined ? normalizeBooleanField(rawPpnExcluded) : oldPpnExcluded;
@@ -762,9 +1010,10 @@ router.delete('/:id', auth, async (req, res) => {
     await client.query('BEGIN');
     // Cek nota exists + active
     const { rows: [existing] } = await client.query(
-      'SELECT id, order_number FROM sales_orders WHERE id = $1 AND is_deleted = FALSE', [req.params.id]
+      'SELECT id, order_number, payment_status FROM sales_orders WHERE id = $1 AND is_deleted = FALSE', [req.params.id]
     );
     if (!existing) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
+    if (existing.payment_status === 'paid') { await client.query('ROLLBACK'); return res.status(409).json({ error: 'Nota lunas tidak bisa dihapus langsung. Gunakan Retur/Tukar Barang atau pembatalan resmi.' }); }
 
     // Reverse stock: fetch semua mutations type='out' untuk nota ini, return qty ke batch
     const { rows: outMutations } = await client.query(

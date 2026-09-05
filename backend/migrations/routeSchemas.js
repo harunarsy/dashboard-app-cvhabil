@@ -920,6 +920,75 @@ const migrations = [
       await db.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS ppn_marked_at TIMESTAMP`);
     },
   },
+  {
+    id: '20260905_018_sales_adjustments',
+    async up(db) {
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS sales_audit_log (
+          id SERIAL PRIMARY KEY,
+          sales_order_id INTEGER NOT NULL,
+          action VARCHAR(50) NOT NULL,
+          changed_by INTEGER,
+          changed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          before_snapshot JSONB,
+          after_snapshot JSONB,
+          note TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_sales_audit_order ON sales_audit_log(sales_order_id, changed_at DESC);
+        CREATE TABLE IF NOT EXISTS sales_adjustments (
+          id SERIAL PRIMARY KEY,
+          adjustment_number VARCHAR(60) UNIQUE NOT NULL,
+          original_sales_order_id INTEGER NOT NULL REFERENCES sales_orders(id),
+          type VARCHAR(30) NOT NULL CHECK (type IN ('return', 'exchange', 'price_difference', 'cancellation')),
+          status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'posted', 'void')),
+          reason TEXT NOT NULL,
+          adjustment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+          refund_amount NUMERIC(15,2) NOT NULL DEFAULT 0,
+          additional_charge NUMERIC(15,2) NOT NULL DEFAULT 0,
+          payment_method VARCHAR(30),
+          notes TEXT,
+          created_by INTEGER,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          posted_at TIMESTAMP,
+          voided_at TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_sales_adjustments_order ON sales_adjustments(original_sales_order_id, created_at DESC);
+        CREATE TABLE IF NOT EXISTS sales_adjustment_items (
+          id SERIAL PRIMARY KEY,
+          adjustment_id INTEGER NOT NULL REFERENCES sales_adjustments(id) ON DELETE CASCADE,
+          original_sales_item_id INTEGER REFERENCES sales_items(id),
+          product_id INTEGER,
+          product_name_snapshot VARCHAR(255) NOT NULL,
+          original_batch_id INTEGER,
+          replacement_batch_id INTEGER,
+          qty_base NUMERIC(15,4) NOT NULL,
+          qty_in_unit NUMERIC(15,4),
+          unit VARCHAR(30),
+          unit_price NUMERIC(15,2) NOT NULL DEFAULT 0,
+          line_amount NUMERIC(15,2) NOT NULL DEFAULT 0,
+          direction VARCHAR(20) NOT NULL CHECK (direction IN ('returned', 'replacement')),
+          condition VARCHAR(20) CHECK (condition IN ('saleable', 'damaged', 'quarantine')),
+          source_invoice_id INTEGER,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_sales_adjustment_items_adjustment ON sales_adjustment_items(adjustment_id);
+        CREATE TABLE IF NOT EXISTS sales_settlements (
+          id SERIAL PRIMARY KEY,
+          sales_order_id INTEGER NOT NULL REFERENCES sales_orders(id),
+          adjustment_id INTEGER REFERENCES sales_adjustments(id),
+          type VARCHAR(30) NOT NULL CHECK (type IN ('sale_payment', 'refund', 'additional_charge')),
+          amount NUMERIC(15,2) NOT NULL,
+          payment_method VARCHAR(30),
+          settlement_date DATE NOT NULL DEFAULT CURRENT_DATE,
+          bank_reference VARCHAR(120),
+          notes TEXT,
+          created_by INTEGER,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_sales_settlements_order ON sales_settlements(sales_order_id, settlement_date DESC);
+      `);
+    },
+  },
 ];
 
 const listRouteSchemaMigrations = () => migrations.map(({ id }) => id);

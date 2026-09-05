@@ -1,5 +1,12 @@
 # Feedback Log
 
+## [2026-09-05] - Paid Sale Return/Exchange Audit
+- **HSB-NOTA-2609003** ditemukan sebagai nota final/lunas dengan total `Rp1.968.000`, `paid_at` tersimpan sebagai 2 September 2026 waktu lokal, dan item Tropicana Slim Kecap Manis 200 ml qty 3 pada batch `ANPF03VB` (ED 03 Desember 2026). Audit dilakukan read-only; tidak ada data diubah.
+- **HSB-NOTA-2609014** memiliki dua baris historis: id `382` sudah soft-deleted dan id `383` masih aktif. Baris aktif berstatus final/unpaid, berisi Tropicana Slim Kecap Manis 200 ml qty 10 pada batch `ANQD02VB`, sehingga bukan draft kosong di database.
+- Faktur `4844989` adalah invoice id `295`, status Pending, berisi 10 pcs produk yang sama pada batch `ANQD02VB`. Mutasi `faktur` sudah memasukkan 10 pcs dan mutasi `nota` aktif id `383` sudah mengeluarkan 10 pcs; stok batch saat audit `0`.
+- **Risiko:** memindahkan item dari nota `2609014` atau mengedit nota lunas `2609003` melalui PUT biasa dapat mengubah/menghapus histori mutasi dan membuat pembayaran, stok, serta dokumen tidak konsisten.
+- **Tindakan:** tidak ada write production. Implementasi adjustment/return wajib memakai transaksi append-only dan harus meminta konfirmasi bisnis khusus untuk nota aktif `2609014` sebelum posting.
+
 ## [2026-08-29] - Invoice Reconciliation: DATE & Multi-Unit Form Boundary
 - **PostgreSQL DATE bergeser satu hari di boundary aplikasi**: hasil read-only pada invoice `INVSB1260800500` menunjukkan database menyimpan tanggal `2026-08-05`/`2026-08-26`, sementara UI menampilkan `04/08/2026`/`25/08/2026`. `pg` default mem-parse OID 1082 sebagai JavaScript `Date`; serialisasi UTC kemudian dapat mundur satu hari.
 - **Edit form memakai qty basis, bukan qty satuan faktur**: loader edit/duplikasi membaca `invoice_items.quantity`, padahal untuk unit pack nilai yang diketik operator tersimpan di `qty_in_unit`. Contoh 4 karton dengan pack size 60 dapat terbaca 240 karton.
@@ -13,6 +20,13 @@
 - **Proteksi berhasil**: test memakai DB mock fail-closed; query diblokir sebelum koneksi PostgreSQL dibuat. Tidak ada database write atau schema change yang terjadi.
 - **Dampak**: strict read-only roadmap memasuki HARD STOP sebelum DB regression baseline dijalankan.
 - **Perbaikan minimal**: `ensureSchema()` tidak dijalankan ketika `NODE_ENV=test`; seluruh Phase 0 kemudian diulang dan HTTP smoke membuktikan nol mutating-query attempt. Schema lifecycle jangka panjang tetap dicatat untuk dipindahkan ke migration/deployment step eksplisit, tetapi tidak dikerjakan pada fase ini.
+
+## [2026-08-23] - Current State Audit / Data Integrity
+- **Backend regression suite gagal (15 pass, 3 fail)** saat audit read-only terhadap DB `dev`.
+- **6 grup batch aktif duplikat** berdasarkan `product_id + batch_no + expired_date`: product IDs `2` (`ANQD28DA`, `ANQE21CA`), `5` (`26A0068DVA0`), `16` (`5324022771`), `17` (`26Q2702GU`), dan `24` (`51360017A1`).
+- **2 status PO tidak sinkron**: `HSB-SP-2607005` dan `HSB-SP-2607006` berstatus `sent`, sementara `received_qty = qty` dan `stock_received = TRUE`.
+- **1 batch aktif memiliki stok negatif**: batch ID `108`, product ID `3` (Tropicana Slim Diabtx 150 sachet), batch `FNQC10BB`, `qty_current = -38`, source `invoice-186`.
+- **Tindakan audit**: temuan dicatat tanpa perbaikan data atau code karena scope saat ini hanya pemindaian dan laporan Current State Project.
 
 ## [2026-08-18] - v1.66.8 Data Integrity
 - **Batch pilihan pada Edit Nota tertimpa batch lama ketika HPP sama**: pada `HSB-NOTA-2608032`, form mengirim batch `26Q1102GU`, `26T0205GU`, dan `26R2004GU`, tetapi setelah disimpan data berubah menjadi `26T0205GU`, `26Q1102GU`, dan `26T0205GU`.

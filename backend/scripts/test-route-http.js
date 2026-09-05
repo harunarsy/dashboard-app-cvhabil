@@ -133,6 +133,8 @@ async function run() {
     { method: 'get', url: '/api/distributors', label: 'GET /api/distributors' },
     { method: 'get', url: '/api/customers', label: 'GET /api/customers' },
     { method: 'get', url: '/api/dashboard/bootstrap', label: 'GET /api/dashboard/bootstrap' },
+    { method: 'patch', url: '/api/sales/1/notes', label: 'PATCH /api/sales/:id/notes' },
+    { method: 'get', url: '/api/sales/1/adjustments', label: 'GET /api/sales/:id/adjustments' },
     { method: 'get', url: '/api/insights/customer/1', label: 'GET /api/insights/customer/:id' },
     { method: 'post', url: '/api/ai/recommendations', label: 'POST /api/ai/recommendations' },
   ]) {
