@@ -6450,7 +6450,7 @@ export default function SalesOrderList({
         onClose={() => setVoidAdjustmentTarget(null)}
         onConfirm={confirmVoidAdjustment}
         title="Void Adjustment"
-        message={`Batalkan ${voidAdjustmentTarget?.adjustment_number || "adjustment"}? Stok akan dikembalikan dan settlement pending dibatalkan. Settlement yang sudah masuk Buku Besar tidak dapat di-void dari sini.`}
+        message={`Batalkan ${voidAdjustmentTarget?.adjustment_number || "adjustment"}? Stok barang pengganti akan dikembalikan ke sistem dan status tagihan/refund akan dibatalkan. Pastikan barang fisik belum diserahkan ke customer atau sudah ditarik kembali.`}
         isDarkMode={isDarkMode}
       />
 

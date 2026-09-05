@@ -922,7 +922,7 @@ router.post('/adjustments/:adjustmentId/void', auth, async (req, res) => {
       );
     }
     const { rows: [updated] } = await client.query(
-      `UPDATE sales_adjustments SET status = 'void', voided_at = NOW() WHERE id = $1 RETURNING *`,
+      `UPDATE sales_adjustments SET status = 'void', settlement_status = 'void', voided_at = NOW() WHERE id = $1 RETURNING *`,
       [adjustment.id],
     );
     await client.query(
