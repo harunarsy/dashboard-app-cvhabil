@@ -11,6 +11,7 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 - **Micro-stutter kursor & scroll dieliminasi.** Global `pointermove` capture listener di `App.jsx` dicabut dan digantikan oleh CSS `:active` GPU-accelerated murni; transisi halaman dibuat instan (murni opacity 140ms), dan dimensi skeleton KPI dikunci untuk mencegah Cumulative Layout Shift (CLS).
 - **Aset font disubset ke Latin saja.** Menghentikan import subset Cyrillic/Greek/Vietnamese pada Inter dan JetBrains Mono, memangkas ukuran CSS ~43 kB dan membuang 50+ file woff2 yang tidak digunakan aplikasi Indonesia.
 - **Endpoint komposit `/api/dashboard/bootstrap`.** Menggabungkan pengambilan statistik dashboard dan heatmap per bulan dalam satu network round-trip terpadu, mengurangi koneksi simultan dari browser ke backend serverless.
+- **Workflow retur/tukar barang futureproof.** Nota lunas kini immutable untuk edit/hapus biasa; adjustment mendukung multi-item, batch/ED, invoice sumber, kondisi saleable/rusak/karantina, idempotency, settlement selisih, histori, void inventory, dan dokumen PDF retur/tukar A5/A6.
 
 ### Developer Experience
 - Root project kini menyediakan satu perintah `bun dev` untuk frontend dan backend. Jika environment lokal menunjuk database remote, koneksi backend dipaksa read-only agar inspeksi dan generate PDF tidak dapat mengubah data produksi. Bun hanya menjadi task runner; runtime aplikasi tetap mengikuti konfigurasi Node.js yang sudah terverifikasi.
