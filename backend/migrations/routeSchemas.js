@@ -947,12 +947,17 @@ const migrations = [
           additional_charge NUMERIC(15,2) NOT NULL DEFAULT 0,
           payment_method VARCHAR(30),
           notes TEXT,
+          idempotency_key VARCHAR(120),
           created_by INTEGER,
           created_at TIMESTAMP NOT NULL DEFAULT NOW(),
           posted_at TIMESTAMP,
           voided_at TIMESTAMP
         );
         CREATE INDEX IF NOT EXISTS idx_sales_adjustments_order ON sales_adjustments(original_sales_order_id, created_at DESC);
+        ALTER TABLE sales_adjustments
+          ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(120);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_sales_adjustments_idempotency
+          ON sales_adjustments(idempotency_key) WHERE idempotency_key IS NOT NULL;
         CREATE TABLE IF NOT EXISTS sales_adjustment_items (
           id SERIAL PRIMARY KEY,
           adjustment_id INTEGER NOT NULL REFERENCES sales_adjustments(id) ON DELETE CASCADE,
@@ -961,6 +966,10 @@ const migrations = [
           product_name_snapshot VARCHAR(255) NOT NULL,
           original_batch_id INTEGER,
           replacement_batch_id INTEGER,
+          original_batch_no VARCHAR(100),
+          original_expired_date DATE,
+          replacement_batch_no VARCHAR(100),
+          replacement_expired_date DATE,
           qty_base NUMERIC(15,4) NOT NULL,
           qty_in_unit NUMERIC(15,4),
           unit VARCHAR(30),
@@ -968,10 +977,19 @@ const migrations = [
           line_amount NUMERIC(15,2) NOT NULL DEFAULT 0,
           direction VARCHAR(20) NOT NULL CHECK (direction IN ('returned', 'replacement')),
           condition VARCHAR(20) CHECK (condition IN ('saleable', 'damaged', 'quarantine')),
+          condition_reason TEXT,
           source_invoice_id INTEGER,
+          source_invoice_number VARCHAR(100),
           created_at TIMESTAMP NOT NULL DEFAULT NOW()
         );
         CREATE INDEX IF NOT EXISTS idx_sales_adjustment_items_adjustment ON sales_adjustment_items(adjustment_id);
+        ALTER TABLE sales_adjustment_items
+          ADD COLUMN IF NOT EXISTS condition_reason TEXT,
+          ADD COLUMN IF NOT EXISTS source_invoice_number VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS original_batch_no VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS original_expired_date DATE,
+          ADD COLUMN IF NOT EXISTS replacement_batch_no VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS replacement_expired_date DATE;
         CREATE TABLE IF NOT EXISTS sales_settlements (
           id SERIAL PRIMARY KEY,
           sales_order_id INTEGER NOT NULL REFERENCES sales_orders(id),

@@ -5,7 +5,10 @@ vi.mock('../services/api', () => ({
     getAll: vi.fn(),
     getDraft: vi.fn(),
     saveDraft: vi.fn(),
-    clearDraft: vi.fn()
+    clearDraft: vi.fn(),
+    updateNotes: vi.fn(),
+    getAdjustments: vi.fn(),
+    createAdjustment: vi.fn(),
   },
   customersAPI: {
     getAll: vi.fn()
@@ -18,7 +21,8 @@ vi.mock('../services/api', () => ({
     getFeeProfiles: vi.fn()
   },
   inventoryAPI: {
-    getProducts: vi.fn()
+    getProducts: vi.fn(),
+    getProductBatches: vi.fn()
   },
   printSettingsAPI: {
     get: vi.fn()

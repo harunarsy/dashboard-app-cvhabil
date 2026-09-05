@@ -195,6 +195,21 @@ router.get('/trash', auth, async (req, res) => {
   }
 });
 
+router.get('/:id/adjustments', auth, async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT sa.*, so.order_number, so.customer_name, so.payment_status,
+            COALESCE(json_agg(sai ORDER BY sai.id) FILTER (WHERE sai.id IS NOT NULL), '[]') AS items
+     FROM sales_adjustments sa
+     JOIN sales_orders so ON so.id = sa.original_sales_order_id
+     LEFT JOIN sales_adjustment_items sai ON sai.adjustment_id = sa.id
+     WHERE sa.original_sales_order_id = $1
+     GROUP BY sa.id, so.order_number, so.customer_name, so.payment_status
+     ORDER BY sa.created_at DESC`,
+    [req.params.id],
+  );
+  res.json(rows);
+});
+
 router.get('/:id', auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -503,6 +518,7 @@ router.post('/:id/adjustments', auth, async (req, res) => {
     notes = null,
     adjustment_date: adjustmentDate = null,
     payment_method: paymentMethod = null,
+    idempotency_key: idempotencyKey,
     items = [],
   } = req.body || {};
 
@@ -513,10 +529,31 @@ router.post('/:id/adjustments', auth, async (req, res) => {
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'Minimal satu item adjustment diperlukan' });
   }
+  if (!String(idempotencyKey || '').trim()) {
+    return res.status(400).json({ error: 'idempotency_key wajib diisi agar retry tidak menggandakan retur' });
+  }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const { rows: [existingAdjustment] } = await client.query(
+      'SELECT * FROM sales_adjustments WHERE idempotency_key = $1 FOR UPDATE',
+      [String(idempotencyKey).trim()],
+    );
+    if (existingAdjustment) {
+      const { rows: settlementRows } = await client.query(
+        'SELECT * FROM sales_settlements WHERE adjustment_id = $1 ORDER BY id',
+        [existingAdjustment.id],
+      );
+      await client.query('ROLLBACK');
+      return res.status(200).json({
+        adjustment: existingAdjustment,
+        refund_amount: Number(existingAdjustment.refund_amount) || 0,
+        additional_charge: Number(existingAdjustment.additional_charge) || 0,
+        settlements: settlementRows,
+        idempotent_replay: true,
+      });
+    }
     const { rows: [sale] } = await client.query(
       'SELECT id, order_number, payment_status, is_deleted FROM sales_orders WHERE id = $1 FOR UPDATE',
       [req.params.id],
@@ -574,12 +611,16 @@ router.post('/:id/adjustments', auth, async (req, res) => {
       const batchId = Number(original.batch_id_snapshot);
       if (!Number.isFinite(batchId)) throw Object.assign(new Error('USER: Batch asal item tidak tersedia'), { statusCode: 400 });
       const { rows: [batch] } = await client.query(
-        'SELECT id, product_id FROM inventory_batches WHERE id = $1 FOR UPDATE',
+        'SELECT id, product_id, batch_no, expired_date, hna, tax_type, ppn_rate FROM inventory_batches WHERE id = $1 FOR UPDATE',
         [batchId],
       );
       if (!batch) throw Object.assign(new Error('USER: Batch asal tidak ditemukan'), { statusCode: 400 });
-      if ((item.condition || 'saleable') !== 'saleable') {
-        throw Object.assign(new Error('USER: Kondisi retur selain saleable belum diaktifkan'), { statusCode: 400 });
+      const returnCondition = item.condition || 'saleable';
+      if (!['saleable', 'damaged', 'quarantine'].includes(returnCondition)) {
+        throw Object.assign(new Error('USER: Kondisi retur tidak valid'), { statusCode: 400 });
+      }
+      if (returnCondition !== 'saleable' && !String(item.condition_reason || '').trim()) {
+        throw Object.assign(new Error('USER: Kondisi retur perlu keterangan'), { statusCode: 400 });
       }
 
       const value = qty * Number(original.unit_price || 0);
@@ -590,14 +631,18 @@ router.post('/:id/adjustments', auth, async (req, res) => {
         productId: batch.product_id,
         productName: original.product_name,
         originalBatchId: batchId,
+        originalBatchNo: batch.batch_no,
+        originalExpiredDate: batch.expired_date,
         replacementBatchId: null,
         qty,
         qtyInUnit: Number(item.qty_in_unit || qty),
         unit: item.unit || original.unit || 'pcs',
         unitPrice: Number(original.unit_price || 0),
         value,
-        condition: 'saleable',
+        condition: returnCondition,
+        conditionReason: item.condition_reason || null,
         sourceInvoiceId: null,
+        sourceInvoiceNumber: null,
       });
     }
 
@@ -608,7 +653,7 @@ router.post('/:id/adjustments', auth, async (req, res) => {
         throw Object.assign(new Error('USER: qty dan batch replacement wajib valid'), { statusCode: 400 });
       }
       const { rows: [batch] } = await client.query(
-        `SELECT b.id, b.product_id, b.qty_current, p.name
+        `SELECT b.id, b.product_id, b.qty_current, b.batch_no, b.expired_date, p.name
          FROM inventory_batches b
          JOIN product_master p ON p.id = b.product_id
          WHERE b.id = $1 AND COALESCE(b.is_active, TRUE) = TRUE
@@ -619,12 +664,16 @@ router.post('/:id/adjustments', auth, async (req, res) => {
       if (Number(batch.qty_current) < qty) {
         throw Object.assign(new Error(`USER: Stok replacement tidak cukup (tersedia ${batch.qty_current})`), { statusCode: 400 });
       }
-      if (item.source_invoice_id) {
+      const sourceInvoiceId = Number(item.source_invoice_id);
+      const sourceInvoiceNumber = String(item.source_invoice_number || '').trim();
+      if (sourceInvoiceId || sourceInvoiceNumber) {
         const { rowCount } = await client.query(
           `SELECT 1 FROM inventory_mutations
-           WHERE batch_id = $1 AND reference_type = 'faktur' AND reference_id = $2 AND type = 'in'
+           WHERE batch_id = $1 AND reference_type = 'faktur'
+             AND reference_id = COALESCE($2, (SELECT id FROM invoices WHERE invoice_number = $3 LIMIT 1))
+             AND type = 'in'
            LIMIT 1`,
-          [batchId, item.source_invoice_id],
+          [batchId, Number.isFinite(sourceInvoiceId) && sourceInvoiceId > 0 ? sourceInvoiceId : null, sourceInvoiceNumber || null],
         );
         if (!rowCount) throw Object.assign(new Error('USER: Batch replacement tidak berasal dari invoice yang dipilih'), { statusCode: 400 });
       }
@@ -638,13 +687,16 @@ router.post('/:id/adjustments', auth, async (req, res) => {
         productName: item.product_name || batch.name,
         originalBatchId: null,
         replacementBatchId: batchId,
+        replacementBatchNo: batch.batch_no,
+        replacementExpiredDate: batch.expired_date,
         qty,
         qtyInUnit: Number(item.qty_in_unit || qty),
         unit: item.unit || 'pcs',
         unitPrice,
         value,
         condition: null,
-        sourceInvoiceId: item.source_invoice_id || null,
+        sourceInvoiceId: Number.isFinite(sourceInvoiceId) && sourceInvoiceId > 0 ? sourceInvoiceId : null,
+        sourceInvoiceNumber: sourceInvoiceNumber || null,
       });
     }
 
@@ -653,11 +705,11 @@ router.post('/:id/adjustments', auth, async (req, res) => {
     const { rows: [adjustment] } = await client.query(
       `INSERT INTO sales_adjustments
        (adjustment_number, original_sales_order_id, type, status, reason, adjustment_date,
-        refund_amount, additional_charge, payment_method, notes, created_by, posted_at)
+        refund_amount, additional_charge, payment_method, notes, idempotency_key, created_by, posted_at)
        VALUES ('ADJ-' || TO_CHAR(CURRENT_DATE, 'YYMMDD') || '-' || LPAD(NEXTVAL('sales_adjustments_id_seq')::text, 4, '0'),
-        $1, $2, 'posted', $3, COALESCE($4::date, CURRENT_DATE), $5, $6, $7, $8, $9, NOW())
+         $1, $2, 'posted', $3, COALESCE($4::date, CURRENT_DATE), $5, $6, $7, $8, $9, $10, NOW())
        RETURNING *`,
-      [req.params.id, type, String(reason).trim(), adjustmentDate, refundAmount, additionalCharge, paymentMethod, notes, req.user?.id || null],
+      [req.params.id, type, String(reason).trim(), adjustmentDate, refundAmount, additionalCharge, paymentMethod, notes, String(idempotencyKey).trim(), req.user?.id || null],
     );
 
     for (const item of normalized) {
@@ -665,24 +717,40 @@ router.post('/:id/adjustments', auth, async (req, res) => {
         `INSERT INTO sales_adjustment_items
          (adjustment_id, original_sales_item_id, product_id, product_name_snapshot,
           original_batch_id, replacement_batch_id, qty_base, qty_in_unit, unit,
-          unit_price, line_amount, direction, condition, source_invoice_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+          unit_price, line_amount, direction, condition, condition_reason, source_invoice_id, source_invoice_number,
+          original_batch_no, original_expired_date, replacement_batch_no, replacement_expired_date)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
         [adjustment.id, item.originalSalesItemId, item.productId, item.productName,
           item.originalBatchId, item.replacementBatchId, item.qty, item.qtyInUnit,
           item.unit, item.unitPrice, item.value, item.direction, item.condition,
-          item.sourceInvoiceId],
+          item.conditionReason, item.sourceInvoiceId, item.sourceInvoiceNumber,
+          item.originalBatchNo, item.originalExpiredDate, item.replacementBatchNo, item.replacementExpiredDate],
       );
       const isReturn = item.direction === 'returned';
       const batchId = isReturn ? item.originalBatchId : item.replacementBatchId;
-      await client.query(
-        'UPDATE inventory_batches SET qty_current = qty_current ' + (isReturn ? '+' : '-') + ' $1 WHERE id = $2',
-        [item.qty, batchId],
-      );
+      let mutationBatchId = batchId;
+      if (isReturn && item.condition !== 'saleable') {
+        const { rows: [quarantineBatch] } = await client.query(
+          `INSERT INTO inventory_batches
+           (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, tax_type, ppn_rate, is_active, notes)
+           SELECT product_id, CONCAT(COALESCE(batch_no, 'NO-BATCH'), '-RET-', $1), expired_date, $2, hna,
+                  'sale-adjustment-return', $1, tax_type, ppn_rate, FALSE, $3
+            FROM inventory_batches WHERE id = $4
+            RETURNING id`,
+          [adjustment.id, item.qty, item.conditionReason, batchId],
+        );
+        mutationBatchId = quarantineBatch.id;
+      } else {
+        await client.query(
+          'UPDATE inventory_batches SET qty_current = qty_current ' + (isReturn ? '+' : '-') + ' $1 WHERE id = $2',
+          [item.qty, batchId],
+        );
+      }
       await client.query(
         `INSERT INTO inventory_mutations
          (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by, qty_unit, qty_in_unit)
          VALUES ($1, $2, $3, $4, 'sale-adjustment', $5, $6, $7, $8, $9)`,
-        [item.productId, batchId, isReturn ? 'in' : 'out', item.qty, adjustment.id,
+        [item.productId, mutationBatchId, isReturn ? 'in' : 'out', item.qty, adjustment.id,
           `${isReturn ? 'Retur' : 'Replacement'} dari nota ${sale.order_number} (${adjustment.adjustment_number})`,
           req.user?.id || null, item.unit, item.qtyInUnit],
       );
@@ -708,16 +776,60 @@ router.post('/:id/adjustments', auth, async (req, res) => {
   } finally { client.release(); }
 });
 
-router.get('/:id/adjustments', auth, async (req, res) => {
-  const { rows } = await pool.query(
-    `SELECT sa.*, COALESCE(json_agg(sai ORDER BY sai.id) FILTER (WHERE sai.id IS NOT NULL), '[]') AS items
-     FROM sales_adjustments sa
-     LEFT JOIN sales_adjustment_items sai ON sai.adjustment_id = sa.id
-     WHERE sa.original_sales_order_id = $1
-     GROUP BY sa.id ORDER BY sa.created_at DESC`,
-    [req.params.id],
-  );
-  res.json(rows);
+router.post('/adjustments/:adjustmentId/void', auth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows: [adjustment] } = await client.query(
+      `SELECT sa.*, so.order_number
+       FROM sales_adjustments sa
+       JOIN sales_orders so ON so.id = sa.original_sales_order_id
+       WHERE sa.id = $1 FOR UPDATE`,
+      [req.params.adjustmentId],
+    );
+    if (!adjustment) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Adjustment tidak ditemukan' });
+    }
+    if (adjustment.status !== 'posted') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Hanya adjustment posted yang dapat di-void' });
+    }
+    const { rows: settlements } = await client.query(
+      'SELECT id FROM sales_settlements WHERE adjustment_id = $1 LIMIT 1',
+      [adjustment.id],
+    );
+    if (settlements.length) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Adjustment dengan settlement perlu reversal settlement sebelum void' });
+    }
+    const { rows: mutations } = await client.query(
+      `SELECT * FROM inventory_mutations
+       WHERE reference_type = 'sale-adjustment' AND reference_id = $1
+       ORDER BY id FOR UPDATE`,
+      [adjustment.id],
+    );
+    for (const mutation of mutations) {
+      const delta = mutation.type === 'in' ? -Number(mutation.qty) : Number(mutation.qty);
+      await client.query('UPDATE inventory_batches SET qty_current = qty_current + $1 WHERE id = $2', [delta, mutation.batch_id]);
+      await client.query(
+        `INSERT INTO inventory_mutations
+         (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by, qty_unit, qty_in_unit)
+         VALUES ($1, $2, $3, $4, 'sale-adjustment-void', $5, $6, $7, $8, $9)`,
+        [mutation.product_id, mutation.batch_id, mutation.type === 'in' ? 'out' : 'in', mutation.qty,
+          adjustment.id, `Void adjustment ${adjustment.adjustment_number}`, req.user?.id || null, mutation.qty_unit, mutation.qty_in_unit],
+      );
+    }
+    const { rows: [updated] } = await client.query(
+      `UPDATE sales_adjustments SET status = 'void', voided_at = NOW() WHERE id = $1 RETURNING *`,
+      [adjustment.id],
+    );
+    await client.query('COMMIT');
+    res.json({ adjustment: updated, reversed_mutations: mutations.length });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally { client.release(); }
 });
 
 // PUT update

@@ -300,6 +300,31 @@ export default function SalesOrderList({
   });
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [notesEdit, setNotesEdit] = useState({ open: false, order: null, notes: "", saving: false });
+  const [adjustmentHistory, setAdjustmentHistory] = useState([]);
+  const [adjustmentHistoryLoading, setAdjustmentHistoryLoading] = useState(false);
+  const [adjustmentPrint, setAdjustmentPrint] = useState({ open: false, data: null, format: "A5", saving: false });
+  const [adjustmentModal, setAdjustmentModal] = useState({
+    open: false,
+    order: null,
+    originalItems: [],
+    lines: [],
+    originalItemId: "",
+    item: null,
+    replacementProductId: "",
+    replacementProductName: "",
+    returnQty: "1",
+    replacementQty: "1",
+    replacementBatchId: "",
+    replacementUnitPrice: "",
+    sourceInvoiceId: "",
+    idempotencyKey: "",
+    returnCondition: "saleable",
+    conditionReason: "",
+    reason: "",
+    batches: [],
+    loading: false,
+    saving: false,
+  });
   // v1.49.0: tandai lunas massal (centang beberapa nota → lunas + tanggal serentak)
   const [bulkPay, setBulkPay] = useState({ open: false, date: "", saving: false });
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -1362,6 +1387,189 @@ export default function SalesOrderList({
     }
   };
 
+  const loadReplacementBatches = async (productId) => {
+    if (!productId) {
+      setAdjustmentModal((prev) => ({ ...prev, batches: [], replacementBatchId: "", loading: false }));
+      return;
+    }
+    setAdjustmentModal((prev) => ({ ...prev, loading: true, batches: [], replacementBatchId: "" }));
+    try {
+      const { data } = await inventoryAPI.getProductBatches(productId);
+      const batches = Array.isArray(data) ? data : [];
+      setAdjustmentModal((prev) => ({
+        ...prev,
+        batches,
+        replacementBatchId: String(batches.find((batch) => Number(batch.qty_current) > 0)?.id || ""),
+        loading: false,
+      }));
+    } catch (error) {
+      flash(error.response?.data?.error || error.message, "error");
+      setAdjustmentModal((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
+  const loadLineBatches = async (lineIndex, productId) => {
+    if (!productId) return;
+    setAdjustmentModal((prev) => ({
+      ...prev,
+      lines: prev.lines.map((line, index) => index === lineIndex ? { ...line, loading: true, batches: [], replacementBatchId: "" } : line),
+    }));
+    try {
+      const { data } = await inventoryAPI.getProductBatches(productId);
+      const batches = Array.isArray(data) ? data : [];
+      setAdjustmentModal((prev) => ({
+        ...prev,
+        lines: prev.lines.map((line, index) => index === lineIndex ? {
+          ...line,
+          batches,
+          replacementBatchId: String(batches.find((batch) => Number(batch.qty_current) > 0)?.id || ""),
+          loading: false,
+        } : line),
+      }));
+    } catch (error) {
+      flash(error.response?.data?.error || error.message, "error");
+      setAdjustmentModal((prev) => ({
+        ...prev,
+        lines: prev.lines.map((line, index) => index === lineIndex ? { ...line, loading: false } : line),
+      }));
+    }
+  };
+
+  const openAdjustment = async (order) => {
+    const originalItems = (order.items || []).filter((candidate) => candidate.batch_id_snapshot);
+    if (!originalItems.length) {
+      flash("Nota ini tidak memiliki snapshot batch untuk retur.", "error");
+      return;
+    }
+    const lines = originalItems.map((item) => {
+      const product = products.find(
+        (candidate) => candidate.name?.trim().toLowerCase() === item.product_name?.trim().toLowerCase(),
+      );
+      return {
+        originalItemId: String(item.id),
+        item,
+        replacementProductId: String(product?.id || ""),
+        replacementProductName: product?.name || item.product_name,
+        returnQty: String(item.qty_in_unit || item.qty || 1),
+        replacementQty: String(item.qty_in_unit || item.qty || 1),
+        replacementBatchId: "",
+        replacementUnitPrice: String(item.unit_price || ""),
+        sourceInvoiceNumber: "",
+        returnCondition: "saleable",
+        conditionReason: "",
+        batches: [],
+        loading: false,
+      };
+    });
+    if (lines.some((line) => !line.replacementProductId)) {
+      flash("Ada produk nota yang tidak ditemukan di master produk.", "error");
+      return;
+    }
+    const idempotencyKey = `adjustment-${order.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setAdjustmentModal((prev) => ({
+      ...prev,
+      open: true,
+      order,
+      originalItems,
+      lines,
+      idempotencyKey,
+      loading: true,
+    }));
+    setAdjustmentHistoryLoading(true);
+    try {
+      const { data } = await salesAPI.getAdjustments(order.id);
+      setAdjustmentHistory(Array.isArray(data) ? data : []);
+    } catch (error) {
+      flash(error.response?.data?.error || error.message, "error");
+      setAdjustmentHistory([]);
+    } finally {
+      setAdjustmentHistoryLoading(false);
+    }
+    await Promise.all(lines.map((line, index) => loadLineBatches(index, line.replacementProductId)));
+  };
+
+  const selectOriginalItem = async (itemId) => {
+    const item = adjustmentModal.originalItems.find((candidate) => String(candidate.id) === String(itemId));
+    if (!item) return;
+    const product = products.find(
+      (candidate) => candidate.name?.trim().toLowerCase() === item.product_name?.trim().toLowerCase(),
+    );
+    if (!product) {
+      flash("Produk retur tidak ditemukan di master produk.", "error");
+      return;
+    }
+    setAdjustmentModal((prev) => ({
+      ...prev,
+      originalItemId: String(item.id),
+      item,
+      replacementProductId: String(product.id),
+      replacementProductName: product.name,
+      returnQty: String(item.qty_in_unit || item.qty || 1),
+      replacementQty: String(item.qty_in_unit || item.qty || 1),
+      replacementUnitPrice: String(item.unit_price || ""),
+    }));
+    await loadReplacementBatches(product.id);
+  };
+
+  const saveAdjustment = async () => {
+    if (adjustmentModal.saving || !adjustmentModal.order || !adjustmentModal.lines.length) return;
+    if (!adjustmentModal.reason.trim() || adjustmentModal.lines.some((line) => (
+      !Number.isFinite(Number(line.returnQty)) || Number(line.returnQty) <= 0 ||
+      !Number.isFinite(Number(line.replacementQty)) || Number(line.replacementQty) <= 0 ||
+      !Number.isFinite(Number(line.replacementBatchId)) ||
+      (line.returnCondition !== "saleable" && !line.conditionReason.trim())
+    ))) {
+      flash("Isi alasan, semua qty, batch pengganti, dan keterangan kondisi retur.", "error");
+      return;
+    }
+    setAdjustmentModal((prev) => ({ ...prev, saving: true }));
+    try {
+      const { data: created } = await salesAPI.createAdjustment(adjustmentModal.order.id, {
+        type: "exchange",
+        idempotency_key: adjustmentModal.idempotencyKey,
+        reason: adjustmentModal.reason.trim(),
+        items: adjustmentModal.lines.flatMap((line) => [
+          {
+            direction: "returned",
+            original_sales_item_id: line.item.id,
+            qty_base: Number(line.returnQty),
+            qty_in_unit: Number(line.returnQty),
+            unit: line.item.unit || "pcs",
+            condition: line.returnCondition,
+            condition_reason: line.conditionReason.trim() || undefined,
+          },
+          {
+            direction: "replacement",
+            replacement_batch_id: Number(line.replacementBatchId),
+            qty_base: Number(line.replacementQty),
+            qty_in_unit: Number(line.replacementQty),
+            unit: line.item.unit || "pcs",
+            product_name: line.replacementProductName,
+            unit_price: Number(line.replacementUnitPrice) || 0,
+            source_invoice_number: line.sourceInvoiceNumber.trim() || undefined,
+          },
+        ]),
+      });
+      flash("Retur/tukar berhasil dicatat. Nominal nota asli tetap.");
+      const { data: history } = await salesAPI.getAdjustments(adjustmentModal.order.id);
+      const posted = Array.isArray(history) ? history.find((entry) => entry.id === created.adjustment?.id) || history[0] : null;
+      if (posted) {
+        setAdjustmentPrint({
+          open: true,
+          format: "A5",
+          saving: false,
+          data: { ...posted, order_number: adjustmentModal.order.order_number, customer_name: adjustmentModal.order.customer_name, payment_status: adjustmentModal.order.payment_status },
+        });
+      }
+      setAdjustmentHistory(Array.isArray(history) ? history : []);
+      setAdjustmentModal({ open: false, order: null, originalItems: [], lines: [], originalItemId: "", item: null, replacementProductId: "", replacementProductName: "", returnQty: "1", replacementQty: "1", replacementBatchId: "", replacementUnitPrice: "", sourceInvoiceId: "", idempotencyKey: "", returnCondition: "saleable", conditionReason: "", reason: "", batches: [], loading: false, saving: false });
+      fetchOrders();
+    } catch (error) {
+      flash(error.response?.data?.error || error.message, "error");
+      setAdjustmentModal((prev) => ({ ...prev, saving: false }));
+    }
+  };
+
   // AUDIT-UX-02: error jangan tampil sebagai toast sukses — operator bisa mengira berhasil
   const flash = (msg, type = "success") => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -1395,6 +1603,24 @@ export default function SalesOrderList({
       flash("Gagal membuat PDF: " + e.message, "error");
     } finally {
       setPdfLoading(false);
+    }
+  };
+
+  const handlePrintAdjustment = async () => {
+    if (!adjustmentPrint.data || adjustmentPrint.saving) return;
+    setAdjustmentPrint((prev) => ({ ...prev, saving: true }));
+    try {
+      const { generateAdjustmentPDF } = await importWithReload(() => import("../utils/generateAdjustmentPDF"));
+      const doc = generateAdjustmentPDF(adjustmentPrint.data, {
+        format: adjustmentPrint.format,
+        settings: layoutSettings,
+      });
+      doc.save(`${adjustmentPrint.data.type === "return" ? "Retur" : "Tukar"}_${adjustmentPrint.data.adjustment_number}.pdf`);
+      flash("Dokumen retur/tukar berhasil diunduh");
+      setAdjustmentPrint({ open: false, data: null, format: "A5", saving: false });
+    } catch (error) {
+      flash(`Gagal membuat dokumen retur/tukar: ${error.message}`, "error");
+      setAdjustmentPrint((prev) => ({ ...prev, saving: false }));
     }
   };
 
@@ -3111,29 +3337,57 @@ export default function SalesOrderList({
                           >
                             <MessageCircle size={15} color="var(--color-action)" />
                           </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openPrintOptions(o);
-                            }}
-                            aria-label={`Cetak nota ${o.order_number}`}
-                            title="Cetak PDF"
-                          style={{
-                              background: "var(--color-surface-elevated)",
-                              border: `1px solid ${border}`,
-                              cursor: "pointer",
-                              padding: "0",
-                              width: "40px",
-                              height: "40px",
-                              borderRadius: "10px",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <FileText size={15} color="var(--color-success)" />
-                          </button>
-                          <button
+                           {o.payment_status === "paid" && (
+                           <button
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               if (o.payment_status === "paid") {
+                                 openAdjustment(o);
+                                 return;
+                               }
+                               openPrintOptions(o);
+                             }}
+                             aria-label={`Retur atau tukar barang ${o.order_number}`}
+                             title={o.payment_status === "paid" ? "Retur / Tukar Barang" : "Cetak PDF"}
+                           style={{
+                               background: "var(--color-surface-elevated)",
+                               border: `1px solid ${border}`,
+                               cursor: "pointer",
+                               padding: "0",
+                               width: "40px",
+                               height: "40px",
+                               borderRadius: "10px",
+                               display: "inline-flex",
+                               alignItems: "center",
+                               justifyContent: "center",
+                             }}
+                           >
+                             {o.payment_status === "paid" ? <RotateCcw size={15} color="var(--color-warning)" /> : <FileText size={15} color="var(--color-success)" />}
+                           </button>
+                            )}
+                           <button
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               openPrintOptions(o);
+                             }}
+                             aria-label={`Cetak nota ${o.order_number}`}
+                             title="Cetak PDF"
+                             style={{
+                               background: "var(--color-surface-elevated)",
+                               border: `1px solid ${border}`,
+                               cursor: "pointer",
+                               padding: "0",
+                               width: "40px",
+                               height: "40px",
+                               borderRadius: "10px",
+                               display: "inline-flex",
+                               alignItems: "center",
+                               justifyContent: "center",
+                             }}
+                           >
+                             <FileText size={15} color="var(--color-success)" />
+                           </button>
+                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               // v1.54.0: nota hasil konversi pinjaman dikunci dari edit
@@ -6037,6 +6291,82 @@ export default function SalesOrderList({
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "16px" }}>
                 <button type="button" onClick={() => setNotesEdit({ open: false, order: null, notes: "", saving: false })} disabled={notesEdit.saving} style={{ padding: "10px 16px", border: `1px solid ${border}`, borderRadius: "10px", backgroundColor: "transparent", color: text, fontWeight: 700 }}>Batal</button>
                 <button type="button" onClick={saveNotesEdit} disabled={notesEdit.saving} className="btn-primary" style={{ border: "none", borderRadius: "10px", padding: "10px 16px", color: "#fff", fontWeight: 700 }}>{notesEdit.saving ? "Menyimpan..." : "Simpan Catatan"}</button>
+              </div>
+            </div>
+          </div>,
+        )}
+
+      {adjustmentModal.open &&
+        renderPortal(
+          <div
+            onClick={() => setAdjustmentModal((prev) => ({ ...prev, open: false }))}
+            style={{ position: "fixed", inset: 0, zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backgroundColor: "rgba(0,0,0,0.5)" }}
+          >
+            <div onClick={(e) => e.stopPropagation()} className="ui-motion-modal ui-modal-shell" style={{ width: "100%", maxWidth: "560px", maxHeight: "90vh", overflow: "auto", padding: "24px", backgroundColor: cardBg, borderRadius: "20px", boxShadow: "0 20px 40px rgba(0,0,0,0.25)" }}>
+              <h3 style={{ margin: "0 0 8px", color: text, fontSize: "18px" }}>Retur / Tukar Barang</h3>
+              <p style={{ margin: "0 0 18px", color: sub, fontSize: "13px" }}>
+                {adjustmentModal.order?.order_number} tetap lunas. Nota asli dan pembayaran tidak diubah.
+              </p>
+              {adjustmentModal.lines.map((line, index) => (
+                <div key={line.originalItemId} style={{ padding: "12px", borderRadius: "12px", backgroundColor: "var(--color-surface-elevated)", marginBottom: "12px" }}>
+                  <strong style={{ color: text }}>{index + 1}. {line.item.product_name}</strong>
+                  <div style={{ color: sub, fontSize: "12px", margin: "4px 0 12px" }}>
+                    Batch {line.item.batch_no_snapshot || "-"} · ED {line.item.expired_date_snapshot || "-"} · Terjual {line.item.qty_in_unit || line.item.qty}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                    <label style={labelStyle}>Qty Retur<input type="number" min="0.01" step="0.01" value={line.returnQty} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, returnQty: e.target.value } : candidate) }))} style={inputStyle} /></label>
+                    <label style={labelStyle}>Qty Ganti<input type="number" min="0.01" step="0.01" value={line.replacementQty} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, replacementQty: e.target.value } : candidate) }))} style={inputStyle} /></label>
+                  </div>
+                  <label style={{ ...labelStyle, marginTop: "10px" }}>Produk Pengganti<select value={line.replacementProductId} onChange={(e) => { const product = products.find((candidate) => String(candidate.id) === e.target.value); setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, replacementProductId: e.target.value, replacementProductName: product?.name || "" } : candidate) })); loadLineBatches(index, e.target.value); }} style={inputStyle}>
+                    {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+                  </select></label>
+                  <label style={{ ...labelStyle, marginTop: "10px" }}>Batch Pengganti<select value={line.replacementBatchId} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, replacementBatchId: e.target.value } : candidate) }))} disabled={line.loading} style={inputStyle}>
+                    <option value="">Pilih batch</option>
+                    {line.batches.filter((batch) => Number(batch.qty_current) > 0).map((batch) => <option key={batch.id} value={batch.id}>{batch.batch_no || batch.id} · ED {batch.expired_date || "-"} · stok {batch.qty_current}</option>)}
+                  </select></label>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                    <label style={labelStyle}>Harga Ganti<input type="number" min="0" value={line.replacementUnitPrice} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, replacementUnitPrice: e.target.value } : candidate) }))} style={inputStyle} /></label>
+                    <label style={labelStyle}>Invoice Sumber<input type="text" value={line.sourceInvoiceNumber} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, sourceInvoiceNumber: e.target.value } : candidate) }))} style={inputStyle} placeholder="Opsional" /></label>
+                  </div>
+                  <label style={{ ...labelStyle, marginTop: "10px" }}>Kondisi Retur<select value={line.returnCondition} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, returnCondition: e.target.value } : candidate) }))} style={inputStyle}>
+                    <option value="saleable">ED / masih layak jual</option><option value="damaged">Rusak</option><option value="quarantine">Lainnya / karantina</option>
+                  </select></label>
+                  {line.returnCondition !== "saleable" && <label style={{ ...labelStyle, marginTop: "10px" }}>Keterangan Kondisi<textarea rows={2} value={line.conditionReason} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, conditionReason: e.target.value } : candidate) }))} style={{ ...inputStyle, resize: "vertical" }} /></label>}
+                </div>
+              ))}
+              <div style={{ marginTop: "14px", padding: "12px", borderRadius: "12px", border: `1px solid ${border}` }}>
+                <strong style={{ color: text, fontSize: "13px" }}>Riwayat Penyesuaian</strong>
+                {adjustmentHistoryLoading ? <p style={{ color: sub, fontSize: "12px" }}>Memuat histori...</p> : adjustmentHistory.length === 0 ? <p style={{ color: sub, fontSize: "12px" }}>Belum ada adjustment pada nota ini.</p> : adjustmentHistory.map((entry) => (
+                  <div key={entry.id} style={{ marginTop: "8px", color: sub, fontSize: "12px" }}>
+                    <strong style={{ color: text }}>{entry.adjustment_number}</strong> · {entry.type} · {entry.status}
+                    <div>Refund {fmtRp(entry.refund_amount)} · Tambahan {fmtRp(entry.additional_charge)}</div>
+                  </div>
+                ))}
+              </div>
+              <label style={{ ...labelStyle, marginTop: "14px" }}>Alasan Retur/Tukar<textarea rows={3} value={adjustmentModal.reason} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, reason: e.target.value }))} style={{ ...inputStyle, resize: "vertical" }} placeholder="Contoh: barang retur ditukar dengan batch baru dari faktur 4844989" /></label>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "16px" }}>
+                <button type="button" onClick={() => setAdjustmentModal((prev) => ({ ...prev, open: false }))} disabled={adjustmentModal.saving} style={{ padding: "10px 16px", border: `1px solid ${border}`, borderRadius: "10px", backgroundColor: "transparent", color: text, fontWeight: 700 }}>Batal</button>
+                <button type="button" onClick={saveAdjustment} disabled={adjustmentModal.saving || adjustmentModal.loading} className="btn-primary" style={{ border: "none", borderRadius: "10px", padding: "10px 16px", color: "#fff", fontWeight: 700 }}>{adjustmentModal.saving ? "Memproses..." : "Post Retur / Tukar"}</button>
+              </div>
+            </div>
+          </div>,
+        )}
+
+      {adjustmentPrint.open &&
+        renderPortal(
+          <div
+            onClick={() => setAdjustmentPrint({ open: false, data: null, format: "A5", saving: false })}
+            style={{ position: "fixed", inset: 0, zIndex: 10001, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backgroundColor: "rgba(0,0,0,0.5)" }}
+          >
+            <div onClick={(e) => e.stopPropagation()} className="ui-motion-modal ui-modal-shell" style={{ width: "100%", maxWidth: "420px", padding: "24px", backgroundColor: cardBg, borderRadius: "20px", boxShadow: "0 20px 40px rgba(0,0,0,0.25)" }}>
+              <h3 style={{ margin: "0 0 8px", color: text, fontSize: "18px" }}>Cetak Dokumen Retur/Tukar</h3>
+              <p style={{ margin: "0 0 16px", color: sub, fontSize: "13px" }}>{adjustmentPrint.data?.adjustment_number} siap dicetak untuk customer.</p>
+              <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+                {["A5", "A6"].map((format) => <button key={format} type="button" onClick={() => setAdjustmentPrint((prev) => ({ ...prev, format }))} style={{ flex: 1, padding: "10px", borderRadius: "10px", border: `2px solid ${adjustmentPrint.format === format ? "var(--color-action)" : border}`, background: "transparent", color: text, fontWeight: 700 }}>{format}</button>)}
+              </div>
+              <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                <button type="button" onClick={() => setAdjustmentPrint({ open: false, data: null, format: "A5", saving: false })} disabled={adjustmentPrint.saving} style={{ padding: "10px 16px", border: `1px solid ${border}`, borderRadius: "10px", background: "transparent", color: text, fontWeight: 700 }}>Nanti</button>
+                <button type="button" onClick={handlePrintAdjustment} disabled={adjustmentPrint.saving} className="btn-primary" style={{ border: "none", borderRadius: "10px", padding: "10px 16px", color: "#fff", fontWeight: 700 }}>{adjustmentPrint.saving ? "Membuat..." : `Cetak ${adjustmentPrint.format}`}</button>
               </div>
             </div>
           </div>,
