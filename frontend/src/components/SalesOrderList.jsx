@@ -1577,6 +1577,17 @@ export default function SalesOrderList({
     }
   };
 
+  const selectedAdjustmentLines = adjustmentModal.lines.filter((line) => line.selected);
+  const adjustmentReturnedValue = selectedAdjustmentLines.reduce(
+    (sum, line) => sum + Number(line.returnQty || 0) * Number(line.item.unit_price || 0),
+    0,
+  );
+  const adjustmentReplacementValue = selectedAdjustmentLines.reduce(
+    (sum, line) => sum + Number(line.replacementQty || 0) * Number(line.replacementUnitPrice || 0),
+    0,
+  );
+  const adjustmentDifference = adjustmentReplacementValue - adjustmentReturnedValue;
+
   // AUDIT-UX-02: error jangan tampil sebagai toast sukses — operator bisa mengira berhasil
   const flash = (msg, type = "success") => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -6347,11 +6358,19 @@ export default function SalesOrderList({
                     <label style={labelStyle}>Invoice Sumber<input type="text" value={line.sourceInvoiceNumber} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, sourceInvoiceNumber: e.target.value } : candidate) }))} style={inputStyle} placeholder="Opsional" /></label>
                   </div>
                   <label style={{ ...labelStyle, marginTop: "10px" }}>Kondisi Retur<select value={line.returnCondition} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, returnCondition: e.target.value } : candidate) }))} style={inputStyle}>
-                    <option value="saleable">ED / masih layak jual</option><option value="damaged">Rusak</option><option value="quarantine">Lainnya / karantina</option>
+                    <option value="saleable">Masih layak jual</option><option value="expired">Expired / ED</option><option value="damaged">Rusak</option><option value="quarantine">Lainnya / karantina</option>
                   </select></label>
                   {line.returnCondition !== "saleable" && <label style={{ ...labelStyle, marginTop: "10px" }}>Keterangan Kondisi<textarea rows={2} value={line.conditionReason} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, conditionReason: e.target.value } : candidate) }))} style={{ ...inputStyle, resize: "vertical" }} /></label>}
                 </div>
               ))}
+              <div style={{ marginTop: "14px", padding: "14px", borderRadius: "12px", backgroundColor: "var(--color-selection-subtle)", border: `1px solid ${border}` }}>
+                <strong style={{ color: text, fontSize: "13px" }}>Ringkasan Sebelum Diposting</strong>
+                <div style={{ display: "grid", gap: "4px", marginTop: "8px", color: sub, fontSize: "12px" }}>
+                  <span>Nilai barang retur: <strong style={{ color: text }}>{fmtRp(adjustmentReturnedValue)}</strong></span>
+                  <span>Nilai barang pengganti: <strong style={{ color: text }}>{fmtRp(adjustmentReplacementValue)}</strong></span>
+                  <span>{adjustmentDifference > 0 ? "Customer tambah bayar" : adjustmentDifference < 0 ? "Refund ke customer" : "Tidak ada selisih pembayaran"}: <strong style={{ color: adjustmentDifference === 0 ? "var(--color-success)" : adjustmentDifference > 0 ? "var(--color-warning)" : "var(--color-action)" }}>{fmtRp(Math.abs(adjustmentDifference))}</strong></span>
+                </div>
+              </div>
               <div style={{ marginTop: "14px", padding: "12px", borderRadius: "12px", border: `1px solid ${border}` }}>
                 <strong style={{ color: text, fontSize: "13px" }}>Riwayat Penyesuaian</strong>
                 {adjustmentHistoryLoading ? <p style={{ color: sub, fontSize: "12px" }}>Memuat histori...</p> : adjustmentHistory.length === 0 ? <p style={{ color: sub, fontSize: "12px" }}>Belum ada adjustment pada nota ini.</p> : adjustmentHistory.map((entry) => (
