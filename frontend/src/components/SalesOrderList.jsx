@@ -1448,6 +1448,7 @@ export default function SalesOrderList({
       return {
         originalItemId: String(item.id),
         item,
+        selected: false,
         replacementProductId: String(product?.id || ""),
         replacementProductName: product?.name || item.product_name,
         returnQty: String(item.qty_in_unit || item.qty || 1),
@@ -1486,6 +1487,7 @@ export default function SalesOrderList({
       setAdjustmentHistoryLoading(false);
     }
     await Promise.all(lines.map((line, index) => loadLineBatches(index, line.replacementProductId)));
+    setAdjustmentModal((prev) => ({ ...prev, loading: false }));
   };
 
   const selectOriginalItem = async (itemId) => {
@@ -1513,7 +1515,12 @@ export default function SalesOrderList({
 
   const saveAdjustment = async () => {
     if (adjustmentModal.saving || !adjustmentModal.order || !adjustmentModal.lines.length) return;
-    if (!adjustmentModal.reason.trim() || adjustmentModal.lines.some((line) => (
+    const selectedLines = adjustmentModal.lines.filter((line) => line.selected);
+    if (!selectedLines.length) {
+      flash("Pilih minimal satu barang yang diretur.", "error");
+      return;
+    }
+    if (!adjustmentModal.reason.trim() || selectedLines.some((line) => (
       !Number.isFinite(Number(line.returnQty)) || Number(line.returnQty) <= 0 ||
       !Number.isFinite(Number(line.replacementQty)) || Number(line.replacementQty) <= 0 ||
       !Number.isFinite(Number(line.replacementBatchId)) ||
@@ -1528,7 +1535,7 @@ export default function SalesOrderList({
         type: "exchange",
         idempotency_key: adjustmentModal.idempotencyKey,
         reason: adjustmentModal.reason.trim(),
-        items: adjustmentModal.lines.flatMap((line) => [
+        items: selectedLines.flatMap((line) => [
           {
             direction: "returned",
             original_sales_item_id: line.item.id,
@@ -6320,7 +6327,7 @@ export default function SalesOrderList({
               </p>
               {adjustmentModal.lines.map((line, index) => (
                 <div key={line.originalItemId} style={{ padding: "12px", borderRadius: "12px", backgroundColor: "var(--color-surface-elevated)", marginBottom: "12px" }}>
-                  <strong style={{ color: text }}>{index + 1}. {line.item.product_name}</strong>
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px", color: text, fontWeight: 700 }}><input type="checkbox" checked={line.selected} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, selected: e.target.checked } : candidate) }))} /> {index + 1}. {line.item.product_name}</label>
                   <div style={{ color: sub, fontSize: "12px", margin: "4px 0 12px" }}>
                     Batch {line.item.batch_no_snapshot || "-"} · ED {line.item.expired_date_snapshot || "-"} · Terjual {line.item.qty_in_unit || line.item.qty}
                   </div>

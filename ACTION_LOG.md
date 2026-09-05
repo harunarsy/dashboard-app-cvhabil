@@ -24,6 +24,7 @@
 - Optimasi main-thread & UX animasi: listener global pointermove dicabut, RouteFade instan 140ms murni opacity, skeleton KPI layout shift fixed, active feedback tombol distandarisasi scale(0.97).
 - Optimasi aset & jaringan: font subsetting Latin-only (hemat 43 kB CSS gzipped & 50+ file font), endpoint komposit `/api/dashboard/bootstrap` memangkas 2 request awal jadi 1 round-trip.
 - Workflow adjustment sales dibangun futureproof dan dipush pada commit `2f480f0`: paid-sale guard, notes-only audit, multi-item exchange, source invoice, condition/disposition, idempotency, settlement, void reversal, history API, dan PDF adjustment A5/A6. Tidak ada write production.
+- Targeted schema migration adjustment production berhasil setelah backup PostgreSQL 17.11 berukuran 1.6M; `sales_audit_log`, `sales_adjustments`, `sales_adjustment_items`, dan `sales_settlements` terverifikasi ada. Tidak ada business-data write.
 
 ## ⚠️ Pekerjaan HABIL selalu menyangkut DUA folder
 

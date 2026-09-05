@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const roleGuard = require('../middleware/roleGuard');
 const tax = require('../utils/tax');
 const uom = require('../utils/uom');
 const formDrafts = require('../utils/formDrafts');
@@ -198,12 +199,22 @@ router.get('/trash', auth, async (req, res) => {
 router.get('/:id/adjustments', auth, async (req, res) => {
   const { rows } = await pool.query(
     `SELECT sa.*, so.order_number, so.customer_name, so.payment_status,
+            ss.id AS settlement_id, ss.type AS settlement_type,
+            ss.amount AS settlement_amount, ss.settlement_status,
             COALESCE(json_agg(sai ORDER BY sai.id) FILTER (WHERE sai.id IS NOT NULL), '[]') AS items
      FROM sales_adjustments sa
      JOIN sales_orders so ON so.id = sa.original_sales_order_id
      LEFT JOIN sales_adjustment_items sai ON sai.adjustment_id = sa.id
+     LEFT JOIN LATERAL (
+       SELECT id, type, amount, settlement_status
+       FROM sales_settlements
+       WHERE adjustment_id = sa.id
+       ORDER BY id DESC
+       LIMIT 1
+     ) ss ON TRUE
      WHERE sa.original_sales_order_id = $1
-     GROUP BY sa.id, so.order_number, so.customer_name, so.payment_status
+     GROUP BY sa.id, so.order_number, so.customer_name, so.payment_status,
+              ss.id, ss.type, ss.amount, ss.settlement_status
      ORDER BY sa.created_at DESC`,
     [req.params.id],
   );
@@ -526,7 +537,10 @@ router.post('/:id/adjustments', auth, async (req, res) => {
     return res.status(400).json({ error: 'type harus return, exchange, atau price_difference' });
   }
   if (!String(reason || '').trim()) return res.status(400).json({ error: 'Alasan penyesuaian wajib diisi' });
-  if (!Array.isArray(items) || items.length === 0) {
+  if (type === 'price_difference' && !Number.isFinite(Number(req.body?.difference_amount))) {
+    return res.status(400).json({ error: 'difference_amount wajib berupa angka untuk koreksi nominal' });
+  }
+  if (type !== 'price_difference' && (!Array.isArray(items) || items.length === 0)) {
     return res.status(400).json({ error: 'Minimal satu item adjustment diperlukan' });
   }
   if (!String(idempotencyKey || '').trim()) {
@@ -565,6 +579,35 @@ router.post('/:id/adjustments', auth, async (req, res) => {
     if (sale.payment_status !== 'paid') {
       await client.query('ROLLBACK');
       return res.status(409).json({ error: 'Adjustment hanya dapat dibuat untuk nota lunas' });
+    }
+
+    if (type === 'price_difference') {
+      const difference = Number(req.body.difference_amount);
+      const refundAmount = Math.max(0, -difference);
+      const additionalCharge = Math.max(0, difference);
+      const { rows: [adjustment] } = await client.query(
+        `INSERT INTO sales_adjustments
+         (adjustment_number, original_sales_order_id, type, status, reason, adjustment_date,
+          returned_value, replacement_value, refund_amount, additional_charge, payment_method,
+          notes, idempotency_key, created_by, posted_at)
+         VALUES ('ADJ-' || TO_CHAR(CURRENT_DATE, 'YYMMDD') || '-' || LPAD(NEXTVAL('sales_adjustments_id_seq')::text, 4, '0'),
+          $1, $2, 'posted', $3, COALESCE($4::date, CURRENT_DATE), 0, 0, $5, $6, $7, $8, $9, $10, NOW())
+         RETURNING *`,
+        [req.params.id, type, String(reason).trim(), adjustmentDate, refundAmount, additionalCharge,
+          paymentMethod, notes, String(idempotencyKey).trim(), req.user?.id || null],
+      );
+      if (refundAmount > 0 || additionalCharge > 0) {
+        await client.query(
+          `INSERT INTO sales_settlements
+           (sales_order_id, adjustment_id, type, amount, payment_method, settlement_date, notes, created_by, settlement_status)
+           VALUES ($1, $2, $3, $4, $5, COALESCE($6::date, CURRENT_DATE), $7, $8, 'pending')`,
+          [req.params.id, adjustment.id, refundAmount > 0 ? 'refund' : 'additional_charge',
+            refundAmount || additionalCharge, paymentMethod, adjustmentDate,
+            `Settlement dari ${adjustment.adjustment_number}`, req.user?.id || null],
+        );
+      }
+      await client.query('COMMIT');
+      return res.status(201).json({ adjustment, refund_amount: refundAmount, additional_charge: additionalCharge });
     }
 
     const returned = items.filter((item) => item.direction === 'returned');
@@ -616,14 +659,14 @@ router.post('/:id/adjustments', auth, async (req, res) => {
       );
       if (!batch) throw Object.assign(new Error('USER: Batch asal tidak ditemukan'), { statusCode: 400 });
       const returnCondition = item.condition || 'saleable';
-      if (!['saleable', 'damaged', 'quarantine'].includes(returnCondition)) {
+      if (!['saleable', 'expired', 'damaged', 'quarantine'].includes(returnCondition)) {
         throw Object.assign(new Error('USER: Kondisi retur tidak valid'), { statusCode: 400 });
       }
       if (returnCondition !== 'saleable' && !String(item.condition_reason || '').trim()) {
         throw Object.assign(new Error('USER: Kondisi retur perlu keterangan'), { statusCode: 400 });
       }
 
-      const value = qty * Number(original.unit_price || 0);
+      const value = Number(item.qty_in_unit || qty) * Number(original.unit_price || 0);
       returnedValue += value;
       normalized.push({
         direction: 'returned',
@@ -678,7 +721,7 @@ router.post('/:id/adjustments', auth, async (req, res) => {
         if (!rowCount) throw Object.assign(new Error('USER: Batch replacement tidak berasal dari invoice yang dipilih'), { statusCode: 400 });
       }
       const unitPrice = Number(item.unit_price || 0);
-      const value = qty * unitPrice;
+      const value = Number(item.qty_in_unit || qty) * unitPrice;
       replacementValue += value;
       normalized.push({
         direction: 'replacement',
@@ -705,11 +748,11 @@ router.post('/:id/adjustments', auth, async (req, res) => {
     const { rows: [adjustment] } = await client.query(
       `INSERT INTO sales_adjustments
        (adjustment_number, original_sales_order_id, type, status, reason, adjustment_date,
-        refund_amount, additional_charge, payment_method, notes, idempotency_key, created_by, posted_at)
+        returned_value, replacement_value, refund_amount, additional_charge, payment_method, notes, idempotency_key, created_by, posted_at)
        VALUES ('ADJ-' || TO_CHAR(CURRENT_DATE, 'YYMMDD') || '-' || LPAD(NEXTVAL('sales_adjustments_id_seq')::text, 4, '0'),
-         $1, $2, 'posted', $3, COALESCE($4::date, CURRENT_DATE), $5, $6, $7, $8, $9, $10, NOW())
+         $1, $2, 'posted', $3, COALESCE($4::date, CURRENT_DATE), $5, $6, $7, $8, $9, $10, $11, $12, NOW())
        RETURNING *`,
-      [req.params.id, type, String(reason).trim(), adjustmentDate, refundAmount, additionalCharge, paymentMethod, notes, String(idempotencyKey).trim(), req.user?.id || null],
+      [req.params.id, type, String(reason).trim(), adjustmentDate, returnedValue, replacementValue, refundAmount, additionalCharge, paymentMethod, notes, String(idempotencyKey).trim(), req.user?.id || null],
     );
 
     for (const item of normalized) {
@@ -776,7 +819,7 @@ router.post('/:id/adjustments', auth, async (req, res) => {
   } finally { client.release(); }
 });
 
-router.post('/adjustments/:adjustmentId/settle', auth, async (req, res) => {
+router.post('/adjustments/:adjustmentId/settle', auth, roleGuard('direktur'), async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -1367,24 +1410,45 @@ router.patch('/:id/payment-status', auth, async (req, res) => {
   if (!['unpaid', 'paid'].includes(payment_status)) {
     return res.status(400).json({ error: 'payment_status must be unpaid or paid' });
   }
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
+    const { rows: [existing] } = await client.query(
+      'SELECT payment_status FROM sales_orders WHERE id = $1 AND is_deleted = FALSE FOR UPDATE',
+      [req.params.id],
+    );
+    if (!existing) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Nota not found' });
+    }
+    if (existing.payment_status === 'paid' && payment_status === 'unpaid') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Pembayaran nota lunas tidak bisa dibatalkan dari jalur biasa. Gunakan adjustment resmi.' });
+    }
     let paid_at = null;
     if (payment_status === 'paid') {
       if (req.body.paid_at) {
         const d = new Date(req.body.paid_at);
-        if (isNaN(d.getTime())) return res.status(400).json({ error: 'Format tanggal paid_at tidak valid' });
+        if (isNaN(d.getTime())) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: 'Format tanggal paid_at tidak valid' });
+        }
         paid_at = d;
       } else {
         paid_at = new Date();
       }
     }
-    const { rowCount } = await pool.query(
+    const { rowCount } = await client.query(
       'UPDATE sales_orders SET payment_status = $1, paid_at = $2, updated_at = NOW() WHERE id = $3 AND is_deleted = FALSE',
       [payment_status, paid_at, req.params.id]
     );
-    if (!rowCount) return res.status(404).json({ error: 'Nota not found' });
+    if (!rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
+    await client.query('COMMIT');
     res.json({ message: 'Status pembayaran diperbarui', payment_status, paid_at });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally { client.release(); }
 });
 
 module.exports = router;

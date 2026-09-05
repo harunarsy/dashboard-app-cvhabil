@@ -22,7 +22,11 @@ export function generateAdjustmentPDF(adjustment, options = {}) {
   const width = doc.internal.pageSize.getWidth();
   const margin = isA6 ? 5 : 8;
   const settings = options.settings || {};
-  const title = adjustment.type === "return" ? "RETUR PENJUALAN" : "TUKAR BARANG";
+  const title = adjustment.type === "return"
+    ? "RETUR PENJUALAN"
+    : adjustment.type === "price_difference"
+      ? "KOREKSI NOMINAL"
+      : "TUKAR BARANG";
   const items = Array.isArray(adjustment.items) ? adjustment.items : [];
   const returned = items.filter((item) => item.direction === "returned");
   const replacements = items.filter((item) => item.direction === "replacement");
@@ -96,7 +100,9 @@ export function generateAdjustmentPDF(adjustment, options = {}) {
   doc.text(`Nilai Pengganti: ${fmtRp(replacementValue)}`, margin, finalY + (isA6 ? 3.5 : 5));
   const settlement = Number(adjustment.additional_charge) > 0
     ? `Tambahan Bayar: ${fmtRp(adjustment.additional_charge)}`
-    : `Refund: ${fmtRp(adjustment.refund_amount)}`;
+    : Number(adjustment.refund_amount) > 0
+      ? `Refund: ${fmtRp(adjustment.refund_amount)}`
+      : "Selisih: Rp0";
   doc.text(settlement, width - margin, finalY, { align: "right" });
   doc.setFont("helvetica", "normal");
   doc.text("Dokumen penyesuaian. Nota asal tetap menjadi dokumen transaksi utama.", margin, finalY + (isA6 ? 9 : 13));

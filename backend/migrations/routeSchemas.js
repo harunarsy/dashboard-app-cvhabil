@@ -943,6 +943,8 @@ const migrations = [
           status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'posted', 'void')),
           reason TEXT NOT NULL,
           adjustment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+          returned_value NUMERIC(15,2) NOT NULL DEFAULT 0,
+          replacement_value NUMERIC(15,2) NOT NULL DEFAULT 0,
           refund_amount NUMERIC(15,2) NOT NULL DEFAULT 0,
           additional_charge NUMERIC(15,2) NOT NULL DEFAULT 0,
           payment_method VARCHAR(30),
@@ -957,7 +959,9 @@ const migrations = [
         );
         CREATE INDEX IF NOT EXISTS idx_sales_adjustments_order ON sales_adjustments(original_sales_order_id, created_at DESC);
         ALTER TABLE sales_adjustments
-          ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(120);
+          ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(120),
+          ADD COLUMN IF NOT EXISTS returned_value NUMERIC(15,2) NOT NULL DEFAULT 0,
+          ADD COLUMN IF NOT EXISTS replacement_value NUMERIC(15,2) NOT NULL DEFAULT 0;
         CREATE UNIQUE INDEX IF NOT EXISTS idx_sales_adjustments_idempotency
           ON sales_adjustments(idempotency_key) WHERE idempotency_key IS NOT NULL;
         CREATE TABLE IF NOT EXISTS sales_adjustment_items (
@@ -992,6 +996,10 @@ const migrations = [
           ADD COLUMN IF NOT EXISTS original_expired_date DATE,
           ADD COLUMN IF NOT EXISTS replacement_batch_no VARCHAR(100),
           ADD COLUMN IF NOT EXISTS replacement_expired_date DATE;
+        ALTER TABLE sales_adjustment_items DROP CONSTRAINT IF EXISTS sales_adjustment_items_condition_check;
+        ALTER TABLE sales_adjustment_items
+          ADD CONSTRAINT sales_adjustment_items_condition_check
+          CHECK (condition IN ('saleable', 'expired', 'damaged', 'quarantine'));
         CREATE TABLE IF NOT EXISTS sales_settlements (
           id SERIAL PRIMARY KEY,
           sales_order_id INTEGER NOT NULL REFERENCES sales_orders(id),

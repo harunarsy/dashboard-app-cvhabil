@@ -135,6 +135,7 @@ async function run() {
     { method: 'get', url: '/api/dashboard/bootstrap', label: 'GET /api/dashboard/bootstrap' },
     { method: 'patch', url: '/api/sales/1/notes', label: 'PATCH /api/sales/:id/notes' },
     { method: 'get', url: '/api/sales/1/adjustments', label: 'GET /api/sales/:id/adjustments' },
+    { method: 'post', url: '/api/sales/1/adjustments', label: 'POST /api/sales/:id/adjustments' },
     { method: 'post', url: '/api/sales/adjustments/1/void', label: 'POST /api/sales/adjustments/:id/void' },
     { method: 'post', url: '/api/sales/adjustments/1/settle', label: 'POST /api/sales/adjustments/:id/settle' },
     { method: 'get', url: '/api/insights/customer/1', label: 'GET /api/insights/customer/:id' },
