@@ -263,6 +263,9 @@ export default function SalesOrderList({
   // Auto-buka modal create saat datang dari Akses Cepat Dashboard (state quickCreate).
   const location = useLocation();
   useEffect(() => {
+    if (new URLSearchParams(location.search).get("tab") === "pinjaman") {
+      setPageTab("pinjaman");
+    }
     if (location.state?.quickCreate) {
       setShowModal(true);
       window.history.replaceState({}, document.title); // cegah re-open saat reload/back
@@ -272,7 +275,7 @@ export default function SalesOrderList({
       setPageTab("pinjaman");
       window.history.replaceState({}, document.title);
     }
-  }, [location.state]);
+  }, [location.search, location.state]);
   // Mobile: form & preview tidak muat berdampingan → tab; filter dilipat default
   const [formTab, setFormTab] = useState("form"); // 'form' | 'preview'
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -1640,6 +1643,15 @@ export default function SalesOrderList({
       flash(`Gagal membuat dokumen retur/tukar: ${error.message}`, "error");
       setAdjustmentPrint((prev) => ({ ...prev, saving: false }));
     }
+  };
+
+  const openAdjustmentPrint = (entry) => {
+    setAdjustmentPrint({
+      open: true,
+      format: "A5",
+      saving: false,
+      data: entry,
+    });
   };
 
   const confirmAdjustmentSettlement = async (entry) => {
@@ -6377,6 +6389,8 @@ export default function SalesOrderList({
                   <div key={entry.id} style={{ marginTop: "8px", color: sub, fontSize: "12px" }}>
                     <strong style={{ color: text }}>{entry.adjustment_number}</strong> · {entry.type} · {entry.status}
                     <div>Refund {fmtRp(entry.refund_amount)} · Tambahan {fmtRp(entry.additional_charge)}</div>
+                    <div>Settlement: {entry.settlement_status === "confirmed" ? "Sudah dikonfirmasi" : Number(entry.refund_amount || entry.additional_charge) > 0 ? "Belum dikonfirmasi" : "Tidak diperlukan"}</div>
+                    <button type="button" onClick={() => openAdjustmentPrint(entry)} style={{ marginTop: "6px", padding: "6px 8px", border: `1px solid ${border}`, borderRadius: "7px", background: "transparent", color: "var(--color-action)", fontWeight: 700, fontSize: "11px" }}>Cetak ulang A5/A6</button>
                   </div>
                 ))}
                 {adjustmentHistory.map((entry) => entry.settlement_status === "pending" && Number(entry.refund_amount || entry.additional_charge) > 0 && (

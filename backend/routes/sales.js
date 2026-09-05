@@ -198,15 +198,20 @@ router.get('/trash', auth, async (req, res) => {
 
 router.get('/:id/adjustments', auth, async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT sa.*, so.order_number, so.customer_name, so.payment_status,
+    `SELECT sa.*,
+            COALESCE(sa.original_order_number, so.order_number) AS order_number,
+            COALESCE(sa.original_customer_name, so.customer_name) AS customer_name,
+            COALESCE(sa.original_payment_status, so.payment_status) AS payment_status,
             ss.id AS settlement_id, ss.type AS settlement_type,
             ss.amount AS settlement_amount, ss.settlement_status,
+            ss.payment_method AS settlement_payment_method,
+            ss.settlement_date,
             COALESCE(json_agg(sai ORDER BY sai.id) FILTER (WHERE sai.id IS NOT NULL), '[]') AS items
      FROM sales_adjustments sa
      JOIN sales_orders so ON so.id = sa.original_sales_order_id
      LEFT JOIN sales_adjustment_items sai ON sai.adjustment_id = sa.id
      LEFT JOIN LATERAL (
-       SELECT id, type, amount, settlement_status
+       SELECT id, type, amount, settlement_status, payment_method, settlement_date
        FROM sales_settlements
        WHERE adjustment_id = sa.id
        ORDER BY id DESC
@@ -214,7 +219,8 @@ router.get('/:id/adjustments', auth, async (req, res) => {
      ) ss ON TRUE
      WHERE sa.original_sales_order_id = $1
      GROUP BY sa.id, so.order_number, so.customer_name, so.payment_status,
-              ss.id, ss.type, ss.amount, ss.settlement_status
+              ss.id, ss.type, ss.amount, ss.settlement_status,
+              ss.payment_method, ss.settlement_date
      ORDER BY sa.created_at DESC`,
     [req.params.id],
   );
@@ -569,7 +575,8 @@ router.post('/:id/adjustments', auth, async (req, res) => {
       });
     }
     const { rows: [sale] } = await client.query(
-      'SELECT id, order_number, payment_status, is_deleted FROM sales_orders WHERE id = $1 FOR UPDATE',
+      `SELECT id, order_number, customer_name, sale_date, total, payment_status, paid_at, is_deleted
+       FROM sales_orders WHERE id = $1 FOR UPDATE`,
       [req.params.id],
     );
     if (!sale || sale.is_deleted) {
@@ -588,13 +595,19 @@ router.post('/:id/adjustments', auth, async (req, res) => {
       const { rows: [adjustment] } = await client.query(
         `INSERT INTO sales_adjustments
          (adjustment_number, original_sales_order_id, type, status, reason, adjustment_date,
+          original_order_number, original_sale_date, original_total, original_payment_status,
+          original_paid_amount, original_paid_at, original_customer_name,
           returned_value, replacement_value, refund_amount, additional_charge, payment_method,
           notes, idempotency_key, created_by, posted_at)
          VALUES ('ADJ-' || TO_CHAR(CURRENT_DATE, 'YYMMDD') || '-' || LPAD(NEXTVAL('sales_adjustments_id_seq')::text, 4, '0'),
-          $1, $2, 'posted', $3, COALESCE($4::date, CURRENT_DATE), 0, 0, $5, $6, $7, $8, $9, $10, NOW())
+          $1, $2, 'posted', $3, COALESCE($4::date, CURRENT_DATE),
+          $5, $6, $7, $8, $9, $10, $11,
+          0, 0, $12, $13, $14, $15, $16, $17, NOW())
          RETURNING *`,
-        [req.params.id, type, String(reason).trim(), adjustmentDate, refundAmount, additionalCharge,
-          paymentMethod, notes, String(idempotencyKey).trim(), req.user?.id || null],
+        [req.params.id, type, String(reason).trim(), adjustmentDate,
+          sale.order_number, sale.sale_date, sale.total, sale.payment_status,
+          sale.payment_status === 'paid' ? sale.total : 0, sale.paid_at, sale.customer_name,
+          refundAmount, additionalCharge, paymentMethod, notes, String(idempotencyKey).trim(), req.user?.id || null],
       );
       if (refundAmount > 0 || additionalCharge > 0) {
         await client.query(
@@ -748,11 +761,18 @@ router.post('/:id/adjustments', auth, async (req, res) => {
     const { rows: [adjustment] } = await client.query(
       `INSERT INTO sales_adjustments
        (adjustment_number, original_sales_order_id, type, status, reason, adjustment_date,
+        original_order_number, original_sale_date, original_total, original_payment_status,
+        original_paid_amount, original_paid_at, original_customer_name,
         returned_value, replacement_value, refund_amount, additional_charge, payment_method, notes, idempotency_key, created_by, posted_at)
        VALUES ('ADJ-' || TO_CHAR(CURRENT_DATE, 'YYMMDD') || '-' || LPAD(NEXTVAL('sales_adjustments_id_seq')::text, 4, '0'),
-         $1, $2, 'posted', $3, COALESCE($4::date, CURRENT_DATE), $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+         $1, $2, 'posted', $3, COALESCE($4::date, CURRENT_DATE),
+         $5, $6, $7, $8, $9, $10, $11,
+         $12, $13, $14, $15, $16, $17, $18, $19, NOW())
        RETURNING *`,
-      [req.params.id, type, String(reason).trim(), adjustmentDate, returnedValue, replacementValue, refundAmount, additionalCharge, paymentMethod, notes, String(idempotencyKey).trim(), req.user?.id || null],
+      [req.params.id, type, String(reason).trim(), adjustmentDate,
+        sale.order_number, sale.sale_date, sale.total, sale.payment_status,
+        sale.payment_status === 'paid' ? sale.total : 0, sale.paid_at, sale.customer_name,
+        returnedValue, replacementValue, refundAmount, additionalCharge, paymentMethod, notes, String(idempotencyKey).trim(), req.user?.id || null],
     );
 
     for (const item of normalized) {

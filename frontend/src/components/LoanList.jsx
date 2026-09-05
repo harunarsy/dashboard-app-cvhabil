@@ -107,6 +107,7 @@ export default function LoanList({ isDarkMode, isMobile }) {
 
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("active");
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState("");
   const [toastType, setToastType] = useState("success");
@@ -481,6 +482,12 @@ export default function LoanList({ isDarkMode, isMobile }) {
 
   // ─── Derived ───────────────────────────────────────────────────────────
   const activeLoans = loans.filter((l) => l.status !== "selesai");
+  const completedLoans = loans.filter((l) => l.status === "selesai");
+  const visibleLoans = statusFilter === "all"
+    ? loans
+    : statusFilter === "completed"
+      ? completedLoans
+      : activeLoans;
   const overdueLoans = activeLoans.filter((l) => {
     const d = daysUntil(l.due_date);
     return d !== null && d < 0 && loanOutstanding(l) > 0;
@@ -591,7 +598,7 @@ export default function LoanList({ isDarkMode, isMobile }) {
             whiteSpace: "nowrap",
           }}
         >
-          {activeLoans.length} pinjaman aktif
+           {activeLoans.length} pinjaman aktif · {completedLoans.length} selesai
           {overdueLoans.length > 0 && (
             <span style={{ color: "var(--color-danger)", fontWeight: 800 }}>
               {" "}
@@ -602,20 +609,30 @@ export default function LoanList({ isDarkMode, isMobile }) {
       </div>
 
       {/* List */}
-      {loading ? (
+       <div style={{ display: "flex", gap: "6px", marginBottom: "12px", flexWrap: "wrap" }}>
+         {[
+           ["active", `Aktif (${activeLoans.length})`],
+           ["completed", `Selesai (${completedLoans.length})`],
+           ["all", `Semua (${loans.length})`],
+         ].map(([key, label]) => (
+           <button key={key} type="button" onClick={() => setStatusFilter(key)} className="ui-motion-button" style={{ padding: "7px 10px", borderRadius: "8px", border: `1px solid ${statusFilter === key ? "var(--color-action)" : border}`, background: statusFilter === key ? "var(--color-selection)" : "transparent", color: statusFilter === key ? "var(--color-action)" : sub, fontWeight: 700, fontSize: "12px" }}>{label}</button>
+         ))}
+       </div>
+
+       {loading ? (
         <div style={{ color: sub, fontSize: "13px", padding: "2rem 0" }}>
           Memuat pinjaman…
         </div>
-      ) : loans.length === 0 ? (
-        <EmptyState
-          icon={EmptyStateIcons.cart}
-          title="Belum ada pinjaman"
-          description={'Klik "Pinjam Barang" untuk mencatat barang yang dipinjam customer — stok langsung terpotong dan bisa cetak Nota Pinjaman.'}
+       ) : visibleLoans.length === 0 ? (
+         <EmptyState
+           icon={EmptyStateIcons.cart}
+           title={statusFilter === "completed" ? "Belum ada riwayat pinjaman selesai" : "Belum ada pinjaman aktif"}
+           description={statusFilter === "completed" ? "Pilih Semua untuk melihat seluruh riwayat pinjaman." : 'Klik "Pinjam Barang" untuk mencatat barang yang dipinjam customer — stok langsung terpotong dan bisa cetak Nota Pinjaman.'}
           isDarkMode={isDarkMode}
         />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          {loans.map((loan) => {
+           {visibleLoans.map((loan) => {
             const isOpen = expandedId === loan.id;
             const outstanding = loanOutstanding(loan);
             return (

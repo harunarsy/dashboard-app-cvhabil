@@ -943,6 +943,13 @@ const migrations = [
           status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'posted', 'void')),
           reason TEXT NOT NULL,
           adjustment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+          original_order_number VARCHAR(50),
+          original_sale_date DATE,
+          original_total NUMERIC(15,2) NOT NULL DEFAULT 0,
+          original_payment_status VARCHAR(20),
+          original_paid_amount NUMERIC(15,2) NOT NULL DEFAULT 0,
+          original_paid_at TIMESTAMP,
+          original_customer_name VARCHAR(150),
           returned_value NUMERIC(15,2) NOT NULL DEFAULT 0,
           replacement_value NUMERIC(15,2) NOT NULL DEFAULT 0,
           refund_amount NUMERIC(15,2) NOT NULL DEFAULT 0,
@@ -960,6 +967,13 @@ const migrations = [
         CREATE INDEX IF NOT EXISTS idx_sales_adjustments_order ON sales_adjustments(original_sales_order_id, created_at DESC);
         ALTER TABLE sales_adjustments
           ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(120),
+          ADD COLUMN IF NOT EXISTS original_order_number VARCHAR(50),
+          ADD COLUMN IF NOT EXISTS original_sale_date DATE,
+          ADD COLUMN IF NOT EXISTS original_total NUMERIC(15,2) NOT NULL DEFAULT 0,
+          ADD COLUMN IF NOT EXISTS original_payment_status VARCHAR(20),
+          ADD COLUMN IF NOT EXISTS original_paid_amount NUMERIC(15,2) NOT NULL DEFAULT 0,
+          ADD COLUMN IF NOT EXISTS original_paid_at TIMESTAMP,
+          ADD COLUMN IF NOT EXISTS original_customer_name VARCHAR(150),
           ADD COLUMN IF NOT EXISTS returned_value NUMERIC(15,2) NOT NULL DEFAULT 0,
           ADD COLUMN IF NOT EXISTS replacement_value NUMERIC(15,2) NOT NULL DEFAULT 0;
         CREATE UNIQUE INDEX IF NOT EXISTS idx_sales_adjustments_idempotency

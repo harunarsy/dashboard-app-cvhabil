@@ -53,9 +53,11 @@ export function generateAdjustmentPDF(adjustment, options = {}) {
 
   const customerY = metaY + meta.length * (isA6 ? 3.5 : 4.5) + 2;
   doc.setFont("helvetica", "bold");
-  doc.text(`Customer: ${adjustment.customer_name || "-"}`, margin, customerY);
+  doc.text(`Customer: ${adjustment.original_customer_name || adjustment.customer_name || "-"}`, margin, customerY);
   doc.setFont("helvetica", "normal");
   doc.text(`Alasan: ${adjustment.reason || "-"}`, margin, customerY + (isA6 ? 3.5 : 4.5));
+  doc.text(`Nota utama: ${fmtRp(adjustment.original_total)}`, margin, customerY + (isA6 ? 7 : 9));
+  doc.text(`Sudah dibayar: ${fmtRp(adjustment.original_paid_amount)}${adjustment.original_paid_at ? ` (${safeDate(adjustment.original_paid_at)})` : ""}`, margin, customerY + (isA6 ? 10.5 : 13.5));
 
   const rows = [
     ...returned.map((item) => [
@@ -83,7 +85,7 @@ export function generateAdjustmentPDF(adjustment, options = {}) {
   const replacementValue = replacements.reduce((sum, item) => sum + (Number(item.line_amount) || 0), 0);
 
   autoTable(doc, {
-    startY: customerY + (isA6 ? 7 : 9),
+    startY: customerY + (isA6 ? 14 : 18),
     head: [["Jenis", "Produk", "Qty", "Unit", "Batch", "ED", "Nilai", "Keterangan"]],
     body: rows.length ? rows : [["-", "Tidak ada item", "-", "-", "-", "-", fmtRp(0), "-"]],
     theme: "grid",
@@ -104,7 +106,15 @@ export function generateAdjustmentPDF(adjustment, options = {}) {
       ? `Refund: ${fmtRp(adjustment.refund_amount)}`
       : "Selisih: Rp0";
   doc.text(settlement, width - margin, finalY, { align: "right" });
+  const totalAfter = Number(adjustment.original_paid_amount || adjustment.original_total || 0) + Number(adjustment.additional_charge || 0) - Number(adjustment.refund_amount || 0);
+  doc.text(`Total penerimaan setelah adjustment: ${fmtRp(totalAfter)}`, width - margin, finalY + (isA6 ? 3.5 : 5), { align: "right" });
+  const settlementStatus = adjustment.settlement_status === "confirmed"
+    ? `Settlement: Sudah dikonfirmasi${adjustment.settlement_payment_method ? ` (${adjustment.settlement_payment_method})` : ""}${adjustment.settlement_date ? ` · ${safeDate(adjustment.settlement_date)}` : ""}`
+    : Number(adjustment.additional_charge || adjustment.refund_amount) > 0
+      ? "Settlement: Belum dikonfirmasi"
+      : "Settlement: Tidak diperlukan";
+  doc.text(settlementStatus, margin, finalY + (isA6 ? 14 : 18));
   doc.setFont("helvetica", "normal");
-  doc.text("Dokumen penyesuaian. Nota asal tetap menjadi dokumen transaksi utama.", margin, finalY + (isA6 ? 9 : 13));
+  doc.text("Dokumen penyesuaian. Nota asal tetap menjadi dokumen transaksi utama.", margin, finalY + (isA6 ? 18 : 23));
   return doc;
 }

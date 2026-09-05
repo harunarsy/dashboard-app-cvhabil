@@ -27,6 +27,7 @@
 - Targeted schema migration adjustment production berhasil setelah backup PostgreSQL 17.11 berukuran 1.6M; `sales_audit_log`, `sales_adjustments`, `sales_adjustment_items`, dan `sales_settlements` terverifikasi ada. Tidak ada business-data write.
 - Schema delta adjustment production berhasil diterapkan setelah backup kedua PostgreSQL 17.11. Commit `d8e006b` sukses dideploy; `/api/sales/368/adjustments` dan `/api/sales/383/adjustments` authenticated `200`, adjustment/settlement count tetap `0 -> 0`. Tidak ada nota, stok, atau ledger yang diubah.
 - Final production test flow dipush pada commit `fc47c14`; Vercel frontend/backend dan CI sukses. Selector item kini eksplisit; `HSB-NOTA-2609003` dan `HSB-NOTA-2609014` tetap unchanged, adjustment/settlement count production tetap `0`.
+- Snapshot nota utama adjustment, PDF A5/A6 lengkap, cetak ulang histori, status settlement, serta sidebar/filter Pinjaman sudah selesai lokal dan terverifikasi lewat 43 frontend tests. Snapshot schema production diterapkan setelah backup ketiga 1.6M tanpa write business data.
 
 ## ⚠️ Pekerjaan HABIL selalu menyangkut DUA folder
 

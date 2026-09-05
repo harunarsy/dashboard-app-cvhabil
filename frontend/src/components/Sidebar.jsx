@@ -126,6 +126,7 @@ export default function Sidebar({
       active: true,
     },
     { icon: FileText, label: "Nota Penjualan", path: "/sales", active: true },
+    { icon: Briefcase, label: "Pinjaman Produk", path: "/sales?tab=pinjaman", active: true },
     { icon: Boxes, label: "Inventory", path: "/inventory", active: true },
     { icon: Users, label: "Customer", path: "/customers", active: true },
     { icon: Truck, label: "Distributor", path: "/distributors", active: true },
@@ -581,7 +582,7 @@ export default function Sidebar({
           {menuItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = item.active;
-            const isCurrent = location.pathname === item.path;
+            const isCurrent = `${location.pathname}${location.search || ""}` === item.path;
             const showLabel = isMobile || isSidebarOpen;
             const menuButton = (
               <button
