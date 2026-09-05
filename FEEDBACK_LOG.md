@@ -1,5 +1,12 @@
 # Feedback Log
 
+## [2026-09-05] - Sales Adjustment Quantity Mismatch
+- **Adjustment nyata `ADJ-260905-0002` sudah dipost di production saat uji UI.** Nota asal `HSB-NOTA-2609003` menerima retur 3 pcs Tropicana Slim Kecap Manis 200 ml batch `ANPF03VB` senilai Rp87.000, tetapi replacement yang terpost adalah 10 pcs batch `ANQD02VB` senilai Rp325.000.
+- **Dampak finansial saat ini:** adjustment mencatat additional charge Rp238.000 dan settlement masih `pending`; tidak ada ledger entry yang dibuat.
+- **Dampak stok saat ini:** nota sementara `HSB-NOTA-2609014` sudah soft-deleted, batch `ANQD02VB` kembali 10 lalu adjustment mengeluarkan 10 sehingga stok batch kembali 0. Batch asal `ANPF03VB` bertambah 3 dan kini tercatat stok aktif 6.
+- **Target bisnis yang sebelumnya dijelaskan:** retur 3 pcs, replacement 3 pcs @Rp32.500, tambahan bayar seharusnya Rp10.500, sisa 7 pcs batch `ANQD02VB` kembali inventory. Status kondisi retur perlu dikonfirmasi karena user menyebut ED; jika expired, 3 pcs tidak boleh kembali ke stok aktif.
+- **Tindakan:** Koreksi telah dilakukan. Adjustment salah (ADJ-260905-0002) di-void secara atomic (mengembalikan stok). Lalu diposting adjustment baru 3-for-3 (Kecap 200ml) dengan retur kondisi 'expired'. Batch asal (ANPF03VB) tidak ditambah stok aktif, namun dibuatkan batch quarantine. Stok pengganti (ANQD02VB) dipotong 3 pcs, sisa 7 pcs. Customer dikenakan additional charge Rp10.500 (pending settlement).
+
 ## [2026-09-05] - Paid Sale Return/Exchange Audit
 - **HSB-NOTA-2609003** ditemukan sebagai nota final/lunas dengan total `Rp1.968.000`, `paid_at` tersimpan sebagai 2 September 2026 waktu lokal, dan item Tropicana Slim Kecap Manis 200 ml qty 3 pada batch `ANPF03VB` (ED 03 Desember 2026). Audit dilakukan read-only; tidak ada data diubah.
 - **HSB-NOTA-2609014** memiliki dua baris historis: id `382` sudah soft-deleted dan id `383` masih aktif. Baris aktif berstatus final/unpaid, berisi Tropicana Slim Kecap Manis 200 ml qty 10 pada batch `ANQD02VB`, sehingga bukan draft kosong di database.
