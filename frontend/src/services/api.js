@@ -281,6 +281,7 @@ export const salesAPI = {
   getAdjustments: (id) => api.get(`/sales/${id}/adjustments`),
   createAdjustment: (id, data) => api.post(`/sales/${id}/adjustments`, data),
   voidAdjustment: (id) => api.post(`/sales/adjustments/${id}/void`),
+  settleAdjustment: (id, data) => api.post(`/sales/adjustments/${id}/settle`, data),
   remove: (id) => api.delete(`/sales/${id}`),
   getTrash: () => api.get('/sales/trash'),
   restore: (id) => api.put(`/sales/${id}/restore`),

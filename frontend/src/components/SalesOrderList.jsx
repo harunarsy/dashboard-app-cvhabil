@@ -1624,6 +1624,17 @@ export default function SalesOrderList({
     }
   };
 
+  const confirmAdjustmentSettlement = async (entry) => {
+    try {
+      await salesAPI.settleAdjustment(entry.id, {});
+      flash("Settlement dicatat ke Buku Besar");
+      const { data } = await salesAPI.getAdjustments(adjustmentModal.order.id);
+      setAdjustmentHistory(Array.isArray(data) ? data : []);
+    } catch (error) {
+      flash(error.response?.data?.error || error.message, "error");
+    }
+  };
+
   const openPrintOptions = (order) => {
     setPrintOrder(order);
     setShowPrintModal(true);
@@ -6341,6 +6352,11 @@ export default function SalesOrderList({
                     <strong style={{ color: text }}>{entry.adjustment_number}</strong> · {entry.type} · {entry.status}
                     <div>Refund {fmtRp(entry.refund_amount)} · Tambahan {fmtRp(entry.additional_charge)}</div>
                   </div>
+                ))}
+                {adjustmentHistory.map((entry) => entry.settlement_status === "pending" && Number(entry.refund_amount || entry.additional_charge) > 0 && (
+                  <button key={`settle-${entry.id}`} type="button" onClick={() => confirmAdjustmentSettlement(entry)} style={{ marginTop: "8px", padding: "8px 10px", border: "1px solid var(--color-action)", borderRadius: "8px", background: "transparent", color: "var(--color-action)", fontWeight: 700, fontSize: "12px" }}>
+                    Konfirmasi uang masuk/keluar dan catat ke Buku Besar
+                  </button>
                 ))}
               </div>
               <label style={{ ...labelStyle, marginTop: "14px" }}>Alasan Retur/Tukar<textarea rows={3} value={adjustmentModal.reason} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, reason: e.target.value }))} style={{ ...inputStyle, resize: "vertical" }} placeholder="Contoh: barang retur ditukar dengan batch baru dari faktur 4844989" /></label>

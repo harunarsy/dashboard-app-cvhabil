@@ -759,8 +759,8 @@ router.post('/:id/adjustments', auth, async (req, res) => {
     if (refundAmount > 0 || additionalCharge > 0) {
       await client.query(
         `INSERT INTO sales_settlements
-         (sales_order_id, adjustment_id, type, amount, payment_method, settlement_date, notes, created_by)
-         VALUES ($1, $2, $3, $4, $5, COALESCE($6::date, CURRENT_DATE), $7, $8)`,
+         (sales_order_id, adjustment_id, type, amount, payment_method, settlement_date, notes, created_by, settlement_status)
+         VALUES ($1, $2, $3, $4, $5, COALESCE($6::date, CURRENT_DATE), $7, $8, 'pending')`,
         [req.params.id, adjustment.id, refundAmount > 0 ? 'refund' : 'additional_charge',
           refundAmount || additionalCharge, paymentMethod, adjustmentDate,
           `Settlement dari ${adjustment.adjustment_number}`, req.user?.id || null],
@@ -772,6 +772,44 @@ router.post('/:id/adjustments', auth, async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.message.replace('USER: ', '') });
+    res.status(500).json({ error: err.message });
+  } finally { client.release(); }
+});
+
+router.post('/adjustments/:adjustmentId/settle', auth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows: [settlement] } = await client.query(
+      `SELECT ss.*, sa.adjustment_number, sa.original_sales_order_id
+       FROM sales_settlements ss
+       JOIN sales_adjustments sa ON sa.id = ss.adjustment_id
+       WHERE ss.adjustment_id = $1 AND ss.settlement_status = 'pending'
+       FOR UPDATE`,
+      [req.params.adjustmentId],
+    );
+    if (!settlement) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Settlement pending tidak ditemukan' });
+    }
+    const debit = settlement.type === 'refund' ? Number(settlement.amount) : 0;
+    const credit = settlement.type === 'additional_charge' ? Number(settlement.amount) : 0;
+    const description = `${settlement.type === 'refund' ? 'Refund' : 'Tambahan pembayaran'} ${settlement.adjustment_number}`;
+    const { rows: [entry] } = await client.query(
+      `INSERT INTO ledger_entries
+       (entry_date, account_name, description, debit, credit, category, reference_type, reference_id, source, auto_cat, created_by)
+       VALUES (COALESCE($1::date, CURRENT_DATE), $2, $3, $4, $5, $6, 'sale-adjustment', $7, 'sales-adjustment', TRUE, $8)
+       RETURNING *`,
+      [req.body?.settlement_date || null, req.body?.account_name || 'Kas/Bank', description, debit, credit, settlement.type, settlement.adjustment_id, req.user?.id || null],
+    );
+    const { rows: [updated] } = await client.query(
+      `UPDATE sales_settlements SET settlement_status = 'confirmed', ledger_entry_id = $1 WHERE id = $2 RETURNING *`,
+      [entry.id, settlement.id],
+    );
+    await client.query('COMMIT');
+    res.json({ settlement: updated, ledger_entry: entry });
+  } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
   } finally { client.release(); }
 });

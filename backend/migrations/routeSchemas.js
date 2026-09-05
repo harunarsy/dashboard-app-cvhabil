@@ -946,6 +946,8 @@ const migrations = [
           refund_amount NUMERIC(15,2) NOT NULL DEFAULT 0,
           additional_charge NUMERIC(15,2) NOT NULL DEFAULT 0,
           payment_method VARCHAR(30),
+          settlement_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (settlement_status IN ('pending', 'confirmed', 'void')),
+          ledger_entry_id INTEGER,
           notes TEXT,
           idempotency_key VARCHAR(120),
           created_by INTEGER,
@@ -1004,6 +1006,9 @@ const migrations = [
           created_at TIMESTAMP NOT NULL DEFAULT NOW()
         );
         CREATE INDEX IF NOT EXISTS idx_sales_settlements_order ON sales_settlements(sales_order_id, settlement_date DESC);
+        ALTER TABLE sales_settlements
+          ADD COLUMN IF NOT EXISTS settlement_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+          ADD COLUMN IF NOT EXISTS ledger_entry_id INTEGER;
       `);
     },
   },
