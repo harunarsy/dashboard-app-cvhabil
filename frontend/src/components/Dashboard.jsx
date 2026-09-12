@@ -39,21 +39,21 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.67.12-stable",
-    date: "05 September 2026",
+    version: "v1.67.13-stable",
+    date: "13 September 2026",
     status: "latest",
     changes: [
       {
         type: "fix",
-        text: "Adjustment retur/tukar kini divalidasi penuh di backend: harga negatif ditolak, qty pack dihitung dari snapshot, dan refund tidak dapat melebihi nilai retur.",
+        text: "Migration database legacy kini wajib melalui bootstrap terverifikasi, sehingga migration historis tidak dapat diputar ulang tanpa sengaja.",
       },
       {
         type: "fix",
-        text: "Void adjustment hanya untuk direktur dengan alasan wajib, tercatat lengkap, dan bebas deadlock saat balapan dengan settlement.",
+        text: "Bootstrap Neon hanya mencatat baseline schema lama lalu menerapkan metadata edit faktur delta secara atomik dan additive.",
       },
       {
         type: "improvement",
-        text: "Idempotency ketat mencegah duplikasi adjustment saat retry; key sama dengan payload berbeda ditolak.",
+        text: "Paket SQL operator memiliki schema preflight, timeout, advisory lock, rollback penuh, dan verifikasi hasil setelah migration.",
       },
     ],
   },

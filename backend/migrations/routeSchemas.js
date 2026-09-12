@@ -1118,8 +1118,160 @@ const assertBaselineSchema = async (db) => {
   }
 };
 
-const runRouteSchemaMigrations = async (db, { logger = console } = {}) => {
+const LEGACY_BASELINE_MIGRATION_IDS = migrations
+  .slice(0, -2)
+  .map(({ id }) => id);
+
+const DELTA_INVOICE_MIGRATION_IDS = migrations
+  .slice(-2)
+  .map(({ id }) => id);
+
+const LEGACY_REQUIRED_RELATIONS = [
+  'app_users',
+  'app_settings',
+  'customers',
+  'distributors',
+  'document_counters',
+  'product_master',
+  'inventory_batches',
+  'inventory_mutations',
+  'invoices',
+  'invoice_items',
+  'purchase_orders',
+  'purchase_order_items',
+  'sales_orders',
+  'sales_items',
+];
+
+const LEGACY_REQUIRED_COLUMNS = [
+  ['app_users', 'id'],
+  ['app_users', 'username'],
+  ['product_master', 'id'],
+  ['product_master', 'name'],
+  ['product_master', 'base_unit'],
+  ['inventory_batches', 'id'],
+  ['inventory_batches', 'product_id'],
+  ['inventory_batches', 'qty_current'],
+  ['inventory_batches', 'hna'],
+  ['inventory_mutations', 'id'],
+  ['inventory_mutations', 'product_id'],
+  ['inventory_mutations', 'batch_id'],
+  ['inventory_mutations', 'qty'],
+  ['inventory_mutations', 'reference_type'],
+  ['inventory_mutations', 'reference_id'],
+  ['invoices', 'id'],
+  ['invoices', 'invoice_number'],
+  ['invoices', 'purchase_order_id'],
+  ['invoices', 'tax_type'],
+  ['invoice_items', 'id'],
+  ['invoice_items', 'invoice_id'],
+  ['invoice_items', 'product_id'],
+  ['invoice_items', 'batch_no'],
+  ['invoice_items', 'expired_date'],
+  ['invoice_items', 'quantity'],
+  ['invoice_items', 'unit'],
+  ['invoice_items', 'hna'],
+  ['purchase_orders', 'id'],
+  ['purchase_orders', 'status'],
+  ['purchase_order_items', 'id'],
+  ['purchase_order_items', 'po_id'],
+  ['purchase_order_items', 'received_qty'],
+  ['sales_orders', 'id'],
+  ['sales_orders', 'status'],
+  ['sales_items', 'id'],
+  ['sales_items', 'sales_order_id'],
+];
+
+const getSchemaMigrationState = async (db) => {
+  const { rows: [tracker] } = await db.query(
+    "SELECT to_regclass('public.schema_migrations') AS relation",
+  );
+  if (!tracker?.relation) return { exists: false, ids: [] };
+
+  const { rows } = await db.query('SELECT id FROM schema_migrations');
+  return { exists: true, ids: rows.map((row) => row.id) };
+};
+
+const inspectLegacySchema = async (db) => {
+  const relationCheck = await db.query(
+    `SELECT required_name, to_regclass('public.' || required_name) AS relation
+     FROM unnest($1::text[]) AS required(required_name)`,
+    [LEGACY_REQUIRED_RELATIONS],
+  );
+  const missingRelations = relationCheck.rows
+    .filter((row) => !row.relation)
+    .map((row) => row.required_name);
+
+  const columnCheck = await db.query(
+    `SELECT table_name, column_name
+     FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = ANY($1::text[])`,
+    [LEGACY_REQUIRED_RELATIONS],
+  );
+  const availableColumns = new Set(
+    columnCheck.rows.map((row) => `${row.table_name}.${row.column_name}`),
+  );
+  const missingColumns = LEGACY_REQUIRED_COLUMNS
+    .map(([tableName, columnName]) => `${tableName}.${columnName}`)
+    .filter((key) => !availableColumns.has(key));
+
+  return { missingRelations, missingColumns };
+};
+
+const assertLegacySchemaReady = async (db) => {
+  const result = await inspectLegacySchema(db);
+  if (result.missingRelations.length || result.missingColumns.length) {
+    const details = [
+      result.missingRelations.length && `relations: ${result.missingRelations.join(', ')}`,
+      result.missingColumns.length && `columns: ${result.missingColumns.join(', ')}`,
+    ].filter(Boolean).join('; ');
+    throw new Error(`Legacy schema verification failed (${details}). No migration was applied.`);
+  }
+  return result;
+};
+
+const bootstrapLegacySchemaMigrations = async (db, { logger = console } = {}) => {
+  await assertLegacySchemaReady(db);
+  const state = await getSchemaMigrationState(db);
+  if (state.ids.length > 0) {
+    throw new Error(
+      'Legacy bootstrap refused: schema_migrations already contains records. Use the normal migration runner or investigate the partial state.',
+    );
+  }
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      id VARCHAR(160) PRIMARY KEY,
+      applied_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.query(
+    'INSERT INTO schema_migrations (id) SELECT unnest($1::varchar[]) ON CONFLICT (id) DO NOTHING',
+    [LEGACY_BASELINE_MIGRATION_IDS],
+  );
+
+  const applied = [];
+  for (const migration of migrations.filter(({ id }) => DELTA_INVOICE_MIGRATION_IDS.includes(id))) {
+    logger.log(`[Migration] apply ${migration.id}`);
+    await migration.up(db);
+    await db.query('INSERT INTO schema_migrations (id) VALUES ($1)', [migration.id]);
+    applied.push(migration.id);
+  }
+
+  return { baselineRecorded: LEGACY_BASELINE_MIGRATION_IDS, applied };
+};
+
+const runRouteSchemaMigrations = async (
+  db,
+  { logger = console, allowUntrackedSchema = false } = {},
+) => {
   await assertBaselineSchema(db);
+  const state = await getSchemaMigrationState(db);
+  if (!allowUntrackedSchema && state.ids.length === 0) {
+    throw new Error(
+      'Untracked legacy schema detected. Refusing to replay historical migrations. Run the explicit legacy bootstrap after schema verification.',
+    );
+  }
   await db.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       id VARCHAR(160) PRIMARY KEY,
@@ -1127,8 +1279,7 @@ const runRouteSchemaMigrations = async (db, { logger = console } = {}) => {
     )
   `);
 
-  const applied = await db.query('SELECT id FROM schema_migrations');
-  const appliedIds = new Set(applied.rows.map((row) => row.id));
+  const appliedIds = new Set(state.ids);
   const result = { applied: [], skipped: [] };
 
   for (const migration of migrations) {
@@ -1148,6 +1299,14 @@ const runRouteSchemaMigrations = async (db, { logger = console } = {}) => {
 
 module.exports = {
   assertBaselineSchema,
+  assertLegacySchemaReady,
+  bootstrapLegacySchemaMigrations,
+  DELTA_INVOICE_MIGRATION_IDS,
+  getSchemaMigrationState,
+  inspectLegacySchema,
+  LEGACY_BASELINE_MIGRATION_IDS,
+  LEGACY_REQUIRED_COLUMNS,
+  LEGACY_REQUIRED_RELATIONS,
   listRouteSchemaMigrations,
   migrations,
   runRouteSchemaMigrations,

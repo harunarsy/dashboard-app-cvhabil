@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.13-stable] - 2026-09-13
+
+### Diperbaiki
+- **Legacy schema bootstrap aman.** Migration runner sekarang menolak database operasional yang memiliki schema aplikasi tetapi belum memiliki `schema_migrations`, sehingga 19 migration historis tidak dapat diputar ulang tanpa sengaja.
+- **Bootstrap eksplisit untuk Neon legacy.** Jalur `--bootstrap-legacy` memverifikasi kontrak schema terlebih dahulu, mencatat baseline `001–019` sebagai metadata tanpa menjalankan fungsinya, lalu menerapkan hanya migration additive `020–021` dalam satu transaction ber-lock.
+- **Paket SQL operator terjaga.** SQL manual untuk Neon memakai preflight schema, read-write guard, timeout, advisory lock, rollback atomik, dan verifikasi hasil. Tidak mengubah faktur, stok, batch, HNA, penjualan, atau purchase order lama.
+
+### Diverifikasi
+- Backend suite lulus: 21 delta unit checks, 13 delta safety checks, 13 schema boundary checks, 24 HTTP smoke checks, dan 43 adjustment hardening checks. Frontend test 43/43 dan Vite production build lulus. Migration production belum dijalankan pada saat release commit dibuat.
+
 ## [v1.67.12-stable] - 2026-09-12
 
 ### Diperbaiki

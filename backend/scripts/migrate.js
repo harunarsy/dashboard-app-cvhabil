@@ -7,11 +7,13 @@ const {
   loadRuntimeEnv,
 } = require('../config/runtimeEnv');
 const {
+  bootstrapLegacySchemaMigrations,
   listRouteSchemaMigrations,
   runRouteSchemaMigrations,
 } = require('../migrations/routeSchemas');
 
 const args = new Set(process.argv.slice(2));
+const bootstrapLegacy = args.has('--bootstrap-legacy');
 
 const printMigrationList = () => {
   console.log('Schema migrations (execution order):');
@@ -80,12 +82,20 @@ const main = async () => {
     );
 
     console.log(`[Migration] confirmed host ${target.host}`);
-    const result = await runRouteSchemaMigrations(client);
+    const result = bootstrapLegacy
+      ? await bootstrapLegacySchemaMigrations(client)
+      : await runRouteSchemaMigrations(client);
     await client.query('COMMIT');
     committed = true;
-    console.log(
-      `[Migration] complete: ${result.applied.length} applied, ${result.skipped.length} skipped`,
-    );
+    if (bootstrapLegacy) {
+      console.log(
+        `[Migration] legacy bootstrap complete: ${result.baselineRecorded.length} baseline records, ${result.applied.length} applied`,
+      );
+    } else {
+      console.log(
+        `[Migration] complete: ${result.applied.length} applied, ${result.skipped.length} skipped`,
+      );
+    }
   } finally {
     if (!committed) {
       try {
