@@ -26,6 +26,8 @@ const expectedMigrationIds = [
   '20260823_017_tax',
   '20260905_018_sales_adjustments',
   '20260905_019_sales_adjustments_void_audit',
+  '20260911_020_invoice_delta_edit',
+  '20260911_021_invoice_edit_event_retention',
 ];
 
 let passed = 0;

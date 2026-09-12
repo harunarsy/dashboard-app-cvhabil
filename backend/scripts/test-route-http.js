@@ -21,6 +21,7 @@ if (deepFreezeMode) {
 } else {
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
 const { loadRuntimeEnv } = require('../config/runtimeEnv');
 
 loadRuntimeEnv({ baseDir: path.join(__dirname, '..'), context: 'backend/test-route-http', preferDevEnv: true });
@@ -62,6 +63,15 @@ require.cache[databasePath] = {
 };
 
 const app = require('../app');
+const testServer = http.createServer(app);
+const testServerReady = new Promise((resolve, reject) => {
+  testServer.once('error', reject);
+  testServer.listen(0, resolve);
+});
+const closeTestServer = () => new Promise((resolve) => {
+  if (!testServer.listening) return resolve();
+  testServer.close(() => resolve());
+});
 
 let passed = 0;
 let failed = 0;
@@ -80,7 +90,10 @@ async function test(name, fn) {
 async function run() {
   console.log('═══ HTTP Route Smoke Tests ═══\n');
 
-  const request = supertest(app);
+  // Bind an actual server explicitly. This avoids depending on supertest's
+  // implicit app.listen path, which is timing-sensitive in supertest 7.x.
+  await testServerReady;
+  const request = supertest(testServer);
 
   await test('Sales edit preserves explicit batch selection when HPP is equal', async () => {
     const salesSource = fs.readFileSync(
@@ -220,8 +233,13 @@ async function run() {
 
   // ─── Summary ───
   console.log(`\n═══ Results: ${passed} PASSED, ${failed} FAILED ═══\n`);
+  await closeTestServer();
   process.exit(failed > 0 ? 1 : 0);
 }
 
-run().catch(e => { console.error('FATAL:', e.message); process.exit(1); });
+run().catch(async (e) => {
+  console.error('FATAL:', e.message);
+  await closeTestServer();
+  process.exit(1);
+});
 }

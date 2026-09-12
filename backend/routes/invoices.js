@@ -1,11 +1,24 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const uom = require('../utils/uom');
 const tax = require('../utils/tax');
 const { seedProductAlias } = require('../utils/productAliases');
 const formDrafts = require('../utils/formDrafts');
+const {
+  buildInvoiceDelta,
+  generatedLineKey,
+  hashJson,
+  legacyLineKey,
+  normalizeDate,
+  normalizeLineKey,
+  normalizeProductId,
+  normalizeText,
+  sameNumber,
+  toNumber: deltaNumber,
+} = require('../utils/invoiceDelta');
 
 // Helper: log audit
 const logAudit = async (invoiceId, invoiceNumber, action, snapshot, note = '') => {
@@ -225,14 +238,14 @@ const buildUnmatchedProductError = (unmatchedProducts) => ({
   unmatchedProducts,
 });
 
-const loadPurchaseOrderItemsForUpdate = async (client, purchaseOrderId) => {
+const loadPurchaseOrderItemsForUpdate = async (client, purchaseOrderId, { forUpdate = true } = {}) => {
   if (!purchaseOrderId) return null;
+  const lockClause = forUpdate ? ' FOR UPDATE' : '';
   const { rows } = await client.query(
-    `SELECT id, product_id, product_name, qty, received_qty
+    `SELECT id, product_id, product_name, qty, unit, received_qty, received_qty_in_unit
      FROM purchase_order_items
      WHERE po_id = $1
-     ORDER BY id
-     FOR UPDATE`,
+     ORDER BY id${lockClause}`,
     [purchaseOrderId]
   );
   const index = {
@@ -292,6 +305,118 @@ const syncPurchaseOrderStatus = async (client, purchaseOrderId) => {
     [newStatus, allReceived, purchaseOrderId]
   );
   return newStatus;
+};
+
+// Lifecycle invoice operations must serialize against edits and other
+// lifecycle requests. The invoice row is the primary lock; these batch locks
+// close the race with an external stock-out that could otherwise appear after
+// the usage check but before the reversal is applied.
+const lockInvoiceBatches = async (client, invoiceId) => {
+  const { rows } = await client.query(
+    `SELECT id
+       FROM inventory_batches
+      WHERE source_ref = $1
+      ORDER BY id
+      FOR UPDATE`,
+    [`invoice-${invoiceId}`],
+  );
+  return rows.map((row) => Number(row.id));
+};
+
+// Apply a signed received_qty change to the exact PO item rows that own the
+// room. Updating by product_id alone is unsafe when one PO contains multiple
+// rows for the same product: PostgreSQL would apply the same delta to every
+// matching row. This allocator locks rows, enforces both bounds, and fails the
+// whole outer transaction if the requested amount cannot be allocated.
+const applyPurchaseOrderProductDelta = async (client, purchaseOrderId, productId, deltaBase) => {
+  const requested = roundQty(deltaBase);
+  if (!purchaseOrderId || !requested) return;
+  const { rows } = await client.query(
+    `SELECT id, qty, received_qty
+            , qty_in_unit, received_qty_in_unit
+       FROM purchase_order_items
+      WHERE po_id = $1 AND product_id = $2
+      ORDER BY id
+      FOR UPDATE`,
+    [purchaseOrderId, productId],
+  );
+  if (rows.length === 0) {
+    throw Object.assign(new Error(`Baris Surat Pesanan untuk produk #${productId} tidak ditemukan`), {
+      code: 'PO_PRODUCT_NOT_FOUND',
+    });
+  }
+
+  const candidates = rows
+    .map((row) => ({
+      ...row,
+      qty: toNumber(row.qty),
+      qty_in_unit: row.qty_in_unit == null ? null : toNumber(row.qty_in_unit),
+      received_qty: toNumber(row.received_qty),
+      received_qty_in_unit: row.received_qty_in_unit == null ? null : toNumber(row.received_qty_in_unit),
+    }))
+    .sort((left, right) => requested > 0
+      ? (right.qty - right.received_qty) - (left.qty - left.received_qty)
+      : right.received_qty - left.received_qty);
+  let remaining = Math.abs(requested);
+
+  for (const row of candidates) {
+    if (remaining <= 0) break;
+    const capacity = requested > 0
+      ? Math.max(0, row.qty - row.received_qty)
+      : Math.max(0, row.received_qty);
+    const amount = Math.min(remaining, capacity);
+    if (!amount) continue;
+    const applied = requested > 0 ? amount : -amount;
+    const appliedInUnit = row.qty_in_unit == null || !row.qty
+      ? applied
+      : prorateSourceQty(row.qty_in_unit, row.qty, amount) * (requested > 0 ? 1 : -1);
+    const currentReceivedInUnit = row.received_qty_in_unit == null
+      ? (row.qty_in_unit == null || !row.qty
+        ? null
+        : prorateSourceQty(row.qty_in_unit, row.qty, row.received_qty))
+      : row.received_qty_in_unit;
+    const result = await client.query(
+      `UPDATE purchase_order_items
+          SET received_qty = COALESCE(received_qty, 0) + $1
+             , received_qty_in_unit = CASE
+                 WHEN qty_in_unit IS NULL AND received_qty_in_unit IS NULL THEN NULL
+                 ELSE COALESCE(received_qty_in_unit, $5) + $2
+               END
+        WHERE id = $3
+          AND COALESCE(received_qty, 0) = $4
+          AND COALESCE(received_qty, 0) + $1 >= 0
+          AND COALESCE(received_qty, 0) + $1 <= qty
+           AND (
+             qty_in_unit IS NULL
+             OR (
+               COALESCE(received_qty_in_unit, $5) + $2 >= 0
+               AND COALESCE(received_qty_in_unit, $5) + $2 <= qty_in_unit
+             )
+           )
+        RETURNING id, received_qty, received_qty_in_unit`,
+      [applied, appliedInUnit, row.id, row.received_qty, currentReceivedInUnit],
+    );
+    if (result.rows.length !== 1) {
+      throw Object.assign(new Error(`Saldo received_qty Surat Pesanan untuk produk #${productId} berubah sebelum reversal`), {
+        code: 'STALE_PO_BALANCE',
+      });
+    }
+    row.received_qty = toNumber(result.rows[0].received_qty);
+    row.received_qty_in_unit = result.rows[0].received_qty_in_unit == null
+      ? null
+      : toNumber(result.rows[0].received_qty_in_unit);
+    remaining = roundQty(remaining - amount);
+  }
+
+  if (remaining > 0) {
+    throw Object.assign(new Error(
+      requested > 0
+        ? `Restore faktur untuk produk #${productId} melebihi room Surat Pesanan`
+        : `Reversal faktur untuk produk #${productId} membuat received_qty Surat Pesanan negatif`,
+    ), {
+      code: requested > 0 ? 'PO_ROOM_EXCEEDED' : 'PO_RECEIVED_NEGATIVE',
+    });
+  }
 };
 
 const syncProductHna = async (client, productId, hna, purchaseOrderId = null, batchNo = null) => {
@@ -460,6 +585,316 @@ const invoicePriceFieldsChanged = async (client, invoiceId, nextItems = []) => {
   return false;
 };
 
+const invoiceDeltaHelpers = {
+  loadProductLookupForItems,
+  getProductFromLookup,
+  emptyProductLookup,
+  collectUnmatchedProducts,
+  buildUnmatchedProductError,
+  effectiveHna,
+  loadPurchaseOrderItemsForUpdate,
+  syncPurchaseOrderStatus,
+};
+
+const deltaErrorStatus = (error) => {
+  if (error?.code === 'NOT_FOUND') return 404;
+  if (error?.code === 'UNMATCHED_PRODUCTS') return 422;
+  if (error?.code === '23505' && /invoice_edit_events/i.test(error?.constraint || '')) return 409;
+  if (
+    error?.code === 'INVOICE_LINE_MAPPING_AMBIGUOUS'
+    || error?.code === 'HNA_CONFLICT'
+    || error?.code === 'PO_PRODUCT_NOT_FOUND'
+    || error?.code === 'PO_ROOM_EXCEEDED'
+    || error?.code === 'PO_RECEIVED_NEGATIVE'
+    || error?.code === 'PO_RELINK_NOT_SUPPORTED'
+    || error?.code === 'STOCK_CONFIRMATION_REQUIRED'
+    || error?.code === 'PREVIEW_STALE'
+    || error?.code === 'IDEMPOTENCY_KEY_CONFLICT'
+    || error?.code === 'STALE_BATCH_BALANCE'
+    || error?.code === 'STALE_PO_BALANCE'
+    || error?.code === 'INVOICE_BATCH_MISSING'
+    || error?.code === 'PARTIAL_STOCK_RECONCILIATION_REQUIRED'
+    || error?.code === 'LINE_ID_KEY_MISMATCH'
+    || error?.code === 'INVOICE_BATCH_MAPPING_AMBIGUOUS'
+    || error?.code === 'INVOICE_LEDGER_MISMATCH'
+  ) return 409;
+  if (
+    error?.code === 'NON_INTEGER_BASE_QTY'
+    || error?.code === 'INVALID_IDEMPOTENCY_KEY'
+    || error?.code === 'INVALID_LINE_KEY'
+    || error?.code === 'INVALID_QTY'
+    || error?.code === 'DUPLICATE_LINE_KEY'
+    || error?.code === 'INVALID_BATCH_EDIT_MODE'
+  ) return 400;
+  return 500;
+};
+
+const responseForDeltaError = (error) => ({
+  error: error.message,
+  ...(error.code ? { code: error.code } : {}),
+  ...(error.unmatchedProducts ? { unmatchedProducts: error.unmatchedProducts } : {}),
+  ...(error.ambiguities ? { ambiguities: error.ambiguities } : {}),
+  ...(error.conflicts ? { conflicts: error.conflicts } : {}),
+});
+
+const runInvoiceDeltaPreview = async (req, res) => {
+  const { id } = req.params;
+  if (req.body?.stock_edit_mode !== 'delta') {
+    return res.status(400).json({
+      error: 'Preview edit faktur harus menggunakan stock_edit_mode=delta',
+      code: 'DELTA_MODE_REQUIRED',
+    });
+  }
+  if (!Array.isArray(req.body.items)) {
+    return res.status(400).json({ error: 'items wajib berupa array', code: 'ITEMS_REQUIRED' });
+  }
+  const idempotencyKey = String(req.body.idempotency_key || crypto.randomUUID()).trim();
+  if (idempotencyKey.length < 8 || idempotencyKey.length > 160) {
+    return res.status(400).json({ error: 'idempotency_key tidak valid', code: 'INVALID_IDEMPOTENCY_KEY' });
+  }
+  const requestHash = invoiceDeltaService.requestHashForBody(req.body);
+  const client = await pool.connect();
+  let inTransaction = false;
+  try {
+    // Preview is deliberately read-only. It must never run INSERT/UPDATE/DELETE.
+    await client.query('BEGIN READ ONLY');
+    inTransaction = true;
+    const plan = await invoiceDeltaService.buildInvoiceDeltaPlan({
+      client,
+      invoiceId: id,
+      items: req.body.items,
+      requestKey: idempotencyKey,
+      requestHash,
+      requestedTaxType: req.body.tax_type,
+      batchEditMode: req.body.batch_edit_mode || 'metadata',
+      helpers: invoiceDeltaHelpers,
+      forUpdate: false,
+    });
+    const preview = {
+      ...plan.preview,
+      validation_errors: plan.poErrors,
+    };
+    const previewToken = invoiceDeltaService.createPreviewToken({
+      invoiceId: id,
+      snapshotHash: plan.snapshotHash,
+      requestHash,
+    });
+    await client.query('ROLLBACK');
+    inTransaction = false;
+    if (plan.poErrors.length > 0) {
+      return res.status(409).json({
+        error: 'Preview ditolak karena rekonsiliasi Surat Pesanan tidak valid',
+        code: plan.poErrors[0].code,
+        preview,
+        preview_token: previewToken,
+        idempotency_key: idempotencyKey,
+      });
+    }
+    return res.json({
+      preview,
+      preview_token: previewToken,
+      idempotency_key: idempotencyKey,
+    });
+  } catch (error) {
+    if (inTransaction) await client.query('ROLLBACK').catch(() => {});
+    console.error('Invoice delta preview error:', error);
+    const body = responseForDeltaError(error);
+    if (error.validation_errors) body.validation_errors = error.validation_errors;
+    return res.status(deltaErrorStatus(error)).json(body);
+  } finally {
+    client.release();
+  }
+};
+
+const runInvoiceDeltaUpdate = async (req, res) => {
+  const { id } = req.params;
+  if (!Array.isArray(req.body.items)) {
+    return res.status(400).json({ error: 'items wajib berupa array', code: 'ITEMS_REQUIRED' });
+  }
+  const idempotencyKey = String(req.body.idempotency_key || '').trim();
+  if (idempotencyKey.length < 8 || idempotencyKey.length > 160) {
+    return res.status(400).json({ error: 'idempotency_key wajib diisi untuk edit stok delta', code: 'INVALID_IDEMPOTENCY_KEY' });
+  }
+  const requestHash = invoiceDeltaService.requestHashForBody(req.body);
+  const client = await pool.connect();
+  let inTransaction = false;
+  try {
+    await client.query('BEGIN');
+    inTransaction = true;
+
+    // Locking invoice serializes edits to the same document. The event lookup
+    // after the lock makes retries return the committed response instead of
+    // posting another mutation.
+    await client.query(
+      'SELECT id FROM invoices WHERE id = $1 AND deleted_at IS NULL FOR UPDATE',
+      [id],
+    );
+    const { rows: existingEvents } = await client.query(
+      `SELECT invoice_id, request_hash, response
+       FROM invoice_edit_events
+       WHERE idempotency_key = $1
+       FOR UPDATE`,
+      [idempotencyKey],
+    );
+    if (existingEvents.length > 0) {
+      const existing = existingEvents[0];
+      if (String(existing.invoice_id) !== String(id) || existing.request_hash !== requestHash) {
+        const conflict = Object.assign(new Error('idempotency_key sudah dipakai untuk request lain'), {
+          code: 'IDEMPOTENCY_KEY_CONFLICT',
+        });
+        throw conflict;
+      }
+      await client.query('ROLLBACK');
+      inTransaction = false;
+      return res.json(existing.response);
+    }
+
+    const plan = await invoiceDeltaService.buildInvoiceDeltaPlan({
+      client,
+      invoiceId: id,
+      items: req.body.items,
+      requestKey: idempotencyKey,
+      requestHash,
+      requestedTaxType: req.body.tax_type,
+      batchEditMode: req.body.batch_edit_mode || 'metadata',
+      helpers: invoiceDeltaHelpers,
+      forUpdate: true,
+    });
+    if (plan.poErrors.length > 0) {
+      const error = Object.assign(new Error('Rekonsiliasi Surat Pesanan tidak valid'), {
+        code: plan.poErrors[0].code,
+        validation_errors: plan.poErrors,
+        preview: plan.preview,
+      });
+      throw error;
+    }
+    const tokenCheck = invoiceDeltaService.verifyPreviewToken(req.body.preview_token, {
+      invoiceId: id,
+      snapshotHash: plan.snapshotHash,
+      requestHash,
+    });
+    if (!tokenCheck.ok) {
+      throw Object.assign(new Error(tokenCheck.reason), { code: 'PREVIEW_STALE' });
+    }
+    if (plan.preview.has_stock_or_hna_change && req.body.confirm_stock_delta !== true) {
+      throw Object.assign(new Error('Konfirmasi eksplisit diperlukan sebelum delta stok atau revaluasi HNA disimpan'), {
+        code: 'STOCK_CONFIRMATION_REQUIRED',
+        preview: plan.preview,
+      });
+    }
+    const response = await invoiceDeltaService.applyInvoiceDeltaPlan({
+      client,
+      plan,
+      body: req.body,
+      idempotencyKey,
+      userId: req.user?.id,
+    });
+    await client.query('COMMIT');
+    inTransaction = false;
+
+    // Alias seeding is intentionally outside the transaction. It is auxiliary
+    // metadata and must never make a committed invoice edit look failed.
+    for (const line of plan.nextLines) {
+      const matched = invoiceDeltaHelpers.getProductFromLookup(plan.productLookup, line.raw);
+      if (matched && normalizeProductName(line.product_name) !== normalizeProductName(matched.name)) {
+        await seedProductAlias(pool, matched.id, line.product_name)
+          .catch((aliasError) => {
+            console.warn('Invoice delta committed; product alias seeding skipped:', {
+              product_id: matched.id,
+              alias: line.product_name,
+              error: aliasError?.message || String(aliasError),
+            });
+          });
+      }
+    }
+    return res.json(response);
+  } catch (error) {
+    if (inTransaction) await client.query('ROLLBACK').catch(() => {});
+    console.error('Invoice delta update error:', error);
+    const body = responseForDeltaError(error);
+    if (error.validation_errors) body.validation_errors = error.validation_errors;
+    if (error.preview) body.preview = error.preview;
+    return res.status(deltaErrorStatus(error)).json(body);
+  } finally {
+    client.release();
+  }
+};
+
+// Net ownership of a faktur is derived from the ledger. Initial stock-in is
+// never rewritten; delta edits and lifecycle reversals are added/subtracted
+// from it when a document is deleted or restored.
+const loadInvoiceOwnedNetByBatch = async (client, invoiceId) => {
+  const { rows } = await client.query(
+    `SELECT batch_id, product_id,
+       CASE WHEN COUNT(DISTINCT invoice_line_key) = 1 THEN MIN(invoice_line_key) ELSE NULL END AS invoice_line_key,
+       COALESCE(SUM(
+         CASE
+           WHEN reference_type IN ('faktur', 'faktur-edit', 'faktur-restored') AND type = 'in' THEN qty
+           WHEN reference_type IN ('faktur-edit', 'faktur-cancelled') AND type = 'out' THEN -qty
+           WHEN reference_type = 'faktur-cancelled' AND type = 'in' THEN qty
+           WHEN reference_type = 'faktur-restored' AND type = 'out' THEN -qty
+           ELSE 0
+         END
+       ), 0) AS qty
+     FROM inventory_mutations
+     WHERE reference_id = $1
+       AND batch_id IS NOT NULL
+       AND reference_type IN ('faktur', 'faktur-edit', 'faktur-cancelled', 'faktur-restored')
+     GROUP BY batch_id, product_id
+     HAVING COALESCE(SUM(
+       CASE
+         WHEN reference_type IN ('faktur', 'faktur-edit', 'faktur-restored') AND type = 'in' THEN qty
+         WHEN reference_type IN ('faktur-edit', 'faktur-cancelled') AND type = 'out' THEN -qty
+         WHEN reference_type = 'faktur-cancelled' AND type = 'in' THEN qty
+         WHEN reference_type = 'faktur-restored' AND type = 'out' THEN -qty
+         ELSE 0
+       END
+     ), 0) <> 0`,
+    [invoiceId],
+  );
+  return rows.map((row) => ({
+    ...row,
+    batch_id: Number(row.batch_id),
+    product_id: Number(row.product_id),
+    qty: toNumber(row.qty),
+  }));
+};
+
+const loadInvoiceCancellationNetByBatch = async (client, invoiceId) => {
+  const { rows } = await client.query(
+    `SELECT batch_id, product_id,
+       CASE WHEN COUNT(DISTINCT invoice_line_key) = 1 THEN MIN(invoice_line_key) ELSE NULL END AS invoice_line_key,
+       SUM(CASE
+             WHEN reference_type = 'faktur-cancelled' AND type = 'out' THEN qty
+             WHEN reference_type = 'faktur-cancelled' AND type = 'in' THEN -qty
+             WHEN reference_type = 'faktur-restored' AND type = 'in' THEN -qty
+             WHEN reference_type = 'faktur-restored' AND type = 'out' THEN qty
+             ELSE 0
+           END) AS qty
+       FROM inventory_mutations
+      WHERE reference_id = $1
+        AND batch_id IS NOT NULL
+        AND reference_type IN ('faktur-cancelled', 'faktur-restored')
+      GROUP BY batch_id, product_id
+      HAVING SUM(CASE
+                   WHEN reference_type = 'faktur-cancelled' AND type = 'out' THEN qty
+                   WHEN reference_type = 'faktur-cancelled' AND type = 'in' THEN -qty
+                   WHEN reference_type = 'faktur-restored' AND type = 'in' THEN -qty
+                   WHEN reference_type = 'faktur-restored' AND type = 'out' THEN qty
+                   ELSE 0
+                 END) <> 0`,
+    [invoiceId],
+  );
+  return rows.map((row) => ({
+    ...row,
+    batch_id: Number(row.batch_id),
+    product_id: Number(row.product_id),
+    qty: toNumber(row.qty),
+  }));
+};
+
+const invoiceDeltaService = require('../services/invoiceDeltaService');
+
 // GET all invoices
 router.get('/', auth, async (req, res) => {
   try {
@@ -515,12 +950,21 @@ router.get('/:id/audit', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// PREVIEW DELTA EDIT — read-only transaction. The preview token binds the
+// request to the exact invoice/ledger snapshot that was inspected.
+router.post('/:id/preview', auth, runInvoiceDeltaPreview);
+
 // GET single invoice with items
 router.get('/:id', auth, async (req, res) => {
   try {
     const inv = await pool.query('SELECT * FROM invoices WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
     if (!inv.rows.length) return res.status(404).json({ error: 'Not found' });
     const items = await pool.query('SELECT * FROM invoice_items WHERE invoice_id = $1 ORDER BY id', [req.params.id]);
+    // Legacy rows stay nullable in the database. Expose a deterministic key to
+    // the editor so the first delta edit can persist the mapping safely.
+    items.rows.forEach((item) => {
+      if (!item.line_key) item.line_key = legacyLineKey(item.id);
+    });
     res.json({ invoice: inv.rows[0], items: items.rows });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -645,9 +1089,18 @@ router.post('/', auth, async (req, res) => {
       }
     }
 
-    await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
-    if (invoiceItems.length > 0) {
-      for (const item of invoiceItems) {
+    // An already-posted invoice is immutable through the create/overwrite path.
+    // Keep its existing line rows intact so a retry cannot erase stable line
+    // identity before the delta-edit flow gets a chance to resolve it.
+    const shouldRewriteInvoiceItems = !alreadyPosted;
+    if (shouldRewriteInvoiceItems) {
+      await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [invoiceId]);
+    }
+    if (shouldRewriteInvoiceItems && invoiceItems.length > 0) {
+      for (let itemIndex = 0; itemIndex < invoiceItems.length; itemIndex++) {
+        const item = invoiceItems[itemIndex];
+        item.line_key = normalizeLineKey(item.line_key)
+          || generatedLineKey(invoiceId, `create-${invoice_number}`, itemIndex);
         const product = getProductFromLookup(productLookup, item);
         const qtyInUnit = parseFloat(item.quantity) || 0;
         const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
@@ -656,17 +1109,17 @@ router.post('/', auth, async (req, res) => {
         await client.query(
           `INSERT INTO invoice_items
 	            (invoice_id, product_name, product_id, quantity, unit_price, total_price,
-	             expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
-	             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice, tax_type)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
+             expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
+             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice, tax_type, line_key)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
           [invoiceId, item.product_name, storedProductId, qtyBase,
            item.unit_price||item.hna||0, item.total_price||item.hna_times_qty||0,
            item.expired_date||null, item.hna||0, item.hna_times_qty||0,
            item.disc_percent||0, item.disc_nominal||0, item.hna_baru||0,
            item.hna_per_item||0, item.margin||0,
            item.disc_cod_per_item||0, item.hna_after_cod||0, item.hpp_inc_ppn||0,
-	           item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize, taxType]
-	        );
+           item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize, taxType, item.line_key]
+        );
       }
     }
 
@@ -761,11 +1214,12 @@ router.post('/', auth, async (req, res) => {
             [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize, taxType, resolvedPpnRate]
           );
           await client.query(
-            `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit)
-             VALUES ($1, $2, 'in', $3, 'faktur', $4, $5, $6, $7)`,
+            `INSERT INTO inventory_mutations
+              (product_id, batch_id, type, qty, reference_type, reference_id, notes, qty_unit, qty_in_unit, invoice_line_key)
+             VALUES ($1, $2, 'in', $3, 'faktur', $4, $5, $6, $7, $8)`,
             [product.id, batch.id, stockQtyBase, invoiceId,
              `Stok masuk dari faktur ${invoice_number}${displayUnit !== product.base_unit ? ` (${sourceQtyValue} ${displayUnit})` : ''}`,
-             displayUnit, sourceQtyValue]
+             displayUnit, sourceQtyValue, item.line_key]
           );
         }
       }
@@ -797,6 +1251,9 @@ router.post('/', auth, async (req, res) => {
 
 // UPDATE invoice
 router.put('/:id', auth, async (req, res) => {
+  if (req.body?.stock_edit_mode === 'delta' && req.body.items !== undefined) {
+    return runInvoiceDeltaUpdate(req, res);
+  }
   const { id } = req.params;
   const {
     invoice_number, purchase_date, distributor_name,
@@ -822,7 +1279,7 @@ router.put('/:id', auth, async (req, res) => {
   try {
     await client.query('BEGIN');
     // snapshot before
-    const snap = await client.query('SELECT * FROM invoices WHERE id = $1', [id]);
+    const snap = await client.query('SELECT * FROM invoices WHERE id = $1 FOR UPDATE', [id]);
     const beforeSnap = snap.rows[0] || null;
 
     const { rows: mutationRows } = await client.query(
@@ -832,6 +1289,13 @@ router.put('/:id', auth, async (req, res) => {
       [id]
     );
     const hasStockMutations = mutationRows.length > 0;
+    if (items !== undefined && hasStockMutations && req.body?.stock_edit_mode !== 'delta') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        error: 'Faktur yang sudah memiliki ledger stok harus diedit melalui preview delta agar histori stok tidak tertimpa.',
+        code: 'DELTA_MODE_REQUIRED',
+      });
+    }
     // v1.52.5: stok sudah diposting → qty/produk dikunci, TAPI No. Batch & ED
     // (metadata) tetap boleh diedit (tidak mengubah jumlah stok).
     const stockFieldsChanged = items !== undefined && hasStockMutations
@@ -1018,7 +1482,10 @@ router.put('/:id', auth, async (req, res) => {
 
     if (shouldRewriteItems) {
       await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [id]);
-      for (const item of invoiceItems) {
+      for (let itemIndex = 0; itemIndex < invoiceItems.length; itemIndex++) {
+        const item = invoiceItems[itemIndex];
+        item.line_key = normalizeLineKey(item.line_key)
+          || generatedLineKey(id, `update-${invoice_number}`, itemIndex);
         const product = getProductFromLookup(productLookup, item);
         const qtyInUnit = parseFloat(item.quantity) || 0;
         const qtyBase = product ? uom.toBase(qtyInUnit, item.unit, product) : qtyInUnit;
@@ -1028,15 +1495,15 @@ router.put('/:id', auth, async (req, res) => {
           `INSERT INTO invoice_items
 	            (invoice_id, product_name, product_id, quantity, unit_price, total_price,
 	             expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
-	             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice, tax_type)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
+             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice, tax_type, line_key)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
           [id, item.product_name, storedProductId, qtyBase,
            item.unit_price||item.hna||0, item.total_price||item.hna_times_qty||0,
            item.expired_date||null, item.hna||0, item.hna_times_qty||0,
            item.disc_percent||0, item.disc_nominal||0, item.hna_baru||0,
            item.hna_per_item||0, item.margin||0,
            item.disc_cod_per_item||0, item.hna_after_cod||0, item.hpp_inc_ppn||0,
-	           item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize, taxType]
+                   item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize, taxType, item.line_key]
 	        );
 	        // v1.8.2: sync product_master.hna ke RAW HNA per pcs dari faktur edit (mirror POST behavior)
 	        // v1.65.2: item.hna = harga per satuan yang diketik operator. Kalau barisnya
@@ -1108,7 +1575,7 @@ router.delete('/:id', auth, async (req, res) => {
     // hasil UPDATE di akhir) — WAJIB supaya delete dobel pada faktur yang sudah di
     // trash tidak ikut menarik stok dua kali (mirror guard is_deleted=FALSE sales.js).
     const snap = await client.query(
-      'SELECT * FROM invoices WHERE id = $1 AND deleted_at IS NULL', [req.params.id]
+      'SELECT * FROM invoices WHERE id = $1 AND deleted_at IS NULL FOR UPDATE', [req.params.id]
     );
     if (!snap.rows.length) {
       await client.query('ROLLBACK');
@@ -1121,17 +1588,18 @@ router.delete('/:id', auth, async (req, res) => {
       [req.params.id, invoice.invoice_number, 'DELETE', JSON.stringify(invoice), '']
     );
 
-    // v1.64.1 (mirror AUDIT-LS-05a): batch faktur ini sudah dipakai keluar (nota,
-    // atau mutasi 'out' lain) → tolak. Menarik stok diam-diam di sini akan membuat
-    // stok yang sudah dipakai nota jadi minus / hilang jejak.
-    // v1.64.1: kecualikan 'faktur-cancelled' — itu jejak pembatalan faktur ini SENDIRI
-    // dari soft-delete sebelumnya (siklus hapus→pulihkan→hapus lagi), bukan pemakaian
-    // nota. Tanpa pengecualian ini, faktur yang pernah di-trash lalu dipulihkan TIDAK
-    // PERNAH bisa dihapus lagi — ketolak oleh jejaknya sendiri, dengan pesan yang salah.
+    // Include the initial stock-in and every later edit delta as one ownership
+    // ledger. A negative net owner is reversed with an additive 'in' mutation.
+    await lockInvoiceBatches(client, req.params.id);
+
+    // Check after batch locks. If a sales transaction was already using a batch,
+    // it finishes before this check; if it starts later, the batch lock blocks it
+    // until this transaction commits or rolls back.
     const { rows: usedOut } = await client.query(
       `SELECT 1 FROM inventory_mutations m
        JOIN inventory_batches b ON b.id = m.batch_id
-       WHERE b.source_ref = $1 AND m.type = 'out' AND m.reference_type <> 'faktur-cancelled'
+       WHERE b.source_ref = $1 AND m.type = 'out'
+         AND m.reference_type NOT IN ('faktur', 'faktur-edit', 'faktur-cancelled', 'faktur-restored')
        LIMIT 1`,
       [`invoice-${req.params.id}`]
     );
@@ -1142,15 +1610,7 @@ router.delete('/:id', auth, async (req, res) => {
       });
     }
 
-    // v1.64.1: mutasi masuk faktur ini per batch (SUM jaga-jaga kalau >1 baris
-    // mutasi 'in' hinggap di batch yang sama).
-    const { rows: inMutations } = await client.query(
-      `SELECT batch_id, product_id, SUM(qty) AS qty
-       FROM inventory_mutations
-       WHERE reference_type = 'faktur' AND reference_id = $1 AND type = 'in' AND batch_id IS NOT NULL
-       GROUP BY batch_id, product_id`,
-      [req.params.id]
-    );
+    const inMutations = await loadInvoiceOwnedNetByBatch(client, req.params.id);
 
     // v1.64.1: kunci baris batch + pastikan qty_current cukup ditarik — jangan
     // pernah membuat qty_current negatif.
@@ -1158,7 +1618,7 @@ router.delete('/:id', auth, async (req, res) => {
       const { rows: [b] } = await client.query(
         'SELECT qty_current FROM inventory_batches WHERE id = $1 FOR UPDATE', [m.batch_id]
       );
-      if (!b || Number(b.qty_current) < Number(m.qty)) {
+      if (!b || (m.qty > 0 && Number(b.qty_current) < Number(m.qty))) {
         await client.query('ROLLBACK');
         return res.status(400).json({
           error: `Faktur tidak bisa dihapus: stok batch #${m.batch_id} sudah berkurang (tersedia ${b ? b.qty_current : 0}, butuh ${m.qty}). Koreksi lewat Stok Opname.`,
@@ -1169,15 +1629,21 @@ router.delete('/:id', auth, async (req, res) => {
     // v1.64.1: tarik qty_current + catat mutasi penanda 'faktur-cancelled' (out),
     // simetris dgn 'nota-cancelled' (in) di sales.js — dipakai RESTORE utk hitung balik.
     for (const m of inMutations) {
-      await client.query(
-        'UPDATE inventory_batches SET qty_current = qty_current - $1 WHERE id = $2',
+      const { rows: updatedBatchRows } = await client.query(
+        'UPDATE inventory_batches SET qty_current = qty_current - $1 WHERE id = $2 RETURNING id',
         [m.qty, m.batch_id]
       );
+      if (updatedBatchRows?.length === 0) {
+        throw Object.assign(new Error(`Batch #${m.batch_id} untuk reversal faktur tidak ditemukan`), {
+          code: 'INVOICE_BATCH_MISSING',
+        });
+      }
       await client.query(
-        `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by)
-         VALUES ($1, $2, 'out', $3, 'faktur-cancelled', $4, $5, $6)`,
-        [m.product_id, m.batch_id, m.qty, req.params.id,
-         `Reversal dari faktur ${invoice.invoice_number} dihapus`, req.user?.id || null]
+        `INSERT INTO inventory_mutations
+          (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by, invoice_line_key)
+         VALUES ($1, $2, $3, $4, 'faktur-cancelled', $5, $6, $7, $8)`,
+        [m.product_id, m.batch_id, m.qty > 0 ? 'out' : 'in', Math.abs(m.qty), req.params.id,
+         `Reversal dari faktur ${invoice.invoice_number} dihapus`, req.user?.id || null, m.invoice_line_key || null]
       );
     }
 
@@ -1191,11 +1657,7 @@ router.delete('/:id', auth, async (req, res) => {
         qtyByProduct.set(m.product_id, (qtyByProduct.get(m.product_id) || 0) + Number(m.qty));
       }
       for (const [productId, qty] of qtyByProduct) {
-        await client.query(
-          `UPDATE purchase_order_items SET received_qty = GREATEST(0, received_qty - $1)
-           WHERE po_id = $2 AND product_id = $3`,
-          [qty, purchaseOrderId, productId]
-        );
+        await applyPurchaseOrderProductDelta(client, purchaseOrderId, productId, -qty);
       }
       await syncPurchaseOrderStatus(client, purchaseOrderId);
     }
@@ -1220,46 +1682,36 @@ router.put('/:id/restore', auth, async (req, res) => {
     // v1.64.1: existence + "sedang di-trash" dicek di depan — cegah restore dobel
     // ikut menambah stok dua kali (mirror guard is_deleted=TRUE di sales.js).
     const { rows: [existing] } = await client.query(
-      'SELECT * FROM invoices WHERE id = $1 AND deleted_at IS NOT NULL', [req.params.id]
+      'SELECT * FROM invoices WHERE id = $1 AND deleted_at IS NOT NULL FOR UPDATE', [req.params.id]
     );
     if (!existing) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Not found' });
     }
 
-    // v1.64.1: net dari mutasi penanda 'faktur-cancelled' (out, dari hapus) dikurangi
-    // 'faktur-restored' (in, dari restore sebelumnya) — HAVING > 0 supaya siklus
-    // hapus→pulihkan berkali-kali tidak dobel-hitung. Mirror pola HAVING di restore
-    // nota sales.js, arah kebalikan (di sini menambah stok balik).
-    const { rows: reversals } = await client.query(
-      `SELECT batch_id, product_id,
-         SUM(CASE WHEN reference_type = 'faktur-cancelled' AND type = 'out' THEN qty
-                  WHEN reference_type = 'faktur-restored'  AND type = 'in'  THEN -qty
-                  ELSE 0 END) AS qty
-       FROM inventory_mutations
-       WHERE reference_id = $1 AND batch_id IS NOT NULL
-         AND reference_type IN ('faktur-cancelled', 'faktur-restored')
-       GROUP BY batch_id, product_id
-       HAVING SUM(CASE WHEN reference_type = 'faktur-cancelled' AND type = 'out' THEN qty
-                       WHEN reference_type = 'faktur-restored'  AND type = 'in'  THEN -qty
-                       ELSE 0 END) > 0`,
-      [req.params.id]
-    );
+    // Lock every batch before calculating the outstanding cancellation effect.
+    // A concurrent sale must finish before the restore decision is made.
+    await lockInvoiceBatches(client, req.params.id);
+    const reversals = await loadInvoiceCancellationNetByBatch(client, req.params.id);
 
-    // v1.64.1: tambahkan lagi qty_current + catat mutasi 'in' penanda 'faktur-restored'
-    // (reference_type beda dari 'faktur' supaya delete berikutnya tidak ikut
-    // me-reverse mutasi restore ini sendiri). Menambah stok selalu aman (tidak
-    // mungkin bikin negatif) — tidak perlu guard qty_current seperti di DELETE.
+    // Reverse the cancellation effect. This intentionally supports both
+    // directions so a prior negative-balance edit remains fully auditable.
     for (const r of reversals) {
-      await client.query(
-        'UPDATE inventory_batches SET qty_current = qty_current + $1 WHERE id = $2',
-        [r.qty, r.batch_id]
+      const { rows: updatedBatchRows } = await client.query(
+        'UPDATE inventory_batches SET qty_current = qty_current + $1 WHERE id = $2 RETURNING id',
+        [toNumber(r.qty), r.batch_id]
       );
+      if (updatedBatchRows.length !== 1) {
+        throw Object.assign(new Error(`Batch #${r.batch_id} untuk restore faktur tidak ditemukan`), {
+          code: 'INVOICE_BATCH_MISSING',
+        });
+      }
       await client.query(
-        `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by)
-         VALUES ($1, $2, 'in', $3, 'faktur-restored', $4, $5, $6)`,
-        [r.product_id, r.batch_id, r.qty, req.params.id,
-         `Restore faktur ${existing.invoice_number} dari trash`, req.user?.id || null]
+        `INSERT INTO inventory_mutations
+          (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by, invoice_line_key)
+         VALUES ($1, $2, $3, $4, 'faktur-restored', $5, $6, $7, $8)`,
+        [r.product_id, r.batch_id, r.qty > 0 ? 'in' : 'out', Math.abs(toNumber(r.qty)), req.params.id,
+         `Restore faktur ${existing.invoice_number} dari trash`, req.user?.id || null, r.invoice_line_key || null]
       );
     }
 
@@ -1272,11 +1724,7 @@ router.put('/:id/restore', auth, async (req, res) => {
         qtyByProduct.set(r.product_id, (qtyByProduct.get(r.product_id) || 0) + Number(r.qty));
       }
       for (const [productId, qty] of qtyByProduct) {
-        await client.query(
-          `UPDATE purchase_order_items SET received_qty = received_qty + $1
-           WHERE po_id = $2 AND product_id = $3`,
-          [qty, purchaseOrderId, productId]
-        );
+        await applyPurchaseOrderProductDelta(client, purchaseOrderId, productId, qty);
       }
       await syncPurchaseOrderStatus(client, purchaseOrderId);
     }
@@ -1298,24 +1746,27 @@ router.delete('/:id/permanent', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const snap = await client.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
-    if (snap.rows.length) {
-      await client.query(
-        `INSERT INTO invoice_audit_log (invoice_id, invoice_number, action, snapshot, note)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [req.params.id, snap.rows[0].invoice_number, 'PERMANENT_DELETE', JSON.stringify(snap.rows[0]), '']
-      );
+    const snap = await client.query('SELECT * FROM invoices WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (!snap.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Not found' });
     }
+    await client.query(
+      `INSERT INTO invoice_audit_log (invoice_id, invoice_number, action, snapshot, note)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [req.params.id, snap.rows[0].invoice_number, 'PERMANENT_DELETE', JSON.stringify(snap.rows[0]), '']
+    );
+    await lockInvoiceBatches(client, req.params.id);
     // AUDIT-LS-05a: tolak kalau batch faktur ini sudah dipakai keluar stok oleh nota —
     // menghapusnya bikin reversal edit/hapus nota jadi no-op senyap (stok hilang tanpa jejak).
-    // v1.64.1: kecualikan mutasi 'faktur-cancelled' — itu reversal milik SOFT DELETE
-    // sendiri (alur normal: faktur masuk trash dulu baru dihapus permanen), BUKAN
-    // pemakaian nota. Tanpa pengecualian ini, faktur yang sudah di-trash TIDAK PERNAH
-    // bisa dihapus permanen lagi (selalu ketolak oleh mutasi cancel miliknya sendiri).
+    // Lifecycle mutations belonging to this invoice are not external stock usage.
+    // This includes delta edits and restore/delete reversals; only an unrelated
+    // outgoing mutation (for example a sales note) blocks permanent deletion.
     const { rows: usedByNota } = await client.query(
       `SELECT 1 FROM inventory_mutations m
        JOIN inventory_batches b ON b.id = m.batch_id
-       WHERE b.source_ref = $1 AND m.type = 'out' AND m.reference_type <> 'faktur-cancelled'
+       WHERE b.source_ref = $1 AND m.type = 'out'
+         AND m.reference_type NOT IN ('faktur', 'faktur-edit', 'faktur-cancelled', 'faktur-restored')
        LIMIT 1`,
       [`invoice-${req.params.id}`]
     );
@@ -1326,54 +1777,78 @@ router.delete('/:id/permanent', auth, async (req, res) => {
       });
     }
 
-    // AUDIT-LS-05b: kembalikan room SP — stok yang dihapus harus bisa diterima ulang.
-    // v1.64.1: qty_in sekarang NET dari 'faktur' (in) dikurangi 'faktur-cancelled' (out)
-    // ditambah 'faktur-restored' (in) — bukan cuma SUM 'faktur' mentah. Alur normalnya
-    // faktur ini SUDAH di-soft-delete lebih dulu (received_qty sudah dikurangi di sana);
-    // tanpa net ini, room SP kepotong DOBEL di sini (bisa menyerobot jatah faktur lain
-    // di PO yang sama). Kalau belum pernah di-soft-delete (hapus permanen langsung),
-    // net-nya sama persis dgn SUM 'faktur' lama — perilaku lama tetap terjaga.
+    // AUDIT-LS-05b: return the net quantity owned by this invoice to the PO.
+    // Delta edits and lifecycle reversals are included, so deleting a document
+    // never returns the initial quantity twice or hides a negative correction.
+    // The same net ownership is reversed in the inventory ledger below; the
+    // original and correction mutations are intentionally retained.
+    const inMutations = await loadInvoiceOwnedNetByBatch(client, req.params.id);
     const purchaseOrderId = snap.rows[0]?.purchase_order_id || null;
     if (purchaseOrderId) {
-      const { rows: inMutations } = await client.query(
-        `SELECT product_id, COALESCE(SUM(
-           CASE WHEN reference_type = 'faktur' AND type = 'in' THEN qty
-                WHEN reference_type = 'faktur-restored' AND type = 'in' THEN qty
-                WHEN reference_type = 'faktur-cancelled' AND type = 'out' THEN -qty
-                ELSE 0 END
-         ), 0) AS qty_in
-         FROM inventory_mutations
-         WHERE reference_id = $1
-           AND reference_type IN ('faktur', 'faktur-cancelled', 'faktur-restored')
-         GROUP BY product_id
-         HAVING COALESCE(SUM(
-           CASE WHEN reference_type = 'faktur' AND type = 'in' THEN qty
-                WHEN reference_type = 'faktur-restored' AND type = 'in' THEN qty
-                WHEN reference_type = 'faktur-cancelled' AND type = 'out' THEN -qty
-                ELSE 0 END
-         ), 0) > 0`,
-        [req.params.id]
-      );
-      for (const m of inMutations) {
-        await client.query(
-          `UPDATE purchase_order_items
-           SET received_qty = GREATEST(0, received_qty - $1)
-           WHERE po_id = $2 AND product_id = $3`,
-          [m.qty_in, purchaseOrderId, m.product_id]
+      const qtyByProduct = new Map();
+      for (const mutation of inMutations) {
+        qtyByProduct.set(
+          mutation.product_id,
+          (qtyByProduct.get(mutation.product_id) || 0) + toNumber(mutation.qty),
         );
+      }
+      for (const [productId, qty] of qtyByProduct) {
+        await applyPurchaseOrderProductDelta(client, purchaseOrderId, productId, -qty);
       }
     }
 
-    // Clean up inventory_batches and mutations created from this invoice
-    // v1.64.1: ikut hapus mutasi penanda 'faktur-cancelled'/'faktur-restored' —
-    // kalau tidak, baris itu jadi sampah nyantol ke invoice_id yang sudah tidak ada.
-    await client.query(
-      `DELETE FROM inventory_mutations
-       WHERE reference_type IN ('faktur', 'faktur-cancelled', 'faktur-restored') AND reference_id = $1`,
-      [req.params.id]
+    // Permanent delete is still a stock reversal, but it is not a license to
+    // erase the ledger. Preserve every original/edit/lifecycle mutation and
+    // append one final cancellation mutation for the outstanding ownership.
+    // This keeps the audit trail reconstructable after the invoice row is gone.
+    for (const mutation of inMutations) {
+      const { rows: [batch] } = await client.query(
+        'SELECT id, qty_current FROM inventory_batches WHERE id = $1 FOR UPDATE',
+        [mutation.batch_id],
+      );
+      if (!batch || (mutation.qty > 0 && toNumber(batch.qty_current) < toNumber(mutation.qty))) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          error: `Faktur tidak bisa dihapus permanen: saldo batch #${mutation.batch_id} tidak cocok dengan ledger. Koreksi lewat Stok Opname.`,
+        });
+      }
+      const { rows: updatedRows } = await client.query(
+        `UPDATE inventory_batches
+            SET qty_current = qty_current - $1
+          WHERE id = $2 AND qty_current = $3
+          RETURNING id, qty_current`,
+        [mutation.qty, mutation.batch_id, toNumber(batch.qty_current)],
+      );
+      if (updatedRows.length !== 1) {
+        throw Object.assign(new Error(`Saldo batch #${mutation.batch_id} berubah sebelum permanent delete`), {
+          code: 'STALE_BATCH_BALANCE',
+        });
+      }
+      await client.query(
+        `INSERT INTO inventory_mutations
+          (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by, invoice_line_key)
+         VALUES ($1, $2, $3, $4, 'faktur-cancelled', $5, $6, $7, $8)`,
+        [mutation.product_id, mutation.batch_id, mutation.qty > 0 ? 'out' : 'in',
+         Math.abs(toNumber(mutation.qty)), req.params.id,
+         `Reversal permanent delete faktur ${snap.rows[0].invoice_number}`,
+         req.user?.id || null, mutation.invoice_line_key || null],
+      );
+    }
+
+    const { rows: remainingBatches } = await client.query(
+      'SELECT id, qty_current FROM inventory_batches WHERE source_ref = $1 FOR UPDATE',
+      [`invoice-${req.params.id}`],
     );
+    const nonZeroBatches = remainingBatches.filter((batch) => Math.abs(toNumber(batch.qty_current)) > 0.0001);
+    if (nonZeroBatches.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        error: 'Faktur tidak bisa dihapus permanen: saldo batch setelah reversal tidak nol. Rekonsiliasi ledger terlebih dahulu.',
+        code: 'INVOICE_LEDGER_MISMATCH',
+      });
+    }
     await client.query(
-      `DELETE FROM inventory_batches WHERE source_ref = $1`,
+      `UPDATE inventory_batches SET is_active = FALSE WHERE source_ref = $1`,
       [`invoice-${req.params.id}`]
     );
     await client.query('DELETE FROM invoice_items WHERE invoice_id = $1', [req.params.id]);
@@ -1383,7 +1858,10 @@ router.delete('/:id/permanent', auth, async (req, res) => {
     res.json({ message: 'Permanently deleted' });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    res.status(deltaErrorStatus(err)).json({
+      error: err.message,
+      ...(err.code ? { code: err.code } : {}),
+    });
   } finally { client.release(); }
 });
 

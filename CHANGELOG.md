@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.12-stable] - 2026-09-12
+
+### Diperbaiki
+- **Edit faktur memakai delta inventory ledger.** Perubahan qty, produk, satuan, dan batch pada faktur yang stoknya telah diposting tidak lagi ditolak atau melakukan stock-in ulang. Sistem menyimpan mutasi awal, lalu menulis hanya selisih positif/negatif yang diperlukan.
+- **Preview dan konfirmasi eksplisit sebelum stok berubah.** Operator meninjau dampak stok per batch, warning saldo minus, revaluasi HNA, dan dampak Surat Pesanan sebelum backend mengunci ulang data dan menyimpan dalam satu transaksi atomik.
+- **Idempotency, audit, dan legacy safety.** Edit yang diulang tidak menggandakan stok; snapshot sebelum/sesudah dan delta dicatat. Faktur lama dengan mapping mutasi ambigu atau stok parsial diblokir aman tanpa write.
+- **Schema additive untuk delta edit.** Migration `20260911_020` menambah metadata line/event dan audit event; `20260911_021` menjaga audit edit tetap ada setelah permanent delete. Tidak ada histori mutasi stok lama yang dihapus.
+
+### Diverifikasi
+- Backend delta unit, safety, schema boundary, HTTP smoke, dan hardening suite lulus. Frontend test serta production build Vite lulus. Migration belum dijalankan pada database production pada saat release commit ini dibuat.
+
 ## [v1.67.11-stable] - 2026-09-05
 
 ### Diperbaiki

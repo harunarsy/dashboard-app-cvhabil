@@ -161,6 +161,7 @@ const addDays = (dateStr, n) => {
 };
 const blankItem = () => ({
   _id: Math.random().toString(36).slice(2),
+  line_key: null,
   product_name: "",
   product_id: null,
   batch_number: "",
@@ -532,6 +533,8 @@ export default function InvoiceList({
   const [paymentModal, setPaymentModal] = useState({ open: false, inv: null, date: "" });
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [batchEditMode, setBatchEditMode] = useState("metadata");
+  const [deltaReview, setDeltaReview] = useState(null);
 
   const draftDebounceRef = useRef(null);
   const lastDraftSnapRef = useRef("");
@@ -1090,6 +1093,8 @@ export default function InvoiceList({
         .map((i) => {
           const withCod = itemsWithCod.find((x) => x._id === i._id) || i;
           return {
+            id: i.id || null,
+            line_key: i.line_key || null,
             product_name: i.product_name,
             product_id: i.product_id || null,
             expired_date: i.expired_date || null,
@@ -1116,6 +1121,60 @@ export default function InvoiceList({
     };
   };
 
+  const createIdempotencyKey = () => {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    return `invoice-edit-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  };
+
+  const prepareDeltaUpdate = async (
+    payload,
+    targetId = editingId,
+    mode = batchEditMode,
+  ) => {
+    if (!targetId) {
+      showToast("Error: faktur target untuk preview tidak ditemukan");
+      return;
+    }
+    const idempotencyKey = createIdempotencyKey();
+    const deltaPayload = {
+      ...payload,
+      stock_edit_mode: "delta",
+      batch_edit_mode: mode,
+      idempotency_key: idempotencyKey,
+    };
+    setIsSaving(true);
+    try {
+      const res = await invoicesAPI.previewUpdate(targetId, deltaPayload);
+      const data = res.data || {};
+      setDeltaReview({
+        invoiceId: targetId,
+        payload: deltaPayload,
+        preview: data.preview,
+        previewToken: data.preview_token,
+        idempotencyKey: data.idempotency_key || idempotencyKey,
+        error: null,
+        blocked: false,
+      });
+    } catch (err) {
+      const data = err.response?.data || {};
+      if (data.preview) {
+        setDeltaReview({
+          invoiceId: targetId,
+          payload: deltaPayload,
+          preview: data.preview,
+          previewToken: data.preview_token,
+          idempotencyKey: data.idempotency_key || idempotencyKey,
+          error: data.error || "Preview ditolak",
+          blocked: true,
+        });
+      } else {
+        showToast("Error: " + (data.error || err.message));
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleSubmit = async () => {
     const err = validateForm();
     if (err) {
@@ -1136,20 +1195,70 @@ export default function InvoiceList({
       });
       return;
     }
+    if (editingId) {
+      await prepareDeltaUpdate(payload);
+      return;
+    }
     await doSave(payload);
+  };
+
+  const confirmDeltaUpdate = async () => {
+    if (!deltaReview?.previewToken || deltaReview.blocked) return;
+    setIsSaving(true);
+    try {
+      const res = await invoicesAPI.update(deltaReview.invoiceId, {
+        ...deltaReview.payload,
+        preview_token: deltaReview.previewToken,
+        confirm_stock_delta: true,
+      });
+      upsertInvoiceCache(res?.data);
+      setDeltaReview(null);
+      try {
+        await invoicesAPI.clearDraft();
+      } catch (e) {
+        console.error("Error clearing invoice draft after delta save:", e);
+      }
+      setSavedDraft(null);
+      setSavedDraftUpdatedAt(null);
+      setDraftBanner(false);
+      lastDraftSnapRef.current = "";
+      fetchInvoices();
+      fetchDistributors();
+      fetchProducts();
+      resetForm();
+      setShowModal(false);
+      showToast("✅ Faktur dan delta stok berhasil disimpan!");
+    } catch (err) {
+      const data = err.response?.data || {};
+      if (data.preview) {
+        setDeltaReview((current) => current ? {
+          ...current,
+          preview: data.preview,
+          previewToken: data.preview_token || current.previewToken,
+          error: data.error || "Konfirmasi ditolak",
+          blocked: true,
+        } : current);
+      } else if (data.code === "PREVIEW_STALE") {
+        setDeltaReview((current) => current ? {
+          ...current,
+          previewToken: null,
+          error: data.error || "Preview sudah tidak berlaku. Kembali ke form lalu buat preview baru.",
+          blocked: true,
+        } : current);
+        showToast("⚠️ Preview sudah berubah/kedaluwarsa. Buat preview baru sebelum menyimpan.", 8000);
+      } else {
+        showToast("Error: " + (data.error || err.message));
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const doSave = async (payload) => {
     setIsSaving(true);
     try {
-      const isEdit = !!editingId;
-      if (isEdit) {
-        const res = await invoicesAPI.update(editingId, payload);
-        upsertInvoiceCache(res?.data);
-      } else {
-        const res = await invoicesAPI.create(payload);
-        upsertInvoiceCache(res?.data?.invoice);
-      }
+      const res = await invoicesAPI.create(payload);
+      upsertInvoiceCache(res?.data?.invoice);
       try {
         await invoicesAPI.clearDraft();
       } catch (e) {
@@ -1164,11 +1273,7 @@ export default function InvoiceList({
       fetchProducts();
       resetForm();
       setShowModal(false);
-      showToast(
-        isEdit
-          ? "✅ Faktur berhasil diupdate!"
-          : "✅ Faktur berhasil disimpan!",
-      );
+      showToast("✅ Faktur berhasil disimpan!");
     } catch (err) {
       const unmatched = err.response?.data?.unmatchedProducts || [];
       if (err.response?.status === 422 && unmatched.length > 0) {
@@ -1187,28 +1292,11 @@ export default function InvoiceList({
 
   const handleDupOverwrite = async () => {
     if (!dupConfirm) return;
-    try {
-      await invoicesAPI.update(
-        dupConfirm.existingId,
-        dupConfirm.pendingPayload,
-      );
-      try {
-        await invoicesAPI.clearDraft();
-      } catch (e) {
-        console.error("Error clearing invoice draft after overwrite:", e);
-      }
-      setSavedDraft(null);
-      setSavedDraftUpdatedAt(null);
-      setDraftBanner(false);
-      lastDraftSnapRef.current = "";
-      fetchInvoices();
-      resetForm();
-      setShowModal(false);
-      setDupConfirm(null);
-      showToast("✅ Faktur berhasil diupdate!");
-    } catch (err) {
-      showToast("Error: " + (err.response?.data?.error || err.message));
-    }
+    const { existingId, pendingPayload } = dupConfirm;
+    setDupConfirm(null);
+    setEditingId(existingId);
+    setBatchEditMode("metadata");
+    await prepareDeltaUpdate(pendingPayload, existingId, "metadata");
   };
 
   const handleDupLoadExisting = async () => {
@@ -1239,7 +1327,9 @@ export default function InvoiceList({
           ? invItems.map((i) =>
               calcItem(
                 {
-                  _id: Math.random().toString(36).slice(2),
+                  _id: String(i.line_key || i.id || Math.random().toString(36).slice(2)),
+                  id: i.id || null,
+                  line_key: i.line_key || null,
                   product_name: i.product_name || "",
                   product_id: i.product_id || null,
                   batch_number: i.batch_number || "",
@@ -1264,6 +1354,8 @@ export default function InvoiceList({
           : [blankItem()],
       );
       setEditingId(existingId);
+      setBatchEditMode("metadata");
+      setDeltaReview(null);
     } catch (err) {
       showToast("Error loading invoice");
     }
@@ -1294,7 +1386,9 @@ export default function InvoiceList({
           ? invItems.map((i) =>
               calcItem(
                 {
-                  _id: Math.random().toString(36).slice(2),
+                  _id: String(i.line_key || i.id || Math.random().toString(36).slice(2)),
+                  id: i.id || null,
+                  line_key: i.line_key || null,
                   product_name: i.product_name || "",
                   product_id: i.product_id || null,
                   batch_number: i.batch_number || "",
@@ -1319,6 +1413,8 @@ export default function InvoiceList({
           : [blankItem()],
       );
       setEditingId(inv.id);
+      setBatchEditMode("metadata");
+      setDeltaReview(null);
       setShowModal(true);
     } catch (err) {
       showToast("Error loading invoice");
@@ -1419,6 +1515,8 @@ export default function InvoiceList({
     setForm(blankForm());
     setItems([blankItem()]);
     setEditingId(null);
+    setBatchEditMode("metadata");
+    setDeltaReview(null);
   }, []);
   // Auto-buka modal create faktur dari Akses Cepat Dashboard (state quickCreate).
   const location = useLocation();
@@ -3203,7 +3301,7 @@ export default function InvoiceList({
                     color: "var(--color-text-subtle)",
                   }}
                 >
-                  Faktur lama akan diganti sepenuhnya
+                  Data akan direkonsiliasi lewat preview delta yang aman
                 </span>
               </button>
               <button
@@ -3776,6 +3874,8 @@ export default function InvoiceList({
           items={items}
           totals={totals}
           editingId={editingId}
+          batchEditMode={batchEditMode}
+          onBatchEditModeChange={setBatchEditMode}
           distributors={distributors}
           products={products}
           refetchProducts={fetchProducts}
@@ -3800,6 +3900,339 @@ export default function InvoiceList({
           formatRp={formatRp}
         />
       )}
+      {deltaReview && renderPortal(
+        <InvoiceDeltaPreviewModal
+          isDarkMode={isDarkMode}
+          isMobile={isMobile}
+          review={deltaReview}
+          isSaving={isSaving}
+          onCancel={() => setDeltaReview(null)}
+          onConfirm={confirmDeltaUpdate}
+        />
+      )}
+    </div>
+  );
+}
+
+const formatDeltaQty = (value) => {
+  const number = Number(value || 0);
+  return Number.isFinite(number)
+    ? new Intl.NumberFormat("id-ID", { maximumFractionDigits: 4 }).format(number)
+    : "—";
+};
+
+const formatSignedDelta = (value) => {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return "—";
+  return `${number > 0 ? "+" : ""}${formatDeltaQty(number)}`;
+};
+
+function InvoiceDeltaPreviewModal({
+  isDarkMode,
+  isMobile,
+  review,
+  isSaving,
+  onCancel,
+  onConfirm,
+}) {
+  const preview = review.preview || {};
+  const stockRows = preview.stock_deltas || [];
+  const lineRows = preview.line_changes || [];
+  const hnaRows = preview.hna_revaluations || [];
+  const poRows = preview.po_effects || [];
+  const warnings = preview.negative_warnings || [];
+  const validationErrors = preview.validation_errors || [];
+  const blocked = review.blocked || !review.previewToken;
+  const surface = isDarkMode ? "var(--color-surface-elevated)" : "#FFFFFF";
+  const raised = isDarkMode ? "var(--color-surface-raised)" : "#F7F7FA";
+  const text = isDarkMode ? "#FFFFFF" : "#17171A";
+  const muted = "var(--color-text-subtle)";
+  const border = isDarkMode ? "var(--color-border-strong)" : "var(--color-border)";
+  const grid = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+    gap: "8px",
+  };
+  const section = {
+    border: `1px solid ${border}`,
+    borderRadius: "12px",
+    padding: "12px",
+    background: raised,
+  };
+  const tableHeader = {
+    color: muted,
+    fontSize: "10px",
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+  };
+  const stockTableColumns = isMobile
+    ? "minmax(155px, 1.6fr) minmax(105px, 1fr) 68px 68px 68px"
+    : "minmax(170px, 1.6fr) minmax(110px, 1fr) 75px 75px 75px";
+  const lineTableColumns = isMobile
+    ? "minmax(155px, 1fr) minmax(135px, 1fr) 68px 68px 92px"
+    : "minmax(180px, 1fr) minmax(150px, 1fr) 80px 80px 100px";
+
+  return (
+    <div
+      role="presentation"
+      onClick={onCancel}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 1200,
+        background: "rgba(0,0,0,0.62)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "16px",
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="invoice-delta-preview-title"
+        onClick={(event) => event.stopPropagation()}
+        style={{
+          width: "min(920px, 100%)",
+          maxHeight: "min(92vh, 860px)",
+          overflowY: "auto",
+          background: surface,
+          color: text,
+          border: `1px solid ${border}`,
+          borderRadius: "18px",
+          boxShadow: "0 28px 80px rgba(0,0,0,0.42)",
+        }}
+      >
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 1,
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: "12px",
+            padding: "18px 20px",
+            background: isDarkMode ? "#101012" : "#FBFBFD",
+            borderBottom: `1px solid ${border}`,
+          }}
+        >
+          <div>
+            <p
+              id="invoice-delta-preview-title"
+              style={{ margin: 0, fontSize: "17px", fontWeight: 750 }}
+            >
+              Review perubahan faktur
+            </p>
+            <p style={{ margin: "4px 0 0", color: muted, fontSize: "11px" }}>
+              {preview.invoice_number || "Faktur"} · mode delta ledger · tidak menulis sebelum dikonfirmasi
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            aria-label="Tutup review perubahan faktur"
+            className="ui-motion-button ui-focus-ring"
+            style={{
+              border: "none",
+              background: "transparent",
+              color: muted,
+              cursor: "pointer",
+              fontSize: "22px",
+              lineHeight: 1,
+              padding: "4px 7px",
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gap: "12px", padding: "16px 20px 20px" }}>
+          {review.error ? (
+            <div
+              role="alert"
+              style={{
+                padding: "10px 12px",
+                borderRadius: "10px",
+                border: "1px solid var(--color-danger)",
+                color: "var(--color-danger)",
+                background: isDarkMode ? "rgba(255,69,58,0.12)" : "#FFF1F0",
+                fontSize: "12px",
+                fontWeight: 650,
+              }}
+            >
+              {review.error}
+            </div>
+          ) : null}
+
+          {validationErrors.length > 0 ? (
+            <div
+              role="alert"
+              style={{
+                ...section,
+                borderColor: "var(--color-danger)",
+                background: isDarkMode ? "rgba(255,69,58,0.10)" : "#FFF5F4",
+              }}
+            >
+              <div style={{ color: "var(--color-danger)", fontWeight: 750, fontSize: "12px" }}>
+                Validasi sebelum simpan
+              </div>
+              <div style={{ display: "grid", gap: "6px", marginTop: "8px", fontSize: "11px", lineHeight: 1.4 }}>
+                {validationErrors.map((item, index) => (
+                  <div key={`${item.code || "validation"}-${item.product_id || "product"}-${index}`}>
+                    <strong>{item.product_name || `Produk #${item.product_id || "—"}`}</strong>
+                    {item.message ? ` · ${item.message}` : null}
+                    {item.remaining != null ? ` · Sisa yang tidak teralokasi: ${formatDeltaQty(item.remaining)}` : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div style={grid}>
+            {[
+              ["Perubahan baris", lineRows.length],
+              ["Delta batch", stockRows.length],
+              ["Revaluasi HNA", hnaRows.length],
+              ["Peringatan minus", warnings.length],
+            ].map(([label, value]) => (
+              <div key={label} style={{ ...section, padding: "10px 12px" }}>
+                <div style={tableHeader}>{label}</div>
+                <div style={{ marginTop: "5px", fontSize: "18px", fontWeight: 750 }}>
+                  {formatDeltaQty(value)}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {warnings.length > 0 ? (
+            <div
+              role="alert"
+              style={{
+                ...section,
+                borderColor: "var(--color-warning)",
+                background: isDarkMode ? "rgba(255,204,0,0.10)" : "#FFF9E8",
+              }}
+            >
+              <div style={{ color: "var(--color-warning)", fontWeight: 750, fontSize: "12px" }}>
+                ⚠️ Saldo batch akan menjadi minus
+              </div>
+              <div style={{ display: "grid", gap: "7px", marginTop: "8px" }}>
+                {warnings.map((warning, index) => (
+                  <div key={`${warning.batch_id || warning.batch}-${index}`} style={{ fontSize: "11px", lineHeight: 1.45 }}>
+                    <strong>{warning.product_name}</strong> · batch {warning.batch || "—"}: {formatDeltaQty(warning.before_qty)} {formatSignedDelta(warning.delta_base)} = <strong>{formatDeltaQty(warning.after_qty)}</strong>
+                  </div>
+                ))}
+              </div>
+              <p style={{ margin: "9px 0 0", color: muted, fontSize: "10px", lineHeight: 1.4 }}>
+                Konfirmasi ini eksplisit. Backend akan menghitung ulang saldo dan membatalkan seluruh transaksi jika salah satu lock atau validasi gagal.
+              </p>
+            </div>
+          ) : null}
+
+          <div style={section}>
+            <div style={{ fontSize: "12px", fontWeight: 750, marginBottom: "9px" }}>
+              Dampak stok per batch
+            </div>
+            {stockRows.length === 0 ? (
+              <p style={{ margin: 0, color: muted, fontSize: "11px" }}>Tidak ada perubahan qty stok.</p>
+            ) : (
+              <div style={{ display: "grid", gap: "7px", overflowX: "auto" }}>
+                <div style={{ ...grid, minWidth: isMobile ? "565px" : undefined, gridTemplateColumns: stockTableColumns }}>
+                  <span style={tableHeader}>Produk / batch</span>
+                  <span style={tableHeader}>Batch baru</span>
+                  <span style={tableHeader}>Sebelum</span>
+                  <span style={tableHeader}>Delta</span>
+                  <span style={tableHeader}>Sesudah</span>
+                </div>
+                {stockRows.map((row) => (
+                  <div key={row.key} style={{ ...grid, minWidth: isMobile ? "565px" : undefined, gridTemplateColumns: stockTableColumns, alignItems: "center", fontSize: "11px" }}>
+                    <span>
+                      <strong>{row.product_name}</strong>
+                      <small style={{ display: "block", color: muted }}>batch {row.batch_before || "baru"}</small>
+                    </span>
+                    <span>{row.batch_after || "—"}</span>
+                    <span>{formatDeltaQty(row.before_qty)}</span>
+                    <span style={{ color: row.delta_base < 0 ? "var(--color-danger)" : "var(--color-success)", fontWeight: 750 }}>{formatSignedDelta(row.delta_base)}</span>
+                    <span style={{ color: row.status === "minus" ? "var(--color-danger)" : text, fontWeight: 750 }}>{formatDeltaQty(row.after_qty)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={section}>
+            <div style={{ fontSize: "12px", fontWeight: 750, marginBottom: "9px" }}>Perubahan baris faktur</div>
+            {lineRows.length === 0 ? (
+              <p style={{ margin: 0, color: muted, fontSize: "11px" }}>Tidak ada baris yang berubah.</p>
+            ) : (
+              <div style={{ display: "grid", gap: "7px", overflowX: "auto" }}>
+                {lineRows.map((row) => (
+                  <div key={row.line_key} style={{ display: "grid", minWidth: isMobile ? "530px" : undefined, gridTemplateColumns: lineTableColumns, gap: "8px", alignItems: "center", fontSize: "11px" }}>
+                    <span><strong>{row.product_name_before || "—"}</strong><small style={{ display: "block", color: muted }}>{row.batch_number_before || "batch —"}</small></span>
+                    <span><strong>{row.product_name_after || "—"}</strong><small style={{ display: "block", color: muted }}>{row.batch_number_after || "batch —"}</small></span>
+                    <span>{formatDeltaQty(row.old_qty_base)}</span>
+                    <span>{formatDeltaQty(row.new_qty_base)}</span>
+                    <span style={{ fontWeight: 700 }}>{row.status} · {formatSignedDelta(row.delta_base)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {hnaRows.length > 0 ? (
+            <div style={section}>
+              <div style={{ fontSize: "12px", fontWeight: 750, marginBottom: "9px" }}>Revaluasi HNA</div>
+              <div style={{ display: "grid", gap: "7px", fontSize: "11px" }}>
+                {hnaRows.map((row) => (
+                  <div key={row.target_key}>
+                    <strong>{row.product_id ? `Produk #${row.product_id}` : "Produk"}</strong> · batch {formatDeltaQty(row.before_hna)} → {formatDeltaQty(row.after_hna)}
+                    {row.product_master_sync ? <span style={{ display: "block", color: muted }}>Product master: {formatDeltaQty(row.product_master_before)} → {formatDeltaQty(row.product_master_after)} · berlaku untuk transaksi berikutnya</span> : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {poRows.length > 0 ? (
+            <div style={section}>
+              <div style={{ fontSize: "12px", fontWeight: 750, marginBottom: "9px" }}>Dampak Surat Pesanan</div>
+              <div style={{ display: "grid", gap: "6px", fontSize: "11px" }}>
+                {poRows.map((row) => (
+                  <div key={row.po_item_id}>PO item #{row.po_item_id}: received {formatDeltaQty(row.before_received_qty)} {formatSignedDelta(row.delta_base)} = <strong>{formatDeltaQty(row.after_received_qty)}</strong></div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {preview.no_op ? (
+            <div style={{ color: "var(--color-success)", fontSize: "11px", fontWeight: 650 }}>
+              Tidak ada perubahan stok/HNA. Simpan hanya akan merekam perubahan faktur yang memang kamu lakukan.
+            </div>
+          ) : null}
+
+          <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", flexWrap: "wrap", paddingTop: "4px" }}>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="ui-motion-button ui-focus-ring"
+              style={{ flex: "1 1 180px", padding: "11px 14px", borderRadius: "10px", border: `1px solid ${border}`, background: "transparent", color: text, cursor: "pointer", fontWeight: 650 }}
+            >
+              Kembali ke edit
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={blocked || isSaving}
+              className="ui-motion-button ui-focus-ring"
+              style={{ flex: "1 1 240px", padding: "11px 14px", borderRadius: "10px", border: "none", background: blocked || isSaving ? "var(--color-text-subtle)" : "var(--color-action)", color: "#FFFFFF", cursor: blocked || isSaving ? "not-allowed" : "pointer", fontWeight: 750, opacity: blocked || isSaving ? 0.7 : 1 }}
+            >
+              {isSaving ? "Menyimpan…" : blocked ? "Perlu preview valid" : "Konfirmasi & simpan delta"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -4385,6 +4818,8 @@ function InvoiceModal({
   items,
   totals,
   editingId,
+  batchEditMode,
+  onBatchEditModeChange,
   distributors,
   products,
   refetchProducts,
@@ -4850,20 +5285,67 @@ function InvoiceModal({
               </button>
             </div>
             {editingId ? (
-              <p
+              <div
                 style={{
                   margin: "0 0 14px",
-                  fontSize: "11px",
+                  padding: "10px 12px",
                   color: "var(--color-text-subtle)",
                   lineHeight: 1.4,
-                  padding: "8px 12px",
                   background: isDarkMode ? "rgba(255,204,0,0.08)" : "rgba(255,149,0,0.06)",
                   borderRadius: "8px",
                   border: `1px solid ${isDarkMode ? "rgba(255,204,0,0.15)" : "rgba(255,149,0,0.15)"}`,
                 }}
               >
-                Qty/item faktur yang sudah masuk stok tidak bisa diedit. Koreksi stok lewat Opname/Adjust agar riwayat stok tetap rapi.
-              </p>
+                <p style={{ margin: 0, fontSize: "11px" }}>
+                  Edit ini memakai rekonsiliasi delta. Mutasi stok awal tetap tersimpan; sistem hanya mencatat selisihnya setelah kamu meninjau preview.
+                </p>
+                <div
+                  role="group"
+                  aria-label="Mode perubahan batch"
+                  style={{ display: "flex", gap: "8px", marginTop: "9px", flexWrap: "wrap" }}
+                >
+                  {[
+                    {
+                      value: "metadata",
+                      label: "Koreksi Batch / ED",
+                      hint: "Typo metadata, saldo tetap",
+                    },
+                    {
+                      value: "move",
+                      label: "Pindah Batch",
+                      hint: "Buat delta −/+",
+                    },
+                  ].map((option) => {
+                    const active = batchEditMode === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className="ui-motion-button ui-focus-ring"
+                        onClick={() => onBatchEditModeChange(option.value)}
+                        aria-pressed={active}
+                        style={{
+                          flex: "1 1 190px",
+                          textAlign: "left",
+                          padding: "8px 10px",
+                          borderRadius: "8px",
+                          border: `1px solid ${active ? "var(--color-action)" : "var(--color-border)"}`,
+                          background: active ? "var(--color-selection)" : "transparent",
+                          color: active ? "var(--color-action)" : "var(--color-text-muted)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <span style={{ display: "block", fontSize: "11px", fontWeight: 700 }}>
+                          {option.label}
+                        </span>
+                        <span style={{ display: "block", fontSize: "10px", marginTop: "2px" }}>
+                          {option.hint}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             ) : null}
             {items.map((item, idx) => (
               <div

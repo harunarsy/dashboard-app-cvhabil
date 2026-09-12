@@ -39,7 +39,7 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.67.11-stable",
+    version: "v1.67.12-stable",
     date: "05 September 2026",
     status: "latest",
     changes: [

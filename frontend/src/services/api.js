@@ -108,6 +108,7 @@ export const invoicesAPI = {
   saveDraft: (data) => api.post('/invoices/draft', { draft_data: data }),
   clearDraft: () => api.delete('/invoices/draft/clear'),
   create: (data) => api.post('/invoices', data),
+  previewUpdate: (id, data) => api.post(`/invoices/${id}/preview`, data),
   update: (id, data) => api.put(`/invoices/${id}`, data),
   updatePaymentStatus: (id, status, payment_date) =>
     api.patch(`/invoices/${id}/payment-status`, { status, ...(payment_date && { payment_date }) }),

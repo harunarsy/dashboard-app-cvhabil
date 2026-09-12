@@ -1045,6 +1045,59 @@ const migrations = [
       `);
     },
   },
+  {
+    id: '20260911_020_invoice_delta_edit',
+    async up(db) {
+      await db.query(`
+        ALTER TABLE invoice_items
+          ADD COLUMN IF NOT EXISTS line_key VARCHAR(120);
+
+        ALTER TABLE inventory_mutations
+          ADD COLUMN IF NOT EXISTS invoice_line_key VARCHAR(120),
+          ADD COLUMN IF NOT EXISTS event_key VARCHAR(160);
+
+        CREATE INDEX IF NOT EXISTS idx_invoice_items_line_key
+          ON invoice_items(invoice_id, line_key);
+        CREATE INDEX IF NOT EXISTS idx_inventory_mutations_invoice_line
+          ON inventory_mutations(reference_type, reference_id, invoice_line_key);
+        CREATE INDEX IF NOT EXISTS idx_inventory_mutations_event_key
+          ON inventory_mutations(event_key);
+
+        CREATE TABLE IF NOT EXISTS invoice_edit_events (
+          id BIGSERIAL PRIMARY KEY,
+          -- Deliberately not a foreign key: immutable edit-event snapshots
+          -- must survive the optional permanent deletion of the invoice row.
+          invoice_id INTEGER NOT NULL,
+          idempotency_key VARCHAR(160) NOT NULL,
+          request_hash VARCHAR(64) NOT NULL,
+          before_snapshot JSONB,
+          after_snapshot JSONB,
+          stock_delta JSONB,
+          hna_revaluations JSONB,
+          po_effects JSONB,
+          negative_warning JSONB,
+          response JSONB,
+          created_by INTEGER,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_invoice_edit_events_idempotency
+          ON invoice_edit_events(idempotency_key);
+        CREATE INDEX IF NOT EXISTS idx_invoice_edit_events_invoice
+          ON invoice_edit_events(invoice_id, created_at DESC);
+      `);
+    },
+  },
+  {
+    id: '20260911_021_invoice_edit_event_retention',
+    async up(db) {
+      // Migration 020 initially created a cascading FK. Drop it for existing
+      // installations so permanent delete cannot erase the edit audit trail.
+      await db.query(`
+        ALTER TABLE invoice_edit_events
+          DROP CONSTRAINT IF EXISTS invoice_edit_events_invoice_id_fkey
+      `);
+    },
+  },
 ];
 
 const listRouteSchemaMigrations = () => migrations.map(({ id }) => id);
