@@ -1166,7 +1166,7 @@ const LEGACY_REQUIRED_COLUMNS = [
   ['invoice_items', 'id'],
   ['invoice_items', 'invoice_id'],
   ['invoice_items', 'product_id'],
-  ['invoice_items', 'batch_no'],
+  ['invoice_items', 'batch_number'],
   ['invoice_items', 'expired_date'],
   ['invoice_items', 'quantity'],
   ['invoice_items', 'unit'],

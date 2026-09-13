@@ -185,6 +185,8 @@ const routeFiles = fs.readdirSync(routesDir)
     assert.match(sql, /pg_advisory_xact_lock\(hashtext\('habil_route_schema_migrations'\)\)/);
     assert.match(sql, /Legacy bootstrap refused: missing relations/);
     assert.match(sql, /Legacy bootstrap refused: missing columns/);
+    assert.match(sql, /\('invoice_items', 'batch_number'\)/);
+    assert.ok(!sql.includes("('invoice_items', 'batch_no')"));
     assert.match(sql, /ADD COLUMN IF NOT EXISTS line_key/);
     assert.match(sql, /CREATE TABLE IF NOT EXISTS invoice_edit_events/);
     assert.match(sql, /DROP CONSTRAINT IF EXISTS invoice_edit_events_invoice_id_fkey/);

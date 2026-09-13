@@ -2,6 +2,14 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.14-stable] - 2026-09-13
+
+### Diperbaiki
+- **Kontrak bootstrap legacy diselaraskan dengan schema production.** Verifier dan SQL operator sekarang memeriksa `invoice_items.batch_number`, nama kolom yang dipakai Habil, bukan `batch_no`. Gagalnya preflight sebelumnya terjadi sebelum write dan telah di-roll back.
+
+### Diverifikasi
+- Schema boundary suite lulus kembali termasuk assertion eksplisit untuk `batch_number`. Migration production belum dijalankan pada saat release commit dibuat.
+
 ## [v1.67.13-stable] - 2026-09-13
 
 ### Diperbaiki
