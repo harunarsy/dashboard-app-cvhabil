@@ -1076,7 +1076,7 @@ const updateInvoiceHeader = async (client, invoice, nextLines, body) => {
 
 const applyInvoiceDeltaPlan = async ({ client, plan, body, idempotencyKey, userId }) => {
   const calculated = calculateHeader(plan.state.invoice, plan.nextLines, body);
-  for (const mapping of plan.mappingUpdates) {
+  for (const mapping of plan.mapping.mappingUpdates) {
     await client.query(
       'UPDATE inventory_mutations SET invoice_line_key = $1 WHERE id = $2 AND invoice_line_key IS NULL',
       [mapping.line_key, mapping.mutation_id],

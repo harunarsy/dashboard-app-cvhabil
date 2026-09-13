@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.16-stable] - 2026-09-13
+
+### Diperbaiki
+- **Konfirmasi edit faktur delta kembali berfungsi.** Proses simpan kini membaca pembaruan mapping legacy dari struktur plan kanonis sehingga tombol Konfirmasi & simpan delta tidak lagi gagal dengan `plan.mappingUpdates is not iterable`.
+- **Kontrak preview-ke-confirm dijaga regression test.** Safety suite memastikan hasil resolver yang dibuat saat preview dibaca dari lokasi yang sama saat transaksi konfirmasi dijalankan.
+
+### Diverifikasi
+- Backend lulus 21 delta unit checks, 15 delta safety checks, 13 schema boundary checks, 24 HTTP smoke checks, dan 43 adjustment hardening checks. Frontend lulus 43/43 test dan production build Vite.
+
 ## [v1.67.15-stable] - 2026-09-13
 
 ### Diperbaiki

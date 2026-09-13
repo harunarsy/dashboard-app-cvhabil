@@ -39,9 +39,24 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.67.15-stable",
+    version: "v1.67.16-stable",
     date: "13 September 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Konfirmasi edit faktur delta kini memakai hasil mapping yang sama dengan preview dan tidak lagi gagal saat menyimpan.",
+      },
+      {
+        type: "improvement",
+        text: "Kontrak mapping preview-ke-confirm kini dijaga regression test sebelum rilis.",
+      },
+    ],
+  },
+  {
+    version: "v1.67.15-stable",
+    date: "13 September 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

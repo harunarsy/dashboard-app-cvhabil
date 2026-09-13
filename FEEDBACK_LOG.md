@@ -1,5 +1,11 @@
 # Feedback Log
 
+## [2026-09-13] - Invoice Delta Confirmation Mapping Contract
+- **Konfirmasi edit faktur gagal sebelum write** dengan error `plan.mappingUpdates is not iterable`, meskipun preview delta berhasil dibuat.
+- **Akar masalah**: `buildInvoiceDeltaPlan()` menyimpan hasil resolver legacy pada `plan.mapping.mappingUpdates`, sedangkan `applyInvoiceDeltaPlan()` membaca properti top-level `plan.mappingUpdates` yang tidak pernah dibuat.
+- **Dampak**: tombol konfirmasi tidak dapat menyimpan edit. Jalur update menggunakan transaksi database dan error terjadi sebelum mutasi delta dijalankan, sehingga request gagal dan di-roll back, bukan melakukan stock-in parsial.
+- **Tindakan**: selaraskan consumer konfirmasi dengan struktur plan kanonis dan tambahkan regression check atas kontrak mapping preview-ke-confirm.
+
 ## [2026-09-05] - Staging Gate: Void 500 via CONCAT Untyped Parameter
 - **Seluruh void adjustment gagal HTTP 500** pada staging gate PostgreSQL terisolasi: `could not determine data type of parameter $2`.
 - **Akar masalah**: `POST /sales/adjustments/:adjustmentId/void` memakai `notes = CONCAT(COALESCE(notes, ''), ' | void adjustment: ', $2)`; PostgreSQL tidak dapat menginfer tipe `$2` di dalam `CONCAT`.

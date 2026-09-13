@@ -136,6 +136,11 @@ test('legacy posted invoice resolves its stock mutation without a runtime refere
   ]);
 });
 
+test('delta confirmation consumes mapping updates from the canonical nested plan', () => {
+  assert.match(service, /for \(const mapping of plan\.mapping\.mappingUpdates\)/);
+  assert.doesNotMatch(service, /plan\.mappingUpdates/);
+});
+
 test('permanent delete preserves ledger history and appends a final reversal', () => {
   assert.match(routes, /const inMutations = await loadInvoiceOwnedNetByBatch\(client, req\.params\.id\)/);
   assert.match(routes, /Reversal permanent delete faktur/);
