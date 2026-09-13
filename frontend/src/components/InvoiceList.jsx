@@ -1087,6 +1087,9 @@ export default function InvoiceList({
     return {
       ...form,
       ...totals,
+      purchase_date: form.purchase_date || null,
+      due_date: form.due_date || null,
+      payment_date: form.payment_date || null,
       disc_cod_amount: totals.disc_cod_amount,
       items: items
         .filter((i) => i.product_name.trim())

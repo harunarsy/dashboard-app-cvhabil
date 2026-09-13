@@ -298,12 +298,18 @@ const syncPurchaseOrderStatus = async (client, purchaseOrderId) => {
   const allReceived = rows.length > 0 && rows.every((i) => toNumber(i.received_qty) >= toNumber(i.qty));
   const anyReceived = rows.some((i) => toNumber(i.received_qty) > 0);
   const newStatus = allReceived ? 'received' : (anyReceived ? 'partial' : 'sent');
-  await client.query(
+  const updated = await client.query(
     `UPDATE purchase_orders
      SET status = $1, stock_received = $2, updated_at = NOW()
-     WHERE id = $3`,
+     WHERE id = $3
+     RETURNING id`,
     [newStatus, allReceived, purchaseOrderId]
   );
+  if (updated.rows.length !== 1) {
+    throw Object.assign(new Error('Surat Pesanan terkait berubah atau tidak ditemukan sebelum konfirmasi'), {
+      code: 'STALE_PO_BALANCE',
+    });
+  }
   return newStatus;
 };
 
@@ -612,6 +618,9 @@ const deltaErrorStatus = (error) => {
     || error?.code === 'IDEMPOTENCY_KEY_CONFLICT'
     || error?.code === 'STALE_BATCH_BALANCE'
     || error?.code === 'STALE_PO_BALANCE'
+    || error?.code === 'STALE_INVOICE'
+    || error?.code === 'STALE_INVOICE_ITEM'
+    || error?.code === 'STALE_INVOICE_MAPPING'
     || error?.code === 'INVOICE_BATCH_MISSING'
     || error?.code === 'PARTIAL_STOCK_RECONCILIATION_REQUIRED'
     || error?.code === 'LINE_ID_KEY_MISMATCH'
@@ -625,6 +634,7 @@ const deltaErrorStatus = (error) => {
     || error?.code === 'INVALID_QTY'
     || error?.code === 'DUPLICATE_LINE_KEY'
     || error?.code === 'INVALID_BATCH_EDIT_MODE'
+    || error?.code === 'INVALID_DATE'
   ) return 400;
   return 500;
 };
@@ -663,6 +673,7 @@ const runInvoiceDeltaPreview = async (req, res) => {
       client,
       invoiceId: id,
       items: req.body.items,
+      body: req.body,
       requestKey: idempotencyKey,
       requestHash,
       requestedTaxType: req.body.tax_type,
@@ -753,6 +764,7 @@ const runInvoiceDeltaUpdate = async (req, res) => {
       client,
       invoiceId: id,
       items: req.body.items,
+      body: req.body,
       requestKey: idempotencyKey,
       requestHash,
       requestedTaxType: req.body.tax_type,

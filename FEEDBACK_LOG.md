@@ -1,5 +1,11 @@
 # Feedback Log
 
+## [2026-09-13] - Invoice Delta Confirmation Empty DATE Boundary
+- **Konfirmasi edit faktur gagal dan transaksi di-roll back** dengan error PostgreSQL `invalid input syntax for type date: ""` setelah preview delta berhasil.
+- **Akar masalah**: payload edit mempertahankan `due_date`/`payment_date` kosong sebagai string `""`, sementara `itemDbValues()` juga mengubah Expired Date kosong menjadi `""`. Nilai tersebut kemudian diikat langsung ke kolom PostgreSQL `DATE` pada jalur commit.
+- **Dampak**: preview terlihat valid tetapi tombol konfirmasi gagal saat menulis item/header. Karena seluruh apply berada di satu transaksi dan `COMMIT` belum tercapai, batch, mutasi stok, HNA, PO, item, dan audit dari request gagal tidak tersimpan parsial.
+- **Tindakan**: normalkan tanggal opsional kosong menjadi SQL `NULL`, validasi tanggal kalender di backend sejak preview, dan tambahkan contract test jalur commit lengkap agar nilai tanggal/parameter invalid ditolak sebelum rilis.
+
 ## [2026-09-13] - Invoice Delta Confirmation Mapping Contract
 - **Konfirmasi edit faktur gagal sebelum write** dengan error `plan.mappingUpdates is not iterable`, meskipun preview delta berhasil dibuat.
 - **Akar masalah**: `buildInvoiceDeltaPlan()` menyimpan hasil resolver legacy pada `plan.mapping.mappingUpdates`, sedangkan `applyInvoiceDeltaPlan()` membaca properti top-level `plan.mappingUpdates` yang tidak pernah dibuat.

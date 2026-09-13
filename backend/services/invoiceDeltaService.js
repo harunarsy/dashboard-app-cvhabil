@@ -20,6 +20,51 @@ const EDIT_REFERENCE_TYPE = 'faktur-edit';
 const EDITABLE_REFERENCE_TYPES = ['faktur', EDIT_REFERENCE_TYPE, 'faktur-cancelled', 'faktur-restored'];
 const PREVIEW_TTL_MS = 10 * 60 * 1000;
 
+const invalidDateError = (fieldName) => Object.assign(
+  new Error(`${fieldName} tidak valid. Gunakan format YYYY-MM-DD.`),
+  { code: 'INVALID_DATE', field: fieldName },
+);
+
+// PostgreSQL DATE tidak menerima string kosong. Helper ini juga menolak
+// tanggal kalender mustahil (contoh 2026-02-30) sebelum query write dijalankan.
+const optionalDbDate = (value, fieldName = 'Tanggal') => {
+  if (value === undefined || value === null || value === '') return null;
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) throw invalidDateError(fieldName);
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  const text = String(value).trim();
+  if (!text) return null;
+  const match = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T|\s)/);
+  if (!match) throw invalidDateError(fieldName);
+  const [, yearText, monthText, dayText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const candidate = new Date(Date.UTC(year, month - 1, day));
+  if (
+    candidate.getUTCFullYear() !== year
+    || candidate.getUTCMonth() + 1 !== month
+    || candidate.getUTCDate() !== day
+  ) {
+    throw invalidDateError(fieldName);
+  }
+  return `${yearText}-${monthText}-${dayText}`;
+};
+
+const requiredDbDate = (value, fieldName) => {
+  const date = optionalDbDate(value, fieldName);
+  if (!date) throw invalidDateError(fieldName);
+  return date;
+};
+
+const requestedOrCurrent = (body, field, current) => (
+  body[field] === undefined ? current : body[field]
+);
+
 const mutationSign = (mutation) => {
   if (mutation.reference_type === 'faktur' && mutation.type === 'in') return 1;
   if (mutation.reference_type === EDIT_REFERENCE_TYPE && mutation.type === 'in') return 1;
@@ -466,7 +511,7 @@ const normalizeNextLines = async ({ client, invoiceId, items, requestKey, helper
       quantity_base: quantityBase,
       unit,
       batch_number: normalizeText(item.batch_number),
-      expired_date: normalizeDate(item.expired_date),
+      expired_date: optionalDbDate(item.expired_date, `Expired Date produk "${item.product_name}"`) || '',
       hna_base: helpers.effectiveHna(item, quantityBase, product),
       product,
     };
@@ -725,6 +770,7 @@ const buildInvoiceDeltaPlan = async ({
   client,
   invoiceId,
   items,
+  body = {},
   requestKey,
   batchEditMode,
   requestHash,
@@ -736,6 +782,12 @@ const buildInvoiceDeltaPlan = async ({
   if (!state.invoice) {
     throw Object.assign(new Error('Faktur tidak ditemukan'), { code: 'NOT_FOUND' });
   }
+  requiredDbDate(
+    requestedOrCurrent(body, 'purchase_date', state.invoice.purchase_date),
+    'Tanggal faktur',
+  );
+  optionalDbDate(requestedOrCurrent(body, 'due_date', state.invoice.due_date), 'Tanggal jatuh tempo');
+  optionalDbDate(requestedOrCurrent(body, 'payment_date', state.invoice.payment_date), 'Tanggal pembayaran');
   const mapping = resolveLegacyLineMapping(state);
   if (mapping.ambiguities.length > 0) {
     throw Object.assign(new Error('Mapping item faktur lama ambigu. Rekonsiliasi manual diperlukan sebelum stok boleh diedit.'), {
@@ -965,7 +1017,7 @@ const itemDbValues = (line, taxType) => {
     line.quantity_base,
     toNumber(raw.unit_price || hna),
     toNumber(raw.total_price || hnaTimesQty),
-    normalizeDate(raw.expired_date),
+    optionalDbDate(raw.expired_date, `Expired Date produk "${line.product_name}"`),
     hna,
     hnaTimesQty,
     toNumber(raw.disc_percent),
@@ -990,23 +1042,33 @@ const persistInvoiceItems = async (client, plan, taxType) => {
   const nextKeys = new Set(plan.nextLines.map((line) => line.line_key));
   for (const current of plan.currentLines) {
     if (!nextKeys.has(current.line_key)) {
-      await client.query('DELETE FROM invoice_items WHERE id = $1', [current.id]);
+      const deleted = await client.query('DELETE FROM invoice_items WHERE id = $1 RETURNING id', [current.id]);
+      if (deleted.rows.length !== 1) {
+        throw Object.assign(new Error(`Baris faktur #${current.id} berubah sebelum konfirmasi`), {
+          code: 'STALE_INVOICE_ITEM',
+        });
+      }
     }
   }
   for (const next of plan.nextLines) {
     const current = currentByKey.get(next.line_key);
     const values = itemDbValues(next, taxType);
     if (current) {
-      await client.query(
+      const updated = await client.query(
         `UPDATE invoice_items SET
            product_name=$1, product_id=$2, quantity=$3, unit_price=$4, total_price=$5,
            expired_date=$6, hna=$7, hna_times_qty=$8, disc_percent=$9, disc_nominal=$10,
            hna_baru=$11, hna_per_item=$12, margin=$13, disc_cod_per_item=$14,
            hna_after_cod=$15, hpp_inc_ppn=$16, batch_number=$17, unit=$18,
            qty_in_unit=$19, pack_size_at_invoice=$20, tax_type=$21, line_key=$22
-         WHERE id=$23`,
+         WHERE id=$23 RETURNING id`,
         [...values, current.id],
       );
+      if (updated.rows.length !== 1) {
+        throw Object.assign(new Error(`Baris faktur #${current.id} berubah sebelum konfirmasi`), {
+          code: 'STALE_INVOICE_ITEM',
+        });
+      }
     } else {
       await client.query(
         `INSERT INTO invoice_items
@@ -1034,7 +1096,9 @@ const updateInvoiceHeader = async (client, invoice, nextLines, body) => {
   }
   const calculated = calculateHeader(invoice, nextLines, body);
   const invoiceNumber = body.invoice_number ?? invoice.invoice_number;
-  const purchaseDate = body.purchase_date ?? invoice.purchase_date;
+  const purchaseDate = requiredDbDate(requestedOrCurrent(body, 'purchase_date', invoice.purchase_date), 'Tanggal faktur');
+  const dueDate = optionalDbDate(requestedOrCurrent(body, 'due_date', invoice.due_date), 'Tanggal jatuh tempo');
+  const paymentDate = optionalDbDate(requestedOrCurrent(body, 'payment_date', invoice.payment_date), 'Tanggal pembayaran');
   const distributorName = body.distributor_name ?? invoice.distributor_name;
   const discCodAda = body.disc_cod_ada ?? invoice.disc_cod_ada ?? false;
   const discCodAmount = discCodAda ? toNumber(body.disc_cod_amount ?? invoice.disc_cod_amount) : null;
@@ -1063,24 +1127,34 @@ const updateInvoiceHeader = async (client, invoice, nextLines, body) => {
       calculated.ppn_pembulatan,
       calculated.hna_plus_ppn,
       calculated.harga_per_produk,
-      body.due_date ?? invoice.due_date ?? null,
-      body.payment_date ?? invoice.payment_date ?? null,
+      dueDate,
+      paymentDate,
       body.status ?? invoice.status ?? 'Pending',
       calculated.taxType,
       calculated.rate,
       invoice.id,
     ],
   );
+  if (result.rows.length !== 1) {
+    throw Object.assign(new Error('Faktur berubah atau tidak ditemukan sebelum konfirmasi'), {
+      code: 'STALE_INVOICE',
+    });
+  }
   return { row: result.rows[0], calculated };
 };
 
 const applyInvoiceDeltaPlan = async ({ client, plan, body, idempotencyKey, userId }) => {
   const calculated = calculateHeader(plan.state.invoice, plan.nextLines, body);
   for (const mapping of plan.mapping.mappingUpdates) {
-    await client.query(
-      'UPDATE inventory_mutations SET invoice_line_key = $1 WHERE id = $2 AND invoice_line_key IS NULL',
+    const mapped = await client.query(
+      'UPDATE inventory_mutations SET invoice_line_key = $1 WHERE id = $2 AND invoice_line_key IS NULL RETURNING id',
       [mapping.line_key, mapping.mutation_id],
     );
+    if (mapped.rows.length !== 1) {
+      throw Object.assign(new Error(`Mapping mutasi #${mapping.mutation_id} berubah sebelum konfirmasi`), {
+        code: 'STALE_INVOICE_MAPPING',
+      });
+    }
   }
   await persistInvoiceItems(client, plan, calculated.taxType);
 
@@ -1099,7 +1173,7 @@ const applyInvoiceDeltaPlan = async ({ client, plan, body, idempotencyKey, userI
       [
         line.product_id,
         line.batch_number || plan.state.invoice.invoice_number,
-        line.expired_date || null,
+        optionalDbDate(line.expired_date, `Expired Date produk "${line.product_name}"`),
         hna,
         `invoice-${plan.state.invoice.id}`,
         line.quantity_input,
@@ -1109,30 +1183,50 @@ const applyInvoiceDeltaPlan = async ({ client, plan, body, idempotencyKey, userI
         calculated.rate,
       ],
     );
+    if (!created?.id) throw new Error(`Batch tujuan untuk ${bucket.key} gagal dibuat`);
     destinationBatchIds.set(bucket.key, Number(created.id));
   }
 
   for (const metadata of plan.delta.metadata_changes) {
-    await client.query(
+    const updated = await client.query(
       `UPDATE inventory_batches
        SET batch_no = $1, expired_date = $2
-       WHERE id = $3`,
-      [metadata.after_batch_number || plan.state.invoice.invoice_number, metadata.after_expired_date || null, metadata.batch_id],
+       WHERE id = $3 RETURNING id`,
+      [
+        metadata.after_batch_number || plan.state.invoice.invoice_number,
+        optionalDbDate(metadata.after_expired_date, 'Expired Date batch'),
+        metadata.batch_id,
+      ],
     );
+    if (updated.rows.length !== 1) {
+      throw Object.assign(new Error(`Batch #${metadata.batch_id} berubah sebelum konfirmasi`), {
+        code: 'STALE_BATCH_BALANCE',
+      });
+    }
   }
 
   for (const revaluation of plan.hnaRevaluations) {
     if (revaluation.batch_id && revaluation.batch_changed) {
-      await client.query(
-        'UPDATE inventory_batches SET hna = $1 WHERE id = $2',
+      const updated = await client.query(
+        'UPDATE inventory_batches SET hna = $1 WHERE id = $2 RETURNING id',
         [revaluation.after_hna, revaluation.batch_id],
       );
+      if (updated.rows.length !== 1) {
+        throw Object.assign(new Error(`Batch HNA #${revaluation.batch_id} tidak ditemukan`), {
+          code: 'STALE_BATCH_BALANCE',
+        });
+      }
     }
     if (revaluation.product_master_sync && revaluation.product_master_changed) {
-      await client.query(
-        'UPDATE product_master SET hna = $1, updated_at = NOW() WHERE id = $2',
+      const updated = await client.query(
+        'UPDATE product_master SET hna = $1, updated_at = NOW() WHERE id = $2 RETURNING id',
         [revaluation.after_hna, revaluation.product_id],
       );
+      if (updated.rows.length !== 1) {
+        throw Object.assign(new Error(`Produk HNA #${revaluation.product_id} tidak ditemukan`), {
+          code: 'STALE_INVOICE',
+        });
+      }
     }
   }
 
@@ -1291,6 +1385,9 @@ module.exports = {
   verifyPreviewToken,
   applyInvoiceDeltaPlan,
   _test: {
+    itemDbValues,
+    optionalDbDate,
+    requiredDbDate,
     resolveLegacyLineMapping,
   },
 };

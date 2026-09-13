@@ -141,6 +141,15 @@ test('delta confirmation consumes mapping updates from the canonical nested plan
   assert.doesNotMatch(service, /plan\.mappingUpdates/);
 });
 
+test('delta commit normalizes optional DATE fields and fails closed on missing write targets', () => {
+  assert.match(service, /optionalDbDate\(raw\.expired_date/);
+  assert.match(service, /const dueDate = optionalDbDate/);
+  assert.match(service, /const paymentDate = optionalDbDate/);
+  assert.match(service, /STALE_INVOICE_ITEM/);
+  assert.match(service, /STALE_INVOICE_MAPPING/);
+  assert.match(routes, /UPDATE purchase_orders[\s\S]*RETURNING id[\s\S]*updated\.rows\.length !== 1/);
+});
+
 test('permanent delete preserves ledger history and appends a final reversal', () => {
   assert.match(routes, /const inMutations = await loadInvoiceOwnedNetByBatch\(client, req\.params\.id\)/);
   assert.match(routes, /Reversal permanent delete faktur/);

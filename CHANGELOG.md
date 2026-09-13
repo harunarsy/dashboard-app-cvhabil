@@ -2,6 +2,16 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.17-stable] - 2026-09-13
+
+### Diperbaiki
+- **Konfirmasi delta tidak lagi mengirim string kosong ke kolom tanggal.** Tanggal jatuh tempo, pembayaran, dan ED opsional kini disimpan sebagai SQL `NULL`; tanggal faktur tetap wajib dan seluruh tanggal divalidasi sebagai kalender `YYYY-MM-DD` sejak preview.
+- **Jalur commit diaudit menyeluruh.** Update mapping, item, metadata batch, HNA batch, HNA master, saldo batch, PO, header, dan audit sekarang fail-closed bila target row tidak ditemukan atau berubah, sehingga transaksi tidak dapat terlihat sukses dengan write yang diam-diam terlewat.
+- **Payload frontend dinormalisasi.** Form tidak lagi mengirim `""` untuk field tanggal opsional pada edit faktur.
+
+### Diverifikasi
+- Contract test commit lengkap lulus untuk tambah produk/stok, HNA, PO, header, audit, qty turun, koreksi metadata batch, dan ED kosong. Backend juga lulus 21 delta unit checks, 16 delta safety checks, 13 schema boundary checks, serta frontend production build. Tidak ada HTTP smoke test yang dijalankan pada validasi rilis ini.
+
 ## [v1.67.16-stable] - 2026-09-13
 
 ### Diperbaiki
