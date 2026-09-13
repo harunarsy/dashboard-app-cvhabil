@@ -3,6 +3,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const { _test } = require('../services/invoiceDeltaService');
 
 const read = (...parts) => fs.readFileSync(path.join(__dirname, '..', ...parts), 'utf8');
 const routes = read('routes', 'invoices.js');
@@ -97,6 +98,42 @@ test('legacy posted invoice item edit is forced through the delta contract', () 
   assert.match(routes, /items !== undefined && hasStockMutations && req\.body\?\.stock_edit_mode !== 'delta'/);
   assert.match(routes, /code: 'DELTA_MODE_REQUIRED'/);
   assert.match(routes, /SELECT \* FROM invoices WHERE id = \$1 FOR UPDATE/);
+});
+
+test('legacy posted invoice resolves its stock mutation without a runtime reference error', () => {
+  const mapping = _test.resolveLegacyLineMapping({
+    invoice: { invoice_number: 'INV-LEGACY-001' },
+    items: [{
+      id: 17,
+      line_key: null,
+      product_id: 10,
+      product_name: 'Varian A',
+      batch_number: 'BATCH-001',
+      expired_date: '2027-01-01',
+    }],
+    mutations: [{
+      id: 71,
+      reference_type: 'faktur',
+      type: 'in',
+      product_id: 10,
+      batch_id: 101,
+      invoice_line_key: null,
+    }],
+    batches: new Map([[
+      101,
+      {
+        id: 101,
+        batch_no: 'BATCH-001',
+        expired_date: '2027-01-01',
+      },
+    ]]),
+  });
+
+  assert.strictEqual(mapping.hasPostedStock, true);
+  assert.deepStrictEqual(mapping.ambiguities, []);
+  assert.deepStrictEqual(mapping.mappingUpdates, [
+    { mutation_id: 71, line_key: 'legacy-line-17' },
+  ]);
 });
 
 test('permanent delete preserves ledger history and appends a final reversal', () => {

@@ -2,6 +2,15 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.15-stable] - 2026-09-13
+
+### Diperbaiki
+- **Preview edit faktur legacy kembali berfungsi.** Resolver mutasi stok kini memakai flag `hasPostedStock` yang benar sehingga tombol Update Faktur tidak lagi gagal dengan `hasPosted is not defined` sebelum preview delta tampil.
+- **Regression test runtime untuk mapping legacy.** Test baru menjalankan resolver terhadap faktur lama yang sudah memiliki mutasi stok dan memastikan line key dipetakan tanpa reference error.
+
+### Diverifikasi
+- Backend lulus 21 delta unit checks, 14 delta safety checks, 13 schema boundary checks, 24 HTTP smoke checks, dan 43 adjustment hardening checks. Frontend lulus 43/43 test dan production build Vite.
+
 ## [v1.67.14-stable] - 2026-09-13
 
 ### Diperbaiki

@@ -39,9 +39,24 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.67.14-stable",
+    version: "v1.67.15-stable",
     date: "13 September 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Preview edit faktur lama yang sudah masuk stok kini dapat dibuka kembali tanpa error hasPosted is not defined.",
+      },
+      {
+        type: "improvement",
+        text: "Mapping item faktur lama ke mutasi stok sekarang dilindungi regression test runtime sebelum rilis.",
+      },
+    ],
+  },
+  {
+    version: "v1.67.14-stable",
+    date: "13 September 2026",
+    status: "stable",
     changes: [
       {
         type: "fix",

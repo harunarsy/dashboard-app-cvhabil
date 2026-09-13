@@ -338,7 +338,7 @@ const resolveLegacyLineMapping = (state) => {
   const orphanInitial = initialMutations.filter(
     (mutation) => !mutation.invoice_line_key && !mutation.resolved_line_key,
   );
-  if (hasPosted && orphanInitial.length > 0) {
+  if (hasPostedStock && orphanInitial.length > 0) {
     orphanInitial.forEach((mutation) => {
       ambiguities.push({
         mutation_id: mutation.id,
@@ -1290,4 +1290,7 @@ module.exports = {
   requestHashForBody,
   verifyPreviewToken,
   applyInvoiceDeltaPlan,
+  _test: {
+    resolveLegacyLineMapping,
+  },
 };
