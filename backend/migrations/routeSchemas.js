@@ -1098,6 +1098,60 @@ const migrations = [
       `);
     },
   },
+  {
+    id: '20260922_022_sales_document_legal',
+    async up(db) {
+      // Additive saja — tanpa backfill, tanpa menyentuh baris transaksi historis.
+      await db.query(`
+        ALTER TABLE customers
+          ADD COLUMN IF NOT EXISTS npwp VARCHAR(30),
+          ADD COLUMN IF NOT EXISTS nik VARCHAR(30),
+          ADD COLUMN IF NOT EXISTS entity_type VARCHAR(30),
+          ADD COLUMN IF NOT EXISTS billing_address TEXT,
+          ADD COLUMN IF NOT EXISTS shipping_address TEXT,
+          ADD COLUMN IF NOT EXISTS pic_name VARCHAR(150),
+          ADD COLUMN IF NOT EXISTS pic_position VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS work_unit VARCHAR(150)
+      `);
+      await db.query(`
+        ALTER TABLE sales_orders
+          ADD COLUMN IF NOT EXISTS buyer_npwp VARCHAR(30),
+          ADD COLUMN IF NOT EXISTS buyer_nik VARCHAR(30),
+          ADD COLUMN IF NOT EXISTS buyer_entity_type VARCHAR(30),
+          ADD COLUMN IF NOT EXISTS buyer_email VARCHAR(150),
+          ADD COLUMN IF NOT EXISTS buyer_pic_name VARCHAR(150),
+          ADD COLUMN IF NOT EXISTS buyer_pic_position VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS buyer_work_unit VARCHAR(150),
+          ADD COLUMN IF NOT EXISTS billing_address TEXT,
+          ADD COLUMN IF NOT EXISTS shipping_address TEXT,
+          ADD COLUMN IF NOT EXISTS procurement_source VARCHAR(30),
+          ADD COLUMN IF NOT EXISTS platform_order_number VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS purchase_order_number VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS package_number VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS contract_number VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS procurement_method VARCHAR(50),
+          ADD COLUMN IF NOT EXISTS government_agency VARCHAR(150),
+          ADD COLUMN IF NOT EXISTS ppn_rate DECIMAL(5,4) DEFAULT 0.11,
+          ADD COLUMN IF NOT EXISTS tax_invoice_status VARCHAR(20),
+          ADD COLUMN IF NOT EXISTS tax_invoice_number VARCHAR(50),
+          ADD COLUMN IF NOT EXISTS tax_invoice_date DATE
+      `);
+      // NPWP pindah dari hardcode frontend ke print_settings (hanya bila belum ada).
+      await db.query(`
+        UPDATE print_settings
+           SET setting_value = setting_value || '{"npwp":"93.813.949.0-609.000"}'::jsonb,
+               updated_at = NOW()
+         WHERE setting_key = 'nota_layout'
+           AND NOT (setting_value ? 'npwp')
+      `);
+      // Flag rollout renderer baru — default OFF (jalur lama tetap dipakai).
+      await db.query(`
+        INSERT INTO print_settings (setting_key, setting_value)
+        VALUES ('documents_renderer_v2', '{"enabled": false}'::jsonb)
+        ON CONFLICT (setting_key) DO NOTHING
+      `);
+    },
+  },
 ];
 
 const listRouteSchemaMigrations = () => migrations.map(({ id }) => id);
