@@ -63,6 +63,14 @@ export default function CustomerList({
     address: "",
     phone: "",
     type: "offline",
+    npwp: "",
+    nik: "",
+    entity_type: "",
+    billing_address: "",
+    shipping_address: "",
+    pic_name: "",
+    pic_position: "",
+    work_unit: "",
   });
   const [toast, setToast] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
@@ -137,7 +145,20 @@ export default function CustomerList({
 
   const openAdd = () => {
     setEditId(null);
-    setForm({ name: "", address: "", phone: "", type: "offline" });
+    setForm({
+      name: "",
+      address: "",
+      phone: "",
+      type: "offline",
+      npwp: "",
+      nik: "",
+      entity_type: "",
+      billing_address: "",
+      shipping_address: "",
+      pic_name: "",
+      pic_position: "",
+      work_unit: "",
+    });
     setShowModal(true);
   };
   const openEdit = (c) => {
@@ -147,6 +168,14 @@ export default function CustomerList({
       address: c.address || "",
       phone: c.phone || "",
       type: c.type || "offline",
+      npwp: c.npwp || "",
+      nik: c.nik || "",
+      entity_type: c.entity_type || "",
+      billing_address: c.billing_address || "",
+      shipping_address: c.shipping_address || "",
+      pic_name: c.pic_name || "",
+      pic_position: c.pic_position || "",
+      work_unit: c.work_unit || "",
     });
     setShowModal(true);
   };
@@ -962,6 +991,140 @@ export default function CustomerList({
                     resize: "vertical",
                     fontFamily: "inherit",
                   }}
+                />
+              </div>
+              <div>
+                <label htmlFor="form-npwp" style={labelStyle}>NPWP</label>
+                <input
+                  id="form-npwp"
+                  value={form.npwp}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, npwp: e.target.value }))
+                  }
+                  placeholder="Nomor NPWP"
+                  className="ui-form-field ui-focus-ring"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label htmlFor="form-nik" style={labelStyle}>NIK</label>
+                <input
+                  id="form-nik"
+                  value={form.nik}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, nik: e.target.value }))
+                  }
+                  inputMode="numeric"
+                  placeholder="Nomor NIK"
+                  className="ui-form-field ui-focus-ring"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label htmlFor="form-entity-type" style={labelStyle}>
+                  Tipe Entitas
+                </label>
+                <select
+                  id="form-entity-type"
+                  value={form.entity_type}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, entity_type: e.target.value }))
+                  }
+                  className="ui-form-field ui-focus-ring"
+                  style={inputStyle}
+                >
+                  <option value="">-</option>
+                  <option value="Perusahaan">Perusahaan</option>
+                  <option value="Perorangan">Perorangan</option>
+                  <option value="Instansi">Instansi</option>
+                  <option value="Rumah Sakit">Rumah Sakit</option>
+                  <option value="Toko">Toko</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="form-billing-address" style={labelStyle}>
+                  Alamat Penagihan
+                </label>
+                <textarea
+                  id="form-billing-address"
+                  value={form.billing_address}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, billing_address: e.target.value }))
+                  }
+                  rows={2}
+                  placeholder="Alamat penagihan"
+                  className="ui-form-field ui-focus-ring"
+                  style={{
+                    ...inputStyle,
+                    resize: "vertical",
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+              <div>
+                <label htmlFor="form-shipping-address" style={labelStyle}>
+                  Alamat Pengiriman
+                </label>
+                <textarea
+                  id="form-shipping-address"
+                  value={form.shipping_address}
+                  onChange={(e) =>
+                    setForm((p) => ({
+                      ...p,
+                      shipping_address: e.target.value,
+                    }))
+                  }
+                  rows={2}
+                  placeholder="Alamat pengiriman"
+                  className="ui-form-field ui-focus-ring"
+                  style={{
+                    ...inputStyle,
+                    resize: "vertical",
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+              <div>
+                <label htmlFor="form-pic-name" style={labelStyle}>Nama PIC</label>
+                <input
+                  id="form-pic-name"
+                  value={form.pic_name}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, pic_name: e.target.value }))
+                  }
+                  placeholder="Nama penanggung jawab"
+                  className="ui-form-field ui-focus-ring"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label htmlFor="form-pic-position" style={labelStyle}>
+                  Jabatan PIC
+                </label>
+                <input
+                  id="form-pic-position"
+                  value={form.pic_position}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, pic_position: e.target.value }))
+                  }
+                  placeholder="Jabatan penanggung jawab"
+                  className="ui-form-field ui-focus-ring"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label htmlFor="form-work-unit" style={labelStyle}>
+                  Satuan Kerja
+                </label>
+                <input
+                  id="form-work-unit"
+                  value={form.work_unit}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, work_unit: e.target.value }))
+                  }
+                  placeholder="Satuan kerja"
+                  className="ui-form-field ui-focus-ring"
+                  style={inputStyle}
                 />
               </div>
               <div>
