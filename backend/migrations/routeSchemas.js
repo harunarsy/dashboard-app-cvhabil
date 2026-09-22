@@ -1118,12 +1118,19 @@ const assertBaselineSchema = async (db) => {
   }
 };
 
-const LEGACY_BASELINE_MIGRATION_IDS = migrations
-  .slice(0, -2)
-  .map(({ id }) => id);
+// ID migrasi delta invoice dibekukan eksplisit. Jangan kembali memakai
+// slice(-2): menambah migrasi baru di akhir array akan menggeser irisan dan
+// membuat migrasi baru ikut tercatat sebagai baseline legacy.
+const DELTA_INVOICE_MIGRATION_IDS = [
+  '20260911_020_invoice_delta_edit',
+  '20260911_021_invoice_edit_event_retention',
+];
 
-const DELTA_INVOICE_MIGRATION_IDS = migrations
-  .slice(-2)
+// Baseline = semua migrasi sebelum pasangan delta invoice. Migrasi yang
+// ditambahkan setelah pasangan ini TIDAK termasuk baseline: ia hanya boleh
+// dijalankan oleh runRouteSchemaMigrations biasa, bukan legacy bootstrap.
+const LEGACY_BASELINE_MIGRATION_IDS = migrations
+  .filter(({ id }) => id < DELTA_INVOICE_MIGRATION_IDS[0])
   .map(({ id }) => id);
 
 const LEGACY_REQUIRED_RELATIONS = [
