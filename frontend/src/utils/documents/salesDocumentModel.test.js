@@ -153,8 +153,18 @@ describe('buildSalesDocumentViewModel', () => {
   it('metode pembayaran default Tunai saat order tidak menyebutkan', () => {
     const { settings } = fixture('single-item');
     const vm = buildSalesDocumentViewModel({ total: 0, payment_method: '' }, settings);
-    expect(vm.document.paymentMethod).toBe('Tunai');
     expect(vm.payment.method).toBe('Tunai');
+    expect('paymentMethod' in vm.document).toBe(false);
+  });
+
+  it('identity menyimpan satu nama logo saja', () => {
+    const { settings } = fixture('single-item');
+    const vm = buildSalesDocumentViewModel(
+      { total: 0 },
+      { ...settings, logo_data_url: 'data:image/png;base64,AAAA' },
+    );
+    expect(vm.identity.logo).toBe('data:image/png;base64,AAAA');
+    expect('logoDataUrl' in vm.identity).toBe(false);
   });
 
   it('menggabungkan baris batch identik dan membiarkan baris tanpa batch terpisah', () => {

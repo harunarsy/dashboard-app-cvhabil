@@ -179,7 +179,7 @@ const mapSaleItem = (item) => {
 
 export function buildSalesDocumentViewModel(order = {}, settings = {}) {
   const bank = parseBankInfo(settings.bank_info);
-  const paymentMethod = emptyToNull(order.payment_method) || 'Tunai';
+  const method = emptyToNull(order.payment_method) || 'Tunai';
   const logo = emptyToNull(settings.logo_data_url) || emptyToNull(settings.logo);
   const terms = order.payment_terms === undefined || order.payment_terms === null || order.payment_terms === ''
     ? null
@@ -193,7 +193,6 @@ export function buildSalesDocumentViewModel(order = {}, settings = {}) {
       phone: emptyToNull(settings.phone),
       email: emptyToNull(settings.email),
       logo,
-      logoDataUrl: logo,
     },
     document: {
       orderNumber: emptyToNull(order.order_number),
@@ -201,7 +200,6 @@ export function buildSalesDocumentViewModel(order = {}, settings = {}) {
       dueDate: emptyToNull(order.due_date),
       paymentStatus: emptyToNull(order.payment_status),
       documentKind: null,
-      paymentMethod,
     },
     buyer: {
       displayName: emptyToNull(order.customer_name),
@@ -228,7 +226,7 @@ export function buildSalesDocumentViewModel(order = {}, settings = {}) {
     items: groupSaleItems(order.items).map(mapSaleItem),
     totals: computeTotals(order),
     payment: {
-      method: paymentMethod,
+      method,
       bankName: bank.bankName,
       accountNumber: bank.accountNumber,
       accountName: bank.accountName,
