@@ -363,7 +363,31 @@ export default function SalesOrderList({
     // v1.25.1: fee kartu kredit — rate dalam %, mode absorb (potong margin) / pass_on (bebankan customer)
     payment_fee_rate: "",
     payment_fee_mode: "absorb",
+    // Snapshot dokumen resmi (A4) — metadata legal & pengadaan, semua opsional.
+    // ppn_rate di form dalam persen (11 = 11%); payload yang mengubahnya ke desimal.
+    buyer_npwp: "",
+    buyer_nik: "",
+    buyer_entity_type: "",
+    buyer_email: "",
+    buyer_pic_name: "",
+    buyer_pic_position: "",
+    buyer_work_unit: "",
+    billing_address: "",
+    shipping_address: "",
+    procurement_source: "",
+    platform_order_number: "",
+    purchase_order_number: "",
+    package_number: "",
+    contract_number: "",
+    procurement_method: "",
+    government_agency: "",
+    ppn_rate: 11,
+    tax_invoice_status: "",
+    tax_invoice_number: "",
+    tax_invoice_date: "",
   });
+  // Seksi collapsible "Dokumen Resmi (A4)" — default tertutup, alur nota cepat tetap utuh.
+  const [showFormalDocs, setShowFormalDocs] = useState(false);
   const [items, setItems] = useState([blankItem()]);
   const [itemBatches, setItemBatches] = useState([]);
   // v1.65.8: modal buat produk baru langsung dari dropdown item (produk baru wajib punya KODE)
@@ -1074,7 +1098,29 @@ export default function SalesOrderList({
       payment_fee_rate: "",
       payment_fee_mode: "absorb",
       ppn_excluded: false, // v1.65.0: Nota PPN vs Tanpa PPN
+      // Snapshot dokumen resmi (A4) — default kosong, PPN 11%
+      buyer_npwp: "",
+      buyer_nik: "",
+      buyer_entity_type: "",
+      buyer_email: "",
+      buyer_pic_name: "",
+      buyer_pic_position: "",
+      buyer_work_unit: "",
+      billing_address: "",
+      shipping_address: "",
+      procurement_source: "",
+      platform_order_number: "",
+      purchase_order_number: "",
+      package_number: "",
+      contract_number: "",
+      procurement_method: "",
+      government_agency: "",
+      ppn_rate: 11,
+      tax_invoice_status: "",
+      tax_invoice_number: "",
+      tax_invoice_date: "",
     });
+    setShowFormalDocs(false);
     setItems([blankItem()]);
     setItemBatches([]);
     setFormErrors({});
@@ -1108,7 +1154,34 @@ export default function SalesOrderList({
           : "",
       payment_fee_mode: order.payment_fee_mode === "pass_on" ? "pass_on" : "absorb",
       ppn_excluded: !!order.ppn_excluded, // v1.65.0: Nota PPN vs Tanpa PPN
+      // Snapshot dokumen resmi (A4) — dipulihkan dari order. ppn_rate DB desimal → % form
+      buyer_npwp: order.buyer_npwp || "",
+      buyer_nik: order.buyer_nik || "",
+      buyer_entity_type: order.buyer_entity_type || "",
+      buyer_email: order.buyer_email || "",
+      buyer_pic_name: order.buyer_pic_name || "",
+      buyer_pic_position: order.buyer_pic_position || "",
+      buyer_work_unit: order.buyer_work_unit || "",
+      billing_address: order.billing_address || "",
+      shipping_address: order.shipping_address || "",
+      procurement_source: order.procurement_source || "",
+      platform_order_number: order.platform_order_number || "",
+      purchase_order_number: order.purchase_order_number || "",
+      package_number: order.package_number || "",
+      contract_number: order.contract_number || "",
+      procurement_method: order.procurement_method || "",
+      government_agency: order.government_agency || "",
+      ppn_rate:
+        order.ppn_rate != null
+          ? Number((Number(order.ppn_rate) * 100).toFixed(2))
+          : 11,
+      tax_invoice_status: order.tax_invoice_status || "",
+      tax_invoice_number: order.tax_invoice_number || "",
+      tax_invoice_date: order.tax_invoice_date
+        ? String(order.tax_invoice_date).split("T")[0]
+        : "",
     });
+    setShowFormalDocs(false);
     // v1.8.1: include batch snapshot fields supaya batch picker bisa pre-fill
     // v1.16.2: tambah _selected_batch_id untuk lookup berbasis id
     const editItems = order.items?.length
@@ -1290,6 +1363,8 @@ export default function SalesOrderList({
       payload.payment_fee_mode = form.payment_fee_mode || "absorb";
       // v1.65.0: ppn_excluded — nota PPN vs Tanpa PPN
       payload.ppn_excluded = !!form.ppn_excluded;
+      // Snapshot dokumen resmi: form menyimpan PPN dalam %, backend/DB pakai desimal
+      payload.ppn_rate = (parseFloat(form.ppn_rate) || 0) / 100;
       // v1.16.2: map batch fields ke payload (selected_batch_id, batch_id_snapshot, dll)
       payload.items = payload.items.map((i) => ({
         ...i,
@@ -4159,6 +4234,21 @@ export default function SalesOrderList({
                               ...p,
                               customer_phone: match.phone || "",
                               customer_address: match.address || "",
+                              // Field legal dari master customer — hanya isi yang belum diketik
+                              buyer_npwp: p.buyer_npwp || match.npwp || "",
+                              buyer_nik: p.buyer_nik || match.nik || "",
+                              buyer_entity_type:
+                                p.buyer_entity_type || match.entity_type || "",
+                              billing_address:
+                                p.billing_address || match.billing_address || "",
+                              shipping_address:
+                                p.shipping_address || match.shipping_address || "",
+                              buyer_pic_name:
+                                p.buyer_pic_name || match.pic_name || "",
+                              buyer_pic_position:
+                                p.buyer_pic_position || match.pic_position || "",
+                              buyer_work_unit:
+                                p.buyer_work_unit || match.work_unit || "",
                             }));
                         }}
                         options={customers}
@@ -4229,6 +4319,375 @@ export default function SalesOrderList({
                       placeholder="Alamat"
                       style={inputStyle}
                     />
+                  </div>
+
+                  {/* Dokumen Resmi (A4) — snapshot legal & pengadaan opsional (instansi/perusahaan) */}
+                  <div
+                    style={{
+                      border: `1px solid ${border}`,
+                      borderRadius: "12px",
+                      backgroundColor: "var(--color-bg-subtle)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setShowFormalDocs((v) => !v)}
+                      aria-expanded={showFormalDocs}
+                      className="ui-motion-button ui-focus-ring"
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "8px",
+                        padding: "10px 12px",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: text,
+                        fontSize: "12px",
+                        fontWeight: "800",
+                        textAlign: "left",
+                      }}
+                    >
+                      <span>Dokumen Resmi (A4)</span>
+                      {showFormalDocs ? (
+                        <ChevronUp size={16} />
+                      ) : (
+                        <ChevronDown size={16} />
+                      )}
+                    </button>
+                    {showFormalDocs && (
+                      <div
+                        style={{
+                          padding: "0 12px 12px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "12px",
+                        }}
+                      >
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: "11px",
+                            color: sub,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          Dipakai untuk Faktur Penjualan A4 (instansi/perusahaan).
+                          Kosongkan bila tidak perlu.
+                        </p>
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+                            gap: "12px",
+                            alignItems: "start",
+                          }}
+                        >
+                          <div>
+                            <label style={labelStyle}>NPWP Pembeli</label>
+                            <input
+                              value={form.buyer_npwp}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  buyer_npwp: e.target.value,
+                                }))
+                              }
+                              placeholder="Nomor NPWP"
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>NIK Pembeli</label>
+                            <input
+                              value={form.buyer_nik}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  buyer_nik: e.target.value,
+                                }))
+                              }
+                              placeholder="Nomor NIK"
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Tipe Entitas</label>
+                            <select
+                              value={form.buyer_entity_type}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  buyer_entity_type: e.target.value,
+                                }))
+                              }
+                              style={inputStyle}
+                            >
+                              <option value="">-</option>
+                              <option value="Perusahaan">Perusahaan</option>
+                              <option value="Perorangan">Perorangan</option>
+                              <option value="Instansi">Instansi</option>
+                              <option value="Rumah Sakit">Rumah Sakit</option>
+                              <option value="Toko">Toko</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Email Pembeli</label>
+                            <input
+                              type="email"
+                              value={form.buyer_email}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  buyer_email: e.target.value,
+                                }))
+                              }
+                              placeholder="Email pembeli"
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Nama PIC</label>
+                            <input
+                              value={form.buyer_pic_name}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  buyer_pic_name: e.target.value,
+                                }))
+                              }
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Jabatan PIC</label>
+                            <input
+                              value={form.buyer_pic_position}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  buyer_pic_position: e.target.value,
+                                }))
+                              }
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Satuan Kerja</label>
+                            <input
+                              value={form.buyer_work_unit}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  buyer_work_unit: e.target.value,
+                                }))
+                              }
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Sumber Pengadaan</label>
+                            <select
+                              value={form.procurement_source}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  procurement_source: e.target.value,
+                                }))
+                              }
+                              style={inputStyle}
+                            >
+                              <option value="">-</option>
+                              <option value="e-Katalog">e-Katalog</option>
+                              <option value="Pengadaan Langsung">
+                                Pengadaan Langsung
+                              </option>
+                              <option value="Tender">Tender</option>
+                              <option value="Penunjukan Langsung">
+                                Penunjukan Langsung
+                              </option>
+                            </select>
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Alamat Penagihan</label>
+                            <textarea
+                              value={form.billing_address}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  billing_address: e.target.value,
+                                }))
+                              }
+                              rows={2}
+                              placeholder="Alamat penagihan"
+                              style={{
+                                ...inputStyle,
+                                resize: "vertical",
+                                fontFamily: "inherit",
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Alamat Pengiriman</label>
+                            <textarea
+                              value={form.shipping_address}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  shipping_address: e.target.value,
+                                }))
+                              }
+                              rows={2}
+                              placeholder="Alamat pengiriman"
+                              style={{
+                                ...inputStyle,
+                                resize: "vertical",
+                                fontFamily: "inherit",
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>No. Pesanan Platform</label>
+                            <input
+                              value={form.platform_order_number}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  platform_order_number: e.target.value,
+                                }))
+                              }
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>No. PO/SP</label>
+                            <input
+                              value={form.purchase_order_number}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  purchase_order_number: e.target.value,
+                                }))
+                              }
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>No. Paket</label>
+                            <input
+                              value={form.package_number}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  package_number: e.target.value,
+                                }))
+                              }
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>No. Kontrak/SPK</label>
+                            <input
+                              value={form.contract_number}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  contract_number: e.target.value,
+                                }))
+                              }
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Metode Pengadaan</label>
+                            <input
+                              value={form.procurement_method}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  procurement_method: e.target.value,
+                                }))
+                              }
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Instansi Pemerintah</label>
+                            <input
+                              value={form.government_agency}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  government_agency: e.target.value,
+                                }))
+                              }
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>PPN (%)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              value={form.ppn_rate}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  ppn_rate: e.target.value,
+                                }))
+                              }
+                              placeholder="11"
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Status Faktur Pajak</label>
+                            <input
+                              value={form.tax_invoice_status}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  tax_invoice_status: e.target.value,
+                                }))
+                              }
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Nomor Faktur Pajak</label>
+                            <input
+                              value={form.tax_invoice_number}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  tax_invoice_number: e.target.value,
+                                }))
+                              }
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Tanggal Faktur Pajak</label>
+                            <input
+                              type="date"
+                              value={form.tax_invoice_date}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  tax_invoice_date: e.target.value,
+                                }))
+                              }
+                              style={inputStyle}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {selectedCustomer && (
