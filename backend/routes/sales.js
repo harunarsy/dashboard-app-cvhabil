@@ -16,6 +16,30 @@ const normalizeBooleanField = (val) => {
   return Boolean(val);
 };
 
+// Metadata dokumen resmi — string kosong dinormalkan ke NULL supaya renderer
+// bisa menyembunyikan field yang tidak diisi.
+const emptyToNull = (value) => {
+  const text = String(value ?? '').trim();
+  return text ? text : null;
+};
+const parsePpnRate = (value) => {
+  const rate = parseFloat(value);
+  if (!Number.isFinite(rate)) return 0.11; // snapshot default saat transaksi dibuat
+  return Math.min(Math.max(rate, 0), 1);
+};
+const FORMAL_FIELDS = [
+  'buyer_npwp', 'buyer_nik', 'buyer_entity_type', 'buyer_email',
+  'buyer_pic_name', 'buyer_pic_position', 'buyer_work_unit',
+  'billing_address', 'shipping_address',
+  'procurement_source', 'platform_order_number', 'purchase_order_number',
+  'package_number', 'contract_number', 'procurement_method', 'government_agency',
+  'tax_invoice_status', 'tax_invoice_number',
+];
+const formalSnapshot = (body) => FORMAL_FIELDS.map((field) => emptyToNull(body[field]));
+// Migrasi 20260922_022 menaruh ppn_rate di antara government_agency dan tax_invoice_*.
+// Nilai formal dipisah di indeks itu supaya urutan nilai = urutan kolom.
+const FORMAL_PPN_INDEX = FORMAL_FIELDS.indexOf('government_agency') + 1;
+
 // v1.8.1: format HSB-NOTA-{YYMM}{NNN} reset per bulan + sync ke MAX bulan berjalan.
 // v1.54.0: logic dipindah ke utils/docNumbers.js (dipakai juga nomor pinjaman HSB-PJM).
 const generateOrderNumber = (client) => generateMonthlyDocNumber(client, {
@@ -283,6 +307,16 @@ router.post('/', auth, async (req, res) => {
   const ongkir = Math.max(0, parseFloat(rawOngkir) || 0);
   const ongkirCost = Math.max(0, parseFloat(rawOngkirCost) || 0);
   const packageWeightGram = Math.max(0, parseInt(rawPackageWeightGram) || 0);
+  // Snapshot dokumen resmi: legal/pengadaan dinormalkan, ppn_rate & tanggal faktur pajak ikut dibekukan.
+  const formal = formalSnapshot(req.body);
+  const ppnRate = parsePpnRate(req.body.ppn_rate);
+  const taxInvoiceDate = emptyToNull(req.body.tax_invoice_date);
+  const snapshotParams = [
+    ...formal.slice(0, FORMAL_PPN_INDEX),
+    ppnRate,
+    ...formal.slice(FORMAL_PPN_INDEX),
+    taxInvoiceDate,
+  ];
   // Validasi SEBELUM BEGIN — return di dalam transaksi meninggalkan koneksi idle-in-transaction
   if (!customer_name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
   if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
@@ -335,9 +369,9 @@ router.post('/', auth, async (req, res) => {
     }
     // v1.65.0: Tambah ppn_excluded + audit tracking (ppn_marked_by, ppn_marked_at)
     const { rows } = await client.query(
-      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms, ongkir, ongkir_cost, payment_fee_rate, payment_fee_mode, payment_fee, package_weight_gram, est_weight_gram, ppn_excluded, ppn_marked_by, ppn_marked_at, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,'final') RETURNING *`,
-      [orderNumber, resolvedCustomerId, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, 0, ppnExcluded, ppnMarkedBy, ppnExcluded ? new Date() : null]
+      `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms, ongkir, ongkir_cost, payment_fee_rate, payment_fee_mode, payment_fee, package_weight_gram, est_weight_gram, ppn_excluded, ppn_marked_by, ppn_marked_at, status, buyer_npwp, buyer_nik, buyer_entity_type, buyer_email, buyer_pic_name, buyer_pic_position, buyer_work_unit, billing_address, shipping_address, procurement_source, platform_order_number, purchase_order_number, package_number, contract_number, procurement_method, government_agency, ppn_rate, tax_invoice_status, tax_invoice_number, tax_invoice_date)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,'final') RETURNING *`,
+      [orderNumber, resolvedCustomerId, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, 0, ppnExcluded, ppnMarkedBy, ppnExcluded ? new Date() : null, ...snapshotParams]
     );
     const order = rows[0];
 
@@ -1115,6 +1149,16 @@ router.put('/:id', auth, async (req, res) => {
   const ongkir = Math.max(0, parseFloat(rawOngkir) || 0);
   const ongkirCost = Math.max(0, parseFloat(rawOngkirCost) || 0);
   const packageWeightGram = Math.max(0, parseInt(rawPackageWeightGram) || 0);
+  // Snapshot dokumen resmi: ppn_rate selalu ditulis dari payload (form Task 5 selalu mengirimnya).
+  const formal = formalSnapshot(req.body);
+  const ppnRate = parsePpnRate(req.body.ppn_rate);
+  const taxInvoiceDate = emptyToNull(req.body.tax_invoice_date);
+  const snapshotParams = [
+    ...formal.slice(0, FORMAL_PPN_INDEX),
+    ppnRate,
+    ...formal.slice(FORMAL_PPN_INDEX),
+    taxInvoiceDate,
+  ];
   // Validasi SEBELUM BEGIN — return di dalam transaksi meninggalkan koneksi idle-in-transaction
   if (!customer_name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
   if (!items?.length) return res.status(400).json({ error: 'Minimal 1 produk diperlukan' });
@@ -1179,9 +1223,9 @@ router.put('/:id', auth, async (req, res) => {
     }
     // v1.65.0: Tambah ppn_excluded + conditional audit tracking (hanya jika berubah)
     const { rowCount } = await client.query(
-      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, channel=$12, due_date=$13, payment_terms=$14, ongkir=$15, ongkir_cost=$16, payment_fee_rate=$17, payment_fee_mode=$18, payment_fee=$19, package_weight_gram=$20, est_weight_gram=0, ppn_excluded=$21, ppn_marked_by = CASE WHEN $22::boolean THEN $23 ELSE ppn_marked_by END, ppn_marked_at = CASE WHEN $22::boolean THEN $24::timestamp ELSE ppn_marked_at END, updated_at=NOW()
-       WHERE id=$25 AND is_deleted=FALSE`,
-      [resolvedCustomerId, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'final', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, newPpnExcluded, ppnChanged, ppnMarkedBy, ppnMarkedAt, req.params.id]
+      `UPDATE sales_orders SET customer_id=$1, customer_name=$2, customer_address=$3, customer_phone=$4, sale_date=$5, total=$6, gross_profit=$7, notes=$8, status=$9, payment_method=$10, payment_details=$11, channel=$12, due_date=$13, payment_terms=$14, ongkir=$15, ongkir_cost=$16, payment_fee_rate=$17, payment_fee_mode=$18, payment_fee=$19, package_weight_gram=$20, est_weight_gram=0, ppn_excluded=$21, ppn_marked_by = CASE WHEN $22::boolean THEN $23 ELSE ppn_marked_by END, ppn_marked_at = CASE WHEN $22::boolean THEN $24::timestamp ELSE ppn_marked_at END, buyer_npwp=$25, buyer_nik=$26, buyer_entity_type=$27, buyer_email=$28, buyer_pic_name=$29, buyer_pic_position=$30, buyer_work_unit=$31, billing_address=$32, shipping_address=$33, procurement_source=$34, platform_order_number=$35, purchase_order_number=$36, package_number=$37, contract_number=$38, procurement_method=$39, government_agency=$40, ppn_rate=$41, tax_invoice_status=$42, tax_invoice_number=$43, tax_invoice_date=$44, updated_at=NOW()
+       WHERE id=$45 AND is_deleted=FALSE`,
+      [resolvedCustomerId, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', status || 'final', payment_method || 'Tunai', payment_details || '', channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, newPpnExcluded, ppnChanged, ppnMarkedBy, ppnMarkedAt, ...snapshotParams, req.params.id]
     );
     if (!rowCount) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Nota not found' }); }
 

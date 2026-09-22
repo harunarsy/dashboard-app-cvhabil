@@ -115,6 +115,23 @@ async function run() {
     );
   });
 
+  await test('Sales routes persist official document snapshot fields', async () => {
+    const salesSource = fs.readFileSync(
+      path.join(__dirname, '..', 'routes', 'sales.js'),
+      'utf8'
+    );
+    for (const column of ['buyer_npwp', 'government_agency', 'ppn_rate', 'tax_invoice_number']) {
+      assert.ok(
+        salesSource.includes(column),
+        `sales.js must persist ${column} for official documents`
+      );
+    }
+    assert.ok(
+      salesSource.includes('FORMAL_FIELDS'),
+      'sales.js must normalize formal fields through FORMAL_FIELDS'
+    );
+  });
+
   // 1. Health endpoint (no DB)
   await test('/api/health returns 200', async () => {
     const res = await request.get('/api/health');

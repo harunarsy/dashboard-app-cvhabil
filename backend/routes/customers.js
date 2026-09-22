@@ -3,6 +3,13 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 
+// Metadata legal customer — string kosong dinormalkan ke NULL supaya renderer
+// bisa menyembunyikan field yang tidak diisi.
+const emptyToNull = (value) => {
+  const text = String(value ?? '').trim();
+  return text ? text : null;
+};
+
 // GET all (with aggregate sales metadata + limit + q search)
 router.get('/', auth, async (req, res) => {
   try {
@@ -68,12 +75,12 @@ router.get('/:id', auth, async (req, res) => {
 
 // POST create
 router.post('/', auth, async (req, res) => {
-  const { name, address, phone, type } = req.body;
+  const { name, address, phone, type, npwp, nik, entity_type, billing_address, shipping_address, pic_name, pic_position, work_unit } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
   try {
     const { rows } = await pool.query(
-      'INSERT INTO customers (name, address, phone, type) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name.trim(), address || '', phone || '', type || 'offline']
+      'INSERT INTO customers (name, address, phone, type, npwp, nik, entity_type, billing_address, shipping_address, pic_name, pic_position, work_unit) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *',
+      [name.trim(), address || '', phone || '', type || 'offline', emptyToNull(npwp), emptyToNull(nik), emptyToNull(entity_type), emptyToNull(billing_address), emptyToNull(shipping_address), emptyToNull(pic_name), emptyToNull(pic_position), emptyToNull(work_unit)]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -83,12 +90,12 @@ router.post('/', auth, async (req, res) => {
 
 // PUT update
 router.put('/:id', auth, async (req, res) => {
-  const { name, address, phone, type } = req.body;
+  const { name, address, phone, type, npwp, nik, entity_type, billing_address, shipping_address, pic_name, pic_position, work_unit } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Nama customer wajib diisi' });
   try {
     const { rows } = await pool.query(
-      'UPDATE customers SET name=$1, address=$2, phone=$3, type=$4, updated_at=NOW() WHERE id=$5 RETURNING *',
-      [name.trim(), address || '', phone || '', type || 'offline', req.params.id]
+      'UPDATE customers SET name=$1, address=$2, phone=$3, type=$4, npwp=$5, nik=$6, entity_type=$7, billing_address=$8, shipping_address=$9, pic_name=$10, pic_position=$11, work_unit=$12, updated_at=NOW() WHERE id=$13 RETURNING *',
+      [name.trim(), address || '', phone || '', type || 'offline', emptyToNull(npwp), emptyToNull(nik), emptyToNull(entity_type), emptyToNull(billing_address), emptyToNull(shipping_address), emptyToNull(pic_name), emptyToNull(pic_position), emptyToNull(work_unit), req.params.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'Customer not found' });
     res.json(rows[0]);
