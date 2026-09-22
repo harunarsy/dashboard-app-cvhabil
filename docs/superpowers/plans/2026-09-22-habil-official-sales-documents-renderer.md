@@ -678,16 +678,6 @@ describe('generateSalesDocumentPDF', () => {
     expect(text).not.toContain('Ditagihkan kepada');
   });
 
-  it('grand total identik antar ukuran (kriteria penerimaan #2)', () => {
-    const { order, settings } = SALES_DOCUMENT_FIXTURES.find((f) => f.id === 'five-items');
-    const extract = (format) => {
-      const text = allText(generateSalesDocumentPDF(order, { format, settings }));
-      return text.match(/GRAND TOTAL: (Rp[^\n]*)/)?.[1];
-    };
-    const values = ['A4', 'A5', 'A6'].map(extract);
-    expect(new Set(values).size).toBe(1);
-  });
-
   it('field kosong tidak menghasilkan label yatim (kriteria #8)', () => {
     const { order, settings } = SALES_DOCUMENT_FIXTURES[0];
     const text = allText(generateSalesDocumentPDF(order, { format: 'A4', settings }));
@@ -716,7 +706,7 @@ Expected: FAIL — modul renderer belum ada.
 1. `const vm = options.vm || buildSalesDocumentViewModel(order, options.settings || {})`.
 2. `const profile = DOCUMENT_PROFILES[format]` (throw error jelas bila format tak dikenal).
 3. Buat jsPDF sesuai `profile.paper`/`profile.orientation`; set font helvetica, warna `MONO.ink`.
-4. Blok A4 berurutan: header perusahaan (logo opsional `vm.identity.logoDataUrl` + nama + NPWP/alamat/telepon/email kiri, judul `FAKTUR PENJUALAN` + `SALES INVOICE` + barcode + nomor/tanggal/jatuh tempo/status kanan), garis rule tipis, para pihak 2 kolom (`Ditagihkan kepada` / `Dikirim kepada`, kolaps jadi satu kolom bila alamat identik), referensi pengadaan (hanya bila `hasProcurementData`), tabel barang (kolom: No, Nama Barang (+ metadata kode/batch/ED), Qty, Satuan, Harga Satuan, Diskon, Jumlah; diskon disembunyikan bila semua nol), ringkasan nilai kanan (DPP, Diskon, PPN {rate}%, Ongkir, Biaya Lain, **GRAND TOTAL** bold), terbilang, blok pembayaran (rekening + termin), catatan + ketentuan, referensi faktur pajak (bila ada nomor), 3 area tanda tangan (Penerima / Pemeriksa / Hormat kami), footer `Halaman x dari y`.
+4. Blok A4 berurutan: header perusahaan (logo opsional `vm.identity.logo` + nama + NPWP/alamat/telepon/email kiri, judul `FAKTUR PENJUALAN` + `SALES INVOICE` + barcode + nomor/tanggal/jatuh tempo/status kanan), garis rule tipis, para pihak 2 kolom (`Ditagihkan kepada` / `Dikirim kepada`, kolaps jadi satu kolom bila alamat identik) — blok ini hanya dirender bila `hasLegalBuyerData(buyer)` atau alamat pembeli tersedia, sehingga label tidak pernah muncul untuk pembeli walk-in tanpa alamat, referensi pengadaan (hanya bila `hasProcurementData`), tabel barang (kolom: No, Nama Barang (+ metadata kode/batch/ED), Qty, Satuan, Harga Satuan, Diskon, Jumlah; diskon disembunyikan bila semua nol), ringkasan nilai kanan (DPP, Diskon, PPN {rate}%, Ongkir, Biaya Lain, **GRAND TOTAL** bold), terbilang, blok pembayaran (rekening + termin), catatan + ketentuan, referensi faktur pajak (bila ada nomor), 3 area tanda tangan (Penerima / Pemeriksa / Hormat kami), footer `Halaman x dari y`.
 5. Header lanjutan pada halaman >1: identitas ringkas + nomor dokumen + `Halaman x dari y`.
 6. Barcode: port blok `generateNotaPDF.js:86-104` (CODE128, hitam, tanpa warna aksen).
 7. Tail (ringkasan → tanda tangan) hanya di halaman terakhir; tabel mengisi halaman sebelumnya penuh (pakai `planTableSplit`).
@@ -790,7 +780,7 @@ Aturan spec §7: identitas + judul satu header horizontal; customer + referensi 
 
 - [ ] **Step 2: Tambah entri golden A5 + loop test**
 
-Perluas test golden menjadi loop `['A4', 'A5']` dan isi `SALES_DOCUMENT_GOLDEN[fixtureId].A5` setelah review manual seperti Task 7 Step 5.
+Perluas test golden menjadi loop `['A4', 'A5']` — loop harus melewati format yang belum punya entri golden (`const golden = perFormat[format]; if (!golden) continue;`) — dan isi `SALES_DOCUMENT_GOLDEN[fixtureId].A5` setelah review manual seperti Task 7 Step 5.
 
 - [ ] **Step 3: Jalankan test**
 
@@ -822,9 +812,23 @@ git commit -m "feat: add monochrome A5 business nota renderer profile"
 
 Aturan spec §8: header satu baris (identitas, judul, nomor, tanggal); barcode dekat nomor dengan ukuran minimum yang bisa dipindai; customer ringkas (nama, instansi bila ada, telepon); tabel barang/qty/harga/jumlah; satuan digabung ke qty; metadata batch/ED hanya bila muat; PPN satu baris; total paling dominan; terbilang, rekening ringkas, penerima + Habil; referensi eksternal maksimal satu nilai pendek berlabel `Ref:`. Konten panjang **tidak boleh dikecilkan di bawah ambang keterbacaan** — bila tidak muat, halaman lanjutan tetap membawa nomor dokumen + konteks customer (tidak ada halaman kosong khusus tanda tangan).
 
-- [ ] **Step 2: Tambah entri golden A6 + loop penuh**
+- [ ] **Step 2: Tambah entri golden A6 + loop penuh + test paritas antar ukuran**
 
-Loop golden menjadi `['A4', 'A5', 'A6']`; isi ekspektasi A6 setelah review manual.
+Loop golden menjadi `['A4', 'A5', 'A6']` (tetap melewati format yang belum punya entri); isi ekspektasi A6 setelah review manual.
+
+Tambahkan test paritas (kriteria penerimaan #2) ke `generateSalesDocumentPDF.test.js`:
+
+```js
+  it('grand total identik antar ukuran (kriteria penerimaan #2)', () => {
+    const { order, settings } = SALES_DOCUMENT_FIXTURES.find((f) => f.id === 'five-items');
+    const extract = (format) => {
+      const text = allText(generateSalesDocumentPDF(order, { format, settings }));
+      return text.match(/GRAND TOTAL: (Rp[^\n]*)/)?.[1];
+    };
+    const values = ['A4', 'A5', 'A6'].map(extract);
+    expect(new Set(values).size).toBe(1);
+  });
+```
 
 - [ ] **Step 3: Jalankan test penuh dokumen + pastikan test lama tetap hijau**
 
