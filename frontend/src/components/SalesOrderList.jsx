@@ -1363,8 +1363,15 @@ export default function SalesOrderList({
       payload.payment_fee_mode = form.payment_fee_mode || "absorb";
       // v1.65.0: ppn_excluded — nota PPN vs Tanpa PPN
       payload.ppn_excluded = !!form.ppn_excluded;
-      // Snapshot dokumen resmi: form menyimpan PPN dalam %, backend/DB pakai desimal
-      payload.ppn_rate = (parseFloat(form.ppn_rate) || 0) / 100;
+      // Snapshot dokumen resmi: form menyimpan PPN dalam %, backend/DB pakai desimal.
+      // Field kosong/tidak valid → jangan kirim ppn_rate, biar backend pakai default 0.11.
+      // Angka 0 yang diketik eksplisit tetap terkirim sebagai 0.
+      const ppnPercent = parseFloat(form.ppn_rate);
+      if (Number.isFinite(ppnPercent)) {
+        payload.ppn_rate = ppnPercent / 100;
+      } else {
+        delete payload.ppn_rate;
+      }
       // v1.16.2: map batch fields ke payload (selected_batch_id, batch_id_snapshot, dll)
       payload.items = payload.items.map((i) => ({
         ...i,
