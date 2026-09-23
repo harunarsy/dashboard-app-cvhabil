@@ -63,7 +63,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { qk } from "../lib/queryClient";
 import Pagination from "./common/Pagination";
 import { importWithReload } from "../utils/importWithReload";
-import { getMonochromeLogoDataUrl } from "../utils/documents/monochromeLogo";
+import { buildSalesDocumentPdf } from "../utils/documents/salesDocumentPdfSource";
 import { dateOnlyTimestamp, formatDateOnly } from "../utils/dateOnly";
 
 const renderPortal = (node) =>
@@ -1695,31 +1695,18 @@ export default function SalesOrderList({
     if (!printOrder || pdfLoading) return;
     setPdfLoading(true);
     try {
-      const settingsWithLogo = {
-        ...layoutSettings,
-        logo_data_url: await getMonochromeLogoDataUrl(),
-      };
-      const { format, type } = printOptions;
-      if (type === "nota" && (format === "A4" || documentsV2)) {
-        const { generateSalesDocumentPDF } = await importWithReload(
-          () => import("../utils/documents/generateSalesDocumentPDF"),
-        );
-        const doc = generateSalesDocumentPDF(printOrder, {
-          format,
-          type,
-          settings: settingsWithLogo,
-        });
-        doc.save(`Nota_${printOrder.order_number}.pdf`);
-      } else {
-        const { generateNotaPDF } = await importWithReload(() => import("../utils/generateNotaPDF"));
-        const doc = generateNotaPDF(printOrder, {
-          ...printOptions,
-          settings: layoutSettings,
-        });
-        doc.save(
-          `${printOptions.type === "terima" ? "TT" : "Nota"}_${printOrder.order_number}.pdf`,
-        );
-      }
+      const { blob, filename } = await buildSalesDocumentPdf(printOrder, {
+        format: printOptions.format,
+        type: printOptions.type,
+        settings: layoutSettings || {},
+        documentsV2,
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
       await salesAPI.updatePdfStatus(printOrder.id, "sudah_dicetak");
       flash("PDF berhasil diunduh");
       setShowPrintModal(false);
