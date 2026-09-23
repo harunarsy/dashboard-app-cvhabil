@@ -39,6 +39,7 @@ import Skeleton from "./common/Skeleton";
 import ConfirmModal from "./common/ConfirmModal";
 import Breadcrumb from "./common/Breadcrumb";
 import NotaPreview from "./common/NotaPreview";
+import PdfPreviewPanel from "./common/PdfPreviewPanel";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import Icons from "./common/Icon";
 import RupiahInput from "./common/RupiahInput";
@@ -333,7 +334,13 @@ export default function SalesOrderList({
   });
   // v1.49.0: tandai lunas massal (centang beberapa nota → lunas + tanggal serentak)
   const [bulkPay, setBulkPay] = useState({ open: false, date: "", saving: false });
-  const [pdfLoading, setPdfLoading] = useState(false);
+  // Task 16 (spec §10): preview PDF aktual — blob yang SAMA dipakai unduh & cetak.
+  const [previewBlob, setPreviewBlob] = useState(null);
+  const [previewFilename, setPreviewFilename] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState(null);
+  const [previewRetryKey, setPreviewRetryKey] = useState(0);
+  const previewTokenRef = useRef(0);
 
   // Filters
   const [filterMonth, setFilterMonth] = useState("all");
@@ -409,6 +416,8 @@ export default function SalesOrderList({
     return () => window.removeEventListener("resize", onResize);
   }, []);
   const stackedItems = isMobile || viewportW < 1024;
+  // Task 16 (spec §10): modal Opsi Cetak 2 kolom di desktop (opsi kiri, preview kanan).
+  const printModalTwoCol = !isMobile && viewportW >= 1024;
 
   // v1.56.0: markup harga dari HPP (+5/+10/+15/custom %) — custom % diingat antar sesi
   const [customMarkupPct, setCustomMarkupPct] = useState(() => {
@@ -587,6 +596,49 @@ export default function SalesOrderList({
     },
     [],
   );
+  // Task 16 (spec §10): regenerasi preview (debounce 250 ms) saat modal dibuka / ukuran /
+  // tipe / order berubah. Token membuang hasil basi; error tampil sebagai state retryable.
+  useEffect(() => {
+    if (!showPrintModal || !printOrder) return undefined;
+    const token = ++previewTokenRef.current;
+    setPreviewLoading(true);
+    setPreviewError(null);
+    const timer = window.setTimeout(async () => {
+      try {
+        const { blob, filename } = await buildSalesDocumentPdf(printOrder, {
+          format: printOptions.format,
+          type: printOptions.type,
+          settings: layoutSettings || {},
+          documentsV2,
+        });
+        if (previewTokenRef.current !== token) return;
+        setPreviewBlob(blob);
+        setPreviewFilename(filename);
+        setPreviewLoading(false);
+      } catch (e) {
+        if (previewTokenRef.current !== token) return;
+        console.error("PDF preview build failed:", e);
+        // Blob lama jangan tertinggal: aksi Unduh/Cetak harus mati saat build gagal.
+        setPreviewBlob(null);
+        setPreviewFilename(null);
+        setPreviewError(e?.message || "Gagal menyiapkan PDF");
+        setPreviewLoading(false);
+      }
+    }, 250);
+    return () => {
+      window.clearTimeout(timer);
+      // Naikkan token → request yang masih jalan tidak boleh menulis state lagi.
+      previewTokenRef.current = token + 1;
+    };
+  }, [
+    showPrintModal,
+    printOrder,
+    printOptions.format,
+    printOptions.type,
+    layoutSettings,
+    documentsV2,
+    previewRetryKey,
+  ]);
   const labelStyle = {
     display: "block",
     fontSize: "12px",
@@ -1691,31 +1743,71 @@ export default function SalesOrderList({
     );
   };
 
-  const handlePrintPDF = async () => {
-    if (!printOrder || pdfLoading) return;
-    setPdfLoading(true);
+  // Task 16 (spec §10): unduh memakai blob yang sedang ditampilkan — tidak regenerasi.
+  const handlePreviewDownload = async () => {
+    if (!previewBlob || !printOrder || previewLoading || previewError) return;
+    const url = URL.createObjectURL(previewBlob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = previewFilename || `Nota_${printOrder.order_number}.pdf`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+    flash("PDF berhasil diunduh");
     try {
-      const { blob, filename } = await buildSalesDocumentPdf(printOrder, {
-        format: printOptions.format,
-        type: printOptions.type,
-        settings: layoutSettings || {},
-        documentsV2,
-      });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = filename;
-      anchor.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
       await salesAPI.updatePdfStatus(printOrder.id, "sudah_dicetak");
-      flash("PDF berhasil diunduh");
-      setShowPrintModal(false);
       fetchOrders();
     } catch (e) {
-      flash("Gagal membuat PDF: " + e.message, "error");
-    } finally {
-      setPdfLoading(false);
+      flash("PDF terunduh, tapi status cetak gagal disimpan", "error");
     }
+  };
+
+  // Task 16 (spec §10): cetak lewat iframe tersembunyi (fallback tab baru).
+  const handlePreviewPrint = () => {
+    if (!previewBlob || !printOrder || previewLoading || previewError) return;
+    const url = URL.createObjectURL(previewBlob);
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    const markPrinted = () => {
+      salesAPI
+        .updatePdfStatus(printOrder.id, "sudah_dicetak")
+        .then(() => fetchOrders())
+        .catch(() => flash("PDF siap, tapi status cetak gagal disimpan", "error"));
+    };
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      iframe.remove();
+      URL.revokeObjectURL(url);
+    };
+    iframe.onload = () => {
+      let printed = false;
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        printed = true;
+      } catch (e) {
+        printed = false;
+      }
+      if (!printed && !window.open(url, "_blank")) {
+        flash("Popup diblokir. Pakai tombol Unduh PDF lalu cetak manual.", "error");
+        cleanup();
+        return;
+      }
+      markPrinted();
+      flash("Dialog cetak dibuka");
+      window.setTimeout(cleanup, 60000);
+    };
+    iframe.src = url;
+    document.body.appendChild(iframe);
   };
 
   const handlePrintAdjustment = async () => {
@@ -1796,7 +1888,21 @@ export default function SalesOrderList({
   const openPrintOptions = (order) => {
     setPrintOrder(order);
     setPrintOptions({ format: defaultFormatFor(order, customers), type: "nota" });
+    // Preview lama jangan bocor ke order berikutnya.
+    setPreviewBlob(null);
+    setPreviewFilename(null);
+    setPreviewError(null);
+    setPreviewRetryKey(0);
     setShowPrintModal(true);
+  };
+
+  // A6 satu-satunya format yang mendukung Tanda Terima → balikkan ke Nota saat pindah format.
+  const changePrintFormat = (f) => {
+    setPrintOptions((prev) => ({
+      ...prev,
+      format: f,
+      type: f === "A6" ? prev.type : "nota",
+    }));
   };
 
   const addItem = () => {
@@ -6379,10 +6485,17 @@ export default function SalesOrderList({
               style={{
                 backgroundColor: cardBg,
                 width: "100%",
-                maxWidth: "360px",
-                borderRadius: "20px",
-                padding: "24px",
+                maxWidth: printModalTwoCol
+                  ? "min(1080px, calc(100vw - 32px))"
+                  : "min(560px, calc(100vw - 32px))",
+                height: isMobile ? "100%" : "auto",
+                maxHeight: isMobile ? "none" : "calc(100vh - 48px)",
+                borderRadius: isMobile ? 0 : "20px",
+                padding: isMobile ? "16px" : "24px",
                 boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
               }}
             >
               <div
@@ -6424,6 +6537,20 @@ export default function SalesOrderList({
                 </button>
               </div>
 
+              {/* Task 16 (spec §10): desktop = 2 kolom (opsi | preview), tablet/ponsel menumpuk. */}
+              <div
+                className="print-modal-body"
+                style={{
+                  display: "flex",
+                  flexDirection: printModalTwoCol ? "row" : "column",
+                  gap: "20px",
+                  flex: 1,
+                  minHeight: 0,
+                  overflowY: "auto",
+                }}
+              >
+              {/* Kolom opsi cetak */}
+              <div style={{ flex: printModalTwoCol ? "0 0 280px" : "0 0 auto", minWidth: 0 }}>
               <div style={{ marginBottom: "20px" }}>
                 <label style={{ ...labelStyle, marginBottom: "12px" }}>
                   Ukuran Kertas
@@ -6432,11 +6559,15 @@ export default function SalesOrderList({
                   {["A4", "A5", "A6"].map((f) => (
                     <button
                       key={f}
-                      onClick={() =>
-                        setPrintOptions({ ...printOptions, format: f })
-                      }
+                      type="button"
+                      className="ui-focus-ring"
+                      aria-label={`Ukuran kertas ${f}`}
+                      aria-pressed={printOptions.format === f}
+                      onClick={() => changePrintFormat(f)}
                       style={{
                         flex: 1,
+                        minWidth: "44px",
+                        minHeight: "44px",
                         padding: "12px",
                         borderRadius: "12px",
                         border: `2px solid ${printOptions.format === f ? "var(--color-action)" : border}`,
@@ -6545,25 +6676,35 @@ export default function SalesOrderList({
                   </label>
                 </div>
               </div>
+              </div>
+              {/* /Kolom opsi cetak */}
 
-              <button
-                onClick={handlePrintPDF}
-                disabled={pdfLoading}
+              {/* Preview PDF aktual (Task 16) — unduh & cetak memakai blob ini. */}
+              <div
                 style={{
-                  width: "100%",
-                  padding: "14px",
-                  backgroundColor: "var(--color-action)",
-                  color: "#FFF",
-                  border: "none",
-                  borderRadius: "14px",
-                  cursor: pdfLoading ? "not-allowed" : "pointer",
-                  fontWeight: "700",
-                  fontSize: "15px",
-                  opacity: pdfLoading ? 0.7 : 1,
+                  flex: "1 1 auto",
+                  minWidth: 0,
+                  minHeight: 0,
+                  display: "flex",
+                  flexDirection: "column",
                 }}
               >
-                {pdfLoading ? "Membuat PDF..." : "Cetak Sekarang"}
-              </button>
+                <PdfPreviewPanel
+                  blob={previewBlob}
+                  loading={previewLoading}
+                  error={previewError}
+                  onRetry={() => setPreviewRetryKey((k) => k + 1)}
+                  format={printOptions.format}
+                  onFormatChange={changePrintFormat}
+                  onDownload={handlePreviewDownload}
+                  onPrint={handlePreviewPrint}
+                  actionsDisabled={!printOrder}
+                  isMobile={isMobile}
+                />
+              </div>
+              {/* /Preview PDF aktual */}
+              </div>
+              {/* /print-modal-body */}
             </div>
           </div>,
         )}
