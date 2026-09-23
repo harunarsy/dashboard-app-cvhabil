@@ -4,6 +4,21 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 23 Sep 2026 — Official Sales Documents Fase 2 + rilis v1.67.19-stable (branch, belum di-push)
+- **Fase 2 SELESAI di branch `feat/official-sales-documents`** (6 commit sejak docs plan `b9cc34a`, HEAD `b09559c`) — **BELUM di-push, belum dideploy, tidak ada migrasi/SQL yang dijalankan.**
+- Tiga bug diperbaiki dengan test-gagal-dulu: preservasi kunci `nota_layout` saat simpan PrintSettings (npwp/email tidak lagi terhapus), PPN 0% & tarif pecahan sesuai snapshot, judul per ukuran (A4 faktur, A5/A6 nota).
+- Fitur baru: modul sumber PDF bersama (`salesDocumentPdfSource.js`), preview PDF aktual di modal Opsi Cetak (canvas + toolbar + jumlah halaman; blob sama untuk unduh/cetak; loading/error; responsif) via `pdfjs-dist` (lazy), dan panel validasi sebelum cetak (blocker mengunci unduh & cetak).
+- **Migration `20260922_022_sales_document_legal` masih BELUM dijalankan di database mana pun.** Audit penulis kolom baru + urutan rollout (migrasi → backend → frontend) + verifikasi read-only + rollback: `docs/superpowers/notes/2026-09-22-migration-022-rollout.md`.
+- **Flag `documents_renderer_v2` masih `false`** — A5/A6 renderer lama; `terima`/`pinjaman` jalur lama. Cutover A5/A6 menyusul.
+- Verifikasi rilis: frontend 134/134 test (20 berkas) + Vite production build; backend 21 delta unit + 4 confirmation + 16 safety + 13 schema boundary + 25 HTTP smoke + 43 adjustment hardening checks; version checker `v1.67.19-stable` lulus; `git diff --check` bersih.
+
+### ✅ Checklist review manual Harun (Fase 2)
+1. **Preview PDF aktual:** buka nota → Opsi Cetak → preview ter-render; ganti A4/A5/A6 (preview ikut berubah), zoom/Fit/navigasi halaman, lalu unduh & cetak (dokumen sama dengan preview).
+2. **Tarif PPN:** nota PPN 0% → tampil "PPN 0%"; nota tarif 11,5% → tampil "PPN 11,5%".
+3. **PrintSettings:** ubah satu field → simpan → muat ulang → pastikan `npwp`/`email`/kunci lain tidak hilang.
+4. **Validasi:** nota A4 tanpa nama/alamat customer atau nominal tidak konsisten → tombol unduh/cetak terkunci + alasan tampil di panel.
+5. Verifikasi visual PDF (layout, pagination, tanda tangan) tetap manual.
+
 ## Update 22 Sep 2026 — Official Sales Documents Plan 1 (branch, belum di-push)
 - **Plan 1 SELESAI di branch `feat/official-sales-documents`** (16 commit) dan **BELUM di-push ke origin** — tidak ada deployment dari branch ini.
 - Model dokumen penjualan kanonis + renderer monokrom A4/A5/A6 dengan 30 ekspektasi golden (fixture × format) dan test paritas antar-ukuran.
@@ -58,8 +73,8 @@ dan ambil HPP fresh dari DB — jangan pakai angka hardcode di `engine_laba.py`.
 
 ---
 
-**Terakhir diperbarui:** 22 Sep 2026
-**Status:** ⏳ **v1.67.18-stable siap di branch `feat/official-sales-documents`** (Plan 1 Official Sales Documents) — terverifikasi lokal, **BELUM di-push dan belum dideploy**. Migration 022 belum dijalankan di DB mana pun; flag `documents_renderer_v2` masih `false`. Menunggu review manual Harun, lalu Plan 2.
+**Terakhir diperbarui:** 23 Sep 2026
+**Status:** ⏳ **v1.67.19-stable siap di branch `feat/official-sales-documents`** (Official Sales Documents Fase 2) — terverifikasi lokal, **BELUM di-push dan belum dideploy**. Migration 022 belum dijalankan di DB mana pun; flag `documents_renderer_v2` masih `false`. Menunggu review manual Harun (checklist di atas), lalu cutover A5/A6.
 
 ### 📦 GitHub Releases dirapikan total (28 Jul 2026)
 Sebelumnya berhenti di `v1.0.1` (Mar 2026) padahal kode sudah v1.64.1 — melompat 4 bulan.

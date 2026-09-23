@@ -2,7 +2,7 @@
 
 **Tanggal:** 22 September 2026
 
-**Status:** disetujui; Plan 1 diimplementasikan pada branch `feat/official-sales-documents`, Plan 2 menyusul
+**Status:** disetujui; Plan 1 dan Fase 2 (perbaikan bug, preview PDF aktual, panel validasi) diimplementasikan pada branch `feat/official-sales-documents` (rilis lokal v1.67.19-stable, belum di-push). Flag `documents_renderer_v2` masih `false`; migrasi 022 belum dijalankan. Cutover A5/A6 dan migrasi `terima`/`pinjaman` menyusul.
 
 **Baseline aplikasi:** v1.67.17-stable
 

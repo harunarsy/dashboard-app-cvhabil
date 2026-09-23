@@ -39,9 +39,28 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.67.19-stable",
+    date: "23 September 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Simpan Pengaturan Cetak tidak lagi menghapus kunci nota_layout seperti npwp dan email; PPN 0% dan tarif pecahan kini tampil sesuai snapshot; judul dokumen mengikuti ukuran (A4 Faktur Penjualan, A5/A6 Nota Penjualan).",
+      },
+      {
+        type: "feat",
+        text: "Opsi Cetak kini menampilkan preview PDF aktual (canvas, toolbar ukuran/zoom, jumlah halaman) dan panel validasi sebelum cetak; unduh dan cetak memakai dokumen yang sama dengan preview.",
+      },
+      {
+        type: "improvement",
+        text: "Flag documents_renderer_v2 masih false — A5/A6 tetap memakai renderer lama; migration 022 belum dijalankan.",
+      },
+    ],
+  },
+  {
     version: "v1.67.18-stable",
     date: "22 September 2026",
-    status: "latest",
+    status: "previous",
     changes: [
       {
         type: "feat",

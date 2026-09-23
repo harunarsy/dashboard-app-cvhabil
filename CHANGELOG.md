@@ -2,6 +2,26 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.19-stable] - 2026-09-23
+
+### Diperbaiki
+- **Simpan Pengaturan Cetak tidak lagi menghapus kunci `nota_layout` yang tidak diedit.** Payload simpan kini menggabungkan layout asli dari server dengan 8 field form, sehingga kunci seperti `npwp` (seed migrasi 022), `email`, dan kunci lain di luar form tidak lagi terhapus — dokumen tidak jatuh ke hardcode NPWP.
+- **PPN 0% dan tarif pecahan tampil sesuai snapshot.** `resolveVatRate` membedakan `0` eksplisit dari kosong/legacy (fallback 11% hanya untuk `null`/`undefined`/`''`/invalid), dan label tarif tidak lagi dibulatkan ke bilangan bulat — 11,5% tampil "11,5%", bukan "12%".
+- **Judul dokumen mengikuti ukuran.** A4 memakai "FAKTUR PENJUALAN / SALES INVOICE", A5/A6 memakai "NOTA PENJUALAN" (termasuk header lanjutan) — sebelumnya satu konstanta untuk semua profil.
+
+### Ditambahkan
+- **Preview PDF aktual di modal Opsi Cetak.** Satu modul sumber (`buildSalesDocumentPdf`) menghasilkan blob yang sama untuk preview, unduh, dan cetak; preview merender via `pdfjs-dist` (lazy) dengan canvas, toolbar ukuran/zoom/fit, navigasi halaman, jumlah halaman selalu terlihat, state loading/error + "Coba lagi", dan tata letak responsif (target sentuh ≥44px, akses keyboard).
+- **Panel validasi sebelum cetak.** Pemeriksaan nomor nota, kelengkapan identitas A4, jatuh tempo, panjang referensi pengadaan, jumlah item vs ukuran, dan konsistensi nominal. Ketidakkonsistenan nominal serta data wajib A4 memblokir unduh dan cetak; peringatan lain bersifat informatif.
+
+### Catatan
+- Flag `documents_renderer_v2` **masih `false`** — A5/A6 tetap memakai renderer lama sampai paritas terbukti; nota `terima`/`pinjaman` tetap jalur lama.
+- **Migration 022 belum dijalankan di database mana pun** pada saat commit rilis ini dibuat. Urutan rollout, audit penulis kolom baru, verifikasi read-only, dan rollback ada di `docs/superpowers/notes/2026-09-22-migration-022-rollout.md`.
+- Panel "Preview Live" di form (draft HTML saat mengetik) belum diganti PDF — keputusan pemilik.
+- Verifikasi visual PDF (layout, halaman, ukuran) tetap manual oleh Harun.
+
+### Diverifikasi
+- Frontend lulus 134/134 test (20 berkas) termasuk test baru PrintSettings, PPN snapshot, PdfPreviewPanel, dan validasi; production build Vite lulus. Backend lulus 21 delta unit checks, 4 delta confirmation checks, 16 delta safety checks, 13 schema boundary checks, 25 HTTP smoke checks, dan 43 adjustment hardening checks. Version checker `v1.67.19-stable` lulus; `git diff --check` bersih. Tidak ada migration yang dijalankan saat validasi rilis ini.
+
 ## [v1.67.18-stable] - 2026-09-22
 
 ### Ditambahkan
