@@ -5,6 +5,7 @@ import {
   buildSalesDocumentViewModel,
   formatDateID,
   formatRupiah,
+  formatVatRate,
   hasLegalBuyerData,
   hasProcurementData,
 } from './salesDocumentModel';
@@ -509,13 +510,13 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
     if (profile.compactSummary) {
       // A6 (spec §8): PPN diringkas menjadi satu baris (DPP + PPN sekaligus).
       summaryRows.push({
-        text: `DPP: ${formatRupiah(vm.totals.dpp)} · PPN ${Math.round(vm.totals.vatRate * 100)}%: ${formatRupiah(vm.totals.vatAmount)}`,
+        text: `DPP: ${formatRupiah(vm.totals.dpp)} · PPN ${formatVatRate(vm.totals.vatRate)}: ${formatRupiah(vm.totals.vatAmount)}`,
         advance: summaryStep,
       });
     } else {
       summaryRows.push({ text: `DPP: ${formatRupiah(vm.totals.dpp)}`, advance: summaryStep - 0.5 });
       summaryRows.push({
-        text: `PPN ${Math.round(vm.totals.vatRate * 100)}%: ${formatRupiah(vm.totals.vatAmount)}`,
+        text: `PPN ${formatVatRate(vm.totals.vatRate)}: ${formatRupiah(vm.totals.vatAmount)}`,
         advance: summaryStep,
       });
     }

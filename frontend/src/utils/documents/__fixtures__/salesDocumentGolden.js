@@ -53,6 +53,15 @@
 //   nomor nota, "Kepada: <customer>", 10 baris + tail — tidak ada halaman
 //   khusus tanda tangan. 9/10 fixture lain 1 halaman (legacy A6: 2-3 halaman
 //   untuk five-items/long-names/instansi-formal/many-items).
+//
+// Catatan review snapshot tarif (dump A4/A5/A6 23 Sep 2026, sebelum & sesudah fix):
+// - ppn-rate-zero: sebelum fix baris ringkasan berbunyi "DPP: Rp 450.450 /
+//   PPN 11%: Rp 49.550" (bug `|| LEGACY_PPN_RATE`); setelah fix "DPP: Rp 500.000 /
+//   PPN 0%: Rp 0" dan A6 satu baris "DPP: Rp 500.000 · PPN 0%: Rp 0".
+// - ppn-rate-snapshot-115: DPP/PPN sudah benar (Rp 1.000.000 / Rp 115.000), tetapi
+//   label lama "PPN 12%" (Math.round 11,5); setelah fix "PPN 11,5%".
+// - Keduanya 1 halaman di A4/A5/A6, meta Batch/ED tampil (aturan 'fit': 1 item),
+//   baris PPN tidak terpotong di ketiga ukuran.
 export const SALES_DOCUMENT_GOLDEN = {
   'single-item': {
     A4: {
@@ -468,6 +477,79 @@ export const SALES_DOCUMENT_GOLDEN = {
         'GRAND TOTAL: Rp 1.234.568',
         'Terbilang: Satu Juta Dua Ratus Tiga Puluh Empat Ribu Lima Ratus Enam Puluh Delapan',
       ],
+    },
+  },
+  'ppn-rate-zero': {
+    A4: {
+      pages: 1,
+      mustContain: [
+        'HSB-NOTA-2609011',
+        'Klinik Nol Persen',
+        'DPP: Rp 500.000',
+        'PPN 0%: Rp 0',
+        'GRAND TOTAL: Rp 500.000',
+        'Terbilang: Lima Ratus Ribu Rupiah',
+      ],
+      mustNotContain: ['PPN 11%', 'PPN 12%'],
+    },
+    A5: {
+      pages: 1,
+      mustContain: [
+        'HSB-NOTA-2609011',
+        'Klinik Nol Persen',
+        'DPP: Rp 500.000',
+        'PPN 0%: Rp 0',
+        'GRAND TOTAL: Rp 500.000',
+        'Terbilang: Lima Ratus Ribu Rupiah',
+      ],
+      mustNotContain: ['PPN 11%', 'PPN 12%'],
+    },
+    A6: {
+      pages: 1,
+      mustContain: [
+        'HSB-NOTA-2609011',
+        'Klinik Nol Persen',
+        'DPP: Rp 500.000 · PPN 0%: Rp 0',
+        'GRAND TOTAL: Rp 500.000',
+        'Terbilang: Lima Ratus Ribu Rupiah',
+      ],
+      mustNotContain: ['PPN 11%', 'PPN 12%'],
+    },
+  },
+  'ppn-rate-snapshot-115': {
+    A4: {
+      pages: 1,
+      mustContain: [
+        'HSB-NOTA-2609012',
+        'Apotek Tarif Pecahan',
+        'DPP: Rp 1.000.000',
+        'PPN 11,5%: Rp 115.000',
+        'GRAND TOTAL: Rp 1.115.000',
+        'Terbilang: Satu Juta Seratus Lima Belas Ribu Rupiah',
+      ],
+      mustNotContain: ['PPN 12%'],
+    },
+    A5: {
+      pages: 1,
+      mustContain: [
+        'HSB-NOTA-2609012',
+        'Apotek Tarif Pecahan',
+        'DPP: Rp 1.000.000',
+        'PPN 11,5%: Rp 115.000',
+        'GRAND TOTAL: Rp 1.115.000',
+        'Terbilang: Satu Juta Seratus Lima Belas Ribu Rupiah',
+      ],
+      mustNotContain: ['PPN 12%'],
+    },
+    A6: {
+      pages: 1,
+      mustContain: [
+        'HSB-NOTA-2609012',
+        'Apotek Tarif Pecahan',
+        'DPP: Rp 1.000.000 · PPN 11,5%: Rp 115.000',
+        'GRAND TOTAL: Rp 1.115.000',
+      ],
+      mustNotContain: ['PPN 12%'],
     },
   },
 };

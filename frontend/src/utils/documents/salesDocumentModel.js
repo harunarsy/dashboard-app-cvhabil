@@ -66,6 +66,18 @@ export function formatDateID(value) {
   return parsed.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+export function resolveVatRate(rawRate) {
+  if (rawRate === null || rawRate === undefined || rawRate === '') return LEGACY_PPN_RATE;
+  const parsed = Number(rawRate);
+  return Number.isFinite(parsed) ? parsed : LEGACY_PPN_RATE;
+}
+
+export function formatVatRate(vatRate) {
+  const percent = Number(vatRate) * 100;
+  const rounded = Math.round(percent * 100) / 100;
+  return `${rounded.toLocaleString('id-ID', { maximumFractionDigits: 2 })}%`;
+}
+
 export function formatQtyDisplay(item = {}) {
   const qty = hasQtyInUnit(item) ? toNumber(item.qty_in_unit) : toNumber(item.qty);
   const unit = item.unit || 'pcs';
@@ -118,7 +130,7 @@ export function computeTotals(order = {}) {
   const paymentFee = order.payment_fee_mode === 'pass_on' ? toNumber(order.payment_fee) : 0;
   const productGross = grandTotal - shippingCharge - paymentFee;
   const ppnExcluded = order.ppn_excluded === true || order.ppn_excluded === 'true';
-  const vatRate = toNumber(order.ppn_rate) || LEGACY_PPN_RATE;
+  const vatRate = resolveVatRate(order.ppn_rate);
   const dpp = ppnExcluded ? 0 : productGross / (1 + vatRate);
   const vatAmount = ppnExcluded ? 0 : productGross - dpp;
 

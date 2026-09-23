@@ -6,10 +6,12 @@ import {
   formatDateID,
   formatQtyDisplay,
   formatRupiah,
+  formatVatRate,
   groupSaleItems,
   hasLegalBuyerData,
   hasProcurementData,
   parseBankInfo,
+  resolveVatRate,
 } from './salesDocumentModel';
 import { SALES_DOCUMENT_FIXTURES } from './__fixtures__/salesDocumentFixtures';
 
@@ -67,6 +69,35 @@ describe('computeTotals', () => {
     const totals = computeTotals({ total: 1234567.89, ppn_rate: 0.11, items: [] });
     expect(totals.grandTotal).toBe(1234567.89);
     expect(totals.amountInWords).toBe('Satu Juta Dua Ratus Tiga Puluh Empat Ribu Lima Ratus Enam Puluh Delapan Rupiah');
+  });
+});
+
+describe('tarif PPN snapshot', () => {
+  it('ppn_rate 0 tetap 0%, bukan fallback 11%', () => {
+    expect(resolveVatRate(0)).toBe(0);
+    const totals = computeTotals({ total: 500000, ppn_rate: 0, items: [] });
+    expect(totals.vatRate).toBe(0);
+    expect(totals.vatAmount).toBe(0);
+    expect(totals.dpp).toBe(500000);
+    expect(totals.dpp + totals.vatAmount).toBe(totals.productGross);
+  });
+  it('tarif pecahan dipakai apa adanya', () => {
+    expect(resolveVatRate(0.115)).toBe(0.115);
+    const totals = computeTotals({ total: 1115000, ppn_rate: 0.115, items: [] });
+    expect(Math.round(totals.dpp)).toBe(1000000);
+    expect(Math.round(totals.vatAmount)).toBe(115000);
+  });
+  it('fallback 11% hanya untuk kosong/legacy/invalid', () => {
+    expect(resolveVatRate(null)).toBe(0.11);
+    expect(resolveVatRate(undefined)).toBe(0.11);
+    expect(resolveVatRate('')).toBe(0.11);
+    expect(resolveVatRate('abc')).toBe(0.11);
+    expect(resolveVatRate('0.12')).toBe(0.12);
+  });
+  it('formatVatRate mengikuti snapshot tanpa pembulatan ke bilangan bulat', () => {
+    expect(formatVatRate(0)).toBe('0%');
+    expect(formatVatRate(0.11)).toBe('11%');
+    expect(formatVatRate(0.115)).toBe('11,5%');
   });
 });
 
@@ -260,7 +291,7 @@ describe('hasProcurementData / hasLegalBuyerData', () => {
 });
 
 describe('fixtures', () => {
-  it('menyediakan 10 fixture unik sesuai daftar spec §14', () => {
+  it('menyediakan 12 fixture unik sesuai daftar spec §14 + snapshot tarif', () => {
     expect(SALES_DOCUMENT_FIXTURES.map((f) => f.id)).toEqual([
       'single-item',
       'five-items',
@@ -272,6 +303,8 @@ describe('fixtures', () => {
       'ongkir-and-fee',
       'instansi-formal',
       'large-rounded-amounts',
+      'ppn-rate-zero',
+      'ppn-rate-snapshot-115',
     ]);
   });
 

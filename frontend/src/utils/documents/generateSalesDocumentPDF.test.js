@@ -78,6 +78,19 @@ describe('generateSalesDocumentPDF', () => {
     expect(text).toContain('Penerima,');
   });
 
+  it('tarif 0% dan pecahan tampil sesuai snapshot di ketiga ukuran', () => {
+    const zero = SALES_DOCUMENT_FIXTURES.find((f) => f.id === 'ppn-rate-zero');
+    const frac = SALES_DOCUMENT_FIXTURES.find((f) => f.id === 'ppn-rate-snapshot-115');
+    for (const format of ['A4', 'A5', 'A6']) {
+      const zeroText = allText(generateSalesDocumentPDF(zero.order, { format, settings: zero.settings }));
+      expect(zeroText, `${format} 0%`).toContain('PPN 0%');
+      expect(zeroText, `${format} bukan 11%`).not.toContain('PPN 11%');
+      const fracText = allText(generateSalesDocumentPDF(frac.order, { format, settings: frac.settings }));
+      expect(fracText, `${format} 11,5%`).toContain('PPN 11,5%');
+      expect(fracText, `${format} bukan 12%`).not.toContain('PPN 12%');
+    }
+  });
+
   it('golden render cocok untuk semua fixture (A4 + A5 + A6)', () => {
     for (const [fixtureId, perFormat] of Object.entries(SALES_DOCUMENT_GOLDEN)) {
       const { order, settings } = SALES_DOCUMENT_FIXTURES.find((f) => f.id === fixtureId);
