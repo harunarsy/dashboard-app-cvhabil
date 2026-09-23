@@ -66,6 +66,7 @@ import Pagination from "./common/Pagination";
 import { importWithReload } from "../utils/importWithReload";
 import { buildSalesDocumentPdf } from "../utils/documents/salesDocumentPdfSource";
 import { validateSalesDocument } from "../utils/documents/salesDocumentValidation";
+import { printBlobInIframe } from "../utils/documents/printBlobInIframe";
 import { dateOnlyTimestamp, formatDateOnly } from "../utils/dateOnly";
 
 const renderPortal = (node) =>
@@ -201,6 +202,14 @@ const computeNotaMargin = (order) => {
   return { revenue, margin, pct };
 };
 const DEFAULT_PROFIT_THRESHOLDS = { high: 20, normal: 5, thin: 0 };
+// Task 22 (spec §10): pesan gagal cetak per error.code dari printBlobInIframe.
+const PRINT_FAILURE_MESSAGES = {
+  timeout: "Cetak tidak merespons. Coba lagi atau unduh PDF lalu cetak manual.",
+  load_failed: "Gagal memuat dokumen ke jendela cetak. Coba lagi atau unduh PDF.",
+  popup_blocked: "Popup diblokir. Pakai tombol Unduh PDF lalu cetak manual.",
+  print_failed: "Dialog cetak gagal dibuka. Pakai tombol Unduh PDF lalu cetak manual.",
+};
+const PRINT_FAILURE_FALLBACK = "Gagal membuka dialog cetak. Pakai tombol Unduh PDF lalu cetak manual.";
 const normalizeProfitThresholds = (thresholds = {}) => {
   const safeValues = [thresholds.thin, thresholds.normal, thresholds.high]
     .map((value, idx) => {
@@ -341,6 +350,8 @@ export default function SalesOrderList({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(null);
   const [previewBusy, setPreviewBusy] = useState(false);
+  // Task 22 (spec §10): status cetak eksplisit — prompt konfirmasi setelah unduh/cetak sukses.
+  const [statusPrompt, setStatusPrompt] = useState(null);
   const [previewRetryKey, setPreviewRetryKey] = useState(0);
   const previewTokenRef = useRef(0);
   // Task 17 (spec §10): validasi dihitung dari snapshot order yang sama dengan PDF
@@ -1756,7 +1767,8 @@ export default function SalesOrderList({
     );
   };
 
-  // Task 16 (spec §10): unduh memakai blob yang sedang ditampilkan — tidak regenerasi.
+  // Task 22 (spec §10): unduh memakai blob yang sedang ditampilkan — tidak regenerasi,
+  // dan TIDAK menandai status cetak otomatis. Status hanya lewat konfirmasi operator.
   const handlePreviewDownload = async () => {
     if (!previewBlob || !printOrder || previewLoading || previewError || previewBusy) return;
     setPreviewBusy(true);
@@ -1770,68 +1782,43 @@ export default function SalesOrderList({
       anchor.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 5000);
       flash("PDF berhasil diunduh");
-      try {
-        await salesAPI.updatePdfStatus(printOrder.id, "sudah_dicetak");
-        fetchOrders();
-      } catch (e) {
-        flash("PDF terunduh, tapi status cetak gagal disimpan", "error");
-      }
+      setStatusPrompt({ kind: "download" });
     } finally {
       setPreviewBusy(false);
     }
   };
 
-  // Task 16 (spec §10): cetak lewat iframe tersembunyi (fallback tab baru).
-  const handlePreviewPrint = () => {
+  // Task 22 (spec §10): cetak lewat helper anti-macet — timeout + onerror + fallback popup.
+  // `previewBusy` selalu dilepas sinkron di finally, tidak lagi bergantung pada onload iframe.
+  const handlePreviewPrint = async () => {
     if (!previewBlob || !printOrder || previewLoading || previewError || previewBusy) return;
     setPreviewBusy(true);
-    const url = URL.createObjectURL(previewBlob);
-    const iframe = document.createElement("iframe");
-    iframe.setAttribute("aria-hidden", "true");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    const markPrinted = () => {
-      salesAPI
-        .updatePdfStatus(printOrder.id, "sudah_dicetak")
-        .then(() => fetchOrders())
-        .catch(() => flash("PDF siap, tapi status cetak gagal disimpan", "error"));
-    };
-    let cleaned = false;
-    const cleanup = () => {
-      if (cleaned) return;
-      cleaned = true;
-      iframe.remove();
-      URL.revokeObjectURL(url);
-    };
-    iframe.onload = () => {
-      try {
-        let printed = false;
-        try {
-          iframe.contentWindow.focus();
-          iframe.contentWindow.print();
-          printed = true;
-        } catch (e) {
-          printed = false;
-        }
-        if (!printed && !window.open(url, "_blank")) {
-          flash("Popup diblokir. Pakai tombol Unduh PDF lalu cetak manual.", "error");
-          cleanup();
-          return;
-        }
-        markPrinted();
-        flash("Dialog cetak dibuka");
-        window.setTimeout(cleanup, 60000);
-      } finally {
-        setPreviewBusy(false);
-      }
-    };
-    iframe.src = url;
-    document.body.appendChild(iframe);
+    try {
+      const { method } = await printBlobInIframe(previewBlob);
+      if (method === "popup") flash("Dialog cetak dibuka di tab baru");
+      setStatusPrompt({ kind: "print" });
+    } catch (error) {
+      flash(PRINT_FAILURE_MESSAGES[error?.code] || PRINT_FAILURE_FALLBACK, "error");
+    } finally {
+      setPreviewBusy(false);
+    }
   };
+
+  // Task 22 (spec §10): konfirmasi operator — satu-satunya jalur set 'sudah_dicetak'.
+  const handleStatusConfirm = async () => {
+    const target = printOrder;
+    setStatusPrompt(null);
+    if (!target) return;
+    try {
+      await salesAPI.updatePdfStatus(target.id, "sudah_dicetak");
+      flash("Nota ditandai sudah dicetak");
+      fetchOrders();
+    } catch (e) {
+      flash("Status cetak gagal disimpan", "error");
+    }
+  };
+
+  const handleStatusDismiss = () => setStatusPrompt(null);
 
   const handlePrintAdjustment = async () => {
     if (!adjustmentPrint.data || adjustmentPrint.saving) return;
@@ -1917,6 +1904,7 @@ export default function SalesOrderList({
     setPreviewError(null);
     setPreviewRetryKey(0);
     setPreviewBusy(false);
+    setStatusPrompt(null);
     setShowPrintModal(true);
   };
 
@@ -6725,6 +6713,9 @@ export default function SalesOrderList({
                   onPrint={handlePreviewPrint}
                   actionsDisabled={!printOrder || printValidation.blockers.length > 0 || previewBusy}
                   isMobile={isMobile}
+                  statusPrompt={statusPrompt}
+                  onStatusConfirm={handleStatusConfirm}
+                  onStatusDismiss={handleStatusDismiss}
                 />
               </div>
               {/* /Preview PDF aktual */}

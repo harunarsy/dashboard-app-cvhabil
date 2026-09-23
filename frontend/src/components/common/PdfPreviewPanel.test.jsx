@@ -36,6 +36,9 @@ const baseProps = () => ({
   onPrint: vi.fn(),
   actionsDisabled: false,
   isMobile: false,
+  statusPrompt: null,
+  onStatusConfirm: vi.fn(),
+  onStatusDismiss: vi.fn(),
 });
 
 const setup = (overrides = {}) => {
@@ -184,6 +187,34 @@ describe('PdfPreviewPanel', () => {
     const download = screen.getByRole('button', { name: 'Unduh PDF' });
     await waitFor(() => expect(download).toBeDisabled());
     expect(screen.getByRole('button', { name: 'Cetak' })).toBeDisabled();
+  });
+
+  test('statusPrompt null → strip konfirmasi status tidak tampil', () => {
+    setup({ blob: makeBlob(), statusPrompt: null });
+
+    expect(screen.queryByText(/Tandai nota sebagai sudah dicetak\?/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ya, tandai' })).not.toBeInTheDocument();
+  });
+
+  test('statusPrompt download → teks unduh + tombol memanggil onStatusConfirm/onStatusDismiss', () => {
+    const { props } = setup({ blob: makeBlob(), statusPrompt: { kind: 'download' } });
+
+    expect(
+      screen.getByText('PDF diunduh. Tandai nota sebagai sudah dicetak?'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Ya, tandai' }));
+    expect(props.onStatusConfirm).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Tidak' }));
+    expect(props.onStatusDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  test('statusPrompt print → teks dialog cetak selesai', () => {
+    setup({ blob: makeBlob(), statusPrompt: { kind: 'print' } });
+
+    expect(
+      screen.getByText('Dialog cetak selesai. Tandai nota sebagai sudah dicetak?'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ya, tandai' })).toBeInTheDocument();
   });
 
   test('hanya warning → aksi tetap aktif dan pesan kuning tampil', async () => {

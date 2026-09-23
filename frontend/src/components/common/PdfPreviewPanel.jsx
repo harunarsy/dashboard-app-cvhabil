@@ -103,6 +103,9 @@ export default function PdfPreviewPanel({
   onPrint,
   actionsDisabled = false,
   isMobile = false,
+  statusPrompt = null,
+  onStatusConfirm,
+  onStatusDismiss,
 }) {
   const [page, setPage] = useState(1);
   const [numPages, setNumPages] = useState(0);
@@ -545,6 +548,51 @@ export default function PdfPreviewPanel({
           </div>
         )}
       </div>
+
+      {/* Task 22 (spec §10): status cetak eksplisit — operator yang memutuskan, bukan auto. */}
+      {statusPrompt && (
+        <div
+          role="group"
+          aria-label="Konfirmasi status cetak"
+          style={{
+            marginTop: 12,
+            padding: '10px 12px',
+            borderRadius: 12,
+            border: '1px solid var(--color-border)',
+            backgroundColor: 'var(--color-selection-subtle)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
+          <div
+            aria-live="polite"
+            style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.45, color: 'var(--color-text)' }}
+          >
+            {statusPrompt.kind === 'download'
+              ? 'PDF diunduh. Tandai nota sebagai sudah dicetak?'
+              : 'Dialog cetak selesai. Tandai nota sebagai sudah dicetak?'}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              className="ui-focus-ring"
+              onClick={onStatusConfirm}
+              style={actionButtonStyle('primary', false)}
+            >
+              Ya, tandai
+            </button>
+            <button
+              type="button"
+              className="ui-focus-ring"
+              onClick={onStatusDismiss}
+              style={actionButtonStyle('secondary', false)}
+            >
+              Tidak
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Bar aksi: unduh & cetak memakai blob yang sedang ditampilkan. */}
       <div
