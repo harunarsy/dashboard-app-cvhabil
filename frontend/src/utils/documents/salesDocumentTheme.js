@@ -86,6 +86,8 @@ const A6_METRICS = {
 // externalRefMode) mengikuti spec §8.
 export const DOCUMENT_PROFILES = {
   A4: {
+    title: 'FAKTUR PENJUALAN',
+    subtitle: 'SALES INVOICE',
     paper: 'a4',
     orientation: 'p',
     margin: 12,
@@ -105,6 +107,8 @@ export const DOCUMENT_PROFILES = {
     metrics: A4_METRICS,
   },
   A5: {
+    title: 'NOTA PENJUALAN',
+    subtitle: null,
     paper: 'a5',
     orientation: 'l',
     margin: 8,
@@ -124,6 +128,8 @@ export const DOCUMENT_PROFILES = {
     metrics: A5_METRICS,
   },
   A6: {
+    title: 'NOTA PENJUALAN',
+    subtitle: null,
     paper: 'a6',
     orientation: 'l',
     margin: 5,

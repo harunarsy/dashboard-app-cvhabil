@@ -26,6 +26,19 @@ describe('generateSalesDocumentPDF', () => {
     expect(text).toContain(order.order_number);
   });
 
+  it('judul mengikuti profil ukuran', () => {
+    const { order, settings } = SALES_DOCUMENT_FIXTURES[0];
+    const a4 = allText(generateSalesDocumentPDF(order, { format: 'A4', settings }));
+    expect(a4).toContain('FAKTUR PENJUALAN');
+    expect(a4).toContain('SALES INVOICE');
+    for (const format of ['A5', 'A6']) {
+      const text = allText(generateSalesDocumentPDF(order, { format, settings }));
+      expect(text, `${format} title`).toContain('NOTA PENJUALAN');
+      expect(text, `${format} no invoice title`).not.toContain('FAKTUR PENJUALAN');
+      expect(text, `${format} no subtitle`).not.toContain('SALES INVOICE');
+    }
+  });
+
   it('A4 tidak mencetak placeholder teknis untuk field kosong', () => {
     const { order, settings } = SALES_DOCUMENT_FIXTURES[0];
     const text = allText(generateSalesDocumentPDF(order, { format: 'A4', settings }));

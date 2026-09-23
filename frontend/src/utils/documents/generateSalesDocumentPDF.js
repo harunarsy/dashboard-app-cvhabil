@@ -18,8 +18,6 @@ import {
   planTableSplit,
 } from './salesDocumentLayout';
 
-const DOCUMENT_TITLE = 'FAKTUR PENJUALAN';
-const DOCUMENT_SUBTITLE = 'SALES INVOICE';
 const PAYMENT_STATUS_LABELS = { paid: 'Lunas', unpaid: 'Belum Lunas', partial: 'Bayar Sebagian' };
 
 const hasText = (value) => value !== null && value !== undefined && String(value).trim() !== '';
@@ -72,7 +70,7 @@ function drawOneLineHeader(doc, ctx) {
     doc.text(nameLines[0], margin, margin + 4);
   }
   doc.setFontSize(profile.titleFontSize);
-  doc.text(DOCUMENT_TITLE, infoX, margin + 4, { align: 'right' });
+  doc.text(profile.title, infoX, margin + 4, { align: 'right' });
 
   const barcodeW = metrics.barcodeWidth;
   const barcodeH = metrics.barcodeHeight;
@@ -202,12 +200,16 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(profile.titleFontSize);
     doc.setTextColor(...MONO.ink);
-    doc.text(DOCUMENT_TITLE, infoX, margin + 6, { align: 'right' });
+    doc.text(profile.title, infoX, margin + 6, { align: 'right' });
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(base - 1);
-    doc.setTextColor(...MONO.sub);
-    doc.text(DOCUMENT_SUBTITLE, infoX, margin + 11, { align: 'right' });
+    // Subtitle hanya digambar bila profil mendefinisikannya (A5/A6 tanpa
+    // "SALES INVOICE" — nota operasional, spec §7/§8).
+    if (hasText(profile.subtitle)) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(base - 1);
+      doc.setTextColor(...MONO.sub);
+      doc.text(profile.subtitle, infoX, margin + 11, { align: 'right' });
+    }
 
     let infoY = margin + 15.5;
     let infoRightX = infoX;
@@ -718,7 +720,7 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
     baseFontSize: base,
     companyName: vm.identity.companyName || '',
     orderNumber: vm.document.orderNumber || '',
-    title: DOCUMENT_TITLE,
+    title: profile.title,
     continuationLineY,
     customerName: vm.buyer.displayName || '',
     showCustomer: profile.continuationCustomer === true,

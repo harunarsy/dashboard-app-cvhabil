@@ -23,6 +23,7 @@
 // - Tanda tangan dua area: "Penerima," dan "Hormat kami," (tanpa "Pemeriksa,").
 // - Kepadatan: 1-5 item muat satu halaman; 20 item (many-items) 2 halaman —
 //   11 baris di halaman 1, 9 baris + tail di halaman 2.
+// - Judul per profil (Task 14): "NOTA PENJUALAN" tanpa subtitel "SALES INVOICE".
 //
 // Catatan review A6 (dump + baca posisi teks 23 Sep 2026, profil operasional landscape):
 // - Header satu band (2 baris): identitas + judul di baris atas; NPWP/telepon
@@ -49,7 +50,7 @@
 //   kanan. Ketentuan tetap dirender (paritas legacy A6); catatan dibatasi 2
 //   baris (matriks §9).
 // - Dua tanda tangan: "Penerima," + "Hormat kami,".
-// - many-items 2 halaman: halaman 2 membawa "FAKTUR PENJUALAN - Lanjutan",
+// - many-items 2 halaman: halaman 2 membawa "NOTA PENJUALAN - Lanjutan",
 //   nomor nota, "Kepada: <customer>", 10 baris + tail — tidak ada halaman
 //   khusus tanda tangan. 9/10 fixture lain 1 halaman (legacy A6: 2-3 halaman
 //   untuk five-items/long-names/instansi-formal/many-items).
@@ -62,6 +63,13 @@
 //   label lama "PPN 12%" (Math.round 11,5); setelah fix "PPN 11,5%".
 // - Keduanya 1 halaman di A4/A5/A6, meta Batch/ED tampil (aturan 'fit': 1 item),
 //   baris PPN tidak terpotong di ketiga ukuran.
+//
+// Catatan Task 14 (23 Sep 2026, judul per profil — dump A5/A6 diperiksa ulang):
+// - A4 tetap "FAKTUR PENJUALAN" + subtitel "SALES INVOICE" (entri A4 tidak diubah).
+// - A5/A6 kini "NOTA PENJUALAN" tanpa subtitel; header lanjutan mengikuti judul
+//   profil ("NOTA PENJUALAN - Lanjutan") — sebelumnya mewarisi konstanta A4.
+// - Semua entri A5/A6 menambahkan mustContain "NOTA PENJUALAN" dan mustNotContain
+//   "FAKTUR PENJUALAN" + "SALES INVOICE" agar regresi judul lintas fixture tertangkap.
 export const SALES_DOCUMENT_GOLDEN = {
   'single-item': {
     A4: {
@@ -81,8 +89,7 @@ export const SALES_DOCUMENT_GOLDEN = {
     A5: {
       pages: 1,
       mustContain: [
-        'FAKTUR PENJUALAN',
-        'SALES INVOICE',
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609001',
         'Kepada Yth:',
         'Toko Sehat',
@@ -95,12 +102,18 @@ export const SALES_DOCUMENT_GOLDEN = {
         'Hormat kami,',
         'Halaman 1 dari 1',
       ],
-      mustNotContain: ['Pemeriksa,', 'Ditagihkan kepada', 'Referensi Faktur Pajak'],
+      mustNotContain: [
+        'FAKTUR PENJUALAN',
+        'SALES INVOICE',
+        'Pemeriksa,',
+        'Ditagihkan kepada',
+        'Referensi Faktur Pajak',
+      ],
     },
     A6: {
       pages: 1,
       mustContain: [
-        'FAKTUR PENJUALAN',
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609001',
         'NPWP: 93.813.949.0-609.000',
         'Kepada Yth:',
@@ -118,6 +131,7 @@ export const SALES_DOCUMENT_GOLDEN = {
         'Halaman 1 dari 1',
       ],
       mustNotContain: [
+        'FAKTUR PENJUALAN',
         'SALES INVOICE',
         'Pemeriksa,',
         'Ditagihkan kepada',
@@ -143,6 +157,7 @@ export const SALES_DOCUMENT_GOLDEN = {
     A5: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609002',
         'Apotek Keluarga Sehat',
         'Masker KF94 4 Ply',
@@ -151,10 +166,12 @@ export const SALES_DOCUMENT_GOLDEN = {
         'Terbilang: Satu Juta Sembilan Ratus Dua Puluh Enam Ribu Rupiah',
         'Halaman 1 dari 1',
       ],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE'],
     },
     A6: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609002',
         'Apotek Keluarga Sehat',
         '12 pcs',
@@ -167,7 +184,7 @@ export const SALES_DOCUMENT_GOLDEN = {
       ],
       // Aturan 'fit': tabel + meta tidak muat di atas tail satu halaman
       // (endY 59,5 mm > batas 53,3 mm), jadi meta Batch/ED dilepas.
-      mustNotContain: ['Batch:', 'Pemeriksa,'],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE', 'Batch:', 'Pemeriksa,'],
     },
   },
   'many-items-multipage': {
@@ -187,26 +204,29 @@ export const SALES_DOCUMENT_GOLDEN = {
     A5: {
       pages: 2,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609003',
         'Gudang Farmasi Sehat Sentosa',
         'Vitamin C 500 mg',
         'Sarung Tangan Latex M',
-        'FAKTUR PENJUALAN - Lanjutan',
+        'NOTA PENJUALAN - Lanjutan',
         'Halaman 1 dari 2',
         'Halaman 2 dari 2',
         'GRAND TOTAL: Rp 3.261.000',
         'Penerima,',
         'Hormat kami,',
       ],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE'],
     },
     A6: {
       pages: 2,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609003',
         'Gudang Farmasi Sehat Sentosa',
         'Vitamin C 500 mg',
         'Sarung Tangan Latex M',
-        'FAKTUR PENJUALAN - Lanjutan',
+        'NOTA PENJUALAN - Lanjutan',
         'Kepada: Gudang Farmasi Sehat Sentosa',
         'Halaman 1 dari 2',
         'Halaman 2 dari 2',
@@ -215,7 +235,7 @@ export const SALES_DOCUMENT_GOLDEN = {
         'Hormat kami,',
       ],
       // 20 baris: meta tidak muat (aturan 'fit'), 10 baris + tail di halaman 2.
-      mustNotContain: ['Batch:'],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE', 'Batch:'],
     },
   },
   'long-names': {
@@ -234,6 +254,7 @@ export const SALES_DOCUMENT_GOLDEN = {
     A5: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609004',
         'PT Sentra Niaga Kesehatan Nusantara Cabang Surabaya',
         'Kelurahan Pradah Kalikendal',
@@ -242,10 +263,12 @@ export const SALES_DOCUMENT_GOLDEN = {
         'GRAND TOTAL: Rp 1.080.000',
         'Terbilang: Satu Juta Delapan Puluh Ribu Rupiah',
       ],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE'],
     },
     A6: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609004',
         'PT Sentra Niaga Kesehatan Nusantara Cabang Surabaya',
         'Rasa Original',
@@ -253,7 +276,7 @@ export const SALES_DOCUMENT_GOLDEN = {
         'GRAND TOTAL: Rp 1.080.000',
         'Terbilang: Satu Juta Delapan Puluh Ribu Rupiah',
       ],
-      mustNotContain: ['Batch:'],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE', 'Batch:'],
     },
   },
   'no-batch-meta': {
@@ -271,6 +294,7 @@ export const SALES_DOCUMENT_GOLDEN = {
     A5: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609005',
         'Warung Sehat Barokah',
         'Vitamin C 500 mg',
@@ -278,18 +302,19 @@ export const SALES_DOCUMENT_GOLDEN = {
         'GRAND TOTAL: Rp 220.000',
         'Terbilang: Dua Ratus Dua Puluh Ribu Rupiah',
       ],
-      mustNotContain: ['Batch:'],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE', 'Batch:'],
     },
     A6: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609005',
         'Warung Sehat Barokah',
         '2 pcs',
         'GRAND TOTAL: Rp 220.000',
         'Terbilang: Dua Ratus Dua Puluh Ribu Rupiah',
       ],
-      mustNotContain: ['Batch:'],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE', 'Batch:'],
     },
   },
   'ppn-excluded': {
@@ -305,23 +330,25 @@ export const SALES_DOCUMENT_GOLDEN = {
     A5: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609006',
         'Koperasi Warga Makmur',
         'GRAND TOTAL: Rp 500.000',
         'Terbilang: Lima Ratus Ribu Rupiah',
       ],
-      mustNotContain: ['DPP:'],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE', 'DPP:'],
     },
     A6: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609006',
         'Koperasi Warga Makmur',
         'Batch: 26T0901BO · ED: 31 Mar 2027',
         'GRAND TOTAL: Rp 500.000',
         'Terbilang: Lima Ratus Ribu Rupiah',
       ],
-      mustNotContain: ['DPP:', 'PPN '],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE', 'DPP:', 'PPN '],
     },
   },
   'ppn-rate-snapshot-12': {
@@ -337,20 +364,24 @@ export const SALES_DOCUMENT_GOLDEN = {
     A5: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609007',
         'Klinik Utama Sehat Bersama',
         'PPN 12%: Rp 120.000',
         'GRAND TOTAL: Rp 1.120.000',
       ],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE'],
     },
     A6: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609007',
         'Klinik Utama Sehat Bersama',
         'DPP: Rp 1.000.000 · PPN 12%: Rp 120.000',
         'GRAND TOTAL: Rp 1.120.000',
       ],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE'],
     },
   },
   'ongkir-and-fee': {
@@ -368,6 +399,7 @@ export const SALES_DOCUMENT_GOLDEN = {
     A5: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609008',
         'Jatuh Tempo: 27 Sep 2026',
         'Ongkir: Rp 25.000',
@@ -375,10 +407,12 @@ export const SALES_DOCUMENT_GOLDEN = {
         'Termin: 7 hari',
         'GRAND TOTAL: Rp 527.500',
       ],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE'],
     },
     A6: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609008',
         'Ongkir: Rp 25.000',
         'Biaya Lain: Rp 2.500',
@@ -386,7 +420,7 @@ export const SALES_DOCUMENT_GOLDEN = {
         'GRAND TOTAL: Rp 527.500',
       ],
       // Spec §8: header A6 hanya identitas, judul, nomor, tanggal.
-      mustNotContain: ['Jatuh Tempo:'],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE', 'Jatuh Tempo:'],
     },
   },
   'instansi-formal': {
@@ -409,6 +443,7 @@ export const SALES_DOCUMENT_GOLDEN = {
     A5: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609009',
         'Kepada Yth:',
         'RSUD Dr. Soetomo',
@@ -418,6 +453,8 @@ export const SALES_DOCUMENT_GOLDEN = {
         'GRAND TOTAL: Rp 5.500.000',
       ],
       mustNotContain: [
+        'FAKTUR PENJUALAN',
+        'SALES INVOICE',
         'Ditagihkan kepada',
         'Dikirim kepada',
         'No. PO/SP',
@@ -428,6 +465,7 @@ export const SALES_DOCUMENT_GOLDEN = {
     A6: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609009',
         'Kepada Yth:',
         'RSUD Dr. Soetomo',
@@ -438,6 +476,8 @@ export const SALES_DOCUMENT_GOLDEN = {
       ],
       // Satu nilai Ref: saja — nomor PO/SP dan referensi pajak tidak dirender.
       mustNotContain: [
+        'FAKTUR PENJUALAN',
+        'SALES INVOICE',
         'Ditagihkan kepada',
         'Dikirim kepada',
         'Referensi Pengadaan',
@@ -461,15 +501,18 @@ export const SALES_DOCUMENT_GOLDEN = {
     A5: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609010',
         'Jasa Kalibrasi Alat',
         'GRAND TOTAL: Rp 1.234.568',
         'Terbilang: Satu Juta Dua Ratus Tiga Puluh Empat Ribu Lima Ratus Enam Puluh Delapan Rupiah',
       ],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE'],
     },
     A6: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609010',
         'Jasa Kalibrasi Alat',
         'Rp 4.568',
@@ -477,6 +520,7 @@ export const SALES_DOCUMENT_GOLDEN = {
         'GRAND TOTAL: Rp 1.234.568',
         'Terbilang: Satu Juta Dua Ratus Tiga Puluh Empat Ribu Lima Ratus Enam Puluh Delapan',
       ],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE'],
     },
   },
   'ppn-rate-zero': {
@@ -495,6 +539,7 @@ export const SALES_DOCUMENT_GOLDEN = {
     A5: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609011',
         'Klinik Nol Persen',
         'DPP: Rp 500.000',
@@ -502,18 +547,19 @@ export const SALES_DOCUMENT_GOLDEN = {
         'GRAND TOTAL: Rp 500.000',
         'Terbilang: Lima Ratus Ribu Rupiah',
       ],
-      mustNotContain: ['PPN 11%', 'PPN 12%'],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE', 'PPN 11%', 'PPN 12%'],
     },
     A6: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609011',
         'Klinik Nol Persen',
         'DPP: Rp 500.000 · PPN 0%: Rp 0',
         'GRAND TOTAL: Rp 500.000',
         'Terbilang: Lima Ratus Ribu Rupiah',
       ],
-      mustNotContain: ['PPN 11%', 'PPN 12%'],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE', 'PPN 11%', 'PPN 12%'],
     },
   },
   'ppn-rate-snapshot-115': {
@@ -532,6 +578,7 @@ export const SALES_DOCUMENT_GOLDEN = {
     A5: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609012',
         'Apotek Tarif Pecahan',
         'DPP: Rp 1.000.000',
@@ -539,17 +586,18 @@ export const SALES_DOCUMENT_GOLDEN = {
         'GRAND TOTAL: Rp 1.115.000',
         'Terbilang: Satu Juta Seratus Lima Belas Ribu Rupiah',
       ],
-      mustNotContain: ['PPN 12%'],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE', 'PPN 12%'],
     },
     A6: {
       pages: 1,
       mustContain: [
+        'NOTA PENJUALAN',
         'HSB-NOTA-2609012',
         'Apotek Tarif Pecahan',
         'DPP: Rp 1.000.000 · PPN 11,5%: Rp 115.000',
         'GRAND TOTAL: Rp 1.115.000',
       ],
-      mustNotContain: ['PPN 12%'],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE', 'PPN 12%'],
     },
   },
 };
