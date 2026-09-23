@@ -101,16 +101,16 @@ describe('validateSalesDocument — blockers', () => {
 
   it('ongkir + fee pass_on yang konsisten → tanpa blocker', () => {
     const { blockers } = validateSalesDocument({
-      order: order({ total: 127500, ongkir: 25000, payment_fee: 2500, payment_fee_mode: 'pass_on' }),
+      order: order({ total: 99500, ongkir: 25000, payment_fee: 2500, payment_fee_mode: 'pass_on' }),
     });
     expect(blockers).toEqual([]);
   });
 
-  it('ppn_excluded melewati pemeriksaan konsistensi nominal', () => {
+  it('ppn_excluded dengan total 0 → tetap blocker inconsistent_totals', () => {
     const { blockers } = validateSalesDocument({
       order: order({ total: 0, ppn_excluded: true }),
     });
-    expect(codes(blockers)).not.toContain('inconsistent_totals');
+    expect(codes(blockers)).toContain('inconsistent_totals');
   });
 
   it('tanpa argumen tetap mengembalikan bentuk { blockers, warnings }', () => {
@@ -208,5 +208,36 @@ describe('validateSalesDocument — warnings', () => {
       expect(typeof entry.message).toBe('string');
       expect(entry.message.length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe('validasi total berbasis item', () => {
+  const base = { order_number: 'X', customer_name: 'A', customer_address: 'Jl', ppn_rate: 0.11 };
+  it('memblokir saat total tidak cocok dengan jumlah item + ongkir + fee', () => {
+    const r = validateSalesDocument({ order: { ...base, total: 600000, ongkir: 0,
+      items: [{ qty: 2, unit_price: 250000 }] } });
+    expect(r.blockers.map((b) => b.code)).toContain('inconsistent_totals');
+  });
+  it('lolos saat cocok (termasuk qty_in_unit dan fee pass_on)', () => {
+    const r = validateSalesDocument({ order: { ...base, total: 500000, ongkir: 20000,
+      payment_fee: 5000, payment_fee_mode: 'pass_on',
+      items: [{ qty: 10, qty_in_unit: 2, unit_price: 237500 }] } });
+    expect(r.blockers).toEqual([]);
+  });
+  it('menolak total 0 / negatif / bukan angka meski ppn_excluded aktif', () => {
+    for (const total of [0, -5, 'abc']) {
+      const r = validateSalesDocument({ order: { ...base, ppn_excluded: true, total,
+        items: [{ qty: 1, unit_price: 1000 }] } });
+      expect(r.blockers.map((b) => b.code), `total=${total}`).toContain('inconsistent_totals');
+    }
+  });
+  it('ppn_excluded dengan total valid dan item cocok tidak diblokir', () => {
+    const r = validateSalesDocument({ order: { ...base, ppn_excluded: true, total: 1000,
+      items: [{ qty: 1, unit_price: 1000 }] } });
+    expect(r.blockers).toEqual([]);
+  });
+  it('tanpa item: lewati cek item-vs-total (tidak bisa diverifikasi)', () => {
+    const r = validateSalesDocument({ order: { ...base, total: 1000, items: [] } });
+    expect(r.blockers).toEqual([]);
   });
 });

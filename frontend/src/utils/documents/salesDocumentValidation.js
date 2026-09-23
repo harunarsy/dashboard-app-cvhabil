@@ -19,6 +19,15 @@ const asText = (value) => (value === undefined || value === null ? '' : String(v
 
 const hasText = (value) => asText(value) !== '';
 
+// Task 20 (spec §10): qty mengikuti semantik model — qty_in_unit ?? qty, lalu qty × unit_price.
+const itemLineTotal = (item) => {
+  const hasQtyInUnit = item?.qty_in_unit !== undefined && item?.qty_in_unit !== null;
+  const qty = Number(hasQtyInUnit ? item.qty_in_unit : item.qty);
+  const unitPrice = Number(item?.unit_price);
+  if (!Number.isFinite(qty) || !Number.isFinite(unitPrice)) return 0;
+  return qty * unitPrice;
+};
+
 export function validateSalesDocument({ order = {}, format = 'A5', type: _type = 'nota' } = {}) {
   const blockers = [];
   const warnings = [];
@@ -45,22 +54,27 @@ export function validateSalesDocument({ order = {}, format = 'A5', type: _type =
     }
   }
 
+  // Task 20 (spec §10): bandingkan total dengan jumlah item nyata (bukan identitas
+  // aljabar yang selalu ~0). Berlaku juga saat ppn_excluded; hanya split DPP/PPN yang
+  // tetap dilewati (dpp/vatAmount = 0 di computeTotals).
   const totals = computeTotals(safeOrder);
-  if (!totals.ppnExcluded) {
-    const grandTotalRaw = Number(safeOrder.total);
-    const taxSplitConsistent =
-      Math.abs(totals.dpp + totals.vatAmount - totals.productGross) <= TOTALS_TOLERANCE;
-    const grandTotalConsistent =
-      Math.abs(totals.productGross + totals.shippingCharge + totals.paymentFee - totals.grandTotal) <=
-      TOTALS_TOLERANCE;
-    const grandTotalValid = Number.isFinite(grandTotalRaw) && grandTotalRaw > 0;
-    if (!taxSplitConsistent || !grandTotalConsistent || !grandTotalValid) {
-      blockers.push({
-        code: 'inconsistent_totals',
-        message:
-          'Nominal dokumen tidak konsisten (DPP/PPN/ongkir/biaya vs total). Periksa nilai transaksi.',
-      });
-    }
+  const grandTotalRaw = Number(safeOrder.total);
+  const grandTotalValid = Number.isFinite(grandTotalRaw) && grandTotalRaw > 0;
+  const items = Array.isArray(safeOrder.items) ? safeOrder.items : [];
+  const itemsSum = items.reduce((acc, item) => acc + itemLineTotal(item), 0);
+  const expectedTotal = itemsSum + totals.shippingCharge + totals.paymentFee;
+  const itemsTotalConsistent =
+    items.length === 0 || Math.abs(expectedTotal - grandTotalRaw) <= TOTALS_TOLERANCE;
+  if (!grandTotalValid) {
+    blockers.push({
+      code: 'inconsistent_totals',
+      message: 'Total transaksi tidak valid (nol, negatif, atau bukan angka).',
+    });
+  } else if (!itemsTotalConsistent) {
+    blockers.push({
+      code: 'inconsistent_totals',
+      message: 'Total tidak cocok dengan jumlah item + ongkir + biaya. Periksa nilai transaksi.',
+    });
   }
 
   const isTempo =
@@ -82,7 +96,6 @@ export function validateSalesDocument({ order = {}, format = 'A5', type: _type =
     });
   }
 
-  const items = Array.isArray(safeOrder.items) ? safeOrder.items : [];
   const recommendedItems = DOCUMENT_PROFILES[format]?.recommendedItems;
   if (Number.isFinite(recommendedItems) && items.length > recommendedItems) {
     warnings.push({
