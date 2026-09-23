@@ -14,7 +14,7 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 - **Panel validasi sebelum cetak.** Pemeriksaan nomor nota, kelengkapan identitas A4, jatuh tempo, panjang referensi pengadaan, jumlah item vs ukuran, dan konsistensi nominal. Ketidakkonsistenan nominal serta data wajib A4 memblokir unduh dan cetak; peringatan lain bersifat informatif.
 
 ### Catatan
-- Flag `documents_renderer_v2` **masih `false`** — A5/A6 tetap memakai renderer lama sampai paritas terbukti; nota `terima`/`pinjaman` tetap jalur lama.
+- Flag `documents_renderer_v2` **masih `false`** — A5/A6 tetap memakai renderer lama sampai paritas terbukti; `terima` tetap di renderer lama, nota hasil konversi pinjaman ikut jalur lama selama flag masih `false` (A4 nota selalu renderer baru).
 - **Migration 022 belum dijalankan di database mana pun** pada saat commit rilis ini dibuat. Urutan rollout, audit penulis kolom baru, verifikasi read-only, dan rollback ada di `docs/superpowers/notes/2026-09-22-migration-022-rollout.md`.
 - Panel "Preview Live" di form (draft HTML saat mengetik) belum diganti PDF — keputusan pemilik.
 - Verifikasi visual PDF (layout, halaman, ukuran) tetap manual oleh Harun.
@@ -27,7 +27,7 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 ### Ditambahkan
 - **Model dokumen penjualan kanonis.** Satu fungsi `buildSalesDocumentViewModel` di `frontend/src/utils/documents/` kini menjadi sumber tunggal isi dokumen; renderer tidak lagi menyusun data sendiri-sendiri. Disertai 30 ekspektasi golden (fixture × format A4/A5/A6) dan test paritas antar-ukuran.
 - **Renderer monokrom A4/A5/A6.** Engine baru menggambar Faktur Penjualan A4 resmi, nota bisnis A5, dan nota operasional ringkas A6 dengan tema monokrom, profil informasi per ukuran, serta pagination yang menjaga blok tanda tangan tetap di halaman terakhir.
-- **A4 "Faktur Penjualan" di Opsi Cetak.** Format A4 kini dapat dipilih dengan default mengikuti konteks: data formal → A4, customer bertipe `toko` → A6, selain itu A5. Nota `terima`/`pinjaman` tetap memakai renderer lama.
+- **A4 "Faktur Penjualan" di Opsi Cetak.** Format A4 kini dapat dipilih dengan default mengikuti konteks: data formal → A4, customer bertipe `toko` → A6, selain itu A5. Nota `terima` tetap memakai renderer lama; nota hasil konversi pinjaman bertipe `nota` sehingga A4 memakai engine baru dan A5/A6 mengikuti flag.
 - **Kolom legal & pengadaan (additive).** Migration `20260922_022_sales_document_legal` menambah kolom legal/pengadaan pada `customers` dan `sales_orders`, snapshot `ppn_rate`, seed NPWP di `nota_layout`, dan flag `documents_renderer_v2` di print_settings — tanpa backfill dan tanpa mengubah baris historis.
 - **Field legal di form.** Form nota penjualan mendapat bagian collapsible "Dokumen Resmi (A4)"; master customer mendapat field legal (NPWP, NIK, entity type, alamat tagih/kirim, PIC, unit kerja).
 

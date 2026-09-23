@@ -5,7 +5,7 @@
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
 ## Update 23 Sep 2026 — Official Sales Documents Fase 2 + rilis v1.67.19-stable (branch, belum di-push)
-- **Fase 2 SELESAI di branch `feat/official-sales-documents`** (6 commit sejak docs plan `b9cc34a`, HEAD `b09559c`) — **BELUM di-push, belum dideploy, tidak ada migrasi/SQL yang dijalankan.**
+- **Fase 2 SELESAI di branch `feat/official-sales-documents`** (sejak docs plan `b9cc34a`; HEAD: fix wave final review — lihat `git log`) — **BELUM di-push, belum dideploy, tidak ada migrasi/SQL yang dijalankan.**
 - Tiga bug diperbaiki dengan test-gagal-dulu: preservasi kunci `nota_layout` saat simpan PrintSettings (npwp/email tidak lagi terhapus), PPN 0% & tarif pecahan sesuai snapshot, judul per ukuran (A4 faktur, A5/A6 nota).
 - Fitur baru: modul sumber PDF bersama (`salesDocumentPdfSource.js`), preview PDF aktual di modal Opsi Cetak (canvas + toolbar + jumlah halaman; blob sama untuk unduh/cetak; loading/error; responsif) via `pdfjs-dist` (lazy), dan panel validasi sebelum cetak (blocker mengunci unduh & cetak).
 - **Migration `20260922_022_sales_document_legal` masih BELUM dijalankan di database mana pun.** Audit penulis kolom baru + urutan rollout (migrasi → backend → frontend) + verifikasi read-only + rollback: `docs/superpowers/notes/2026-09-22-migration-022-rollout.md`.
