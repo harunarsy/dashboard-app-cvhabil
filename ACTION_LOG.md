@@ -4,6 +4,20 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 22 Sep 2026 — Official Sales Documents Plan 1 (branch, belum di-push)
+- **Plan 1 SELESAI di branch `feat/official-sales-documents`** (16 commit) dan **BELUM di-push ke origin** — tidak ada deployment dari branch ini.
+- Model dokumen penjualan kanonis + renderer monokrom A4/A5/A6 dengan 30 ekspektasi golden (fixture × format) dan test paritas antar-ukuran.
+- A4 "Faktur Penjualan" diekspos di Opsi Cetak; default mengikuti konteks (data formal → A4, customer bertipe `toko` → A6, selain itu A5). Nota `terima`/`pinjaman` tetap memakai renderer lama.
+- **Migration `20260922_022_sales_document_legal` BELUM dijalankan di database mana pun** (additive; aman dijalankan nanti, tanpa backfill).
+- **Flag `documents_renderer_v2` masih `false`** (seed di `print_settings`) — A5/A6 tetap memakai renderer lama; A4 selalu memakai engine baru.
+- Verifikasi rilis: frontend 87/87 test + Vite production build; backend 21 delta unit + 4 confirmation + 16 safety + 13 schema boundary + 25 HTTP smoke + 43 adjustment hardening checks lulus; version checker `v1.67.18-stable` lulus.
+- **Plan 2 (menyusul):** preview PDF aktual (pdfjs-dist), panel validasi, cutover A5/A6 + penghapusan jalur lama, migrasi `terima`/`pinjaman` ke engine baru.
+
+### ✅ Checklist review manual Harun (Plan 1)
+1. Buka nota yang datanya formal (instansi/perusahaan) → **Opsi Cetak** → pilih **A4** → unduh & buka PDF; cek judul "FAKTUR PENJUALAN", identitas, item, PPN, dan tanda tangan.
+2. Buka form nota → expand bagian **"Dokumen Resmi (A4)"** → isi/cek field legal & pengadaan, simpan, lalu buka lagi untuk memastikan snapshot tersimpan.
+3. Cek master customer bertipe **Toko** (badge tipe `Toko`) — itu yang membuat default Opsi Cetak jatuh ke A6.
+
 ## Update 02 Sep 2026 - v1.67.10 Deployed
 - Pagination `generateNotaPDF` diubah dari reserve footer global menjadi pengukuran tinggi baris AutoTable dan pembagian tabel adaptif.
 - Kasus nota A6 tiga item dengan jatuh tempo dan NOTE panjang kini satu halaman; fixture pelanggan nyata sudah dianonimisasi.
@@ -44,8 +58,8 @@ dan ambil HPP fresh dari DB — jangan pakai angka hardcode di `engine_laba.py`.
 
 ---
 
-**Terakhir diperbarui:** 02 Sep 2026
-**Status:** ✅ **v1.67.10-stable SUDAH DI-PUSH dan dideploy** — backend Vercel `sin1`, health database, keep-warm, browser benchmark, dan GitHub Release sudah diverifikasi.
+**Terakhir diperbarui:** 22 Sep 2026
+**Status:** ⏳ **v1.67.18-stable siap di branch `feat/official-sales-documents`** (Plan 1 Official Sales Documents) — terverifikasi lokal, **BELUM di-push dan belum dideploy**. Migration 022 belum dijalankan di DB mana pun; flag `documents_renderer_v2` masih `false`. Menunggu review manual Harun, lalu Plan 2.
 
 ### 📦 GitHub Releases dirapikan total (28 Jul 2026)
 Sebelumnya berhenti di `v1.0.1` (Mar 2026) padahal kode sudah v1.64.1 — melompat 4 bulan.
@@ -131,6 +145,16 @@ penjaga konsisten (diverifikasi: 2 kejadian `reference_type <> 'faktur-cancelled
 **Efek samping perilaku yang perlu diketahui Harun:** `RupiahInput` mengirim nilai saat kolom **ditinggalkan (blur)**,
 bukan tiap ketikan — jadi peringatan "harga rugi" & subtotal baru berubah setelah pindah kolom. Faktur & Inventory
 memang sudah begitu (ini menyeragamkan), tapi di Nota ini baru.
+
+---
+
+### Tahap 4 — Official Sales Documents Plan 1 (22 Sep 2026, branch `feat/official-sales-documents`, belum di-push)
+| # | Hasil | Berkas |
+|---|---|---|
+| — | Model dokumen kanonis + renderer monokrom A4/A5/A6 + 30 ekspektasi golden (fixture × format) | `frontend/src/utils/documents/` |
+| — | A4 "Faktur Penjualan" di Opsi Cetak, default konteks, routing flag `documents_renderer_v2` (masih `false`) | `frontend/src/components/SalesOrderList.jsx`, `print_settings` |
+| — | Migration additive 022 (kolom legal/pengadaan, `ppn_rate`, seed NPWP, seed flag) — **BELUM dijalankan** | `backend/migrations/routeSchemas.js` |
+| — | Field legal di form nota + master customer; NPWP pindah dari hardcode ke print_settings | `SalesOrderList.jsx`, `CustomerList.jsx` |
 
 ---
 

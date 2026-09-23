@@ -2,7 +2,7 @@
 
 **Tanggal:** 22 September 2026
 
-**Status:** rancangan tertulis untuk review pemilik
+**Status:** disetujui; Plan 1 diimplementasikan pada branch `feat/official-sales-documents`, Plan 2 menyusul
 
 **Baseline aplikasi:** v1.67.17-stable
 

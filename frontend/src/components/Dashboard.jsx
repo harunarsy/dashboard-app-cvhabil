@@ -39,9 +39,28 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.67.18-stable",
+    date: "22 September 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "feat",
+        text: "Faktur Penjualan A4 resmi plus renderer monokrom A5/A6 dibangun di atas satu model dokumen kanonis; A4 kini tersedia di Opsi Cetak dengan default mengikuti konteks.",
+      },
+      {
+        type: "feat",
+        text: "Kolom legal/pengadaan additive dan field dokumen resmi di form nota serta master customer.",
+      },
+      {
+        type: "improvement",
+        text: "NPWP pindah ke print_settings; A5/A6 tetap memakai renderer lama sampai flag documents_renderer_v2 dinyalakan.",
+      },
+    ],
+  },
+  {
     version: "v1.67.17-stable",
     date: "13 September 2026",
-    status: "latest",
+    status: "previous",
     changes: [
       {
         type: "fix",

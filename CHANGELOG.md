@@ -2,6 +2,28 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.18-stable] - 2026-09-22
+
+### Ditambahkan
+- **Model dokumen penjualan kanonis.** Satu fungsi `buildSalesDocumentViewModel` di `frontend/src/utils/documents/` kini menjadi sumber tunggal isi dokumen; renderer tidak lagi menyusun data sendiri-sendiri. Disertai 30 ekspektasi golden (fixture × format A4/A5/A6) dan test paritas antar-ukuran.
+- **Renderer monokrom A4/A5/A6.** Engine baru menggambar Faktur Penjualan A4 resmi, nota bisnis A5, dan nota operasional ringkas A6 dengan tema monokrom, profil informasi per ukuran, serta pagination yang menjaga blok tanda tangan tetap di halaman terakhir.
+- **A4 "Faktur Penjualan" di Opsi Cetak.** Format A4 kini dapat dipilih dengan default mengikuti konteks: data formal → A4, customer bertipe `toko` → A6, selain itu A5. Nota `terima`/`pinjaman` tetap memakai renderer lama.
+- **Kolom legal & pengadaan (additive).** Migration `20260922_022_sales_document_legal` menambah kolom legal/pengadaan pada `customers` dan `sales_orders`, snapshot `ppn_rate`, seed NPWP di `nota_layout`, dan flag `documents_renderer_v2` di print_settings — tanpa backfill dan tanpa mengubah baris historis.
+- **Field legal di form.** Form nota penjualan mendapat bagian collapsible "Dokumen Resmi (A4)"; master customer mendapat field legal (NPWP, NIK, entity type, alamat tagih/kirim, PIC, unit kerja).
+
+### Diubah
+- **NPWP pindah dari hardcode frontend ke print_settings.** Fallback frontend tetap ada bila setting belum tersedia.
+
+### Catatan
+- Routing renderer dikendalikan flag `documents_renderer_v2` (seed `{"enabled": false}`): A4 selalu memakai engine baru, sedangkan A5/A6 tetap memakai renderer lama sampai flag dinyalakan.
+- Menyimpan nota lewat form kini selalu menulis snapshot `ppn_rate` eksplisit (default 0.11) — disengaja untuk jejak pajak dokumen resmi.
+- Default A6 baru tercapai bila customer bertipe `Toko`; tanpa itu default jatuh ke A5.
+- **Migration 022 belum dijalankan di database mana pun** pada saat commit rilis ini dibuat.
+- Preview PDF aktual, panel validasi, dan cutover A5/A6 menyusul pada Plan 2.
+
+### Diverifikasi
+- Frontend lulus 87/87 test (16 berkas) termasuk golden renderer baru dan `generateNotaPDF.test.js` lama, plus production build Vite. Backend lulus 21 delta unit checks, 4 delta confirmation checks, 16 delta safety checks, 13 schema boundary checks, 25 HTTP smoke checks, dan 43 adjustment hardening checks. Tidak ada migration yang dijalankan saat validasi rilis ini.
+
 ## [v1.67.17-stable] - 2026-09-13
 
 ### Diperbaiki
