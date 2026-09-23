@@ -167,6 +167,19 @@ describe('buildSalesDocumentViewModel', () => {
     expect('logoDataUrl' in vm.identity).toBe(false);
   });
 
+  it('membawa catatan order dan ketentuan settings ke view-model', () => {
+    const { order, settings } = fixture('single-item');
+    const vm = buildSalesDocumentViewModel({ ...order, notes: 'Titip ke resepsionis' }, settings);
+    expect(vm.document.notes).toBe('Titip ke resepsionis');
+    expect(vm.identity.ketentuan).toBe(settings.ketentuan);
+  });
+
+  it('catatan dan ketentuan kosong menjadi null', () => {
+    const vm = buildSalesDocumentViewModel({ total: 0, notes: '   ' }, { ketentuan: '' });
+    expect(vm.document.notes).toBeNull();
+    expect(vm.identity.ketentuan).toBeNull();
+  });
+
   it('menggabungkan baris batch identik dan membiarkan baris tanpa batch terpisah', () => {
     const { settings } = fixture('single-item');
     const merged = buildSalesDocumentViewModel(

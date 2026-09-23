@@ -57,15 +57,16 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
   const contentWidth = pageWidth - margin * 2;
   const base = profile.baseFontSize;
   const infoX = pageWidth - margin;
+  const metrics = profile.metrics;
 
-  const lineH = 4;
-  const tableGap = 5;
-  const sigGap = 5;
-  const sigLineOffset = 19;
-  const sigNameOffset = 24;
-  const footerGap = 4;
-  const detailStep = 4.2;
-  const sectionGap = 4;
+  const lineH = metrics.lineH;
+  const tableGap = metrics.tableGap;
+  const sigGap = metrics.sigGap;
+  const sigLineOffset = metrics.sigLineOffset;
+  const sigNameOffset = metrics.sigNameOffset;
+  const footerGap = metrics.footerGap;
+  const detailStep = metrics.detailStep;
+  const sectionGap = metrics.sectionGap;
 
   const drawWrappedLines = (lines, x, startY, width, {
     size = base - 1, color = MONO.sub, style = 'normal', step = detailStep,
@@ -103,7 +104,7 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
   doc.setTextColor(...MONO.ink);
   if (hasText(vm.identity.companyName)) {
     const companyLines = doc.splitTextToSize(String(vm.identity.companyName), identityMaxW);
-    companyLines.forEach((line, index) => doc.text(line, identityX, margin + 6 + index * 5));
+    companyLines.forEach((line, index) => doc.text(line, identityX, margin + 6 + index * metrics.companyStep));
   }
 
   const identityLines = [];
@@ -130,10 +131,11 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
   doc.text(DOCUMENT_SUBTITLE, infoX, margin + 11, { align: 'right' });
 
   let infoY = margin + 15.5;
+  let infoRightX = infoX;
   const barcodeValue = hasText(vm.document.orderNumber) ? String(vm.document.orderNumber).trim() : '';
   if (barcodeValue) {
-    const barcodeW = 38;
-    const barcodeH = 7;
+    const barcodeW = metrics.barcodeWidth;
+    const barcodeH = metrics.barcodeHeight;
     const barcodeTop = margin + 13;
     try {
       const canvas = document.createElement('canvas');
@@ -144,7 +146,12 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
       const dataUrl = canvas.toDataURL('image/png');
       if (dataUrl && dataUrl !== 'data:,') {
         doc.addImage(dataUrl, 'PNG', infoX - barcodeW, barcodeTop, barcodeW, barcodeH);
-        infoY = barcodeTop + barcodeH + 3.5;
+        if (profile.compactHeader) {
+          // Header A5: baris info berdampingan dengan barcode, bukan menumpuk di bawahnya.
+          infoRightX = infoX - barcodeW - 4;
+        } else {
+          infoY = barcodeTop + barcodeH + 3.5;
+        }
       }
     } catch (error) {
       // Barcode pelengkap — nomor nota tetap tercetak sebagai teks.
@@ -167,12 +174,12 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
     doc.setFont('helvetica', row.strong ? 'bold' : 'normal');
     doc.setFontSize(base - 1);
     doc.setTextColor(...(row.strong ? MONO.ink : MONO.sub));
-    doc.text(row.text, infoX, infoY, { align: 'right' });
-    infoY += 4.4;
+    doc.text(row.text, infoRightX, infoY, { align: 'right' });
+    infoY += metrics.infoStep;
   });
-  const lastInfoY = infoRows.length ? infoY - 4.4 : margin + 11;
+  const lastInfoY = infoRows.length ? infoY - metrics.infoStep : margin + 11;
 
-  const dividerY = Math.max(margin + 24, lastInfoY + 4, identityBottomY + 2);
+  const dividerY = Math.max(margin + metrics.dividerMin, lastInfoY + 4, identityBottomY + 2);
   doc.setDrawColor(...MONO.rule);
   doc.setLineWidth(0.4);
   doc.line(margin, dividerY, pageWidth - margin, dividerY);
@@ -191,6 +198,7 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
   );
   const showFormalParties = profile.showParties2Col && (legalBuyer || distinctAddresses);
 
+  let procurementRendered = false;
   if (showFormalParties) {
     const columnGap = 8;
     const columnW = (contentWidth - columnGap) / 2;
@@ -231,12 +239,18 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
     });
     cursorY = partiesBottomY + sectionGap;
   } else if (hasBuyerInfo) {
+    // Profil compact (A5): customer dan referensi utama berdampingan dalam dua kolom.
+    const refEntries = profile.customerRefs2Col && hasProcurementData(vm.procurement)
+      ? procurementEntries(vm.procurement).slice(0, profile.maxProcurementRefs)
+      : [];
+    const columnGap = 8;
+    const customerW = refEntries.length ? (contentWidth - columnGap) / 2 : contentWidth;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(base);
     doc.setTextColor(...MONO.ink);
     doc.text('Kepada Yth:', margin, cursorY);
     const nameX = margin + 22;
-    const nameW = contentWidth - 22;
+    const nameW = customerW - 22;
     let y = cursorY;
     if (hasText(vm.buyer.displayName)) {
       doc.setFont('helvetica', 'bold');
@@ -244,19 +258,39 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
       doc.setTextColor(...MONO.ink);
       doc.splitTextToSize(String(vm.buyer.displayName), nameW).forEach((line) => {
         doc.text(line, nameX, y);
-        y += 4.6;
+        y += metrics.nameStep;
       });
     }
     const details = [];
     if (hasText(vm.buyer.phone)) details.push(vm.buyer.phone);
     if (hasText(billingAddress)) details.push(billingAddress);
     const nextY = drawWrappedLines(details, nameX, y + 0.6, nameW);
-    const bottomY = details.length ? nextY - detailStep : y - 4.6;
-    cursorY = bottomY + sectionGap;
+    let partiesBottomY = details.length ? nextY - detailStep : y - metrics.nameStep;
+
+    if (refEntries.length) {
+      const refX = margin + customerW + columnGap;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(base);
+      doc.setTextColor(...MONO.ink);
+      doc.text('Referensi', refX, cursorY);
+      let refY = cursorY + metrics.nameStep;
+      refEntries.forEach(([label, value]) => {
+        doc.splitTextToSize(`${label}: ${value}`, customerW).forEach((line) => {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(base - 2);
+          doc.setTextColor(...MONO.sub);
+          doc.text(line, refX, refY);
+          refY += detailStep;
+        });
+      });
+      partiesBottomY = Math.max(partiesBottomY, refY - detailStep);
+      procurementRendered = true;
+    }
+    cursorY = partiesBottomY + sectionGap;
   }
 
   // ─── Referensi pengadaan ──────────────────────────────────────────────
-  if (hasProcurementData(vm.procurement)) {
+  if (!procurementRendered && hasProcurementData(vm.procurement)) {
     const entries = procurementEntries(vm.procurement).slice(0, profile.maxProcurementRefs);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(base);
@@ -286,7 +320,7 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
         height: Math.max(...rowEntries.map((entry) => entry.wrapped.length)) * detailStep + 1,
       });
     }
-    let rowY = cursorY + 5.5;
+    let rowY = cursorY + metrics.procurementLead;
     rows.forEach((row) => {
       row.rowEntries.forEach((entry) => {
         entry.wrapped.forEach((line, index) => {
@@ -328,16 +362,16 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
     ];
   });
 
-  const tableStartY = Math.max(margin + 33, cursorY);
+  const tableStartY = Math.max(margin + metrics.tableStartOffset, cursorY);
 
   // ─── Tail: ukur sebelum tabel diletakkan (port generateNotaPDF 441-519) ─
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(base - 2);
-  const notesText = hasText(order?.notes) ? String(order.notes).trim() : '';
+  const notesText = hasText(vm.document.notes) ? String(vm.document.notes).trim() : '';
   const notesLines = notesText
     ? doc.splitTextToSize(`Catatan: ${notesText}`, contentWidth)
     : [];
-  const ketentuanText = hasText(settings?.ketentuan) ? String(settings.ketentuan).trim() : '';
+  const ketentuanText = hasText(vm.identity.ketentuan) ? String(vm.identity.ketentuan).trim() : '';
   const ketentuanRows = ketentuanText
     ? ketentuanText.split('\n').filter((line) => line.trim()).map((line, index) => ({
         wrapped: doc.splitTextToSize(`${index + 1}. ${line.trim()}`, contentWidth),
@@ -346,45 +380,40 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
 
   const sections = [];
 
+  const summaryStep = metrics.summaryStep;
   const summaryRows = [];
   if (!vm.totals.ppnExcluded) {
-    summaryRows.push({ text: `DPP: ${formatRupiah(vm.totals.dpp)}`, advance: 4.5 });
+    summaryRows.push({ text: `DPP: ${formatRupiah(vm.totals.dpp)}`, advance: summaryStep - 0.5 });
     summaryRows.push({
       text: `PPN ${Math.round(vm.totals.vatRate * 100)}%: ${formatRupiah(vm.totals.vatAmount)}`,
-      advance: 5,
+      advance: summaryStep,
     });
   }
   if (Number(vm.totals.discountTotal) > 0) {
-    summaryRows.push({ text: `Diskon: ${formatRupiah(vm.totals.discountTotal)}`, advance: 5 });
+    summaryRows.push({ text: `Diskon: ${formatRupiah(vm.totals.discountTotal)}`, advance: summaryStep });
   }
   if (Number(vm.totals.shippingCharge) > 0) {
-    summaryRows.push({ text: `Ongkir: ${formatRupiah(vm.totals.shippingCharge)}`, advance: 5 });
+    summaryRows.push({ text: `Ongkir: ${formatRupiah(vm.totals.shippingCharge)}`, advance: summaryStep });
   }
   if (Number(vm.totals.paymentFee) > 0) {
-    summaryRows.push({ text: `Biaya Lain: ${formatRupiah(vm.totals.paymentFee)}`, advance: 5 });
+    summaryRows.push({ text: `Biaya Lain: ${formatRupiah(vm.totals.paymentFee)}`, advance: summaryStep });
   }
   summaryRows.push({
     text: `GRAND TOTAL: ${formatRupiah(vm.totals.grandTotal)}`,
-    advance: 5.2,
+    advance: summaryStep + 0.2,
     strong: true,
   });
-  sections.push({
-    height: summaryRows.reduce((sum, row) => sum + row.advance, 0) + 6,
-    draw(flow) {
-      summaryRows.forEach((row) => {
-        doc.setFont('helvetica', row.strong ? 'bold' : 'normal');
-        doc.setFontSize(row.strong ? base + 1 : base - 1);
-        doc.setTextColor(...(row.strong ? MONO.ink : MONO.sub));
-        doc.text(row.text, infoX, flow.y, { align: 'right' });
-        flow.y += row.advance;
-      });
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(base - 2);
-      doc.setTextColor(...MONO.sub);
-      doc.text(`Terbilang: ${vm.totals.amountInWords}`, margin, flow.y);
-      flow.y += 6;
-    },
-  });
+  const summaryHeight = summaryRows.reduce((sum, row) => sum + row.advance, 0);
+  const drawSummaryRows = (startY) => {
+    let y = startY;
+    summaryRows.forEach((row) => {
+      doc.setFont('helvetica', row.strong ? 'bold' : 'normal');
+      doc.setFontSize(row.strong ? base + 1 : base - 1);
+      doc.setTextColor(...(row.strong ? MONO.ink : MONO.sub));
+      doc.text(row.text, infoX, y, { align: 'right' });
+      y += row.advance;
+    });
+  };
 
   const paymentRows = [];
   if (hasText(vm.payment.method)) paymentRows.push(`Metode: ${vm.payment.method}`);
@@ -395,29 +424,74 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
   if (accountParts.length) paymentRows.push(`Rekening: ${accountParts.join(' ')}`);
   const termText = formatTerm(vm.payment.terms);
   if (termText) paymentRows.push(`Termin: ${termText}`);
-  const paymentRowLines = paymentRows.map((line) => doc.splitTextToSize(line, contentWidth));
-  if (paymentRows.length) {
+
+  if (profile.splitTail) {
+    // A5: nilai di kanan, terbilang + rekening di kiri pada satu band yang sama.
+    // 58 mm cukup untuk baris "GRAND TOTAL: Rp 5.500.000" (baris terlebar).
+    const tailColumnGap = 8;
+    const leftColumnW = contentWidth - 58 - tailColumnGap;
+    const leftTailRows = [
+      { text: `Terbilang: ${vm.totals.amountInWords}`, style: 'italic' },
+      ...paymentRows.map((line) => ({ text: line, style: 'normal' })),
+    ].map((row) => ({ ...row, lines: doc.splitTextToSize(row.text, leftColumnW) }));
+    const leftHeight = leftTailRows.reduce((sum, row) => sum + row.lines.length * detailStep, 0);
+    const sectionHeight = Math.max(summaryHeight, leftHeight) + 6;
     sections.push({
-      height: sectionGap + 4.2
-        + paymentRowLines.reduce((sum, lines) => sum + lines.length, 0) * detailStep,
+      height: sectionHeight,
       draw(flow) {
-        flow.y += sectionGap;
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(base - 1);
-        doc.setTextColor(...MONO.ink);
-        doc.text('Pembayaran', margin, flow.y);
-        flow.y += 4.2;
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(base - 2);
-        doc.setTextColor(...MONO.sub);
-        paymentRowLines.forEach((lines) => {
-          lines.forEach((line) => {
-            doc.text(line, margin, flow.y);
-            flow.y += detailStep;
+        const startY = flow.y;
+        drawSummaryRows(startY);
+        let y = startY;
+        leftTailRows.forEach((row) => {
+          doc.setFont('helvetica', row.style);
+          doc.setFontSize(base - 2);
+          doc.setTextColor(...MONO.sub);
+          row.lines.forEach((line) => {
+            doc.text(line, margin, y);
+            y += detailStep;
           });
         });
+        flow.y = startY + sectionHeight;
       },
     });
+  } else {
+    sections.push({
+      height: summaryHeight + 6,
+      draw(flow) {
+        drawSummaryRows(flow.y);
+        flow.y += summaryHeight;
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(base - 2);
+        doc.setTextColor(...MONO.sub);
+        doc.text(`Terbilang: ${vm.totals.amountInWords}`, margin, flow.y);
+        flow.y += summaryStep + 1;
+      },
+    });
+
+    const paymentRowLines = paymentRows.map((line) => doc.splitTextToSize(line, contentWidth));
+    if (paymentRows.length) {
+      sections.push({
+        height: sectionGap + metrics.headingStep
+          + paymentRowLines.reduce((sum, lines) => sum + lines.length, 0) * detailStep,
+        draw(flow) {
+          flow.y += sectionGap;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(base - 1);
+          doc.setTextColor(...MONO.ink);
+          doc.text('Pembayaran', margin, flow.y);
+          flow.y += metrics.headingStep;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(base - 2);
+          doc.setTextColor(...MONO.sub);
+          paymentRowLines.forEach((lines) => {
+            lines.forEach((line) => {
+              doc.text(line, margin, flow.y);
+              flow.y += detailStep;
+            });
+          });
+        },
+      });
+    }
   }
 
   const taxRows = [];
@@ -430,7 +504,7 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
   const taxRowLines = taxRows.map((line) => doc.splitTextToSize(line, contentWidth));
   if (taxRows.length) {
     sections.push({
-      height: sectionGap + 4.2
+      height: sectionGap + metrics.headingStep
         + taxRowLines.reduce((sum, lines) => sum + lines.length, 0) * detailStep,
       draw(flow) {
         flow.y += sectionGap;
@@ -438,7 +512,7 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
         doc.setFontSize(base - 1);
         doc.setTextColor(...MONO.ink);
         doc.text('Referensi Faktur Pajak', margin, flow.y);
-        flow.y += 4.2;
+        flow.y += metrics.headingStep;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(base - 2);
         doc.setTextColor(...MONO.sub);
@@ -470,7 +544,7 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
 
   if (ketentuanRows.length) {
     sections.push({
-      height: sectionGap + 4.2
+      height: sectionGap + metrics.headingStep
         + ketentuanRows.reduce((sum, row) => sum + row.wrapped.length * lineH, 0),
       draw(flow) {
         flow.y += sectionGap;
@@ -478,7 +552,7 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
         doc.setFontSize(base - 1);
         doc.setTextColor(...MONO.ink);
         doc.text('Ketentuan', margin, flow.y);
-        flow.y += 4.2;
+        flow.y += metrics.headingStep;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(base - 2);
         doc.setTextColor(...MONO.sub);
@@ -575,31 +649,34 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
 
   if (!tailFitsSinglePage) flow.ensure(sigGap + sigNameOffset + 2);
   const sigY = flow.y + sigGap;
-  const signatureLabels = ['Penerima,', 'Pemeriksa,', 'Hormat kami,'];
-  const signatureNames = [
-    vm.signatures.recipientName,
-    vm.signatures.examinerName,
-    vm.signatures.issuerName,
+  // A5 memakai dua area tanda tangan: penerima dan Habil (spec §7).
+  const signatureSlots = [
+    { label: 'Penerima,', name: vm.signatures.recipientName },
+    { label: 'Pemeriksa,', name: vm.signatures.examinerName },
+    { label: 'Hormat kami,', name: vm.signatures.issuerName },
   ];
-  const signatureColumns = Math.max(1, profile.signatureCount);
+  const signatureColumns = Math.max(1, Math.min(profile.signatureCount, signatureSlots.length));
+  const visibleSlots = signatureColumns >= signatureSlots.length
+    ? signatureSlots
+    : [signatureSlots[0], signatureSlots[signatureSlots.length - 1]].slice(0, signatureColumns);
   const signatureColumnW = contentWidth / signatureColumns;
-  for (let index = 0; index < signatureColumns; index += 1) {
+  visibleSlots.forEach((slot, index) => {
     const centerX = margin + signatureColumnW * (index + 0.5);
     const halfLine = Math.min(signatureColumnW / 2 - 8, 32);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(base - 1);
     doc.setTextColor(...MONO.ink);
-    doc.text(signatureLabels[index] || '', centerX, sigY, { align: 'center' });
+    doc.text(slot.label, centerX, sigY, { align: 'center' });
     doc.setDrawColor(...MONO.rule);
     doc.setLineWidth(0.2);
     doc.line(centerX - halfLine, sigY + sigLineOffset, centerX + halfLine, sigY + sigLineOffset);
-    if (hasText(signatureNames[index])) {
+    if (hasText(slot.name)) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(base - 2);
       doc.setTextColor(...MONO.sub);
-      doc.text(String(signatureNames[index]), centerX, sigY + sigNameOffset, { align: 'center' });
+      doc.text(String(slot.name), centerX, sigY + sigNameOffset, { align: 'center' });
     }
-  }
+  });
 
   // ─── Footer nomor halaman ─────────────────────────────────────────────
   const pageCount = doc.getNumberOfPages();

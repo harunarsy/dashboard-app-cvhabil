@@ -78,15 +78,21 @@ describe('generateSalesDocumentPDF', () => {
     expect(text).toContain('Penerima,');
   });
 
-  it('golden render cocok untuk semua fixture (A4)', () => {
+  it('golden render cocok untuk semua fixture (A4 + A5)', () => {
     for (const [fixtureId, perFormat] of Object.entries(SALES_DOCUMENT_GOLDEN)) {
       const { order, settings } = SALES_DOCUMENT_FIXTURES.find((f) => f.id === fixtureId);
-      const doc = generateSalesDocumentPDF(order, { format: 'A4', settings });
-      const golden = perFormat.A4;
-      expect(doc.getNumberOfPages(), `${fixtureId} page count`).toBe(golden.pages);
-      const text = allText(doc);
-      for (const fragment of golden.mustContain) {
-        expect(text, `${fixtureId} contains "${fragment}"`).toContain(fragment);
+      for (const format of ['A4', 'A5']) {
+        const golden = perFormat[format];
+        if (!golden) continue;
+        const doc = generateSalesDocumentPDF(order, { format, settings });
+        expect(doc.getNumberOfPages(), `${fixtureId} ${format} page count`).toBe(golden.pages);
+        const text = allText(doc);
+        for (const fragment of golden.mustContain) {
+          expect(text, `${fixtureId} ${format} contains "${fragment}"`).toContain(fragment);
+        }
+        for (const fragment of golden.mustNotContain || []) {
+          expect(text, `${fixtureId} ${format} excludes "${fragment}"`).not.toContain(fragment);
+        }
       }
     }
   });

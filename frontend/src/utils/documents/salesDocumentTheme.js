@@ -9,7 +9,52 @@ export const MONO = {
   white: [255, 255, 255],
 };
 
-// Profil per ukuran kertas. A5/A6 diisi Task 8/9 dengan bentuk kontrak yang sama.
+// Ritme vertikal per profil (mm). Nilai A4 dipertahankan persis sama dengan
+// engine Task 7; A5 memakai tune-up compact dari preseden generateNotaPDF.js:312-323.
+const A4_METRICS = {
+  lineH: 4,
+  tableGap: 5,
+  sigGap: 5,
+  sigLineOffset: 19,
+  sigNameOffset: 24,
+  footerGap: 4,
+  detailStep: 4.2,
+  sectionGap: 4,
+  nameStep: 4.6,
+  infoStep: 4.4,
+  companyStep: 5,
+  headingStep: 4.2,
+  summaryStep: 5,
+  procurementLead: 5.5,
+  dividerMin: 24,
+  tableStartOffset: 33,
+  barcodeWidth: 38,
+  barcodeHeight: 7,
+};
+
+const A5_METRICS = {
+  lineH: 2.6,
+  tableGap: 3.5,
+  sigGap: 4,
+  sigLineOffset: 12,
+  sigNameOffset: 17,
+  footerGap: 2.5,
+  detailStep: 3.3,
+  sectionGap: 3,
+  nameStep: 3.8,
+  infoStep: 3.6,
+  companyStep: 4.2,
+  headingStep: 3.3,
+  summaryStep: 4,
+  procurementLead: 4.6,
+  dividerMin: 24,
+  tableStartOffset: 31,
+  barcodeWidth: 32,
+  barcodeHeight: 6,
+};
+
+// Profil per ukuran kertas. Bentuk kontrak sama untuk semua ukuran; kunci
+// komposisi (customerRefs2Col, compactHeader, splitTail) mengikuti spec §7.
 export const DOCUMENT_PROFILES = {
   A4: {
     paper: 'a4',
@@ -17,12 +62,36 @@ export const DOCUMENT_PROFILES = {
     margin: 12,
     baseFontSize: 10,
     titleFontSize: 14,
+    tableFontSize: 8.5,
     tableCellPadding: 1.8,
     showParties2Col: true,
+    customerRefs2Col: false,
+    compactHeader: false,
+    splitTail: false,
     maxProcurementRefs: Infinity,
     batchMetaMode: 'always',
     showTaxRef: true,
     signatureCount: 3,
     recommendedItems: 12,
+    metrics: A4_METRICS,
+  },
+  A5: {
+    paper: 'a5',
+    orientation: 'l',
+    margin: 8,
+    baseFontSize: 8,
+    titleFontSize: 12,
+    tableFontSize: 6.2,
+    tableCellPadding: 0.6,
+    showParties2Col: false,
+    customerRefs2Col: true,
+    compactHeader: true,
+    splitTail: true,
+    maxProcurementRefs: 2,
+    batchMetaMode: 'compact',
+    showTaxRef: false,
+    signatureCount: 2,
+    recommendedItems: 7,
+    metrics: A5_METRICS,
   },
 };

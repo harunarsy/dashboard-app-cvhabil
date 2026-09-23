@@ -193,6 +193,7 @@ export function buildSalesDocumentViewModel(order = {}, settings = {}) {
       phone: emptyToNull(settings.phone),
       email: emptyToNull(settings.email),
       logo,
+      ketentuan: emptyToNull(settings.ketentuan),
     },
     document: {
       orderNumber: emptyToNull(order.order_number),
@@ -200,6 +201,7 @@ export function buildSalesDocumentViewModel(order = {}, settings = {}) {
       dueDate: emptyToNull(order.due_date),
       paymentStatus: emptyToNull(order.payment_status),
       documentKind: null,
+      notes: emptyToNull(order.notes),
     },
     buyer: {
       displayName: emptyToNull(order.customer_name),

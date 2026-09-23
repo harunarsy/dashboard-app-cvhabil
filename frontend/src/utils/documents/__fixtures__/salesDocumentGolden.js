@@ -10,6 +10,19 @@
 // - instansi-formal: dua kolom pihak + 7 referensi pengadaan + referensi faktur
 //   pajak dalam satu halaman.
 // - no-batch-meta: tanpa baris metadata Batch/ED (semua snapshot kosong).
+//
+// Catatan review A5 (dump + PNG 23 Sep 2026, profil compact landscape):
+// - Header: identitas + judul satu baris horizontal; barcode berdampingan
+//   dengan baris nomor/tanggal/status (bukan menumpuk di bawahnya).
+// - Customer dan referensi pengadaan tampil berdampingan dua kolom; referensi
+//   dibatasi 2 entri (instansi-formal: Sumber + No. Pesanan Platform; No. PO/SP
+//   dan Referensi Faktur Pajak tidak dirender di A5).
+// - Tabel: baris metadata Batch/ED dicetak font 5 pt di bawah nama barang.
+// - Tail: DPP/PPN/ongkir/grand total rata kanan; terbilang + rekening/termin
+//   rata kiri pada band yang sama.
+// - Tanda tangan dua area: "Penerima," dan "Hormat kami," (tanpa "Pemeriksa,").
+// - Kepadatan: 1-5 item muat satu halaman; 20 item (many-items) 2 halaman —
+//   11 baris di halaman 1, 9 baris + tail di halaman 2.
 export const SALES_DOCUMENT_GOLDEN = {
   'single-item': {
     A4: {
@@ -26,6 +39,25 @@ export const SALES_DOCUMENT_GOLDEN = {
         'Halaman 1 dari 1',
       ],
     },
+    A5: {
+      pages: 1,
+      mustContain: [
+        'FAKTUR PENJUALAN',
+        'SALES INVOICE',
+        'HSB-NOTA-2609001',
+        'Kepada Yth:',
+        'Toko Sehat',
+        'Produk Nutrisi Vanila 174 g',
+        'Batch: 26T0506GU · ED: 02 Des 2027',
+        'GRAND TOTAL: Rp 72.000',
+        'Terbilang: Tujuh Puluh Dua Ribu Rupiah',
+        'Rekening: BCA 5603004174 a/n CV HABIL SEJAHTERA BERSAMA',
+        'Penerima,',
+        'Hormat kami,',
+        'Halaman 1 dari 1',
+      ],
+      mustNotContain: ['Pemeriksa,', 'Ditagihkan kepada', 'Referensi Faktur Pajak'],
+    },
   },
   'five-items': {
     A4: {
@@ -34,6 +66,18 @@ export const SALES_DOCUMENT_GOLDEN = {
         'HSB-NOTA-2609002',
         'Apotek Keluarga Sehat',
         'Masker KF94 4 Ply',
+        'GRAND TOTAL: Rp 1.926.000',
+        'Terbilang: Satu Juta Sembilan Ratus Dua Puluh Enam Ribu Rupiah',
+        'Halaman 1 dari 1',
+      ],
+    },
+    A5: {
+      pages: 1,
+      mustContain: [
+        'HSB-NOTA-2609002',
+        'Apotek Keluarga Sehat',
+        'Masker KF94 4 Ply',
+        'Batch: 26T0610MK · ED: 01 Mar 2029',
         'GRAND TOTAL: Rp 1.926.000',
         'Terbilang: Satu Juta Sembilan Ratus Dua Puluh Enam Ribu Rupiah',
         'Halaman 1 dari 1',
@@ -54,6 +98,21 @@ export const SALES_DOCUMENT_GOLDEN = {
         'GRAND TOTAL: Rp 3.261.000',
       ],
     },
+    A5: {
+      pages: 2,
+      mustContain: [
+        'HSB-NOTA-2609003',
+        'Gudang Farmasi Sehat Sentosa',
+        'Vitamin C 500 mg',
+        'Sarung Tangan Latex M',
+        'FAKTUR PENJUALAN - Lanjutan',
+        'Halaman 1 dari 2',
+        'Halaman 2 dari 2',
+        'GRAND TOTAL: Rp 3.261.000',
+        'Penerima,',
+        'Hormat kami,',
+      ],
+    },
   },
   'long-names': {
     A4: {
@@ -63,6 +122,18 @@ export const SALES_DOCUMENT_GOLDEN = {
         'PT Sentra Niaga Kesehatan Nusantara Cabang Surabaya',
         'Kelurahan Pradah Kalikendal',
         'Premium Kemasan Botol 500 ml Rasa Original',
+        'Ongkir: Rp 20.000',
+        'GRAND TOTAL: Rp 1.080.000',
+        'Terbilang: Satu Juta Delapan Puluh Ribu Rupiah',
+      ],
+    },
+    A5: {
+      pages: 1,
+      mustContain: [
+        'HSB-NOTA-2609004',
+        'PT Sentra Niaga Kesehatan Nusantara Cabang Surabaya',
+        'Kelurahan Pradah Kalikendal',
+        'Rasa Original',
         'Ongkir: Rp 20.000',
         'GRAND TOTAL: Rp 1.080.000',
         'Terbilang: Satu Juta Delapan Puluh Ribu Rupiah',
@@ -81,6 +152,18 @@ export const SALES_DOCUMENT_GOLDEN = {
         'Terbilang: Dua Ratus Dua Puluh Ribu Rupiah',
       ],
     },
+    A5: {
+      pages: 1,
+      mustContain: [
+        'HSB-NOTA-2609005',
+        'Warung Sehat Barokah',
+        'Vitamin C 500 mg',
+        'Vitamin B Complex',
+        'GRAND TOTAL: Rp 220.000',
+        'Terbilang: Dua Ratus Dua Puluh Ribu Rupiah',
+      ],
+      mustNotContain: ['Batch:'],
+    },
   },
   'ppn-excluded': {
     A4: {
@@ -91,6 +174,16 @@ export const SALES_DOCUMENT_GOLDEN = {
         'GRAND TOTAL: Rp 500.000',
         'Terbilang: Lima Ratus Ribu Rupiah',
       ],
+    },
+    A5: {
+      pages: 1,
+      mustContain: [
+        'HSB-NOTA-2609006',
+        'Koperasi Warga Makmur',
+        'GRAND TOTAL: Rp 500.000',
+        'Terbilang: Lima Ratus Ribu Rupiah',
+      ],
+      mustNotContain: ['DPP:'],
     },
   },
   'ppn-rate-snapshot-12': {
@@ -103,9 +196,29 @@ export const SALES_DOCUMENT_GOLDEN = {
         'GRAND TOTAL: Rp 1.120.000',
       ],
     },
+    A5: {
+      pages: 1,
+      mustContain: [
+        'HSB-NOTA-2609007',
+        'Klinik Utama Sehat Bersama',
+        'PPN 12%: Rp 120.000',
+        'GRAND TOTAL: Rp 1.120.000',
+      ],
+    },
   },
   'ongkir-and-fee': {
     A4: {
+      pages: 1,
+      mustContain: [
+        'HSB-NOTA-2609008',
+        'Jatuh Tempo: 27 Sep 2026',
+        'Ongkir: Rp 25.000',
+        'Biaya Lain: Rp 2.500',
+        'Termin: 7 hari',
+        'GRAND TOTAL: Rp 527.500',
+      ],
+    },
+    A5: {
       pages: 1,
       mustContain: [
         'HSB-NOTA-2609008',
@@ -134,9 +247,37 @@ export const SALES_DOCUMENT_GOLDEN = {
         'GRAND TOTAL: Rp 5.500.000',
       ],
     },
+    A5: {
+      pages: 1,
+      mustContain: [
+        'HSB-NOTA-2609009',
+        'Kepada Yth:',
+        'RSUD Dr. Soetomo',
+        'Referensi',
+        'Sumber: e-Katalog',
+        'No. Pesanan Platform: EK-LKPP-2026-0915-001',
+        'GRAND TOTAL: Rp 5.500.000',
+      ],
+      mustNotContain: [
+        'Ditagihkan kepada',
+        'Dikirim kepada',
+        'No. PO/SP',
+        'Referensi Faktur Pajak',
+        'Pemeriksa,',
+      ],
+    },
   },
   'large-rounded-amounts': {
     A4: {
+      pages: 1,
+      mustContain: [
+        'HSB-NOTA-2609010',
+        'Jasa Kalibrasi Alat',
+        'GRAND TOTAL: Rp 1.234.568',
+        'Terbilang: Satu Juta Dua Ratus Tiga Puluh Empat Ribu Lima Ratus Enam Puluh Delapan Rupiah',
+      ],
+    },
+    A5: {
       pages: 1,
       mustContain: [
         'HSB-NOTA-2609010',

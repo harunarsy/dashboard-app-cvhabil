@@ -22,14 +22,18 @@ const TABLE_COLUMN_STYLES = {
   },
 };
 
+const PT_TO_MM = 1 / 2.83465;
+const NAME_COLUMN_INDEX = 1;
+
 export function buildTableStyles(profile, { withDiscount = false } = {}) {
-  return {
+  const tableFontSize = profile.tableFontSize ?? profile.baseFontSize - 1.5;
+  const styles = {
     theme: 'grid',
     headStyles: {
       fillColor: MONO.headFill,
       textColor: MONO.ink,
       fontStyle: 'bold',
-      fontSize: profile.baseFontSize - 1.5,
+      fontSize: tableFontSize,
       halign: 'center',
       lineColor: MONO.rule,
       lineWidth: 0.1,
@@ -42,7 +46,7 @@ export function buildTableStyles(profile, { withDiscount = false } = {}) {
     },
     alternateRowStyles: { fillColor: MONO.zebra },
     styles: {
-      fontSize: profile.baseFontSize - 1.5,
+      fontSize: tableFontSize,
       cellPadding: profile.tableCellPadding,
       textColor: MONO.ink,
       lineColor: MONO.rule,
@@ -53,6 +57,35 @@ export function buildTableStyles(profile, { withDiscount = false } = {}) {
       ? TABLE_COLUMN_STYLES.withDiscount
       : TABLE_COLUMN_STYLES.withoutDiscount,
   };
+
+  if (profile.batchMetaMode === 'compact') {
+    // Baris metadata Batch/ED (baris kedua sel nama) dicetak ulang dengan font
+    // lebih kecil lewat didDrawCell; placeholder spasi menjaga tinggi baris
+    // tetap dihitung autoTable sehingga measureTable dan render tetap sinkron.
+    const metaFontSize = Math.max(5, tableFontSize - 1.2);
+    const metaLineHeight = metaFontSize * 1.15 * PT_TO_MM;
+    styles.didParseCell = (data) => {
+      if (data.section !== 'body' || data.column.index !== NAME_COLUMN_INDEX) return;
+      const lines = Array.isArray(data.cell.text) ? data.cell.text : [];
+      if (lines.length < 2) return;
+      data.cell.metaText = lines.slice(1);
+      data.cell.text = [lines[0], ...lines.slice(1).map(() => ' ')];
+    };
+    styles.didDrawCell = (data) => {
+      const metaText = data.cell.metaText;
+      if (!metaText || data.section !== 'body' || data.column.index !== NAME_COLUMN_INDEX) return;
+      const bottomY = data.cell.y + data.cell.height - data.cell.padding('bottom');
+      data.doc.setFont('helvetica', 'normal');
+      data.doc.setFontSize(metaFontSize);
+      data.doc.setTextColor(...MONO.faint);
+      metaText.forEach((line, index) => {
+        const lineY = bottomY - (metaText.length - 1 - index) * metaLineHeight - 0.4;
+        data.doc.text(line, data.cell.x + data.cell.padding('left'), lineY);
+      });
+    };
+  }
+
+  return styles;
 }
 
 // Port generateNotaPDF.js:441-454 — tinggi baris nyata dari autoTable, diukur
