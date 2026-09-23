@@ -63,6 +63,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { qk } from "../lib/queryClient";
 import Pagination from "./common/Pagination";
 import { importWithReload } from "../utils/importWithReload";
+import { getMonochromeLogoDataUrl } from "../utils/documents/monochromeLogo";
 import { dateOnlyTimestamp, formatDateOnly } from "../utils/dateOnly";
 
 const renderPortal = (node) =>
@@ -290,6 +291,7 @@ export default function SalesOrderList({
     type: "nota",
   });
   const [layoutSettings, setLayoutSettings] = useState(null);
+  const [documentsV2, setDocumentsV2] = useState(false);
   const [editId, setEditId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState("");
@@ -598,6 +600,7 @@ export default function SalesOrderList({
     try {
       const { data } = await printSettingsAPI.get();
       setLayoutSettings(data.nota_layout);
+      setDocumentsV2(data.documents_renderer_v2?.enabled === true);
     } catch (e) {
       console.error(e);
     }
@@ -1692,14 +1695,31 @@ export default function SalesOrderList({
     if (!printOrder || pdfLoading) return;
     setPdfLoading(true);
     try {
-      const { generateNotaPDF } = await importWithReload(() => import("../utils/generateNotaPDF"));
-      const doc = generateNotaPDF(printOrder, {
-        ...printOptions,
-        settings: layoutSettings,
-      });
-      doc.save(
-        `${printOptions.type === "terima" ? "TT" : "Nota"}_${printOrder.order_number}.pdf`,
-      );
+      const settingsWithLogo = {
+        ...layoutSettings,
+        logo_data_url: await getMonochromeLogoDataUrl(),
+      };
+      const { format, type } = printOptions;
+      if (type === "nota" && (format === "A4" || documentsV2)) {
+        const { generateSalesDocumentPDF } = await importWithReload(
+          () => import("../utils/documents/generateSalesDocumentPDF"),
+        );
+        const doc = generateSalesDocumentPDF(printOrder, {
+          format,
+          type,
+          settings: settingsWithLogo,
+        });
+        doc.save(`Nota_${printOrder.order_number}.pdf`);
+      } else {
+        const { generateNotaPDF } = await importWithReload(() => import("../utils/generateNotaPDF"));
+        const doc = generateNotaPDF(printOrder, {
+          ...printOptions,
+          settings: layoutSettings,
+        });
+        doc.save(
+          `${printOptions.type === "terima" ? "TT" : "Nota"}_${printOrder.order_number}.pdf`,
+        );
+      }
       await salesAPI.updatePdfStatus(printOrder.id, "sudah_dicetak");
       flash("PDF berhasil diunduh");
       setShowPrintModal(false);
@@ -1773,8 +1793,22 @@ export default function SalesOrderList({
     }
   };
 
+  // Default ukuran mengikuti konteks (spec §11). Sinyal formal = data legal/pengadaan.
+  const defaultFormatFor = (order, customers) => {
+    if (!order) return "A5";
+    const hasFormal = Boolean(
+      order.buyer_entity_type || order.buyer_npwp || order.buyer_nik ||
+      order.government_agency || order.procurement_source || order.contract_number,
+    );
+    if (hasFormal) return "A4";
+    const master = (customers || []).find((c) => c.name === order.customer_name);
+    if (master?.type === "toko") return "A6";
+    return "A5";
+  };
+
   const openPrintOptions = (order) => {
     setPrintOrder(order);
+    setPrintOptions({ format: defaultFormatFor(order, customers), type: "nota" });
     setShowPrintModal(true);
   };
 
@@ -6408,7 +6442,7 @@ export default function SalesOrderList({
                   Ukuran Kertas
                 </label>
                 <div style={{ display: "flex", gap: "10px" }}>
-                  {["A5", "A6"].map((f) => (
+                  {["A4", "A5", "A6"].map((f) => (
                     <button
                       key={f}
                       onClick={() =>
@@ -6440,17 +6474,19 @@ export default function SalesOrderList({
                       }}
                     >
                       <span style={{ fontSize: "15px" }}>{f}</span>
-                      {f === "A5" && (
-                        <span
-                          style={{
-                            fontSize: "9px",
-                            fontWeight: "500",
-                            opacity: 0.8,
-                          }}
-                        >
-                          (Landscape)
-                        </span>
-                      )}
+                      <span
+                        style={{
+                          fontSize: "9px",
+                          fontWeight: "500",
+                          opacity: 0.8,
+                        }}
+                      >
+                        {f === "A4"
+                          ? "(Portrait · Formal)"
+                          : f === "A5"
+                            ? "(Landscape)"
+                            : "(Landscape · Ringkas)"}
+                      </span>
                     </button>
                   ))}
                 </div>
