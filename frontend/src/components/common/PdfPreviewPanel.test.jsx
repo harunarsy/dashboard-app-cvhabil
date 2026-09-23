@@ -23,6 +23,41 @@ const makePdfjsMock = () => ({
   }),
 });
 
+// jsdom tanpa paket `canvas` → getContext('2d') null dan panel melewati render sepenuhnya.
+// Stub context minimal supaya jalur render (termasuk kegagalannya) benar-benar dieksekusi.
+let originalGetContext;
+beforeAll(() => {
+  originalGetContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = () => ({});
+});
+afterAll(() => {
+  HTMLCanvasElement.prototype.getContext = originalGetContext;
+});
+
+// render gagal (reject) pada percobaan pertama, lalu resolve pada percobaan berikutnya.
+const makeRenderFailOncePdfjsMock = () => {
+  let renderCalls = 0;
+  const render = vi.fn(() => {
+    renderCalls += 1;
+    if (renderCalls === 1) {
+      return { promise: Promise.reject(new Error()), cancel: vi.fn() };
+    }
+    return { promise: Promise.resolve(), cancel: vi.fn() };
+  });
+  const getPage = vi.fn(async () => ({
+    getViewport: ({ scale }) => ({ width: 600 * scale, height: 850 * scale }),
+    render,
+  }));
+  return {
+    getDocument: () => ({
+      promise: Promise.resolve({ numPages: 2, getPage }),
+      destroy: vi.fn(),
+    }),
+    render,
+    getPage,
+  };
+};
+
 const makeBlob = () => new Blob(['%PDF-1.4 dummy'], { type: 'application/pdf' });
 
 const baseProps = () => ({
@@ -148,6 +183,73 @@ describe('PdfPreviewPanel', () => {
     // Retry di sini memuat ulang pdf.js, bukan membangun blob baru.
     fireEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
     expect(props.onRetry).not.toHaveBeenCalled();
+    errSpy.mockRestore();
+  });
+
+  test('kegagalan render halaman menampilkan error + tombol "Coba lagi" tanpa menggantungkan kanvas', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const pdfjsMock = makeRenderFailOncePdfjsMock();
+    getPdfjs.mockResolvedValue(pdfjsMock);
+    setup({ blob: makeBlob() });
+
+    expect(await screen.findByText('Gagal merender halaman')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Coba lagi' })).toBeInTheDocument();
+    // Kanvas tidak menggantung: indikator "Merender…" berhenti setelah kegagalan.
+    expect(screen.queryByText('Merender…')).not.toBeInTheDocument();
+    expect(pdfjsMock.render).toHaveBeenCalledTimes(1);
+    // Overlay error render tidak mengunci aksi yang bergantung pada blob.
+    expect(screen.getByRole('button', { name: 'Unduh PDF' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Cetak' })).toBeEnabled();
+    errSpy.mockRestore();
+  });
+
+  test('klik "Coba lagi" merender ulang halaman dan menghilangkan error', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const pdfjsMock = makeRenderFailOncePdfjsMock();
+    getPdfjs.mockResolvedValue(pdfjsMock);
+    const { props } = setup({ blob: makeBlob() });
+
+    await screen.findByText('Gagal merender halaman');
+    expect(pdfjsMock.render).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
+
+    await waitFor(() => expect(pdfjsMock.render).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.queryByText('Gagal merender halaman')).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByRole('button', { name: 'Coba lagi' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Merender…')).not.toBeInTheDocument();
+    // Retry ini level pdf.js, bukan membangun ulang blob di parent.
+    expect(props.onRetry).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Unduh PDF' })).toBeEnabled();
+    errSpy.mockRestore();
+  });
+
+  test('RenderingCancelledException tidak menampilkan error render', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const cancelled = Object.assign(new Error('render dibatalkan'), {
+      name: 'RenderingCancelledException',
+    });
+    const render = vi.fn(() => ({ promise: Promise.reject(cancelled), cancel: vi.fn() }));
+    getPdfjs.mockResolvedValue({
+      getDocument: () => ({
+        promise: Promise.resolve({
+          numPages: 2,
+          getPage: async () => ({
+            getViewport: ({ scale }) => ({ width: 600 * scale, height: 850 * scale }),
+            render,
+          }),
+        }),
+        destroy: vi.fn(),
+      }),
+    });
+    setup({ blob: makeBlob() });
+
+    await waitFor(() => expect(render).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('Gagal merender halaman')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Coba lagi' })).not.toBeInTheDocument();
+    expect(errSpy).not.toHaveBeenCalled();
     errSpy.mockRestore();
   });
 

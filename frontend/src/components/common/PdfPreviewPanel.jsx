@@ -113,6 +113,8 @@ export default function PdfPreviewPanel({
   const [rendering, setRendering] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [renderError, setRenderError] = useState(null);
+  const [renderKey, setRenderKey] = useState(0);
 
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
@@ -125,6 +127,7 @@ export default function PdfPreviewPanel({
     setZoom(1);
     setNumPages(0);
     setLoadError(null);
+    setRenderError(null);
     docRef.current = null;
     baseSizeRef.current = null;
     if (!blob) return undefined;
@@ -167,6 +170,7 @@ export default function PdfPreviewPanel({
 
     let cancelled = false;
     let renderTask = null;
+    setRenderError(null);
     setRendering(true);
     (async () => {
       try {
@@ -201,6 +205,7 @@ export default function PdfPreviewPanel({
       } catch (e) {
         if (cancelled || e?.name === 'RenderingCancelledException') return;
         console.error('PDF page render failed:', e);
+        setRenderError(e?.message || 'Gagal merender halaman');
         setRendering(false);
       }
     })();
@@ -213,7 +218,7 @@ export default function PdfPreviewPanel({
         /* cancel best-effort */
       }
     };
-  }, [page, zoom, numPages, blob]);
+  }, [page, zoom, numPages, blob, renderKey]);
 
   const zoomIn = useCallback(() => {
     setZoom((z) => ZOOM_STEPS.find((s) => s > z + ZOOM_EPSILON) ?? Math.min(MAX_ZOOM, z * 1.25));
@@ -503,6 +508,47 @@ export default function PdfPreviewPanel({
                 }
                 setLoadError(null);
                 setReloadKey((k) => k + 1);
+              }}
+              style={{ ...iconButtonStyle(false), borderColor: 'var(--color-danger)' }}
+            >
+              <RefreshCw size={16} />
+              <span>Coba lagi</span>
+            </button>
+          </div>
+        )}
+
+        {/* Kegagalan render halaman (non-cancel): jelaskan + tawarkan retry.
+            Tidak ikut mengunci Unduh/Cetak — keduanya memakai blob, bukan kanvas. */}
+        {!loading && !shownError && renderError && (
+          <div
+            role="alert"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              padding: 16,
+              textAlign: 'center',
+              backgroundColor: 'var(--color-bg)',
+              color: 'var(--color-danger)',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            <AlertTriangle size={26} />
+            <span>{renderError}</span>
+            <span style={{ fontWeight: 500, fontSize: 11, opacity: 0.85 }}>
+              Pratinjau gagal dirender, tapi Unduh &amp; Cetak tetap bisa dipakai.
+            </span>
+            <button
+              type="button"
+              className="ui-focus-ring"
+              onClick={() => {
+                setRenderError(null);
+                setRenderKey((k) => k + 1);
               }}
               style={{ ...iconButtonStyle(false), borderColor: 'var(--color-danger)' }}
             >
