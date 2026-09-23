@@ -83,6 +83,14 @@ const listItemStyle = (tone) => ({
   color: tone === 'blocker' ? 'var(--color-danger)' : 'var(--color-warning)',
 });
 
+const listHeadingStyle = (tone) => ({
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: '0.02em',
+  textTransform: 'uppercase',
+  color: tone === 'blocker' ? 'var(--color-danger)' : 'var(--color-warning)',
+});
+
 export default function PdfPreviewPanel({
   blob = null,
   loading = false,
@@ -226,14 +234,16 @@ export default function PdfPreviewPanel({
   }, []);
 
   const shownError = error || loadError;
+  const blockers = validation?.blockers || [];
+  const warnings = validation?.warnings || [];
   // Hanya error PEMBUATAN blob (prop `error`) yang memblokir aksi. Kegagalan pdf.js
   // (mis. browser lama) tidak memblokir: blob tetap PDF valid → Unduh/Cetak jalan terus.
-  const blocked = loading || !!error || !blob || actionsDisabled;
+  // Blocker validasi (spec §10) selalu mengunci unduh DAN cetak — di sini juga, supaya
+  // panel tidak bisa meloloskan dokumen tidak konsisten walau parent lalai mengunci.
+  const blocked = loading || !!error || !blob || actionsDisabled || blockers.length > 0;
   const zoomPct = Math.round(zoom * 100);
   const totalPages = numPages || 0;
   const pageLabel = totalPages ? `Hal ${page} / ${totalPages}` : 'Hal – / –';
-  const blockers = validation?.blockers || [];
-  const warnings = validation?.warnings || [];
 
   return (
     <div
@@ -365,6 +375,7 @@ export default function PdfPreviewPanel({
             gap: 4,
           }}
         >
+          <div style={listHeadingStyle('blocker')}>Dokumen belum bisa dicetak</div>
           {blockers.map((b, i) => (
             <div key={b?.code || i} style={listItemStyle('blocker')}>
               <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 2 }} />
@@ -385,6 +396,7 @@ export default function PdfPreviewPanel({
             gap: 4,
           }}
         >
+          <div style={listHeadingStyle('warning')}>Peringatan</div>
           {warnings.map((w, i) => (
             <div key={w?.code || i} style={listItemStyle('warning')}>
               <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 2 }} />

@@ -65,6 +65,7 @@ import { qk } from "../lib/queryClient";
 import Pagination from "./common/Pagination";
 import { importWithReload } from "../utils/importWithReload";
 import { buildSalesDocumentPdf } from "../utils/documents/salesDocumentPdfSource";
+import { validateSalesDocument } from "../utils/documents/salesDocumentValidation";
 import { dateOnlyTimestamp, formatDateOnly } from "../utils/dateOnly";
 
 const renderPortal = (node) =>
@@ -341,6 +342,17 @@ export default function SalesOrderList({
   const [previewError, setPreviewError] = useState(null);
   const [previewRetryKey, setPreviewRetryKey] = useState(0);
   const previewTokenRef = useRef(0);
+  // Task 17 (spec §10): validasi dihitung dari snapshot order yang sama dengan PDF
+  // (printOrder + format/tipe aktif) — blocker mengunci unduh DAN cetak.
+  const printValidation = useMemo(
+    () =>
+      validateSalesDocument({
+        order: printOrder || {},
+        format: printOptions.format,
+        type: printOptions.type,
+      }),
+    [printOrder, printOptions.format, printOptions.type],
+  );
 
   // Filters
   const [filterMonth, setFilterMonth] = useState("all");
@@ -6696,9 +6708,10 @@ export default function SalesOrderList({
                   onRetry={() => setPreviewRetryKey((k) => k + 1)}
                   format={printOptions.format}
                   onFormatChange={changePrintFormat}
+                  validation={printValidation}
                   onDownload={handlePreviewDownload}
                   onPrint={handlePreviewPrint}
-                  actionsDisabled={!printOrder}
+                  actionsDisabled={!printOrder || printValidation.blockers.length > 0}
                   isMobile={isMobile}
                 />
               </div>

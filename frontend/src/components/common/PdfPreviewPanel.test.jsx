@@ -167,4 +167,42 @@ describe('PdfPreviewPanel', () => {
     expect(screen.getByText('Nomor nota belum final')).toBeInTheDocument();
     expect(screen.getByText('NPWP pembeli kosong')).toBeInTheDocument();
   });
+
+  test('blocker memblokir Unduh/Cetak dan menampilkan pesan + heading merah', async () => {
+    setup({
+      blob: makeBlob(),
+      validation: {
+        blockers: [
+          { code: 'inconsistent_totals', message: 'Nominal dokumen tidak konsisten' },
+        ],
+        warnings: [],
+      },
+    });
+
+    expect(screen.getByText('Dokumen belum bisa dicetak')).toBeInTheDocument();
+    expect(screen.getByText('Nominal dokumen tidak konsisten')).toBeInTheDocument();
+    const download = screen.getByRole('button', { name: 'Unduh PDF' });
+    await waitFor(() => expect(download).toBeDisabled());
+    expect(screen.getByRole('button', { name: 'Cetak' })).toBeDisabled();
+  });
+
+  test('hanya warning → aksi tetap aktif dan pesan kuning tampil', async () => {
+    setup({
+      blob: makeBlob(),
+      validation: {
+        blockers: [],
+        warnings: [
+          { code: 'missing_due_date', message: 'Transaksi tempo belum memiliki tanggal jatuh tempo' },
+        ],
+      },
+    });
+
+    expect(screen.getByText('Peringatan')).toBeInTheDocument();
+    expect(
+      screen.getByText('Transaksi tempo belum memiliki tanggal jatuh tempo'),
+    ).toBeInTheDocument();
+    const download = screen.getByRole('button', { name: 'Unduh PDF' });
+    await waitFor(() => expect(download).toBeEnabled());
+    expect(screen.getByRole('button', { name: 'Cetak' })).toBeEnabled();
+  });
 });
