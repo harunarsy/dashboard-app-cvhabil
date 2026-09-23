@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Save, Loader2, Printer, Monitor, Activity } from "lucide-react";
 import Skeleton from "./common/Skeleton";
 import { printSettingsAPI, settingsAPI } from "../services/api";
@@ -21,6 +21,7 @@ export default function PrintSettings({
   const [saving, setSaving] = useState(false);
   const [savingThresholds, setSavingThresholds] = useState(false);
   const [toast, setToast] = useState("");
+  const rawLayoutRef = useRef(null);
   const fetchSettings = async () => {
     setLoading(true);
     try {
@@ -32,6 +33,7 @@ export default function PrintSettings({
         printResult.status === "fulfilled" ? printResult.value?.data : null;
       if (printData && printData.nota_layout) {
         const nl = printData.nota_layout;
+        rawLayoutRef.current = { ...nl };
         setSettings({
           company_name: nl.company_name || nl.shop_name || "",
           address: nl.address || "",
@@ -83,19 +85,20 @@ export default function PrintSettings({
   const handleSave = async () => {
     setSaving(true);
     try {
-      const payload = {
-        nota_layout: {
-          company_name: settings.company_name,
-          address: settings.address,
-          phone: settings.phone,
-          footer_text: settings.footer_text,
-          signer_name: settings.signer_name,
-          bank_info: settings.bank_info,
-          qris_text: settings.qris_text,
-          ketentuan: settings.ketentuan,
-        },
+      const merged = {
+        ...(rawLayoutRef.current || {}),
+        company_name: settings.company_name,
+        address: settings.address,
+        phone: settings.phone,
+        footer_text: settings.footer_text,
+        signer_name: settings.signer_name,
+        bank_info: settings.bank_info,
+        qris_text: settings.qris_text,
+        ketentuan: settings.ketentuan,
       };
+      const payload = { nota_layout: merged };
       await printSettingsAPI.update(payload);
+      rawLayoutRef.current = merged;
       setToast("Pengaturan berhasil disimpan");
       setTimeout(() => setToast(""), UI_MOTION.duration.toastSuccess);
     } catch (e) {
