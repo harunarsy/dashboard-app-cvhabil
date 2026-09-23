@@ -55,4 +55,58 @@ describe("PrintSettings — preservasi kunci nota_layout", () => {
     expect(payload.nota_layout.future_key).toBe("jangan-hilang");
     expect(payload.nota_layout.company_name).toBe("CV HABIL SEJAHTERA BERSAMA");
   });
+
+  describe("saat pengaturan gagal dimuat", () => {
+    it("GET gagal: tampilkan error + retry, Simpan nonaktif, tidak pernah memanggil update", async () => {
+      printSettingsAPI.get.mockRejectedValueOnce(new Error("network"));
+      render(
+        <MemoryRouter>
+          <PrintSettings />
+        </MemoryRouter>,
+      );
+      expect(await screen.findByText(/gagal memuat pengaturan/i)).toBeTruthy();
+      const save = screen.getByRole("button", { name: /simpan perubahan/i });
+      expect(save.disabled).toBe(true);
+      fireEvent.click(save);
+      expect(printSettingsAPI.update).not.toHaveBeenCalled();
+    });
+
+    it("respons tanpa nota_layout diperlakukan sama (tidak boleh menimpa)", async () => {
+      printSettingsAPI.get.mockResolvedValueOnce({ data: {} });
+      render(
+        <MemoryRouter>
+          <PrintSettings />
+        </MemoryRouter>,
+      );
+      expect(await screen.findByText(/gagal memuat pengaturan/i)).toBeTruthy();
+      expect(
+        screen.getByRole("button", { name: /simpan perubahan/i }).disabled,
+      ).toBe(true);
+    });
+
+    it("retry setelah gagal memuatkan form dan mengaktifkan Simpan", async () => {
+      printSettingsAPI.get.mockRejectedValueOnce(new Error("network"));
+      render(
+        <MemoryRouter>
+          <PrintSettings />
+        </MemoryRouter>,
+      );
+      fireEvent.click(
+        await screen.findByRole("button", { name: /coba lagi/i }),
+      );
+      const address = await screen.findByDisplayValue("Jl. Lama No. 1");
+      fireEvent.change(address, { target: { value: "Jl. Baru" } });
+      const save = screen.getByRole("button", { name: /simpan perubahan/i });
+      expect(save.disabled).toBe(false);
+      fireEvent.click(save);
+      await waitFor(() =>
+        expect(printSettingsAPI.update).toHaveBeenCalledTimes(1),
+      );
+      const payload = printSettingsAPI.update.mock.calls[0][0];
+      expect(payload.nota_layout.npwp).toBe("93.813.949.0-609.000");
+      expect(payload.nota_layout.email).toBe("ops@habil.example");
+      expect(payload.nota_layout.future_key).toBe("jangan-hilang");
+      expect(payload.nota_layout.address).toBe("Jl. Baru");
+    });
+  });
 });

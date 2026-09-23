@@ -21,6 +21,7 @@ export default function PrintSettings({
   const [saving, setSaving] = useState(false);
   const [savingThresholds, setSavingThresholds] = useState(false);
   const [toast, setToast] = useState("");
+  const [loadError, setLoadError] = useState(false);
   const rawLayoutRef = useRef(null);
   const fetchSettings = async () => {
     setLoading(true);
@@ -44,7 +45,10 @@ export default function PrintSettings({
           qris_text: nl.qris_text || "",
           ketentuan: nl.ketentuan || "",
         });
+        setLoadError(false);
       } else {
+        rawLayoutRef.current = null;
+        setLoadError(true);
         setSettings({
           company_name: "",
           address: "",
@@ -83,6 +87,7 @@ export default function PrintSettings({
     fetchSettings();
   }, []);
   const handleSave = async () => {
+    if (loadError || !rawLayoutRef.current) return;
     setSaving(true);
     try {
       const merged = {
@@ -281,7 +286,7 @@ export default function PrintSettings({
           </div>{" "}
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !!loadError}
             className="btn-primary ui-motion-button ui-focus-ring"
             data-magnetic="true"
             style={{
@@ -311,16 +316,67 @@ export default function PrintSettings({
           </button>{" "}
         </div>{" "}
         {/* Split Layout */}{" "}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isMobile
-              ? "1fr"
-              : "repeat(2, minmax(0, 1fr))",
-            gap: "16px",
-            alignItems: "start",
-          }}
-        >
+        {loadError ? (
+          <div
+            className="ui-panel ui-motion-card"
+            style={{
+              backgroundColor: cardBg,
+              borderRadius: "16px",
+              padding: "40px 24px",
+              border: `1px solid ${border}`,
+              boxShadow: "var(--shadow-card)",
+              textAlign: "center",
+            }}
+          >
+            {" "}
+            <p
+              style={{
+                color: text,
+                fontSize: "15px",
+                fontWeight: "700",
+                margin: "0 0 6px",
+              }}
+            >
+              Gagal memuat pengaturan. Form tidak ditampilkan agar pengaturan
+              tersimpan tidak tertimpa.
+            </p>{" "}
+            <p style={{ color: sub, fontSize: "13px", margin: "0 0 18px" }}>
+              Periksa koneksi Anda, lalu coba lagi.
+            </p>{" "}
+            <button
+              onClick={fetchSettings}
+              className="btn-primary ui-motion-button ui-focus-ring"
+              data-magnetic="true"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                minHeight: "44px",
+                padding: "10px 20px",
+                backgroundColor: "var(--color-action)",
+                color: "#FFF",
+                border: "none",
+                borderRadius: "10px",
+                fontSize: "14px",
+                fontWeight: "700",
+                cursor: "pointer",
+              }}
+            >
+              {" "}
+              Coba lagi{" "}
+            </button>{" "}
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile
+                ? "1fr"
+                : "repeat(2, minmax(0, 1fr))",
+              gap: "16px",
+              alignItems: "start",
+            }}
+          >
           {" "}
           {/* LEFT — Form Inputs */}{" "}
           <div
@@ -979,7 +1035,8 @@ export default function PrintSettings({
               </div>{" "}
             </div>{" "}
           </div>{" "}
-        </div>{" "}
+        </div>
+        )}{" "}
         {/* Toast */}{" "}
         <ToastNotice
           message={toast}
