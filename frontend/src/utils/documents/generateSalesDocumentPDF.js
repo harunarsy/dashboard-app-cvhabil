@@ -345,7 +345,6 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
     );
     const partiesBottomY = details.length ? nextY - detailStep : y - metrics.nameStep;
     cursorY = partiesBottomY + sectionGap;
-    if (shortRefValue) procurementRendered = true;
   } else if (hasBuyerInfo) {
     // Profil compact (A5): customer dan referensi utama berdampingan dalam dua kolom.
     const refEntries = profile.customerRefs2Col && hasProcurementData(vm.procurement)
@@ -398,7 +397,10 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
   }
 
   // ─── Referensi pengadaan ──────────────────────────────────────────────
-  if (!procurementRendered && hasProcurementData(vm.procurement)) {
+  // A6 (`externalRefMode: 'short'`) tidak pernah memakai blok generik ini:
+  // referensinya sudah diringkas menjadi `Ref:`/`Instansi:` di blok customer
+  // (spec §8), sehingga data method/agency saja tidak boleh memicunya.
+  if (!procurementRendered && profile.externalRefMode !== 'short' && hasProcurementData(vm.procurement)) {
     const entries = procurementEntries(vm.procurement).slice(0, profile.maxProcurementRefs);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(base);

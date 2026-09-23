@@ -154,4 +154,34 @@ describe('generateSalesDocumentPDF', () => {
     expect(a4).toContain('Kata penutup unik');
     expect(a4).not.toContain(' ...');
   });
+
+  it('A6 tidak pernah merender blok Referensi Pengadaan generik (spec §8)', () => {
+    const base = {
+      order_number: 'HSB-NOTA-A6-PROC',
+      sale_date: '2026-09-22',
+      customer_name: 'RSUD Dr. Soetomo',
+      customer_phone: '031-5501000',
+      total: 100000,
+      items: [{ product_name: 'Produk Uji', qty: 1, qty_in_unit: 1, unit: 'pcs', unit_price: 100000 }],
+    };
+    const agency = 'Dinas Kesehatan Provinsi Jawa Timur';
+    const cases = [
+      { label: 'agency-only', extra: { government_agency: agency }, instansiCount: 1 },
+      { label: 'method-only', extra: { procurement_method: 'Penunjukan Langsung' }, instansiCount: 0 },
+      {
+        label: 'method+agency',
+        extra: { procurement_method: 'Penunjukan Langsung', government_agency: agency },
+        instansiCount: 1,
+      },
+    ];
+    for (const { label, extra, instansiCount } of cases) {
+      const text = allText(generateSalesDocumentPDF({ ...base, ...extra }, { format: 'A6' }));
+      expect(text, `${label}: blok generik tidak dirender`).not.toContain('Referensi Pengadaan');
+      expect(text, `${label}: baris metode tidak bocor`).not.toContain('Metode Pengadaan');
+      expect((text.match(/Instansi: /g) || []).length, `${label}: Instansi sekali`).toBe(instansiCount);
+      if (instansiCount) {
+        expect(text, `${label}: instansi tampil di blok customer`).toContain(`Instansi: ${agency}`);
+      }
+    }
+  });
 });
