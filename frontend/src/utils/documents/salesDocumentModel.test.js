@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  FALLBACK_COMPANY_NPWP,
   LEGACY_PPN_RATE,
   buildSalesDocumentViewModel,
   computeTotals,
@@ -69,6 +70,13 @@ describe('computeTotals', () => {
     const totals = computeTotals({ total: 1234567.89, ppn_rate: 0.11, items: [] });
     expect(totals.grandTotal).toBe(1234567.89);
     expect(totals.amountInWords).toBe('Satu Juta Dua Ratus Tiga Puluh Empat Ribu Lima Ratus Enam Puluh Delapan Rupiah');
+  });
+
+  it('nilai miliar tidak kehilangan terbilang — memuat Miliar dan berakhir Rupiah', () => {
+    const totals = computeTotals({ total: 1234567890, ppn_rate: 0.11, items: [] });
+    expect(totals.grandTotal).toBe(1234567890);
+    expect(totals.amountInWords).toContain('Miliar');
+    expect(totals.amountInWords.endsWith('Rupiah')).toBe(true);
   });
 });
 
@@ -188,6 +196,27 @@ describe('buildSalesDocumentViewModel', () => {
     expect('paymentMethod' in vm.document).toBe(false);
   });
 
+  it('npwp identitas memakai settings bila terisi', () => {
+    const { settings } = fixture('single-item');
+    const vm = buildSalesDocumentViewModel(
+      { total: 0 },
+      { ...settings, npwp: '01.234.567.8-609.000' },
+    );
+    expect(vm.identity.npwp).toBe('01.234.567.8-609.000');
+  });
+
+  it('npwp identitas jatuh ke fallback saat settings tidak punya npwp', () => {
+    const { npwp, ...settingsWithoutNpwp } = fixture('single-item').settings;
+    const vm = buildSalesDocumentViewModel({ total: 0 }, settingsWithoutNpwp);
+    expect(vm.identity.npwp).toBe(FALLBACK_COMPANY_NPWP);
+  });
+
+  it('npwp identitas jatuh ke fallback saat settings npwp string kosong', () => {
+    const { settings } = fixture('single-item');
+    const vm = buildSalesDocumentViewModel({ total: 0 }, { ...settings, npwp: '   ' });
+    expect(vm.identity.npwp).toBe(FALLBACK_COMPANY_NPWP);
+  });
+
   it('identity menyimpan satu nama logo saja', () => {
     const { settings } = fixture('single-item');
     const vm = buildSalesDocumentViewModel(
@@ -291,7 +320,7 @@ describe('hasProcurementData / hasLegalBuyerData', () => {
 });
 
 describe('fixtures', () => {
-  it('menyediakan 12 fixture unik sesuai daftar spec §14 + snapshot tarif', () => {
+  it('menyediakan 13 fixture unik sesuai daftar spec §14 + snapshot tarif + nilai miliar', () => {
     expect(SALES_DOCUMENT_FIXTURES.map((f) => f.id)).toEqual([
       'single-item',
       'five-items',
@@ -305,6 +334,7 @@ describe('fixtures', () => {
       'large-rounded-amounts',
       'ppn-rate-zero',
       'ppn-rate-snapshot-115',
+      'large-billion-amounts',
     ]);
   });
 

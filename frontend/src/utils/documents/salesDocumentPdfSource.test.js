@@ -3,7 +3,7 @@ import { buildSalesDocumentPdf, resolveSalesPdfRoute, salesPdfFilename } from '.
 import { SALES_DOCUMENT_FIXTURES } from './__fixtures__/salesDocumentFixtures';
 
 describe('resolveSalesPdfRoute', () => {
-  it('A4 selalu v2; A5/A6 mengikuti flag; terima/pinjaman selalu legacy', () => {
+  it('A4 selalu v2; A5/A6 mengikuti flag; terima selalu legacy; pinjaman ikut legacy selama flag off', () => {
     expect(resolveSalesPdfRoute({ format: 'A4', type: 'nota', documentsV2: false }).engine).toBe('v2');
     expect(resolveSalesPdfRoute({ format: 'A5', type: 'nota', documentsV2: false }).engine).toBe('legacy');
     expect(resolveSalesPdfRoute({ format: 'A5', type: 'nota', documentsV2: true }).engine).toBe('v2');

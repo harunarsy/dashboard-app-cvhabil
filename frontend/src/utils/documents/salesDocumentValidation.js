@@ -87,7 +87,7 @@ export function validateSalesDocument({ order = {}, format = 'A5', type: _type =
   if (Number.isFinite(recommendedItems) && items.length > recommendedItems) {
     warnings.push({
       code: 'item_count_not_ideal',
-      message: `${items.length} item melebihi kapasitas nyaman ${format} (${recommendedItems} item).`,
+      message: `Jumlah item (${items.length}) melebihi ${recommendedItems} untuk ${format}; pertimbangkan ukuran yang lebih besar.`,
     });
   }
 

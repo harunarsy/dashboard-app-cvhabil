@@ -600,4 +600,64 @@ export const SALES_DOCUMENT_GOLDEN = {
       mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE', 'PPN 12%'],
     },
   },
+  // Catatan review nilai miliar (dump A4/A5/A6 23 Sep 2026):
+  // - Total Rp 1.234.567.890 kini berterbilang penuh; sebelum fix hanya "Rupiah".
+  // - A4/A5: terbilang satu baris penuh. A6: band kiri sempit → terbilang wrap
+  //   dua baris ("...Tujuh Ribu" + "Delapan Ratus Sembilan Puluh Rupiah"),
+  //   maka dua fragmen terpisah yang diuji.
+  'large-billion-amounts': {
+    A4: {
+      pages: 1,
+      mustContain: [
+        'FAKTUR PENJUALAN',
+        'HSB-NOTA-2609013',
+        'Distributor Farmasi Nusantara',
+        'Paket Alat Kesehatan Grosir',
+        'Batch: 26T0913PA · ED: 30 Jun 2031',
+        'Rp 1.234.567.890',
+        'DPP: Rp 1.112.223.324',
+        'PPN 11%: Rp 122.344.566',
+        'GRAND TOTAL: Rp 1.234.567.890',
+        'Terbilang: Satu Miliar Dua Ratus Tiga Puluh Empat Juta Lima Ratus Enam Puluh Tujuh Ribu Delapan Ratus Sembilan Puluh Rupiah',
+        'Halaman 1 dari 1',
+      ],
+    },
+    A5: {
+      pages: 1,
+      mustContain: [
+        'NOTA PENJUALAN',
+        'HSB-NOTA-2609013',
+        'Distributor Farmasi Nusantara',
+        'Paket Alat Kesehatan Grosir',
+        'Batch: 26T0913PA · ED: 30 Jun 2031',
+        'GRAND TOTAL: Rp 1.234.567.890',
+        'Terbilang: Satu Miliar Dua Ratus Tiga Puluh Empat Juta Lima Ratus Enam Puluh Tujuh Ribu Delapan Ratus Sembilan Puluh Rupiah',
+        'Rekening: BCA 5603004174 a/n CV HABIL SEJAHTERA BERSAMA',
+        'Halaman 1 dari 1',
+      ],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE'],
+    },
+    A6: {
+      pages: 1,
+      mustContain: [
+        'NOTA PENJUALAN',
+        'HSB-NOTA-2609013',
+        'Kepada Yth:',
+        'Distributor Farmasi Nusantara',
+        'Paket Alat Kesehatan Grosir',
+        '1 pcs',
+        'Batch: 26T0913PA · ED: 30 Jun 2031',
+        'DPP: Rp 1.112.223.324 · PPN 11%: Rp 122.344.566',
+        'GRAND TOTAL: Rp 1.234.567.890',
+        'Terbilang: Satu Miliar Dua Ratus Tiga Puluh Empat Juta Lima Ratus Enam Puluh Tujuh Ribu',
+        'Delapan Ratus Sembilan Puluh Rupiah',
+        'Rekening: BCA 5603004174 a/n CV HABIL SEJAHTERA BERSAMA',
+        'Ketentuan',
+        'Penerima,',
+        'Hormat kami,',
+        'Halaman 1 dari 1',
+      ],
+      mustNotContain: ['FAKTUR PENJUALAN', 'SALES INVOICE'],
+    },
+  },
 };

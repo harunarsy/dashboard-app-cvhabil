@@ -9,7 +9,7 @@
 - Tiga bug diperbaiki dengan test-gagal-dulu: preservasi kunci `nota_layout` saat simpan PrintSettings (npwp/email tidak lagi terhapus), PPN 0% & tarif pecahan sesuai snapshot, judul per ukuran (A4 faktur, A5/A6 nota).
 - Fitur baru: modul sumber PDF bersama (`salesDocumentPdfSource.js`), preview PDF aktual di modal Opsi Cetak (canvas + toolbar + jumlah halaman; blob sama untuk unduh/cetak; loading/error; responsif) via `pdfjs-dist` (lazy), dan panel validasi sebelum cetak (blocker mengunci unduh & cetak).
 - **Migration `20260922_022_sales_document_legal` masih BELUM dijalankan di database mana pun.** Audit penulis kolom baru + urutan rollout (migrasi → backend → frontend) + verifikasi read-only + rollback: `docs/superpowers/notes/2026-09-22-migration-022-rollout.md`.
-- **Flag `documents_renderer_v2` masih `false`** — A5/A6 renderer lama; `terima`/`pinjaman` jalur lama. Cutover A5/A6 menyusul.
+- **Flag `documents_renderer_v2` masih `false`** — A5/A6 renderer lama; `terima` selalu jalur lama, `pinjaman` (nota hasil konversi bertipe `nota`) ikut jalur lama hanya di A5/A6 selama flag off (A4 sudah v2). Cutover A5/A6 menyusul.
 - Verifikasi rilis: frontend 134/134 test (20 berkas) + Vite production build; backend 21 delta unit + 4 confirmation + 16 safety + 13 schema boundary + 25 HTTP smoke + 43 adjustment hardening checks; version checker `v1.67.19-stable` lulus; `git diff --check` bersih.
 
 ### ✅ Checklist review manual Harun (Fase 2)
@@ -22,11 +22,11 @@
 ## Update 22 Sep 2026 — Official Sales Documents Plan 1 (branch, belum di-push)
 - **Plan 1 SELESAI di branch `feat/official-sales-documents`** (16 commit) dan **BELUM di-push ke origin** — tidak ada deployment dari branch ini.
 - Model dokumen penjualan kanonis + renderer monokrom A4/A5/A6 dengan 30 ekspektasi golden (fixture × format) dan test paritas antar-ukuran.
-- A4 "Faktur Penjualan" diekspos di Opsi Cetak; default mengikuti konteks (data formal → A4, customer bertipe `toko` → A6, selain itu A5). Nota `terima`/`pinjaman` tetap memakai renderer lama.
+- A4 "Faktur Penjualan" diekspos di Opsi Cetak; default mengikuti konteks (data formal → A4, customer bertipe `toko` → A6, selain itu A5). Nota `terima` selalu memakai renderer lama; nota hasil konversi `pinjaman` bertipe `nota` → A4 memakai engine baru, A5/A6 mengikuti flag.
 - **Migration `20260922_022_sales_document_legal` BELUM dijalankan di database mana pun** (additive; aman dijalankan nanti, tanpa backfill).
 - **Flag `documents_renderer_v2` masih `false`** (seed di `print_settings`) — A5/A6 tetap memakai renderer lama; A4 selalu memakai engine baru.
 - Verifikasi rilis: frontend 87/87 test + Vite production build; backend 21 delta unit + 4 confirmation + 16 safety + 13 schema boundary + 25 HTTP smoke + 43 adjustment hardening checks lulus; version checker `v1.67.18-stable` lulus.
-- **Plan 2 (menyusul):** preview PDF aktual (pdfjs-dist), panel validasi, cutover A5/A6 + penghapusan jalur lama, migrasi `terima`/`pinjaman` ke engine baru.
+- **Plan 2 (menyusul):** preview PDF aktual (pdfjs-dist), panel validasi, cutover A5/A6 + penghapusan jalur lama, migrasi `terima` ke engine baru (`pinjaman` sudah lewat jalur `nota`: A4 v2, A5/A6 ikut flag).
 
 ### ✅ Checklist review manual Harun (Plan 1)
 1. Buka nota yang datanya formal (instansi/perusahaan) → **Opsi Cetak** → pilih **A4** → unduh & buka PDF; cek judul "FAKTUR PENJUALAN", identitas, item, PPN, dan tanda tangan.

@@ -3,7 +3,7 @@
 **Tanggal:** 23 September 2026
 **Konteks:** Fase 2 Official Sales Documents — branch `feat/official-sales-documents`, **belum di-push dan belum dideploy**
 **Status migrasi:** `20260922_022_sales_document_legal` **belum dijalankan di database mana pun**
-**Flag renderer:** `documents_renderer_v2` masih `false` (seed) — A5/A6 tetap memakai renderer lama; `terima`/`pinjaman` tetap jalur lama
+**Flag renderer:** `documents_renderer_v2` masih `false` (seed) — A5/A6 tetap memakai renderer lama; `terima` selalu jalur lama; `pinjaman` (nota hasil konversi bertipe `nota`) ikut jalur lama hanya di A5/A6 selama flag off — A4 sudah v2
 
 > Dokumen ini adalah hasil audit kode (read-only). Semua perintah di bawah **untuk dijalankan manual oleh Harun**, bukan oleh agen.
 
@@ -87,7 +87,7 @@ Ekspektasi hasil setelah migrasi:
 
 - Perbaikan: preservasi kunci `nota_layout` saat simpan Pengaturan Cetak (npwp/email tidak lagi terhapus), PPN 0%/tarif pecahan sesuai snapshot, judul per ukuran (A4 "Faktur Penjualan", A5/A6 "Nota Penjualan").
 - Fitur: preview PDF aktual di modal Opsi Cetak (canvas + toolbar + jumlah halaman; blob yang sama untuk unduh/cetak) dan panel validasi sebelum cetak.
-- Yang **belum** berubah: flag `documents_renderer_v2` tetap `false` (A5/A6 renderer lama), `terima`/`pinjaman` jalur lama, panel "Preview Live" di form tetap HTML draft, cutover A5/A6 menyusul.
+- Yang **belum** berubah: flag `documents_renderer_v2` tetap `false` (A5/A6 renderer lama), `terima` jalur lama, dan `pinjaman` ikut legacy hanya di A5/A6 selama flag off (nota hasil konversi bertipe `nota`; A4 sudah v2), panel "Preview Live" di form tetap HTML draft, cutover A5/A6 menyusul.
 
 ### Checklist verifikasi visual manual (Harun)
 

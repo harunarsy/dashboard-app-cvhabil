@@ -340,6 +340,7 @@ export default function SalesOrderList({
   const [previewFilename, setPreviewFilename] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
   const [previewRetryKey, setPreviewRetryKey] = useState(0);
   const previewTokenRef = useRef(0);
   // Task 17 (spec §10): validasi dihitung dari snapshot order yang sama dengan PDF
@@ -1757,27 +1758,33 @@ export default function SalesOrderList({
 
   // Task 16 (spec §10): unduh memakai blob yang sedang ditampilkan — tidak regenerasi.
   const handlePreviewDownload = async () => {
-    if (!previewBlob || !printOrder || previewLoading || previewError) return;
-    const url = URL.createObjectURL(previewBlob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = previewFilename || `Nota_${printOrder.order_number}.pdf`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 5000);
-    flash("PDF berhasil diunduh");
+    if (!previewBlob || !printOrder || previewLoading || previewError || previewBusy) return;
+    setPreviewBusy(true);
     try {
-      await salesAPI.updatePdfStatus(printOrder.id, "sudah_dicetak");
-      fetchOrders();
-    } catch (e) {
-      flash("PDF terunduh, tapi status cetak gagal disimpan", "error");
+      const url = URL.createObjectURL(previewBlob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = previewFilename || `Nota_${printOrder.order_number}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+      flash("PDF berhasil diunduh");
+      try {
+        await salesAPI.updatePdfStatus(printOrder.id, "sudah_dicetak");
+        fetchOrders();
+      } catch (e) {
+        flash("PDF terunduh, tapi status cetak gagal disimpan", "error");
+      }
+    } finally {
+      setPreviewBusy(false);
     }
   };
 
   // Task 16 (spec §10): cetak lewat iframe tersembunyi (fallback tab baru).
   const handlePreviewPrint = () => {
-    if (!previewBlob || !printOrder || previewLoading || previewError) return;
+    if (!previewBlob || !printOrder || previewLoading || previewError || previewBusy) return;
+    setPreviewBusy(true);
     const url = URL.createObjectURL(previewBlob);
     const iframe = document.createElement("iframe");
     iframe.setAttribute("aria-hidden", "true");
@@ -1801,22 +1808,26 @@ export default function SalesOrderList({
       URL.revokeObjectURL(url);
     };
     iframe.onload = () => {
-      let printed = false;
       try {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-        printed = true;
-      } catch (e) {
-        printed = false;
+        let printed = false;
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+          printed = true;
+        } catch (e) {
+          printed = false;
+        }
+        if (!printed && !window.open(url, "_blank")) {
+          flash("Popup diblokir. Pakai tombol Unduh PDF lalu cetak manual.", "error");
+          cleanup();
+          return;
+        }
+        markPrinted();
+        flash("Dialog cetak dibuka");
+        window.setTimeout(cleanup, 60000);
+      } finally {
+        setPreviewBusy(false);
       }
-      if (!printed && !window.open(url, "_blank")) {
-        flash("Popup diblokir. Pakai tombol Unduh PDF lalu cetak manual.", "error");
-        cleanup();
-        return;
-      }
-      markPrinted();
-      flash("Dialog cetak dibuka");
-      window.setTimeout(cleanup, 60000);
     };
     iframe.src = url;
     document.body.appendChild(iframe);
@@ -1905,6 +1916,7 @@ export default function SalesOrderList({
     setPreviewFilename(null);
     setPreviewError(null);
     setPreviewRetryKey(0);
+    setPreviewBusy(false);
     setShowPrintModal(true);
   };
 
@@ -6711,7 +6723,7 @@ export default function SalesOrderList({
                   validation={printValidation}
                   onDownload={handlePreviewDownload}
                   onPrint={handlePreviewPrint}
-                  actionsDisabled={!printOrder || printValidation.blockers.length > 0}
+                  actionsDisabled={!printOrder || printValidation.blockers.length > 0 || previewBusy}
                   isMobile={isMobile}
                 />
               </div>

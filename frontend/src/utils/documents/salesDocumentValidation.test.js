@@ -163,12 +163,16 @@ describe('validateSalesDocument — warnings', () => {
     expect(codes(warnings)).not.toContain('long_procurement_ref');
   });
 
-  it('20 item di A6 (rekomendasi 5) → warning item_count_not_ideal', () => {
+  it('20 item di A6 (rekomendasi 5) → warning item_count_not_ideal dengan saran ukuran lebih besar', () => {
     const { warnings } = validateSalesDocument({
       order: order({ items: Array.from({ length: 20 }, () => item()) }),
       format: 'A6',
     });
     expect(codes(warnings)).toContain('item_count_not_ideal');
+    const warning = warnings.find((entry) => entry.code === 'item_count_not_ideal');
+    expect(warning.message).toBe(
+      'Jumlah item (20) melebihi 5 untuk A6; pertimbangkan ukuran yang lebih besar.',
+    );
   });
 
   it('jumlah item tepat di batas rekomendasi → tanpa warning', () => {

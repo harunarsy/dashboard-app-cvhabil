@@ -326,4 +326,21 @@ export const SALES_DOCUMENT_FIXTURES = [
       items: [item({ qty: 1, qty_in_unit: 1, unit_price: 1115000 })],
     }),
   },
+  {
+    id: 'large-billion-amounts',
+    label: 'nilai miliar dengan terbilang penuh',
+    settings: BASE_SETTINGS,
+    order: order({
+      order_number: 'HSB-NOTA-2609013',
+      sale_date: '2026-09-22',
+      payment_method: 'Tunai',
+      customer_name: 'Distributor Farmasi Nusantara',
+      customer_address: 'Jl. Raya Darmo No. 88, Surabaya',
+      customer_phone: '0812-0000-0013',
+      total: 1234567890,
+      items: [
+        item({ product_name: 'Paket Alat Kesehatan Grosir', qty: 1, qty_in_unit: 1, unit_price: 1234567890, batch_no_snapshot: '26T0913PA', expired_date_snapshot: '2031-06-30' }),
+      ],
+    }),
+  },
 ];

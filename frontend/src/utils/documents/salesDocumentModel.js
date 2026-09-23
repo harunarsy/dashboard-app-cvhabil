@@ -2,6 +2,7 @@ import { angkaKeTerbilang } from '../angkaKeTerbilang';
 import { parseDateOnly } from '../dateOnly';
 
 export const LEGACY_PPN_RATE = 0.11;
+export const FALLBACK_COMPANY_NPWP = '93.813.949.0-609.000';
 
 const hasQtyInUnit = (item) => item.qty_in_unit !== undefined && item.qty_in_unit !== null;
 
@@ -200,7 +201,7 @@ export function buildSalesDocumentViewModel(order = {}, settings = {}) {
   return {
     identity: {
       companyName: emptyToNull(settings.company_name) || emptyToNull(settings.shop_name),
-      npwp: emptyToNull(settings.npwp),
+      npwp: emptyToNull(settings.npwp) || FALLBACK_COMPANY_NPWP,
       address: emptyToNull(settings.address),
       phone: emptyToNull(settings.phone),
       email: emptyToNull(settings.email),

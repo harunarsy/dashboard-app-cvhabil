@@ -9,5 +9,7 @@ export function angkaKeTerbilang(n) {
   else if (n < 2000) temp = ' Seribu' + angkaKeTerbilang(n - 1000);
   else if (n < 1000000) temp = angkaKeTerbilang(Math.floor(n / 1000)) + ' Ribu' + angkaKeTerbilang(n % 1000);
   else if (n < 1000000000) temp = angkaKeTerbilang(Math.floor(n / 1000000)) + ' Juta' + angkaKeTerbilang(n % 1000000);
+  else if (n < 1e12) temp = angkaKeTerbilang(Math.floor(n / 1e9)) + ' Miliar' + angkaKeTerbilang(n % 1e9);
+  else if (n < 1e15) temp = angkaKeTerbilang(Math.floor(n / 1e12)) + ' Triliun' + angkaKeTerbilang(n % 1e12);
   return temp;
 }
