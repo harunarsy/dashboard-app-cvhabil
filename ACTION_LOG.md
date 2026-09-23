@@ -4,21 +4,32 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
-## Update 23 Sep 2026 — Official Sales Documents Fase 2 + rilis v1.67.19-stable (branch, belum di-push)
-- **Fase 2 SELESAI di branch `feat/official-sales-documents`** (sejak docs plan `b9cc34a`; HEAD: fix wave final review — lihat `git log`) — **BELUM di-push, belum dideploy, tidak ada migrasi/SQL yang dijalankan.**
+## Update 23 Sep 2026 — Official Sales Documents Fase 2 + Fase 3 + rilis v1.67.19-stable (branch, belum di-push)
+- **Fase 2 + Fase 3 SELESAI di branch `feat/official-sales-documents`** (sejak docs plan `b9cc34a`; HEAD: lipatan fase 3 ke CHANGELOG/ACTION_LOG — lihat `git log`) — **BELUM di-push, belum dideploy, tidak ada migrasi/SQL yang dijalankan.**
 - Tiga bug diperbaiki dengan test-gagal-dulu: preservasi kunci `nota_layout` saat simpan PrintSettings (npwp/email tidak lagi terhapus), PPN 0% & tarif pecahan sesuai snapshot, judul per ukuran (A4 faktur, A5/A6 nota).
 - Fitur baru: modul sumber PDF bersama (`salesDocumentPdfSource.js`), preview PDF aktual di modal Opsi Cetak (canvas + toolbar + jumlah halaman; blob sama untuk unduh/cetak; loading/error; responsif) via `pdfjs-dist` (lazy), dan panel validasi sebelum cetak (blocker mengunci unduh & cetak).
 - **Fix wave final review:** blocker terbilang untuk total ≥ Rp 1 miliar (cabang Miliar/Triliun + fixture/golden `large-billion-amounts`), fallback NPWP v2 pra-migrasi 022, guard satu unduhan/cetakan berjalan (spec §12), saran ukuran pada pesan validasi jumlah item, dan koreksi wording jalur legacy nota hasil konversi pinjaman di CHANGELOG + ACTION_LOG.
 - **Migration `20260922_022_sales_document_legal` masih BELUM dijalankan di database mana pun.** Audit penulis kolom baru + urutan rollout (migrasi → backend → frontend) + verifikasi read-only + rollback: `docs/superpowers/notes/2026-09-22-migration-022-rollout.md`.
 - **Flag `documents_renderer_v2` masih `false`** — A5/A6 renderer lama; `terima` selalu jalur lama, `pinjaman` (nota hasil konversi bertipe `nota`) ikut jalur lama hanya di A5/A6 selama flag off (A4 sudah v2). Cutover A5/A6 menyusul.
-- Verifikasi rilis: frontend 142/142 test (21 berkas, termasuk `angkaKeTerbilang.test.js` baru) + Vite production build; backend 21 delta unit + 4 confirmation + 16 safety + 13 schema boundary + 25 HTTP smoke + 43 adjustment hardening checks; version checker `v1.67.19-stable` lulus; `git diff --check` bersih.
+- Verifikasi rilis fase 2: frontend 142/142 test (21 berkas, termasuk `angkaKeTerbilang.test.js` baru) + Vite production build; backend 21 delta unit + 4 confirmation + 16 safety + 13 schema boundary + 25 HTTP smoke + 43 adjustment hardening checks; version checker `v1.67.19-stable` lulus; `git diff --check` bersih.
+- **Fase 3 SELESAI (23 Sep 2026) — empat celah ditutup** (commit `aa7f5e3` → `9eacda5`, semua dengan tes gagal-dulu):
+  - **Validasi total berbasis item:** total vs Σ(qty × harga satuan) + ongkir + biaya (qty mengikuti `qty_in_unit ?? qty`); total nol/negatif/bukan angka dan mismatch memblokir unduh/cetak, termasuk saat `ppn_excluded`; dua fixture tes lama yang lolos karena identitas aljabar ikut dikoreksi.
+  - **PrintSettings anti-timpa:** GET gagal atau respons tanpa `nota_layout` → form tidak dirender (tidak bisa menimpa), panel error + "Coba lagi", Simpan nonaktif sampai layout termuat.
+  - **Status cetak eksplisit:** unduh/cetak tidak lagi menandai `sudah_dicetak` otomatis; prompt "Ya, tandai"/"Tidak" muncul setelah sukses — hanya "Ya, tandai" memanggil `updatePdfStatus`.
+  - **Helper `printBlobInIframe` (baru):** timeout 10 dtk + `onerror` + fallback popup + iframe dibersihkan & blob URL di-revoke di semua jalur reject; pesan gagal per kode (`timeout`/`load_failed`/`popup_blocked`/`print_failed`).
+  - **PdfPreviewPanel:** kegagalan render kanvas → pesan + "Coba lagi" (re-render, bukan rebuild blob); unduh/cetak tetap aktif.
+- Verifikasi penuh pasca-fase 3 (final rilis): frontend **163/163 test (22 berkas)** + Vite production build; backend 21 delta unit + 4 confirmation + 16 safety + 13 schema boundary + 25 HTTP smoke + 43 adjustment hardening checks; version checker `v1.67.19-stable` lulus; `git diff --check` bersih. Tidak ada migrasi dijalankan.
 
-### ✅ Checklist review manual Harun (Fase 2)
+### ✅ Checklist review manual Harun (Fase 2 + Fase 3)
 1. **Preview PDF aktual:** buka nota → Opsi Cetak → preview ter-render; ganti A4/A5/A6 (preview ikut berubah), zoom/Fit/navigasi halaman, lalu unduh & cetak (dokumen sama dengan preview).
 2. **Tarif PPN:** nota PPN 0% → tampil "PPN 0%"; nota tarif 11,5% → tampil "PPN 11,5%".
 3. **PrintSettings:** ubah satu field → simpan → muat ulang → pastikan `npwp`/`email`/kunci lain tidak hilang.
 4. **Validasi:** nota A4 tanpa nama/alamat customer atau nominal tidak konsisten → tombol unduh/cetak terkunci + alasan tampil di panel.
 5. Verifikasi visual PDF (layout, pagination, tanda tangan) tetap manual.
+6. **Validasi mismatch total (fase 3):** buat total nota tidak cocok dengan jumlah item + ongkir + biaya (atau total 0) → unduh/cetak terkunci; ulangi pada nota `ppn_excluded` → tetap terkunci.
+7. **PrintSettings GET gagal (fase 3):** buka Pengaturan Cetak saat endpoint settings gagal → form tidak tampil (anti-timpa), muncul error + "Coba lagi", Simpan nonaktif; setelah pulih, "Coba lagi" memuat form & Simpan aktif.
+8. **Prompt status cetak (fase 3):** unduh/cetak nota dari Opsi Cetak → prompt "Ya, tandai"/"Tidak" muncul; "Ya, tandai" → status jadi sudah dicetak; "Tidak" → status tidak berubah (tidak ada penandaan otomatis).
+9. **Error kanvas + Coba lagi (fase 3):** saat pratinjau gagal dirender → pesan error + tombol "Coba lagi" (unduh/cetak tetap aktif); klik "Coba lagi" → halaman ter-render.
 
 ## Update 22 Sep 2026 — Official Sales Documents Plan 1 (branch, belum di-push)
 - **Plan 1 SELESAI di branch `feat/official-sales-documents`** (16 commit) dan **BELUM di-push ke origin** — tidak ada deployment dari branch ini.
@@ -75,7 +86,7 @@ dan ambil HPP fresh dari DB — jangan pakai angka hardcode di `engine_laba.py`.
 ---
 
 **Terakhir diperbarui:** 23 Sep 2026
-**Status:** ⏳ **v1.67.19-stable siap di branch `feat/official-sales-documents`** (Official Sales Documents Fase 2) — terverifikasi lokal, **BELUM di-push dan belum dideploy**. Migration 022 belum dijalankan di DB mana pun; flag `documents_renderer_v2` masih `false`. Menunggu review manual Harun (checklist di atas), lalu cutover A5/A6.
+**Status:** ⏳ **v1.67.19-stable siap di branch `feat/official-sales-documents`** (Official Sales Documents Fase 2 + Fase 3) — terverifikasi lokal (frontend 163/163 test + build, backend 6 suite, version checker lulus), **BELUM di-push dan belum dideploy**. Migration 022 belum dijalankan di DB mana pun; flag `documents_renderer_v2` masih `false`. Menunggu review manual Harun (checklist di atas), lalu cutover A5/A6.
 
 ### 📦 GitHub Releases dirapikan total (28 Jul 2026)
 Sebelumnya berhenti di `v1.0.1` (Mar 2026) padahal kode sudah v1.64.1 — melompat 4 bulan.

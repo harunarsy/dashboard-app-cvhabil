@@ -8,10 +8,15 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 - **Simpan Pengaturan Cetak tidak lagi menghapus kunci `nota_layout` yang tidak diedit.** Payload simpan kini menggabungkan layout asli dari server dengan 8 field form, sehingga kunci seperti `npwp` (seed migrasi 022), `email`, dan kunci lain di luar form tidak lagi terhapus — dokumen tidak jatuh ke hardcode NPWP.
 - **PPN 0% dan tarif pecahan tampil sesuai snapshot.** `resolveVatRate` membedakan `0` eksplisit dari kosong/legacy (fallback 11% hanya untuk `null`/`undefined`/`''`/invalid), dan label tarif tidak lagi dibulatkan ke bilangan bulat — 11,5% tampil "11,5%", bukan "12%".
 - **Judul dokumen mengikuti ukuran.** A4 memakai "FAKTUR PENJUALAN / SALES INVOICE", A5/A6 memakai "NOTA PENJUALAN" (termasuk header lanjutan) — sebelumnya satu konstanta untuk semua profil.
+- **Validasi total kini berbasis item, bukan identitas aljabar.** Total dokumen dibandingkan dengan jumlah baris item (qty mengikuti semantik model — `qty_in_unit ?? qty` × harga satuan) + ongkir + biaya; total nol/negatif/bukan angka dan total yang tidak cocok dengan jumlah item memblokir unduh & cetak — termasuk saat `ppn_excluded` aktif (sebelumnya seluruh blok dilewati). Split DPP/PPN tetap dilewati saat `ppn_excluded`.
+- **Pengaturan Cetak tidak bisa lagi menimpa pengaturan tersimpan saat muat gagal.** Jika GET gagal atau respons tidak memuat `nota_layout`, form tidak dirender (mencegah simpan form kosong), muncul panel error + tombol "Coba lagi", dan Simpan nonaktif sampai layout berhasil dimuat.
+- **Kegagalan render kanvas di preview PDF kini terlihat + bisa diulang.** Halaman yang gagal dirender menampilkan pesan error + tombol "Coba lagi" (render ulang tanpa membangun blob baru); unduh & cetak tetap aktif karena memakai blob, bukan kanvas.
 
 ### Ditambahkan
 - **Preview PDF aktual di modal Opsi Cetak.** Satu modul sumber (`buildSalesDocumentPdf`) menghasilkan blob yang sama untuk preview, unduh, dan cetak; preview merender via `pdfjs-dist` (lazy) dengan canvas, toolbar ukuran/zoom/fit, navigasi halaman, jumlah halaman selalu terlihat, state loading/error + "Coba lagi", dan tata letak responsif (target sentuh ≥44px, akses keyboard).
 - **Panel validasi sebelum cetak.** Pemeriksaan nomor nota, kelengkapan identitas A4, jatuh tempo, panjang referensi pengadaan, jumlah item vs ukuran, dan konsistensi nominal. Ketidakkonsistenan nominal serta data wajib A4 memblokir unduh dan cetak; peringatan lain bersifat informatif.
+- **Status cetak diputuskan operator secara eksplisit.** Unduh dan cetak tidak lagi menandai nota `sudah_dicetak` otomatis; setelah sukses muncul prompt "Ya, tandai" / "Tidak", dan hanya "Ya, tandai" yang menyimpan status.
+- **Helper cetak anti-macet `printBlobInIframe`.** Cetak via iframe tersembunyi dengan timeout 10 detik, handler `onerror`, fallback popup, dan pembersihan iframe + revoke blob URL di semua jalur; pesan gagal spesifik per penyebab (timeout, gagal muat, popup diblokir, dialog gagal).
 
 ### Catatan
 - Flag `documents_renderer_v2` **masih `false`** — A5/A6 tetap memakai renderer lama sampai paritas terbukti; `terima` tetap di renderer lama, nota hasil konversi pinjaman ikut jalur lama selama flag masih `false` (A4 nota selalu renderer baru).
@@ -20,7 +25,7 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 - Verifikasi visual PDF (layout, halaman, ukuran) tetap manual oleh Harun.
 
 ### Diverifikasi
-- Frontend lulus 134/134 test (20 berkas) termasuk test baru PrintSettings, PPN snapshot, PdfPreviewPanel, dan validasi; production build Vite lulus. Backend lulus 21 delta unit checks, 4 delta confirmation checks, 16 delta safety checks, 13 schema boundary checks, 25 HTTP smoke checks, dan 43 adjustment hardening checks. Version checker `v1.67.19-stable` lulus; `git diff --check` bersih. Tidak ada migration yang dijalankan saat validasi rilis ini.
+- Frontend lulus 163/163 test (22 berkas) termasuk test baru fase 2–3 (PrintSettings anti-timpa, PPN snapshot, PdfPreviewPanel prompt status + retry kanvas, validasi total item-based, `printBlobInIframe`); production build Vite lulus. Backend lulus 21 delta unit checks, 4 delta confirmation checks, 16 delta safety checks, 13 schema boundary checks, 25 HTTP smoke checks, dan 43 adjustment hardening checks. Version checker `v1.67.19-stable` lulus; `git diff --check` bersih. Tidak ada migration yang dijalankan saat validasi rilis ini.
 
 ## [v1.67.18-stable] - 2026-09-22
 
