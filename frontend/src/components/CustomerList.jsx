@@ -1141,6 +1141,7 @@ export default function CustomerList({
                   <option value="offline">Offline</option>
                   <option value="reseller">Reseller</option>
                   <option value="institusi">Institusi</option>
+                  <option value="toko">Toko</option>
                 </select>
               </div>
               <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
