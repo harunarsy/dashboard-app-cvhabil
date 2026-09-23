@@ -53,8 +53,37 @@ const A5_METRICS = {
   barcodeHeight: 6,
 };
 
+// Ritme A6 (nota operasional, spec §8). Basis tune-up legacy generateNotaPDF.js
+// (isA6: lineH 2.1, sigLineOffset 8, sigNameOffset 12, tableGap 2.5) dengan
+// penyesuaian header satu baris + barcode 34×5 mm. CODE128 "HSB-NOTA-2609001"
+// = 189 modul → X-dimension 0,18 mm (7,1 mil); legacy A6 26 mm hanya 0,14 mm
+// (5,4 mil), jadi 34 mm adalah ukuran minimum yang lebih aman dipindai.
+const A6_METRICS = {
+  lineH: 2.1,
+  tableGap: 2.5,
+  sigGap: 3,
+  sigLineOffset: 8,
+  sigNameOffset: 12,
+  footerGap: 1.5,
+  detailStep: 3.2,
+  sectionGap: 2.5,
+  nameStep: 3.6,
+  infoStep: 3.4,
+  companyStep: 4,
+  headingStep: 3.2,
+  summaryStep: 4,
+  procurementLead: 4,
+  dividerMin: 13,
+  tableStartOffset: 24,
+  barcodeWidth: 34,
+  barcodeHeight: 5,
+  continuationLineY: 15,
+};
+
 // Profil per ukuran kertas. Bentuk kontrak sama untuk semua ukuran; kunci
-// komposisi (customerRefs2Col, compactHeader, splitTail) mengikuti spec §7.
+// komposisi (customerRefs2Col, compactHeader, splitTail) mengikuti spec §7,
+// kunci A6 (oneLineHeader, shortCustomer, qtyWithUnit, compactSummary,
+// externalRefMode) mengikuti spec §8.
 export const DOCUMENT_PROFILES = {
   A4: {
     paper: 'a4',
@@ -93,5 +122,33 @@ export const DOCUMENT_PROFILES = {
     signatureCount: 2,
     recommendedItems: 7,
     metrics: A5_METRICS,
+  },
+  A6: {
+    paper: 'a6',
+    orientation: 'l',
+    margin: 5,
+    baseFontSize: 7,
+    titleFontSize: 9,
+    tableFontSize: 5.5,
+    tableCellPadding: 0.5,
+    showParties2Col: false,
+    customerRefs2Col: false,
+    compactHeader: true,
+    oneLineHeader: true,
+    shortCustomer: true,
+    qtyWithUnit: true,
+    tableColumns: 'compact',
+    splitTail: true,
+    compactSummary: true,
+    grandTotalBoost: 2,
+    notesMaxLines: 2,
+    continuationCustomer: true,
+    maxProcurementRefs: 1,
+    externalRefMode: 'short',
+    batchMetaMode: 'fit',
+    showTaxRef: false,
+    signatureCount: 2,
+    recommendedItems: 5,
+    metrics: A6_METRICS,
   },
 };

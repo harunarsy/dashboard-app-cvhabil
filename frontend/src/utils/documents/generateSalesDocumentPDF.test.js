@@ -78,10 +78,10 @@ describe('generateSalesDocumentPDF', () => {
     expect(text).toContain('Penerima,');
   });
 
-  it('golden render cocok untuk semua fixture (A4 + A5)', () => {
+  it('golden render cocok untuk semua fixture (A4 + A5 + A6)', () => {
     for (const [fixtureId, perFormat] of Object.entries(SALES_DOCUMENT_GOLDEN)) {
       const { order, settings } = SALES_DOCUMENT_FIXTURES.find((f) => f.id === fixtureId);
-      for (const format of ['A4', 'A5']) {
+      for (const format of ['A4', 'A5', 'A6']) {
         const golden = perFormat[format];
         if (!golden) continue;
         const doc = generateSalesDocumentPDF(order, { format, settings });
@@ -95,5 +95,63 @@ describe('generateSalesDocumentPDF', () => {
         }
       }
     }
+  });
+
+  it('grand total identik antar ukuran (kriteria penerimaan #2)', () => {
+    const { order, settings } = SALES_DOCUMENT_FIXTURES.find((f) => f.id === 'five-items');
+    const extract = (format) => {
+      const text = allText(generateSalesDocumentPDF(order, { format, settings }));
+      return text.match(/GRAND TOTAL: (Rp[^\n]*)/)?.[1];
+    };
+    const values = ['A4', 'A5', 'A6'].map(extract);
+    expect(new Set(values).size).toBe(1);
+  });
+
+  it('DPP, PPN, ongkir, dan terbilang identik antar ukuran (kriteria penerimaan #2)', () => {
+    const { order, settings } = SALES_DOCUMENT_FIXTURES.find((f) => f.id === 'ongkir-and-fee');
+    const extract = (format, pattern) => {
+      const text = allText(generateSalesDocumentPDF(order, { format, settings }));
+      return text.match(pattern)?.[1];
+    };
+    const fields = [
+      ['DPP', /DPP: (Rp [\d.]+)/],
+      ['PPN', /PPN 11%: (Rp [\d.]+)/],
+      ['Ongkir', /Ongkir: (Rp [\d.]+)/],
+      ['Terbilang', /Terbilang: ([^\n)]+)/],
+    ];
+    for (const [label, pattern] of fields) {
+      const values = ['A4', 'A5', 'A6'].map((format) => extract(format, pattern));
+      expect(values.every((value) => value !== undefined), `${label} found in all sizes`).toBe(true);
+      expect(new Set(values).size, `${label} identical across sizes`).toBe(1);
+    }
+  });
+
+  it('catatan A6 dibatasi dua baris, ukuran lain tidak dipotong (matriks §9)', () => {
+    const notes = [
+      'Barang dikirim melalui ekspedisi terpercaya dan wajib diperiksa saat diterima di depan kurir.',
+      'Simpan produk pada suhu ruang, jauh dari sinar matahari langsung, dan jangan dibuka sebelum digunakan.',
+      'Klaim kekurangan atau kerusakan maksimal satu hari setelah barang diterima dengan menyertakan video unboxing.',
+      'Untuk pemesanan ulang, sebutkan nomor nota ini agar riwayat pembelian dapat ditelusuri dengan cepat.',
+      'Pembayaran transfer dianggap sah setelah dana diterima dan dikonfirmasi oleh bagian keuangan Habil.',
+      'Terima kasih telah berbelanja; kepuasan dan kepercayaan Anda adalah prioritas layanan kami setiap hari.',
+      'Kata penutup unik',
+    ].join(' ');
+    const order = {
+      order_number: 'HSB-NOTA-CATATAN',
+      sale_date: '2026-09-22',
+      customer_name: 'Toko Catatan',
+      customer_phone: '0812-0000-0011',
+      total: 100000,
+      notes,
+      items: [{ product_name: 'Produk Uji', qty: 1, qty_in_unit: 1, unit: 'pcs', unit_price: 100000 }],
+    };
+    const a6 = allText(generateSalesDocumentPDF(order, { format: 'A6' }));
+    expect(a6).toContain('Catatan: Barang dikirim');
+    expect(a6).toContain(' ...');
+    expect(a6).not.toContain('Kata penutup unik');
+
+    const a4 = allText(generateSalesDocumentPDF(order, { format: 'A4' }));
+    expect(a4).toContain('Kata penutup unik');
+    expect(a4).not.toContain(' ...');
   });
 });

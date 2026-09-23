@@ -39,6 +39,78 @@ const formatTerm = (terms) => {
   return Number.isFinite(Number(terms)) ? `${terms} hari` : String(terms);
 };
 
+// Barcode CODE128 monokrom — pelengkap; gagal render tidak boleh menggagalkan nota.
+function tryDrawBarcode(doc, value, x, top, width, height) {
+  if (!hasText(value)) return false;
+  try {
+    const canvas = document.createElement('canvas');
+    JsBarcode(canvas, String(value).trim(), {
+      format: 'CODE128', displayValue: false, margin: 0,
+      width: 2, height: 100, background: '#FFFFFF', lineColor: '#000000',
+    });
+    const dataUrl = canvas.toDataURL('image/png');
+    if (dataUrl && dataUrl !== 'data:,') {
+      doc.addImage(dataUrl, 'PNG', x, top, width, height);
+      return true;
+    }
+  } catch (error) {
+    // sengaja diabaikan — barcode itu pelengkap, nota tetap harus bisa dicetak
+  }
+  return false;
+}
+
+// Header satu baris A6 (spec §8): identitas + judul pada baris pertama,
+// barcode + nomor + tanggal pada baris kedua. Mengembalikan Y garis pemisah.
+function drawOneLineHeader(doc, ctx) {
+  const { vm, profile, margin, contentWidth, infoX, base, metrics } = ctx;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(base + 1);
+  doc.setTextColor(...MONO.ink);
+  if (hasText(vm.identity.companyName)) {
+    const nameLines = doc.splitTextToSize(String(vm.identity.companyName), contentWidth - 58);
+    doc.text(nameLines[0], margin, margin + 4);
+  }
+  doc.setFontSize(profile.titleFontSize);
+  doc.text(DOCUMENT_TITLE, infoX, margin + 4, { align: 'right' });
+
+  const barcodeW = metrics.barcodeWidth;
+  const barcodeH = metrics.barcodeHeight;
+  const infoY = margin + 9;
+  let infoRightX = infoX;
+  if (tryDrawBarcode(doc, vm.document.orderNumber, infoX - barcodeW, margin + 6.6, barcodeW, barcodeH)) {
+    infoRightX = infoX - barcodeW - 3;
+  }
+
+  const numberText = hasText(vm.document.orderNumber) ? `No: ${vm.document.orderNumber}` : '';
+  let numberW = 0;
+  if (numberText) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(base - 1);
+    doc.setTextColor(...MONO.ink);
+    numberW = doc.getTextWidth(numberText);
+    doc.text(numberText, infoRightX, infoY, { align: 'right' });
+  }
+  const saleDate = formatDateID(vm.document.saleDate);
+  if (saleDate) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(base - 2);
+    doc.setTextColor(...MONO.sub);
+    doc.text(saleDate, infoRightX - numberW - 2, infoY, { align: 'right' });
+  }
+
+  const identityBits = [];
+  if (hasText(vm.identity.npwp)) identityBits.push(`NPWP: ${vm.identity.npwp}`);
+  if (hasText(vm.identity.phone)) identityBits.push(vm.identity.phone);
+  if (identityBits.length) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(base - 2);
+    doc.setTextColor(...MONO.sub);
+    doc.text(identityBits.join(' · '), margin, infoY);
+  }
+
+  return Math.max(margin + metrics.dividerMin, infoY + 4);
+}
+
 /**
  * Renderer dokumen penjualan resmi — sinkron, monokrom, print-first.
  * options: { format = 'A4', type = 'nota', settings = {}, vm }
@@ -86,106 +158,99 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
   };
 
   // ─── Header perusahaan ────────────────────────────────────────────────
-  const hasLogo = hasText(vm.identity.logo);
-  const logoSize = 14;
-  const identityX = hasLogo ? margin + logoSize + 4 : margin;
-  const identityMaxW = contentWidth - 78;
-  if (hasLogo) {
-    try {
-      const logoFormat = /^data:image\/jpe?g/i.test(vm.identity.logo) ? 'JPEG' : 'PNG';
-      doc.addImage(vm.identity.logo, logoFormat, margin, margin, logoSize, logoSize);
-    } catch (error) {
-      // Logo pelengkap — dokumen tetap harus bisa dicetak tanpa logo.
+  // A6 memakai header satu baris (spec §8); A4/A5 memakai blok identitas
+  // bertumpuk dengan judul + metadata di kanan.
+  let dividerY;
+  if (profile.oneLineHeader) {
+    dividerY = drawOneLineHeader(doc, { vm, profile, margin, contentWidth, infoX, base, metrics });
+  } else {
+    const hasLogo = hasText(vm.identity.logo);
+    const logoSize = 14;
+    const identityX = hasLogo ? margin + logoSize + 4 : margin;
+    const identityMaxW = contentWidth - 78;
+    if (hasLogo) {
+      try {
+        const logoFormat = /^data:image\/jpe?g/i.test(vm.identity.logo) ? 'JPEG' : 'PNG';
+        doc.addImage(vm.identity.logo, logoFormat, margin, margin, logoSize, logoSize);
+      } catch (error) {
+        // Logo pelengkap — dokumen tetap harus bisa dicetak tanpa logo.
+      }
     }
-  }
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(base + 3);
-  doc.setTextColor(...MONO.ink);
-  if (hasText(vm.identity.companyName)) {
-    const companyLines = doc.splitTextToSize(String(vm.identity.companyName), identityMaxW);
-    companyLines.forEach((line, index) => doc.text(line, identityX, margin + 6 + index * metrics.companyStep));
-  }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(base + 3);
+    doc.setTextColor(...MONO.ink);
+    if (hasText(vm.identity.companyName)) {
+      const companyLines = doc.splitTextToSize(String(vm.identity.companyName), identityMaxW);
+      companyLines.forEach((line, index) => doc.text(line, identityX, margin + 6 + index * metrics.companyStep));
+    }
 
-  const identityLines = [];
-  if (hasText(vm.identity.npwp)) identityLines.push(`NPWP: ${vm.identity.npwp}`);
-  if (hasText(vm.identity.address)) {
+    const identityLines = [];
+    if (hasText(vm.identity.npwp)) identityLines.push(`NPWP: ${vm.identity.npwp}`);
+    if (hasText(vm.identity.address)) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(base - 1);
+      identityLines.push(...doc.splitTextToSize(String(vm.identity.address), identityMaxW));
+    }
+    const contactLine = [vm.identity.phone, vm.identity.email].filter(hasText).join(' · ');
+    if (contactLine) identityLines.push(contactLine);
+    const identityNextY = drawWrappedLines(identityLines, identityX, margin + 11, identityMaxW);
+    const identityBottomY = identityLines.length ? identityNextY - detailStep : margin + 6;
+
+    // ─── Judul + metadata kanan ─────────────────────────────────────────
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(profile.titleFontSize);
+    doc.setTextColor(...MONO.ink);
+    doc.text(DOCUMENT_TITLE, infoX, margin + 6, { align: 'right' });
+
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(base - 1);
-    identityLines.push(...doc.splitTextToSize(String(vm.identity.address), identityMaxW));
-  }
-  const contactLine = [vm.identity.phone, vm.identity.email].filter(hasText).join(' · ');
-  if (contactLine) identityLines.push(contactLine);
-  const identityNextY = drawWrappedLines(identityLines, identityX, margin + 11, identityMaxW);
-  const identityBottomY = identityLines.length ? identityNextY - detailStep : margin + 6;
+    doc.setTextColor(...MONO.sub);
+    doc.text(DOCUMENT_SUBTITLE, infoX, margin + 11, { align: 'right' });
 
-  // ─── Judul + metadata kanan ───────────────────────────────────────────
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(profile.titleFontSize);
-  doc.setTextColor(...MONO.ink);
-  doc.text(DOCUMENT_TITLE, infoX, margin + 6, { align: 'right' });
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(base - 1);
-  doc.setTextColor(...MONO.sub);
-  doc.text(DOCUMENT_SUBTITLE, infoX, margin + 11, { align: 'right' });
-
-  let infoY = margin + 15.5;
-  let infoRightX = infoX;
-  const barcodeValue = hasText(vm.document.orderNumber) ? String(vm.document.orderNumber).trim() : '';
-  if (barcodeValue) {
+    let infoY = margin + 15.5;
+    let infoRightX = infoX;
     const barcodeW = metrics.barcodeWidth;
     const barcodeH = metrics.barcodeHeight;
     const barcodeTop = margin + 13;
-    try {
-      const canvas = document.createElement('canvas');
-      JsBarcode(canvas, barcodeValue, {
-        format: 'CODE128', displayValue: false, margin: 0,
-        width: 2, height: 100, background: '#FFFFFF', lineColor: '#000000',
-      });
-      const dataUrl = canvas.toDataURL('image/png');
-      if (dataUrl && dataUrl !== 'data:,') {
-        doc.addImage(dataUrl, 'PNG', infoX - barcodeW, barcodeTop, barcodeW, barcodeH);
-        if (profile.compactHeader) {
-          // Header A5: baris info berdampingan dengan barcode, bukan menumpuk di bawahnya.
-          infoRightX = infoX - barcodeW - 4;
-        } else {
-          infoY = barcodeTop + barcodeH + 3.5;
-        }
+    if (tryDrawBarcode(doc, vm.document.orderNumber, infoX - barcodeW, barcodeTop, barcodeW, barcodeH)) {
+      if (profile.compactHeader) {
+        // Header A5: baris info berdampingan dengan barcode, bukan menumpuk di bawahnya.
+        infoRightX = infoX - barcodeW - 4;
+      } else {
+        infoY = barcodeTop + barcodeH + 3.5;
       }
-    } catch (error) {
-      // Barcode pelengkap — nomor nota tetap tercetak sebagai teks.
     }
-  }
 
-  const infoRows = [];
-  if (hasText(vm.document.orderNumber)) {
-    infoRows.push({ text: `No: ${vm.document.orderNumber}`, strong: true });
-  }
-  const saleDate = formatDateID(vm.document.saleDate);
-  if (saleDate) infoRows.push({ text: `Tanggal: ${saleDate}` });
-  const dueDate = formatDateID(vm.document.dueDate);
-  if (dueDate) infoRows.push({ text: `Jatuh Tempo: ${dueDate}` });
-  if (hasText(vm.document.paymentStatus)) {
-    const status = PAYMENT_STATUS_LABELS[vm.document.paymentStatus] || vm.document.paymentStatus;
-    infoRows.push({ text: `Status: ${status}` });
-  }
-  infoRows.forEach((row) => {
-    doc.setFont('helvetica', row.strong ? 'bold' : 'normal');
-    doc.setFontSize(base - 1);
-    doc.setTextColor(...(row.strong ? MONO.ink : MONO.sub));
-    doc.text(row.text, infoRightX, infoY, { align: 'right' });
-    infoY += metrics.infoStep;
-  });
-  const lastInfoY = infoRows.length ? infoY - metrics.infoStep : margin + 11;
+    const infoRows = [];
+    if (hasText(vm.document.orderNumber)) {
+      infoRows.push({ text: `No: ${vm.document.orderNumber}`, strong: true });
+    }
+    const saleDate = formatDateID(vm.document.saleDate);
+    if (saleDate) infoRows.push({ text: `Tanggal: ${saleDate}` });
+    const dueDate = formatDateID(vm.document.dueDate);
+    if (dueDate) infoRows.push({ text: `Jatuh Tempo: ${dueDate}` });
+    if (hasText(vm.document.paymentStatus)) {
+      const status = PAYMENT_STATUS_LABELS[vm.document.paymentStatus] || vm.document.paymentStatus;
+      infoRows.push({ text: `Status: ${status}` });
+    }
+    infoRows.forEach((row) => {
+      doc.setFont('helvetica', row.strong ? 'bold' : 'normal');
+      doc.setFontSize(base - 1);
+      doc.setTextColor(...(row.strong ? MONO.ink : MONO.sub));
+      doc.text(row.text, infoRightX, infoY, { align: 'right' });
+      infoY += metrics.infoStep;
+    });
+    const lastInfoY = infoRows.length ? infoY - metrics.infoStep : margin + 11;
 
-  const dividerY = Math.max(margin + metrics.dividerMin, lastInfoY + 4, identityBottomY + 2);
-  doc.setDrawColor(...MONO.rule);
-  doc.setLineWidth(0.4);
-  doc.line(margin, dividerY, pageWidth - margin, dividerY);
+    dividerY = Math.max(margin + metrics.dividerMin, lastInfoY + 4, identityBottomY + 2);
+    doc.setDrawColor(...MONO.rule);
+    doc.setLineWidth(0.4);
+    doc.line(margin, dividerY, pageWidth - margin, dividerY);
+  }
 
   // ─── Para pihak ───────────────────────────────────────────────────────
-  let cursorY = dividerY + 6;
+  let cursorY = dividerY + (profile.oneLineHeader ? 3.5 : 6);
   const billingAddress = vm.buyer.billingAddress;
   const shippingAddress = vm.buyer.shippingAddress;
   const legalBuyer = hasLegalBuyerData(vm.buyer);
@@ -197,6 +262,17 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
       || hasText(billingAddress) || hasText(vm.buyer.phone) || hasText(vm.buyer.email),
   );
   const showFormalParties = profile.showParties2Col && (legalBuyer || distinctAddresses);
+  // A6 (spec §8): referensi eksternal maksimal satu nilai pendek berlabel `Ref:`,
+  // prioritas nomor pesanan platform → PO/SP → kontrak → paket → sumber.
+  const shortRefValue = profile.externalRefMode === 'short'
+    ? [
+        vm.procurement.platformOrderNumber,
+        vm.procurement.purchaseOrderNumber,
+        vm.procurement.contractNumber,
+        vm.procurement.packageNumber,
+        vm.procurement.source,
+      ].find((value) => hasText(value)) || null
+    : null;
 
   let procurementRendered = false;
   if (showFormalParties) {
@@ -238,6 +314,38 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
       partiesBottomY = Math.max(partiesBottomY, bottomY);
     });
     cursorY = partiesBottomY + sectionGap;
+  } else if (profile.shortCustomer && (hasBuyerInfo || shortRefValue)) {
+    // A6: customer ringkas — nama, instansi, telepon, dan Ref: (spec §8).
+    const hasName = hasText(vm.buyer.displayName);
+    const nameX = margin + 16;
+    const nameW = contentWidth - 16;
+    let y = cursorY;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(base);
+    doc.setTextColor(...MONO.ink);
+    if (hasName) {
+      doc.text('Kepada Yth:', margin, cursorY);
+      doc.setFont('helvetica', 'bold');
+      doc.splitTextToSize(String(vm.buyer.displayName), nameW).forEach((line) => {
+        doc.text(line, nameX, y);
+        y += metrics.nameStep;
+      });
+    }
+    const details = [];
+    if (hasText(vm.procurement.governmentAgency)) {
+      details.push(`Instansi: ${vm.procurement.governmentAgency}`);
+    }
+    if (hasText(vm.buyer.phone)) details.push(vm.buyer.phone);
+    if (shortRefValue) details.push(`Ref: ${shortRefValue}`);
+    const nextY = drawWrappedLines(
+      details,
+      hasName ? nameX : margin,
+      hasName ? y + 0.6 : cursorY,
+      hasName ? nameW : contentWidth,
+    );
+    const partiesBottomY = details.length ? nextY - detailStep : y - metrics.nameStep;
+    cursorY = partiesBottomY + sectionGap;
+    if (shortRefValue) procurementRendered = true;
   } else if (hasBuyerInfo) {
     // Profil compact (A5): customer dan referensi utama berdampingan dalam dua kolom.
     const refEntries = profile.customerRefs2Col && hasProcurementData(vm.procurement)
@@ -336,16 +444,19 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
   }
 
   // ─── Tabel barang ─────────────────────────────────────────────────────
-  const withDiscount = vm.items.some((item) => Number(item.discount) > 0);
+  // A6 (spec §8): satuan digabung ke qty → tanpa kolom Satuan/Diskon.
+  const withDiscount = !profile.qtyWithUnit && vm.items.some((item) => Number(item.discount) > 0);
   const tableHead = [[
-    'No', 'Nama Barang', 'Qty', 'Satuan', 'Harga Satuan',
+    'No', 'Nama Barang', 'Qty',
+    ...(profile.qtyWithUnit ? [] : ['Satuan']),
+    'Harga Satuan',
     ...(withDiscount ? ['Diskon'] : []), 'Jumlah',
   ]];
-  const tableBody = vm.items.map((item, index) => {
+  const buildTableBody = (includeBatchMeta) => vm.items.map((item, index) => {
     const nameLines = [hasText(item.name) ? item.name : ''];
     const meta = [];
-    if (hasText(item.code)) meta.push(`Kode: ${item.code}`);
-    if (profile.batchMetaMode !== 'never') {
+    if (includeBatchMeta && hasText(item.code)) meta.push(`Kode: ${item.code}`);
+    if (includeBatchMeta) {
       if (hasText(item.batchNumber)) meta.push(`Batch: ${item.batchNumber}`);
       const expired = formatDateID(item.expiredDate);
       if (expired) meta.push(`ED: ${expired}`);
@@ -354,13 +465,16 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
     return [
       index + 1,
       nameLines.join('\n'),
-      item.qty,
-      hasText(item.unit) ? item.unit : 'pcs',
+      profile.qtyWithUnit
+        ? `${item.qty} ${hasText(item.unit) ? item.unit : 'pcs'}`
+        : item.qty,
+      ...(profile.qtyWithUnit ? [] : [hasText(item.unit) ? item.unit : 'pcs']),
       formatRupiah(item.unitPrice),
       ...(withDiscount ? [Number(item.discount) > 0 ? formatRupiah(item.discount) : ''] : []),
       formatRupiah(item.lineTotal),
     ];
   });
+  let tableBody = buildTableBody(true);
 
   const tableStartY = Math.max(margin + metrics.tableStartOffset, cursorY);
 
@@ -371,6 +485,13 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
   const notesLines = notesText
     ? doc.splitTextToSize(`Catatan: ${notesText}`, contentWidth)
     : [];
+  if (profile.notesMaxLines && notesLines.length > profile.notesMaxLines) {
+    // Matriks §9: catatan A6 maksimal dua baris — dipotong dengan penanda,
+    // bukan dikecilkan fontnya. Memakai "..." ASCII karena jsPDF membuang
+    // glyph "…" (U+2026) pada font standar.
+    notesLines.length = profile.notesMaxLines;
+    notesLines[notesLines.length - 1] = `${notesLines[notesLines.length - 1]} ...`;
+  }
   const ketentuanText = hasText(vm.identity.ketentuan) ? String(vm.identity.ketentuan).trim() : '';
   const ketentuanRows = ketentuanText
     ? ketentuanText.split('\n').filter((line) => line.trim()).map((line, index) => ({
@@ -383,11 +504,19 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
   const summaryStep = metrics.summaryStep;
   const summaryRows = [];
   if (!vm.totals.ppnExcluded) {
-    summaryRows.push({ text: `DPP: ${formatRupiah(vm.totals.dpp)}`, advance: summaryStep - 0.5 });
-    summaryRows.push({
-      text: `PPN ${Math.round(vm.totals.vatRate * 100)}%: ${formatRupiah(vm.totals.vatAmount)}`,
-      advance: summaryStep,
-    });
+    if (profile.compactSummary) {
+      // A6 (spec §8): PPN diringkas menjadi satu baris (DPP + PPN sekaligus).
+      summaryRows.push({
+        text: `DPP: ${formatRupiah(vm.totals.dpp)} · PPN ${Math.round(vm.totals.vatRate * 100)}%: ${formatRupiah(vm.totals.vatAmount)}`,
+        advance: summaryStep,
+      });
+    } else {
+      summaryRows.push({ text: `DPP: ${formatRupiah(vm.totals.dpp)}`, advance: summaryStep - 0.5 });
+      summaryRows.push({
+        text: `PPN ${Math.round(vm.totals.vatRate * 100)}%: ${formatRupiah(vm.totals.vatAmount)}`,
+        advance: summaryStep,
+      });
+    }
   }
   if (Number(vm.totals.discountTotal) > 0) {
     summaryRows.push({ text: `Diskon: ${formatRupiah(vm.totals.discountTotal)}`, advance: summaryStep });
@@ -404,11 +533,12 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
     strong: true,
   });
   const summaryHeight = summaryRows.reduce((sum, row) => sum + row.advance, 0);
+  const grandTotalBoost = profile.grandTotalBoost ?? 1;
   const drawSummaryRows = (startY) => {
     let y = startY;
     summaryRows.forEach((row) => {
       doc.setFont('helvetica', row.strong ? 'bold' : 'normal');
-      doc.setFontSize(row.strong ? base + 1 : base - 1);
+      doc.setFontSize(row.strong ? base + grandTotalBoost : base - 1);
       doc.setTextColor(...(row.strong ? MONO.ink : MONO.sub));
       doc.text(row.text, infoX, y, { align: 'right' });
       y += row.advance;
@@ -569,7 +699,7 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
   const tailContentH = sections.reduce((sum, section) => sum + section.height, 0);
   const tailContentBottomY = pageHeight - 4 - footerGap;
   const tailLimitY = tailContentBottomY - sigNameOffset;
-  const continuationLineY = margin + 11;
+  const continuationLineY = margin + (metrics.continuationLineY ?? 11);
   const continuationTableStartY = continuationLineY + 5;
   const tailFitsSinglePage = continuationTableStartY + tailContentH + sigGap <= tailLimitY;
   const tailTableEndY = tailFitsSinglePage
@@ -587,10 +717,24 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
     orderNumber: vm.document.orderNumber || '',
     title: DOCUMENT_TITLE,
     continuationLineY,
+    customerName: vm.buyer.displayName || '',
+    showCustomer: profile.continuationCustomer === true,
   };
   const drawPageContinuationHeader = () => drawContinuationHeader(doc, continuationCtx);
 
-  const { headHeight, bodyHeights } = measureTable(profile, tableHead, tableBody, { withDiscount });
+  let { headHeight, bodyHeights } = measureTable(profile, tableHead, tableBody, { withDiscount });
+  if (profile.batchMetaMode === 'fit') {
+    // A6 (spec §8): metadata batch/ED hanya bila muat. Aturan deterministik:
+    // meta dipakai bila seluruh tabel + meta masih muat di atas tail pada satu
+    // halaman (bound yang sama dengan tableFitsWithTail); jika tidak, tabel
+    // dirender tanpa baris metadata.
+    const completeEndWithMeta = tableStartY + headHeight
+      + bodyHeights.reduce((sum, height) => sum + height, 0);
+    if (completeEndWithMeta > tailTableEndY) {
+      tableBody = buildTableBody(false);
+      ({ headHeight, bodyHeights } = measureTable(profile, tableHead, tableBody, { withDiscount }));
+    }
+  }
   const completeTableEndY = tableStartY + headHeight
     + bodyHeights.reduce((sum, height) => sum + height, 0);
   const tableFitsWithTail = completeTableEndY <= tailTableEndY;

@@ -20,6 +20,14 @@ const TABLE_COLUMN_STYLES = {
     4: { halign: 'right', cellWidth: 30 },
     5: { halign: 'right', cellWidth: 32 },
   },
+  // A6 (spec §8): satuan digabung ke qty → tanpa kolom Satuan/Diskon.
+  // No | Nama Barang | Qty | Harga Satuan | Jumlah.
+  compact: {
+    0: { halign: 'center', cellWidth: 8 },
+    2: { halign: 'center', cellWidth: 18 },
+    3: { halign: 'right', cellWidth: 26 },
+    4: { halign: 'right', cellWidth: 28 },
+  },
 };
 
 const PT_TO_MM = 1 / 2.83465;
@@ -53,9 +61,9 @@ export function buildTableStyles(profile, { withDiscount = false } = {}) {
       lineWidth: 0.1,
     },
     rowPageBreak: 'avoid',
-    columnStyles: withDiscount
-      ? TABLE_COLUMN_STYLES.withDiscount
-      : TABLE_COLUMN_STYLES.withoutDiscount,
+    columnStyles: profile.tableColumns === 'compact'
+      ? TABLE_COLUMN_STYLES.compact
+      : (withDiscount ? TABLE_COLUMN_STYLES.withDiscount : TABLE_COLUMN_STYLES.withoutDiscount),
   };
 
   if (profile.batchMetaMode === 'compact') {
@@ -127,9 +135,14 @@ export function planTableSplit({ bodyHeights, firstPageCapacity, finalPageCapaci
   };
 }
 
-// Port generateNotaPDF.js:393-409 versi monokrom.
+// Port generateNotaPDF.js:393-409 versi monokrom. Profil dengan
+// `continuationCustomer` (A6, spec §8) menambah baris konteks customer agar
+// halaman lanjutan tidak kehilangan identitas penerima.
 export function drawContinuationHeader(doc, ctx) {
-  const { pageWidth, margin, baseFontSize, companyName, orderNumber, title, continuationLineY } = ctx;
+  const {
+    pageWidth, margin, baseFontSize, companyName, orderNumber, title,
+    continuationLineY, customerName, showCustomer,
+  } = ctx;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(baseFontSize + 1);
   doc.setTextColor(...MONO.ink);
@@ -143,6 +156,10 @@ export function drawContinuationHeader(doc, ctx) {
     doc.text(`No: ${orderNumber}`, pageWidth - margin, margin + 4, { align: 'right' });
   }
   doc.text(`Halaman ${doc.getNumberOfPages()}`, pageWidth - margin, margin + 8, { align: 'right' });
+  if (showCustomer && customerName) {
+    doc.setFontSize(Math.max(5, baseFontSize - 1));
+    doc.text(`Kepada: ${customerName}`, margin, continuationLineY - 3.5);
+  }
 
   doc.setDrawColor(...MONO.rule);
   doc.setLineWidth(0.3);
