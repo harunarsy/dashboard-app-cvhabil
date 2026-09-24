@@ -31,6 +31,20 @@
 8. **Prompt status cetak (fase 3):** unduh/cetak nota dari Opsi Cetak → prompt "Ya, tandai"/"Tidak" muncul; "Ya, tandai" → status jadi sudah dicetak; "Tidak" → status tidak berubah (tidak ada penandaan otomatis).
 9. **Error kanvas + Coba lagi (fase 3):** saat pratinjau gagal dirender → pesan error + tombol "Coba lagi" (unduh/cetak tetap aktif); klik "Coba lagi" → halaman ter-render.
 
+## Update 24 Sep 2026 — Official Sales Documents Fase 4 (branch, belum di-push)
+- **Fase 4 SELESAI di branch `feat/official-sales-documents`** (commit `f017789` → `e4940f3` → `366b18e`; perbaikan kode dengan tes gagal-dulu, plus mutation check untuk guard hook di `e4940f3`) — **BELUM di-push, belum dideploy, tidak ada migrasi/SQL yang dijalankan.**
+- **Sesi + orderId binding (hook baru `useSalesPrintFlow`):** semua hasil async unduh/cetak/konfirmasi hanya menyentuh state bila sesi modal & nota masih sama — cetak nota A yang selesai setelah operator pindah ke nota B tidak memunculkan prompt untuk B, tidak melepas `busy` sesi baru, dan tidak mengirim PATCH ke nota salah; buka/tutup modal me-reset sesi (`sessionRef`/`busyRef`/`savingRef` sinkron, bukan state React yang async).
+- **PATCH gagal → konfirmasi dipertahankan:** prompt "Ya, tandai"/"Tidak" tidak hilang saat `updatePdfStatus` gagal sehingga "Ya, tandai" bisa retry tanpa unduh ulang; klik ganda "Ya, tandai" hanya mengirim satu PATCH (guard `savingRef` + tombol "Ya, tandai" nonaktif via prop `statusSaving`).
+- **Canvas 2D null → kegagalan preview + retry:** `getContext('2d')` mengembalikan `null` kini menampilkan pesan + tombol "Coba lagi" (sebelumnya kanvas kosong tanpa penjelasan); unduh & cetak tetap aktif (blob, bukan kanvas).
+- **Migration `20260922_022_sales_document_legal` masih BELUM dijalankan di database mana pun; flag `documents_renderer_v2` masih `false`** — A5/A6 renderer lama, `terima` selalu jalur lama, `pinjaman` ikut jalur lama hanya di A5/A6 selama flag off (A4 sudah v2). Cutover A5/A6 menyusul.
+- Verifikasi penuh pasca-fase 4 (final rilis): frontend **171/171 test (23 berkas)** + Vite production build; backend 21 delta unit + 4 confirmation + 16 safety + 13 schema boundary + 25 HTTP smoke + 43 adjustment hardening checks; version checker `v1.67.19-stable` lulus; `git diff --check` bersih. Tidak ada migrasi dijalankan.
+
+### ✅ Checklist review manual Harun (Fase 4)
+1. **Sesi/nota terikat:** buka nota A → Cetak → tutup modal → buka nota B → biarkan cetak A selesai → pastikan tidak ada prompt konfirmasi / PATCH yang muncul untuk nota B (cek Network tab), dan unduh/cetak nota B tidak nyangkut.
+2. **Retry PATCH gagal:** saat prompt muncul, matikan jaringan lalu klik "Ya, tandai" → konfirmasi tetap tampil + pesan gagal; pulihkan jaringan → "Ya, tandai" mengirim PATCH tanpa unduh ulang.
+3. **Anti klik ganda:** klik "Ya, tandai" dua kali cepat → hanya satu PATCH (cek Network tab) + tombol tampak nonaktif selama menyimpan.
+4. **Canvas 2D null:** di perangkat/browser tanpa canvas 2D → preview menampilkan kegagalan + "Coba lagi"; unduh & cetak tetap berfungsi.
+
 ## Update 22 Sep 2026 — Official Sales Documents Plan 1 (branch, belum di-push)
 - **Plan 1 SELESAI di branch `feat/official-sales-documents`** (16 commit) dan **BELUM di-push ke origin** — tidak ada deployment dari branch ini.
 - Model dokumen penjualan kanonis + renderer monokrom A4/A5/A6 dengan 30 ekspektasi golden (fixture × format) dan test paritas antar-ukuran.
@@ -85,8 +99,8 @@ dan ambil HPP fresh dari DB — jangan pakai angka hardcode di `engine_laba.py`.
 
 ---
 
-**Terakhir diperbarui:** 23 Sep 2026
-**Status:** ⏳ **v1.67.19-stable siap di branch `feat/official-sales-documents`** (Official Sales Documents Fase 2 + Fase 3) — terverifikasi lokal (frontend 163/163 test + build, backend 6 suite, version checker lulus), **BELUM di-push dan belum dideploy**. Migration 022 belum dijalankan di DB mana pun; flag `documents_renderer_v2` masih `false`. Menunggu review manual Harun (checklist di atas), lalu cutover A5/A6.
+**Terakhir diperbarui:** 24 Sep 2026
+**Status:** ⏳ **v1.67.19-stable siap di branch `feat/official-sales-documents`** (Official Sales Documents Fase 2 + Fase 3 + Fase 4) — terverifikasi lokal (frontend 171/171 test + build, backend 6 suite, version checker lulus), **BELUM di-push dan belum dideploy**. Migration 022 belum dijalankan di DB mana pun; flag `documents_renderer_v2` masih `false`. Menunggu review manual Harun (checklist Fase 2–4 di atas), lalu cutover A5/A6.
 
 ### 📦 GitHub Releases dirapikan total (28 Jul 2026)
 Sebelumnya berhenti di `v1.0.1` (Mar 2026) padahal kode sudah v1.64.1 — melompat 4 bulan.
