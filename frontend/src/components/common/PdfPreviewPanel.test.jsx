@@ -227,6 +227,45 @@ describe('PdfPreviewPanel', () => {
     errSpy.mockRestore();
   });
 
+  test('canvas 2D tidak tersedia: tampilkan kegagalan + "Coba lagi", unduh/cetak tetap aktif', async () => {
+    const getPage = vi.fn(async () => ({
+      getViewport: ({ scale }) => ({ width: 600 * scale, height: 850 * scale }),
+      render: () => ({ promise: Promise.resolve(), cancel: vi.fn() }),
+    }));
+    getPdfjs.mockResolvedValue({
+      getDocument: () => ({
+        promise: Promise.resolve({ numPages: 2, getPage }),
+        destroy: vi.fn(),
+      }),
+    });
+    // Override stub file-wide: environment tanpa canvas 2D.
+    const getContextSpy = vi
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue(null);
+    try {
+      setup({ blob: makeBlob() });
+
+      expect(await screen.findByText(/canvas 2D tidak tersedia/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Coba lagi' })).toBeInTheDocument();
+      // Indikator "Merender…" tidak menggantung setelah kegagalan.
+      expect(screen.queryByText('Merender…')).not.toBeInTheDocument();
+      // Aksi berbasis blob tidak ikut terkunci.
+      expect(screen.getByRole('button', { name: 'Unduh PDF' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Cetak' })).toBeEnabled();
+
+      // Retry tetap mencoba render ulang, bukan tombol mati.
+      const attemptsBeforeRetry = getPage.mock.calls.length;
+      fireEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
+      await waitFor(() =>
+        expect(getPage.mock.calls.length).toBeGreaterThan(attemptsBeforeRetry),
+      );
+      expect(await screen.findByText(/canvas 2D tidak tersedia/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Unduh PDF' })).toBeEnabled();
+    } finally {
+      getContextSpy.mockRestore();
+    }
+  });
+
   test('RenderingCancelledException tidak menampilkan error render', async () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const cancelled = Object.assign(new Error('render dibatalkan'), {

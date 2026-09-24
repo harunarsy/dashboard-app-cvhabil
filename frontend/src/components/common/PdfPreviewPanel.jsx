@@ -190,9 +190,15 @@ export default function PdfPreviewPanel({
         canvas.height = Math.max(1, Math.floor(viewport.height * dpr));
         canvas.style.width = `${Math.floor(viewport.width)}px`;
         canvas.style.height = `${Math.floor(viewport.height)}px`;
-        // jsdom / environment tanpa canvas 2D: jangan crash, cukup tanpa gambar.
+        // Environment tanpa canvas 2D: kegagalan preview yang eksplisit + bisa di-retry.
+        // Unduh/Cetak tetap aktif karena keduanya memakai blob, bukan kanvas.
         if (!ctx) {
-          if (!cancelled) setRendering(false);
+          if (!cancelled) {
+            setRenderError(
+              'Pratinjau tidak bisa dirender — canvas 2D tidak tersedia. Unduh & Cetak tetap bisa dipakai.',
+            );
+            setRendering(false);
+          }
           return;
         }
         renderTask = pdfPage.render({
