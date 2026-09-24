@@ -72,6 +72,7 @@ const baseProps = () => ({
   actionsDisabled: false,
   isMobile: false,
   statusPrompt: null,
+  statusSaving: false,
   onStatusConfirm: vi.fn(),
   onStatusDismiss: vi.fn(),
 });
@@ -317,6 +318,19 @@ describe('PdfPreviewPanel', () => {
       screen.getByText('Dialog cetak selesai. Tandai nota sebagai sudah dicetak?'),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ya, tandai' })).toBeInTheDocument();
+  });
+
+  test('statusSaving true → tombol "Ya, tandai" disabled dan klik tidak memanggil onStatusConfirm', () => {
+    const { props } = setup({
+      blob: makeBlob(),
+      statusPrompt: { kind: 'print' },
+      statusSaving: true,
+    });
+
+    const confirm = screen.getByRole('button', { name: 'Ya, tandai' });
+    expect(confirm).toBeDisabled();
+    fireEvent.click(confirm);
+    expect(props.onStatusConfirm).not.toHaveBeenCalled();
   });
 
   test('hanya warning → aksi tetap aktif dan pesan kuning tampil', async () => {

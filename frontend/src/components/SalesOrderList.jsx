@@ -49,6 +49,7 @@ import FieldError from "./common/FieldError";
 import SearchBox from "./common/SearchBox";
 import ToastNotice from "./common/ToastNotice";
 import useDebouncedValue from "../hooks/useDebouncedValue";
+import useSalesPrintFlow from "../hooks/useSalesPrintFlow";
 import {
   buildNotaWaMessage,
   buildDueReminderMessage,
@@ -66,7 +67,6 @@ import Pagination from "./common/Pagination";
 import { importWithReload } from "../utils/importWithReload";
 import { buildSalesDocumentPdf } from "../utils/documents/salesDocumentPdfSource";
 import { validateSalesDocument } from "../utils/documents/salesDocumentValidation";
-import { printBlobInIframe } from "../utils/documents/printBlobInIframe";
 import { dateOnlyTimestamp, formatDateOnly } from "../utils/dateOnly";
 
 const renderPortal = (node) =>
@@ -202,14 +202,6 @@ const computeNotaMargin = (order) => {
   return { revenue, margin, pct };
 };
 const DEFAULT_PROFIT_THRESHOLDS = { high: 20, normal: 5, thin: 0 };
-// Task 22 (spec §10): pesan gagal cetak per error.code dari printBlobInIframe.
-const PRINT_FAILURE_MESSAGES = {
-  timeout: "Cetak tidak merespons. Coba lagi atau unduh PDF lalu cetak manual.",
-  load_failed: "Gagal memuat dokumen ke jendela cetak. Coba lagi atau unduh PDF.",
-  popup_blocked: "Popup diblokir. Pakai tombol Unduh PDF lalu cetak manual.",
-  print_failed: "Dialog cetak gagal dibuka. Pakai tombol Unduh PDF lalu cetak manual.",
-};
-const PRINT_FAILURE_FALLBACK = "Gagal membuka dialog cetak. Pakai tombol Unduh PDF lalu cetak manual.";
 const normalizeProfitThresholds = (thresholds = {}) => {
   const safeValues = [thresholds.thin, thresholds.normal, thresholds.high]
     .map((value, idx) => {
@@ -349,9 +341,6 @@ export default function SalesOrderList({
   const [previewFilename, setPreviewFilename] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(null);
-  const [previewBusy, setPreviewBusy] = useState(false);
-  // Task 22 (spec §10): status cetak eksplisit — prompt konfirmasi setelah unduh/cetak sukses.
-  const [statusPrompt, setStatusPrompt] = useState(null);
   const [previewRetryKey, setPreviewRetryKey] = useState(0);
   const previewTokenRef = useRef(0);
   // Task 17 (spec §10): validasi dihitung dari snapshot order yang sama dengan PDF
@@ -513,6 +502,27 @@ export default function SalesOrderList({
   const [saving, setSaving] = useState(false);
   const toastTimerRef = useRef(null);
 
+  // AUDIT-UX-02: error jangan tampil sebagai toast sukses — operator bisa mengira berhasil
+  const flash = (msg, type = "success") => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast(msg);
+    setToastType(type);
+    toastTimerRef.current = setTimeout(
+      () => setToast(""),
+      type === "error"
+        ? UI_MOTION.duration.toastError
+        : UI_MOTION.duration.toastSuccess,
+    );
+  };
+
+  // Task 25 (spec §10): alur unduh/cetak + konfirmasi status — hasil async terikat sesi
+  // modal & orderId (buka/tutup modal = sesi baru; prompt basi dibuang, retry PATCH).
+  const printFlow = useSalesPrintFlow({
+    updateStatus: (id, status) => salesAPI.updatePdfStatus(id, status),
+    refreshOrders: fetchOrders,
+    flash,
+  });
+
   // v1.23.0: draft form nota — autosave WIP form Buat Nota (mirror draft faktur).
   const [draftBanner, setDraftBanner] = useState(false);
   const [savedDraft, setSavedDraft] = useState(null);
@@ -605,6 +615,7 @@ export default function SalesOrderList({
       }
       if (showPrintModal) {
         setShowPrintModal(false);
+        printFlow.closeSession();
         return;
       }
       if (showModal) {
@@ -613,7 +624,7 @@ export default function SalesOrderList({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [paymentModal.open, showModal, showPrintModal]);
+  }, [paymentModal.open, showModal, showPrintModal, printFlow.closeSession]);
   useEffect(
     () => () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -1754,71 +1765,22 @@ export default function SalesOrderList({
   );
   const adjustmentDifference = adjustmentReplacementValue - adjustmentReturnedValue;
 
-  // AUDIT-UX-02: error jangan tampil sebagai toast sukses — operator bisa mengira berhasil
-  const flash = (msg, type = "success") => {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToast(msg);
-    setToastType(type);
-    toastTimerRef.current = setTimeout(
-      () => setToast(""),
-      type === "error"
-        ? UI_MOTION.duration.toastError
-        : UI_MOTION.duration.toastSuccess,
-    );
+  // Task 25 (spec §10): panel tetap memanggil aksi yang sama — hook yang mengikat ke sesi
+  // modal + orderId, jadi hasil async nota lama tidak bocor ke nota yang sedang dibuka.
+  const handlePreviewDownload = () => {
+    if (!previewBlob || !printOrder || previewLoading || previewError) return;
+    printFlow.download({
+      blob: previewBlob,
+      filename: previewFilename || `Nota_${printOrder.order_number}.pdf`,
+      orderId: printOrder.id,
+    });
   };
 
-  // Task 22 (spec §10): unduh memakai blob yang sedang ditampilkan — tidak regenerasi,
-  // dan TIDAK menandai status cetak otomatis. Status hanya lewat konfirmasi operator.
-  const handlePreviewDownload = async () => {
-    if (!previewBlob || !printOrder || previewLoading || previewError || previewBusy) return;
-    setPreviewBusy(true);
-    try {
-      const url = URL.createObjectURL(previewBlob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = previewFilename || `Nota_${printOrder.order_number}.pdf`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 5000);
-      flash("PDF berhasil diunduh");
-      setStatusPrompt({ kind: "download" });
-    } finally {
-      setPreviewBusy(false);
-    }
+  // Task 25: cetak lewat helper anti-macet — busy & guard sesi dikelola hook.
+  const handlePreviewPrint = () => {
+    if (!previewBlob || !printOrder || previewLoading || previewError) return;
+    printFlow.print({ blob: previewBlob, orderId: printOrder.id });
   };
-
-  // Task 22 (spec §10): cetak lewat helper anti-macet — timeout + onerror + fallback popup.
-  // `previewBusy` selalu dilepas sinkron di finally, tidak lagi bergantung pada onload iframe.
-  const handlePreviewPrint = async () => {
-    if (!previewBlob || !printOrder || previewLoading || previewError || previewBusy) return;
-    setPreviewBusy(true);
-    try {
-      const { method } = await printBlobInIframe(previewBlob);
-      if (method === "popup") flash("Dialog cetak dibuka di tab baru");
-      setStatusPrompt({ kind: "print" });
-    } catch (error) {
-      flash(PRINT_FAILURE_MESSAGES[error?.code] || PRINT_FAILURE_FALLBACK, "error");
-    } finally {
-      setPreviewBusy(false);
-    }
-  };
-
-  // Task 22 (spec §10): konfirmasi operator — satu-satunya jalur set 'sudah_dicetak'.
-  const handleStatusConfirm = async () => {
-    const target = printOrder;
-    setStatusPrompt(null);
-    if (!target) return;
-    try {
-      await salesAPI.updatePdfStatus(target.id, "sudah_dicetak");
-      flash("Nota ditandai sudah dicetak");
-      fetchOrders();
-    } catch (e) {
-      flash("Status cetak gagal disimpan", "error");
-    }
-  };
-
-  const handleStatusDismiss = () => setStatusPrompt(null);
 
   const handlePrintAdjustment = async () => {
     if (!adjustmentPrint.data || adjustmentPrint.saving) return;
@@ -1903,8 +1865,8 @@ export default function SalesOrderList({
     setPreviewFilename(null);
     setPreviewError(null);
     setPreviewRetryKey(0);
-    setPreviewBusy(false);
-    setStatusPrompt(null);
+    // Task 25: sesi baru — hasil async sesi lama (prompt/busy/PATCH) dibuang, bukan dibawa.
+    printFlow.openSession();
     setShowPrintModal(true);
   };
 
@@ -6529,7 +6491,10 @@ export default function SalesOrderList({
                   Opsi Cetak
                 </h2>
                 <button
-                  onClick={() => setShowPrintModal(false)}
+                  onClick={() => {
+                    setShowPrintModal(false);
+                    printFlow.closeSession();
+                  }}
                   aria-label="Tutup modal cetak PDF"
                   className="ui-motion-button ui-focus-ring"
                   style={{
@@ -6711,11 +6676,12 @@ export default function SalesOrderList({
                   validation={printValidation}
                   onDownload={handlePreviewDownload}
                   onPrint={handlePreviewPrint}
-                  actionsDisabled={!printOrder || printValidation.blockers.length > 0 || previewBusy}
+                  actionsDisabled={!printOrder || printValidation.blockers.length > 0 || printFlow.busy}
                   isMobile={isMobile}
-                  statusPrompt={statusPrompt}
-                  onStatusConfirm={handleStatusConfirm}
-                  onStatusDismiss={handleStatusDismiss}
+                  statusPrompt={printFlow.prompt}
+                  statusSaving={printFlow.saving}
+                  onStatusConfirm={() => printFlow.confirmStatus(printOrder?.id)}
+                  onStatusDismiss={printFlow.dismissStatus}
                 />
               </div>
               {/* /Preview PDF aktual */}

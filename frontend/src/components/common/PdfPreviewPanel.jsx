@@ -104,6 +104,7 @@ export default function PdfPreviewPanel({
   actionsDisabled = false,
   isMobile = false,
   statusPrompt = null,
+  statusSaving = false,
   onStatusConfirm,
   onStatusDismiss,
 }) {
@@ -624,7 +625,8 @@ export default function PdfPreviewPanel({
               type="button"
               className="ui-focus-ring"
               onClick={onStatusConfirm}
-              style={actionButtonStyle('primary', false)}
+              disabled={statusSaving}
+              style={actionButtonStyle('primary', statusSaving)}
             >
               Ya, tandai
             </button>
