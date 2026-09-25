@@ -187,4 +187,62 @@ describe('useSalesPrintFlow', () => {
     expect(result.current.saving).toBe(false);
     expect(result.current.prompt).not.toBeNull(); // prompt baru tidak boleh ikut dibersihkan
   });
+
+  test('PATCH A selesai setelah modal B dibuka — toast sukses tidak muncul, target tetap A', async () => {
+    const patchDeferred = deferred();
+    updateStatus.mockReturnValue(patchDeferred.promise);
+    const { result } = renderFlow();
+
+    act(() => result.current.openSession()); // sesi A
+    act(() => {
+      result.current.download({ blob: BLOB, filename: 'Nota_A.pdf', orderId: 'A' });
+    });
+    act(() => {
+      result.current.confirmStatus('A'); // PATCH A in-flight
+    });
+    expect(result.current.saving).toBe(true);
+
+    act(() => result.current.openSession()); // operator pindah ke sesi B
+    flash.mockClear(); // abaikan toast unduhan dari setup
+
+    await act(async () => {
+      patchDeferred.resolve({});
+      await Promise.resolve();
+    });
+
+    expect(updateStatus).toHaveBeenCalledTimes(1);
+    expect(updateStatus).toHaveBeenCalledWith('A', 'sudah_dicetak'); // target tidak berubah
+    expect(flash).not.toHaveBeenCalled(); // konteks sudah hilang → tanpa toast sukses/gagal
+    expect(refreshOrders).toHaveBeenCalledTimes(1); // refresh data tetap jalan
+    expect(result.current.prompt).toBeNull();
+    expect(result.current.saving).toBe(false);
+  });
+
+  test('PATCH A gagal setelah modal B dibuka — toast error tidak muncul', async () => {
+    const patchDeferred = deferred();
+    updateStatus.mockReturnValue(patchDeferred.promise);
+    const { result } = renderFlow();
+
+    act(() => result.current.openSession()); // sesi A
+    act(() => {
+      result.current.download({ blob: BLOB, filename: 'Nota_A.pdf', orderId: 'A' });
+    });
+    act(() => {
+      result.current.confirmStatus('A'); // PATCH A in-flight
+    });
+
+    act(() => result.current.openSession()); // operator pindah ke sesi B
+    flash.mockClear(); // abaikan toast unduhan dari setup
+
+    await act(async () => {
+      patchDeferred.reject(new Error('500'));
+      await Promise.resolve();
+    });
+
+    expect(updateStatus).toHaveBeenCalledTimes(1);
+    expect(updateStatus).toHaveBeenCalledWith('A', 'sudah_dicetak');
+    expect(flash).not.toHaveBeenCalled(); // gagal di sesi basi → tanpa toast error
+    expect(result.current.prompt).toBeNull();
+    expect(result.current.saving).toBe(false);
+  });
 });

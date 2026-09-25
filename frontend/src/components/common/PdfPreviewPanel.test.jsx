@@ -359,7 +359,7 @@ describe('PdfPreviewPanel', () => {
     expect(screen.getByRole('button', { name: 'Ya, tandai' })).toBeInTheDocument();
   });
 
-  test('statusSaving true → tombol "Ya, tandai" disabled dan klik tidak memanggil onStatusConfirm', () => {
+  test('statusSaving true → "Ya, tandai" dan "Tidak" disabled; klik keduanya tidak memanggil handler', () => {
     const { props } = setup({
       blob: makeBlob(),
       statusPrompt: { kind: 'print' },
@@ -367,9 +367,13 @@ describe('PdfPreviewPanel', () => {
     });
 
     const confirm = screen.getByRole('button', { name: 'Ya, tandai' });
+    const dismiss = screen.getByRole('button', { name: 'Tidak' });
     expect(confirm).toBeDisabled();
+    expect(dismiss).toBeDisabled();
     fireEvent.click(confirm);
+    fireEvent.click(dismiss);
     expect(props.onStatusConfirm).not.toHaveBeenCalled();
+    expect(props.onStatusDismiss).not.toHaveBeenCalled();
   });
 
   test('hanya warning → aksi tetap aktif dan pesan kuning tampil', async () => {

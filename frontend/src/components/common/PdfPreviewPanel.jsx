@@ -640,7 +640,8 @@ export default function PdfPreviewPanel({
               type="button"
               className="ui-focus-ring"
               onClick={onStatusDismiss}
-              style={actionButtonStyle('secondary', false)}
+              disabled={statusSaving}
+              style={actionButtonStyle('secondary', statusSaving)}
             >
               Tidak
             </button>

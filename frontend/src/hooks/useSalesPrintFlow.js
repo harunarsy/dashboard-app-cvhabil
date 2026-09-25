@@ -123,7 +123,11 @@ export default function useSalesPrintFlow({ updateStatus, refreshOrders, flash }
       setSaving(true);
       try {
         await depsRef.current.updateStatus?.(active.orderId, PRINTED_STATUS);
-        depsRef.current.flash?.("Nota ditandai sudah dicetak");
+        // Toast hanya untuk sesi yang masih aktif — hasil PATCH sesi basi tidak
+        // boleh muncul di konteks modal/nota yang sudah hilang.
+        if (sessionRef.current === session) {
+          depsRef.current.flash?.("Nota ditandai sudah dicetak");
+        }
         depsRef.current.refreshOrders?.();
         // Bersihkan hanya prompt yang sama & sesi yang masih aktif.
         if (sessionRef.current === session && promptRef.current === active) {
@@ -131,7 +135,9 @@ export default function useSalesPrintFlow({ updateStatus, refreshOrders, flash }
         }
       } catch (e) {
         // Gagal → prompt DIPERTAHANKAN supaya operator bisa retry tanpa unduh ulang.
-        depsRef.current.flash?.("Status cetak gagal disimpan", "error");
+        if (sessionRef.current === session) {
+          depsRef.current.flash?.("Status cetak gagal disimpan", "error");
+        }
       } finally {
         if (sessionRef.current === session) {
           savingRef.current = false;
