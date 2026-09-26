@@ -14,6 +14,23 @@ const RULE = rgb(MONO.rule);
 const HEAD_FILL = rgb(MONO.headFill);
 const ZEBRA = rgb(MONO.zebra);
 
+// Paritas dengan generateSPPDF: qty_in_unit diutamakan, sub-line "(= X pcs)"
+// tampil kalau satuan pack dipakai (v1.8.0 karton consistency).
+const spQty = (it) => {
+  const qtyInUnit = parseFloat(it.qty_in_unit);
+  if (!isNaN(qtyInUnit)) return qtyInUnit;
+  return parseFloat(it.qty) || 0;
+};
+const spSubLine = (it) => {
+  const qtyInUnit = parseFloat(it.qty_in_unit);
+  const qtyBase = parseFloat(it.qty);
+  const packSize = parseInt(it.pack_size_at_po) || 1;
+  if (packSize > 1 && !isNaN(qtyInUnit) && !isNaN(qtyBase) && qtyBase !== qtyInUnit) {
+    return `(= ${qtyBase} ${it.unit_base || 'pcs'})`;
+  }
+  return null;
+};
+
 export default function SPPreview({ form = {}, items = [], settings = {} }) {
   const {
     distributor_name, distributor_address,
@@ -34,26 +51,26 @@ export default function SPPreview({ form = {}, items = [], settings = {} }) {
       border: '1px solid var(--color-border)', boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
       fontFamily: 'Helvetica, Arial, sans-serif', color: INK,
     }}>
-      {/* Header — logo mark H + identitas perusahaan (kiri), judul + metadata (kanan) */}
+      {/* Header — logo ter-center vertikal + identitas perusahaan (kiri), judul + metadata (kanan) */}
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
-        <div style={{ display: 'flex', gap: '10px', flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', gap: '10px', flex: 1, minWidth: 0, alignItems: 'center' }}>
           <img
             src="/habil-mark.svg"
             alt="Mark Habil"
             style={{ width: '30px', height: '30px', flexShrink: 0, objectFit: 'contain' }}
           />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: '12px', fontWeight: '800', color: INK, marginBottom: '2px' }}>{companyName}</div>
+            <div style={{ fontSize: '12px', fontWeight: '800', color: INK, marginBottom: '2px', overflowWrap: 'anywhere' }}>{companyName}</div>
             <div style={{ fontSize: '9px', color: SUB }}>NPWP: {settings.npwp || '93.813.949.0-609.000'}</div>
             {address && <div style={{ fontSize: '9px', color: SUB, lineHeight: '1.4' }}>{address}</div>}
             {phone && <div style={{ fontSize: '9px', color: SUB }}>{phone}</div>}
           </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: '12px', fontWeight: '800', color: INK, letterSpacing: '0.05em', marginBottom: '2px' }}>SURAT PESANAN</div>
-          <div style={{ fontSize: '9px', color: SUB }}>No. SP: {headerNo}</div>
-          <div style={{ fontSize: '9px', color: SUB }}>Tanggal: {headerDate}</div>
-          {expected_date && <div style={{ fontSize: '9px', color: SUB }}>Est. Tiba: {fmtDate(expected_date)}</div>}
+          <div style={{ fontSize: '12px', fontWeight: '800', color: INK, letterSpacing: '0.05em', marginBottom: '2px', whiteSpace: 'nowrap' }}>SURAT PESANAN</div>
+          <div style={{ fontSize: '9px', color: SUB, whiteSpace: 'nowrap' }}>No. SP: {headerNo}</div>
+          <div style={{ fontSize: '9px', color: SUB, whiteSpace: 'nowrap' }}>Tanggal: {headerDate}</div>
+          {expected_date && <div style={{ fontSize: '9px', color: SUB, whiteSpace: 'nowrap' }}>Est. Tiba: {fmtDate(expected_date)}</div>}
         </div>
       </div>
 
@@ -81,14 +98,20 @@ export default function SPPreview({ form = {}, items = [], settings = {} }) {
             {items.length === 0 && (
               <tr><td colSpan={4} style={{ padding: '12px', textAlign: 'center', color: FAINT, fontStyle: 'italic' }}>Belum ada produk</td></tr>
             )}
-            {items.map((it, idx) => (
-              <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#FFF' : ZEBRA }}>
-                <td style={{ padding: '4px 5px', textAlign: 'center', color: INK, verticalAlign: 'top' }}>{idx + 1}</td>
-                <td style={{ padding: '4px 5px', color: INK }}>{it.product_name || '—'}</td>
-                <td style={{ padding: '4px 5px', textAlign: 'center', color: INK, verticalAlign: 'top' }}>{parseFloat(it.qty) || 0}</td>
-                <td style={{ padding: '4px 5px', textAlign: 'center', color: INK, verticalAlign: 'top' }}>{it.unit || 'pcs'}</td>
-              </tr>
-            ))}
+            {items.map((it, idx) => {
+              const subLine = spSubLine(it);
+              return (
+                <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#FFF' : ZEBRA }}>
+                  <td style={{ padding: '4px 5px', textAlign: 'center', color: INK, verticalAlign: 'top' }}>{idx + 1}</td>
+                  <td style={{ padding: '4px 5px', color: INK }}>
+                    {it.product_name || '—'}
+                    {subLine && <div style={{ fontSize: '7px', color: SUB }}>{subLine}</div>}
+                  </td>
+                  <td style={{ padding: '4px 5px', textAlign: 'center', color: INK, verticalAlign: 'top' }}>{spQty(it)}</td>
+                  <td style={{ padding: '4px 5px', textAlign: 'center', color: INK, verticalAlign: 'top' }}>{it.unit || 'pcs'}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

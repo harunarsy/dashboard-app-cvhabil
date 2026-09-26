@@ -2,6 +2,69 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { MONO } from './documents/salesDocumentTheme';
 
+const LOGO_ASPECT = 233.443 / 240;
+
+// ─── Metrik header SP ────────────────────────────────────────────────────
+// Satu sumber kebenaran untuk menggambar DAN menguji: nama perusahaan menyusut
+// agar muat kolom kiri, judul menyusut agar muat kolom kanan — header dua
+// kolom tidak mungkin tabrakan di A4/A5/A6 (bug cetak v1.67.20 SP A6).
+export function computeSpHeaderMetrics(doc, {
+  format = 'A6',
+  companyName = 'CV HABIL SEJAHTERA BERSAMA',
+  logoPresent = true,
+} = {}) {
+  const fmt = String(format).toUpperCase();
+  const isA6 = fmt === 'A6';
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const baseFontSize = isA6 ? 8 : 10;
+  const margin = isA6 ? 6 : 12;
+  const contentWidth = pageWidth - margin * 2;
+  const colGap = isA6 ? 4.5 : 6;
+  const logoWidth = isA6 ? 8 : (fmt === 'A5' ? 11 : 14);
+  const logoHeight = logoWidth * LOGO_ASPECT;
+  const identityX = margin + (logoPresent ? logoWidth + (isA6 ? 2 : 3) : 0);
+  const identityMaxW = Math.max(26, contentWidth * 0.6 - (identityX - margin));
+  const rightColW = Math.max(24, contentWidth * 0.4 - colGap);
+
+  const fitFontSize = (text, maxW, startSize, minSize) => {
+    doc.setFont('helvetica', 'bold');
+    let size = startSize;
+    doc.setFontSize(size);
+    while (size > minSize && doc.getTextWidth(text) > maxW) {
+      size = Math.round((size - 0.25) * 100) / 100;
+      doc.setFontSize(size);
+    }
+    return size;
+  };
+
+  const title = 'SURAT PESANAN';
+  const companySize = fitFontSize(companyName, identityMaxW, baseFontSize + 2, 6.5);
+  const titleSize = fitFontSize(title, rightColW, baseFontSize + 2, 6.5);
+  const headSize = Math.min(companySize, titleSize);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(headSize);
+  return {
+    format: fmt,
+    isA6,
+    pageWidth,
+    pageHeight: doc.internal.pageSize.getHeight(),
+    margin,
+    contentWidth,
+    colGap,
+    baseFontSize,
+    logoWidth,
+    logoHeight,
+    identityX,
+    identityMaxW,
+    rightColW,
+    headSize,
+    companyWidth: doc.getTextWidth(companyName),
+    titleWidth: doc.getTextWidth(title),
+    companyOverflows: doc.getTextWidth(companyName) > identityMaxW + 0.01,
+  };
+}
+
 // Surat Pesanan — satu bahasa desain dengan nota (v1.67.20): tinta monokrom,
 // mark H biru sebagai aksen tunggal, tabel headFill/zebra tanpa garis.
 export function generateSPPDF(order, options = {}) {
@@ -21,36 +84,28 @@ export function generateSPPDF(order, options = {}) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  const isA6 = format.toUpperCase() === 'A6';
-  const baseFontSize = isA6 ? 8 : 10;
-  const margin = isA6 ? 8 : 12;
-  const step = isA6 ? 3.2 : 3.8;
-  const contentWidth = pageWidth - margin * 2;
-
-  // ─── Header: logo + identitas (kiri), judul + metadata (kanan) ──────
   const logoDataUrl = settings.logo_data_url;
-  const logoWidth = isA6 ? 9 : 12;
-  if (logoDataUrl) {
-    const logoHeight = logoWidth * (233.443 / 240);
-    try {
-      doc.addImage(logoDataUrl, 'PNG', margin, margin, logoWidth, logoHeight);
-    } catch (_) {
-      // SP tetap dapat dicetak tanpa gambar bila data logo rusak.
-    }
-  }
-  const identityX = margin + (logoDataUrl ? logoWidth + (isA6 ? 2.5 : 3.5) : 0);
-  const headerTop = margin + (isA6 ? 3.6 : 4.5);
+  const H = computeSpHeaderMetrics(doc, { format, companyName, logoPresent: Boolean(logoDataUrl) });
+  const { isA6, margin, contentWidth, baseFontSize, logoWidth, logoHeight, identityX, identityMaxW, headSize } = H;
+
+  // ─── Header: logo (ter-center vertikal) + identitas (kiri), judul + metadata (kanan)
+  const headerTop = margin + headSize * 0.3528 + (isA6 ? 0.8 : 1);
+  const idSize = baseFontSize - 1.5;
+  const idStep = isA6 ? 3 : 3.6;
+  const infoX = pageWidth - margin;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(baseFontSize + 2);
+  doc.setFontSize(headSize);
   doc.setTextColor(...MONO.ink);
-  doc.text(companyName, identityX, headerTop);
+  const nameLines = doc.splitTextToSize(companyName, identityMaxW).slice(0, 2);
+  const nameStep = headSize * 0.3528 * 1.2;
+  nameLines.forEach((line, i) => doc.text(line, identityX, headerTop + nameStep * i));
+  let leftBottom = headerTop + nameStep * (nameLines.length - 1);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(baseFontSize - 1.5);
+  doc.setFontSize(idSize);
   doc.setTextColor(...MONO.sub);
-  let identityY = headerTop + step;
-  const identityMaxW = Math.max(24, pageWidth / 2 - identityX);
+  let identityY = leftBottom + idStep;
   const identityLines = [
     `NPWP: ${settings.npwp || '93.813.949.0-609.000'}`,
     settings.address ? String(settings.address) : null,
@@ -59,68 +114,84 @@ export function generateSPPDF(order, options = {}) {
   identityLines.forEach((line) => {
     doc.splitTextToSize(line, identityMaxW).forEach((wrapped) => {
       doc.text(wrapped, identityX, identityY);
-      identityY += step - (isA6 ? 0.4 : 0.2);
+      leftBottom = identityY;
+      identityY += idStep;
     });
   });
 
-  const infoX = pageWidth - margin;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(baseFontSize + 1);
+  doc.setFontSize(headSize);
   doc.setTextColor(...MONO.ink);
   doc.text('SURAT PESANAN', infoX, headerTop, { align: 'right' });
+  let rightBottom = headerTop;
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(baseFontSize - 1.5);
+  doc.setFontSize(idSize);
   doc.setTextColor(...MONO.sub);
-  let metaY = headerTop + step;
+  let metaY = headerTop + idStep;
   doc.text(`No. SP: ${String(order.po_number || '-')}`, infoX, metaY, { align: 'right' });
-  metaY += step - (isA6 ? 0.4 : 0.2);
+  rightBottom = metaY;
+  metaY += idStep;
   const dateStr = order.order_date
     ? new Date(order.order_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
     : '-';
   doc.text(`Tanggal: ${dateStr}`, infoX, metaY, { align: 'right' });
-  metaY += step - (isA6 ? 0.4 : 0.2);
+  rightBottom = metaY;
+  metaY += idStep;
   if (order.expected_date) {
     const expDate = new Date(order.expected_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
     doc.text(`Est. Tiba: ${expDate}`, infoX, metaY, { align: 'right' });
-    metaY += step - (isA6 ? 0.4 : 0.2);
+    rightBottom = metaY;
   }
 
-  const dividerY = Math.max(identityY, metaY) + (isA6 ? 1.2 : 2);
+  // Logo mark H di-center vertikal terhadap blok identitas (pola yang sama
+  // dengan nota) supaya tidak menggantung di kiri atas.
+  if (logoDataUrl) {
+    const blockTop = headerTop - headSize * 0.3528;
+    const blockBottom = leftBottom + idSize * 0.3528 * 0.6 + 0.6;
+    const logoY = Math.max(margin, (blockTop + blockBottom - logoHeight) / 2);
+    try {
+      doc.addImage(logoDataUrl, 'PNG', margin, logoY, logoWidth, logoHeight);
+    } catch (_) {
+      // SP tetap dapat dicetak tanpa gambar bila data logo rusak.
+    }
+  }
+
+  const dividerY = Math.max(leftBottom, rightBottom) + (isA6 ? 1.6 : 2.2);
   doc.setDrawColor(...MONO.rule);
   doc.setLineWidth(0.4);
   doc.line(margin, dividerY, pageWidth - margin, dividerY);
 
   // ─── Penerima ────────────────────────────────────────────────────────
-  let y = dividerY + (isA6 ? 4 : 5);
+  let y = dividerY + (isA6 ? 3.6 : 5);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize);
   doc.setTextColor(...MONO.ink);
   doc.text('Kepada Yth:', margin, y);
-  y += step;
+  y += isA6 ? 3 : 3.6;
 
   doc.setFont('helvetica', 'bold');
   doc.splitTextToSize(String(order.distributor_name || '-'), contentWidth).forEach((line) => {
     doc.text(line, margin, y);
-    y += step;
+    y += isA6 ? 3 : 3.6;
   });
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(baseFontSize - 1.5);
+  doc.setFontSize(idSize);
   doc.setTextColor(...MONO.sub);
   if (order.distributor_address) {
     doc.splitTextToSize(String(order.distributor_address), contentWidth).forEach((line) => {
       doc.text(line, margin, y);
-      y += step - 0.6;
+      y += isA6 ? 2.4 : 3;
     });
   }
   if (salesmanInfo.salesman_name) {
     doc.text(`Up: ${salesmanInfo.salesman_name}`, margin, y);
-    y += step - 0.6;
+    y += isA6 ? 2.4 : 3;
   }
   if (salesmanInfo.salesman_phone) {
     doc.text(`Telp: ${salesmanInfo.salesman_phone}`, margin, y);
-    y += step - 0.6;
+    y += isA6 ? 2.4 : 3;
   }
 
   // ─── Tabel barang (TANPA harga) ──────────────────────────────────────
@@ -159,14 +230,14 @@ export function generateSPPDF(order, options = {}) {
       fillColor: MONO.headFill,
       textColor: MONO.ink,
       fontStyle: 'bold',
-      fontSize: baseFontSize - 1.5,
+      fontSize: idSize,
       halign: 'center',
       lineWidth: 0,
     },
     bodyStyles: { lineWidth: 0, fillColor: [255, 255, 255] },
     alternateRowStyles: { fillColor: MONO.zebra },
     styles: {
-      fontSize: baseFontSize - 1.5,
+      fontSize: idSize,
       cellPadding: isA6 ? 1.2 : 2,
       lineWidth: 0,
       textColor: MONO.ink,
@@ -184,11 +255,11 @@ export function generateSPPDF(order, options = {}) {
   let finalY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + (isA6 ? 4 : 5) : pageHeight - 50;
   if (order.notes) {
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(baseFontSize - 1.5);
+    doc.setFontSize(idSize);
     doc.setTextColor(...MONO.sub);
     doc.splitTextToSize(`Catatan: ${String(order.notes)}`, contentWidth).forEach((line) => {
       doc.text(line, margin, finalY);
-      finalY += step - 0.6;
+      finalY += isA6 ? 2.4 : 3;
     });
   }
 

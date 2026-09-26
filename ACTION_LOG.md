@@ -16,11 +16,18 @@
 - **Verifikasi:** frontend **200/200 test (27 berkas)** + Vite production build; version checker `v1.67.20-stable` lulus; `git diff --check` bersih. Backend tidak berubah (tidak dijalankan ulang).
 - **Hasil audit batch deploy sebelumnya:** tidak ada bug baru di luar 3 temuan UX owner di atas; kolom `pdf_status` sebelumnya tidak dipakai di UI mana pun (gap yang kini ditutup).
 
+### 🔧 Fix lanjutan dari review owner (26 Sep, lokal — SP dulu)
+- **Bug cetak SP A6:** nama perusahaan menimpa judul — terukur company end **77,1 mm** vs title start **70,1 mm** (−7 mm). Akar masalah: header dua kolom tanpa batas lebar + logo tidak ter-center vertikal (nota punya formula centering, SP tidak).
+- **Perbaikan:** `generateSPPDF.js` → `computeSpHeaderMetrics()` sebagai satu sumber kebenaran (fit-to-width nama & judul per kolom A4/A5/A6, diuji regresi "celah antar kolom ≥ 1 mm"); logo mark H di-center vertikal terhadap blok identitas. `SPPreview.jsx` disamakan (logo center `alignItems`, qty pack `qty_in_unit` + sub-line "(= X pcs)" persis PDF).
+- **Bukti visual:** render PDF asli (A6 tanpa logo, A6 + A5 dengan logo placeholder) → PNG via `sips`, diperiksa manual — header bersih di ketiga ukuran.
+- **Temuan menyusul (belum dikerjakan, sesuai arahan "SP dulu"):** renderer nota lama (`generateNotaPDF.js`) punya pola header yang sama dan **A6 juga bertabrakan**: company end **81,2 mm** vs title "NOTA PENJUALAN" start **63,1 mm** (−18,1 mm); A5 aman (+9,4 mm). Kandidat fix berikutnya dengan pola `computeSpHeaderMetrics`.
+- Verifikasi batch fix: frontend **204/204 test (27 berkas)** + Vite build + checker lulus.
+
 ### ✅ Checklist review manual Harun (batch lokal v1.67.20)
 1. Form nota → Buat/Edit → "Preview Live" tampil monokrom + mark H, isi setara PDF (harga satuan, estimasi berat).
 2. Opsi Cetak → Cetak → pilih "Simpan sebagai PDF" di dialog Chrome → nama file otomatis `Nota_HSB-NOTA-….pdf` (bukan UUID) untuk A4/A5/A6; cek juga tanda terima `TT_…`.
 3. Setelah "Ya, tandai" → chip "Sudah dicetak" di toolbar; tutup modal → badge "✓ Sudah dicetak" di daftar nota.
-4. Surat Pesanan → Buat/Edit → preview baru (logo + header + tabel tanpa harga); Cetak SP → PDF bernama `SP_HSB-SP-….pdf` dan berlogo.
+4. Surat Pesanan → Buat/Edit → preview baru (logo ter-center + header + tabel tanpa harga); Cetak SP → PDF bernama `SP_HSB-SP-….pdf`, berlogo, dan **header tidak tumpang-tindih** (nama perusahaan vs SURAT PESANAN) — cek ulang hasil cetak A6 seperti temuan 26 Sep.
 5. **Belum push** — setelah oke, lanjut merge ke main.
 
 ## Update 26 Sep 2026 — Batch final (renderer lama monokrom + mark H) + migrasi 022 DIJALANKAN + merge ke main

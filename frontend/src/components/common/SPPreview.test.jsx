@@ -22,7 +22,10 @@ describe('SPPreview (format baru: monokrom + mark H, tanpa harga)', () => {
       />,
     );
 
-    expect(screen.getByAltText('Mark Habil')).toHaveAttribute('src', '/habil-mark.svg');
+    const logo = screen.getByAltText('Mark Habil');
+    expect(logo).toHaveAttribute('src', '/habil-mark.svg');
+    // Logo ter-center vertikal terhadap blok identitas (pola yang sama dengan PDF SP)
+    expect(logo.parentElement).toHaveStyle({ alignItems: 'center' });
     expect(screen.getByText('SURAT PESANAN')).toHaveStyle({ color: 'rgb(17, 17, 17)' });
     expect(screen.getByText('PT Distributor Sejahtera')).toBeInTheDocument();
     expect(screen.getByText('Nama Barang').closest('tr')).toHaveStyle({
@@ -31,5 +34,25 @@ describe('SPPreview (format baru: monokrom + mark H, tanpa harga)', () => {
     expect(screen.queryByText('Harga Satuan')).not.toBeInTheDocument();
     expect(screen.queryByText(/GRAND TOTAL/)).not.toBeInTheDocument();
     expect(screen.getByText('Hormat Kami,')).toHaveStyle({ color: 'rgb(17, 17, 17)' });
+  });
+
+  it('paritas PDF: qty_in_unit diutamakan + sub-line konversi untuk satuan pack', () => {
+    render(
+      <SPPreview
+        form={{ po_number: 'HSB-SP-2609002', distributor_name: 'PT X' }}
+        items={[{
+          product_name: 'Barang B',
+          qty: 48,
+          qty_in_unit: 2,
+          unit: 'pack',
+          pack_size_at_po: 24,
+          unit_base: 'pcs',
+        }]}
+        settings={{}}
+      />,
+    );
+
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('(= 48 pcs)')).toBeInTheDocument();
   });
 });
