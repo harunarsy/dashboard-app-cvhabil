@@ -78,7 +78,7 @@ export default function CustomerList({
   // Radar customer lama tak order (churn), rule-based best-effort
   const [churnList, setChurnList] = useState([]);
   const [churnLoading, setChurnLoading] = useState(true);
-  const [followUpOpen, setFollowUpOpen] = useState(true); // strip ringkas, bisa collapse
+  const [followUpOpen, setFollowUpOpen] = useState(false); // strip ringkas, default collapsed
 
   const cardBg = "var(--color-surface)";
   const surface = "var(--color-surface-elevated)";

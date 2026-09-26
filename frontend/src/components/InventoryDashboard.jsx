@@ -182,6 +182,7 @@ export default function InventoryDashboard({
   const [barcodePrintOpen, setBarcodePrintOpen] = useState(false);
   // Insight stok: saran restock + skor kesehatan produk (rule-based, best-effort)
   const [restockItems, setRestockItems] = useState([]);
+  const [restockOpen, setRestockOpen] = useState(false); // v1.67.20: default collapsed
   const [healthScores, setHealthScores] = useState({}); // product_id -> {grade,score,metrics}
   const [insightsLoading, setInsightsLoading] = useState(true);
 
@@ -945,14 +946,47 @@ export default function InventoryDashboard({
             backgroundColor: cardBg,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <button
+            type="button"
+            onClick={() => setRestockOpen((v) => !v)}
+            className="ui-motion-button ui-focus-ring"
+            aria-expanded={restockOpen}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              width: "100%",
+              marginBottom: restockOpen ? 10 : 0,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+              textAlign: "left",
+            }}
+          >
             <span style={{ fontSize: 14, fontWeight: 800, color: text }}>✨ Saran Restock</span>
             <span style={{ fontSize: 11, color: sub }}>
               {insightsLoading
                 ? "menyiapkan saran…"
                 : `${restockItems.length} produk hampir habis`}
             </span>
-          </div>
+            <span style={{ marginLeft: "auto", fontSize: 11, color: sub, fontWeight: 700 }}>
+              {restockOpen ? "Sembunyikan ▴" : "Lihat ▾"}
+            </span>
+          </button>
+          <div
+            aria-hidden={!restockOpen}
+            style={{
+              display: "grid",
+              gridTemplateRows: restockOpen ? "1fr" : "0fr",
+              opacity: restockOpen ? 1 : 0,
+              transition:
+                "grid-template-rows 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms ease",
+              overflow: "hidden",
+              pointerEvents: restockOpen ? "auto" : "none",
+            }}
+          >
+          <div style={{ minHeight: 0 }}>
           {insightsLoading ? (
             <div
               style={{
@@ -1036,6 +1070,8 @@ export default function InventoryDashboard({
             })}
           </div>
           )}
+          </div>
+          </div>
         </div>
       )}
 

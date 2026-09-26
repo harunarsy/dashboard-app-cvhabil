@@ -1024,7 +1024,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
           display: "flex",
           flexDirection: "column",
           gap: "4px",
-          minWidth: isMobile ? 0 : "172px",
+          minWidth: isMobile ? 0 : "150px",
           width: "100%",
         }}
       >
@@ -1399,7 +1399,7 @@ export default function PriceListPage({ isDarkMode, isMobile }) {
             boxShadow: "var(--shadow-card)",
           }}
         >
-          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: "13px", minWidth: "1240px" }}>
+          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: "13px", minWidth: "1100px" }}>
             <colgroup>
               <col style={{ width: "29%" }} />
               <col style={{ width: "17%" }} />

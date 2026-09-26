@@ -1994,10 +1994,27 @@ export default function InvoiceList({
               {tempoOpen ? "Tutup ▲" : "Detail ▼"}
             </span>
           </button>
-          {tempoOpen && (
-            <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "5px" }}>
+          <div
+            aria-hidden={!tempoOpen}
+            style={{
+              display: "grid",
+              gridTemplateRows: tempoOpen ? "1fr" : "0fr",
+              opacity: tempoOpen ? 1 : 0,
+              transition:
+                "grid-template-rows 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms ease",
+              overflow: "hidden",
+              pointerEvents: tempoOpen ? "auto" : "none",
+            }}
+          >
+            <div style={{ minHeight: 0 }}>
+              <div
+                style={{
+                  marginTop: "8px",
+                  borderTop: "1px solid var(--color-border)",
+                }}
+              >
               {[...tempoBuckets.overdue, ...tempoBuckets.week, ...tempoBuckets.later].map(
-                (i) => {
+                (i, idx, arr) => {
                   const d = daysDiff(i.due_date);
                   return (
                     <div
@@ -2008,10 +2025,11 @@ export default function InvoiceList({
                         gap: "10px",
                         flexWrap: "wrap",
                         fontSize: "12px",
-                        padding: "5px 8px",
-                        borderRadius: "8px",
-                        backgroundColor: "var(--color-surface-elevated)",
-                        border: "1px solid var(--color-border)",
+                        padding: "7px 4px",
+                        borderBottom:
+                          idx === arr.length - 1
+                            ? "none"
+                            : "1px solid var(--color-border)",
                       }}
                     >
                       <span style={{ fontWeight: 700, color: "var(--color-text)" }}>
@@ -2040,8 +2058,9 @@ export default function InvoiceList({
                   );
                 },
               )}
+              </div>
             </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -2266,15 +2285,16 @@ export default function InvoiceList({
               setShowTrash(!showTrash);
               if (!showTrash) fetchTrash();
             }}
+            className="ui-motion-button ui-focus-ring"
             style={{
               padding: "8px 14px",
               backgroundColor: showTrash
                 ? "var(--color-danger)"
-                : isDarkMode
-                  ? "var(--color-surface-raised)"
-                  : "var(--color-border)",
-              color: showTrash ? "white" : isDarkMode ? "#FFF" : "#000",
-              border: "none",
+                : "var(--color-danger-soft)",
+              color: showTrash ? "white" : "var(--color-danger)",
+              border: showTrash
+                ? "1px solid transparent"
+                : "1px solid var(--color-danger-soft-strong)",
               borderRadius: "9px",
               cursor: "pointer",
               fontWeight: "700",
@@ -2430,25 +2450,29 @@ export default function InvoiceList({
             display: "flex",
             alignItems: "center",
             gap: "10px",
-            marginBottom: showFilters ? "12px" : "0",
           }}
         >
           <div
             style={{
-              flex: 1,
+              flexGrow: showFilters ? 0 : 1,
+              flexShrink: 1,
+              flexBasis: showFilters ? "380px" : "0%",
+              transition:
+                "flex-grow 420ms cubic-bezier(0.22, 1, 0.36, 1), flex-basis 420ms cubic-bezier(0.22, 1, 0.36, 1), border-color 300ms ease",
               display: "flex",
               alignItems: "center",
               gap: "10px",
               padding: "10px 14px",
               backgroundColor: "var(--color-surface-elevated)",
               borderRadius: "10px",
-              border: "1px solid var(--color-border)",
+              border: `1px solid ${showFilters ? "var(--color-action)" : "var(--color-border)"}`,
             }}
           >
             <Search size={16} color="var(--color-text-subtle)" />
             <input
               value={universalSearch}
               onChange={(e) => setUniversalSearch(e.target.value)}
+              onFocus={() => setShowFilters(false)}
               placeholder="Cari no. faktur, distributor, produk, status..."
               style={{
                 flex: 1,
@@ -2525,12 +2549,24 @@ export default function InvoiceList({
             )}
           </button>
         </div>
-        {showFilters && (
-          <div>
+        <div
+          aria-hidden={!showFilters}
+          style={{
+            display: "grid",
+            gridTemplateRows: showFilters ? "1fr" : "0fr",
+            opacity: showFilters ? 1 : 0,
+            marginTop: showFilters ? "12px" : "0",
+            transition:
+              "grid-template-rows 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms ease, margin-top 420ms cubic-bezier(0.22, 1, 0.36, 1)",
+            overflow: "hidden",
+            pointerEvents: showFilters ? "auto" : "none",
+          }}
+        >
+          <div style={{ minHeight: 0 }}>
             <div
+              className="invoice-filter-grid"
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
                 gap: "10px",
                 paddingTop: "4px",
               }}
@@ -2611,33 +2647,34 @@ export default function InvoiceList({
                 />
               </div>
             </div>
-            <button
-              onClick={() => {
-                setSelectedMonth("all");
-                setSearchDist("");
-                setSearchInv("");
-                setFilterStatus("all");
-                setFilterDue("all");
-                setDateFrom("");
-                setDateTo("");
-              }}
-              style={{
-                marginTop: "10px",
-                padding: "8px 16px",
-                backgroundColor: isDarkMode
-                  ? "var(--color-surface-raised)"
-                  : "var(--color-border)",
-                color: isDarkMode ? "#FFF" : "#000",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontSize: "13px",
-              }}
-            >
-              Hapus Filter
-            </button>
+            <div style={{ display: "flex", alignItems: "flex-end" }}>
+              <button
+                onClick={() => {
+                  setSelectedMonth("all");
+                  setSearchDist("");
+                  setSearchInv("");
+                  setFilterStatus("all");
+                  setFilterDue("all");
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+                style={{
+                  padding: "10px 16px",
+                  backgroundColor: "var(--color-danger-soft)",
+                  color: "var(--color-danger)",
+                  border: "1px solid var(--color-danger-soft-strong)",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Hapus Filter
+              </button>
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Trash Panel */}
@@ -2796,8 +2833,8 @@ export default function InvoiceList({
           style={{
             display: "grid",
             gridTemplateColumns:
-              "36px 110px 140px minmax(160px, 1fr) 130px 130px 150px 120px 100px",
-            minWidth: "1080px",
+              "32px 88px 116px minmax(160px, 1fr) 114px 104px 124px 158px 126px",
+            minWidth: "1020px",
             padding: "12px 16px",
             backgroundColor: "var(--color-surface-elevated)",
             borderBottom: "1px solid var(--color-border)",
@@ -2854,7 +2891,8 @@ export default function InvoiceList({
               style={{
                 display: "grid",
                 gridTemplateColumns:
-                  "36px 110px 140px 1fr 130px 130px 150px 120px 100px",
+                  "32px 88px 116px minmax(160px, 1fr) 114px 104px 124px 158px 126px",
+                minWidth: "1020px",
                 padding: "14px 16px",
                 borderBottom: "1px solid var(--color-border)",
                 alignItems: "center",
@@ -4277,8 +4315,8 @@ function InvoiceRow({
         style={{
           display: "grid",
           gridTemplateColumns:
-            "36px 110px 140px minmax(160px, 1fr) 130px 130px 150px 120px 100px",
-          minWidth: "1080px",
+            "32px 88px 116px minmax(160px, 1fr) 114px 104px 124px 158px 126px",
+          minWidth: "1020px",
           padding: "14px 16px",
           borderBottom: `1px solid ${isDarkMode ? "var(--color-surface-raised)" : "#F0F0F0"}`,
           alignItems: "center",
@@ -4407,9 +4445,7 @@ function InvoiceRow({
               fontWeight: "600",
               fontSize: "13px",
               color: "var(--color-text)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              lineHeight: "1.35",
             }}
             title={inv.distributor_name}
           >
@@ -4498,6 +4534,7 @@ function InvoiceRow({
                   fontSize: "10px",
                   color: "var(--color-text-subtle)",
                   fontWeight: "600",
+                  whiteSpace: "nowrap",
                 }}
               >
                 Jatuh tempo:{" "}
