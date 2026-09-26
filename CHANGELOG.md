@@ -15,6 +15,12 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 - **PATCH status cetak yang gagal tidak lagi menghilangkan konfirmasi.** Prompt "Ya, tandai"/"Tidak" dipertahankan saat penyimpanan status gagal sehingga "Ya, tandai" bisa dicoba ulang tanpa mengunduh ulang; klik ganda "Ya, tandai" hanya mengirim satu PATCH (guard `savingRef` + tombol nonaktif selama menyimpan).
 - **Canvas 2D tidak tersedia kini menjadi kegagalan preview yang terlihat + bisa diulang.** Cabang `getContext('2d')` yang mengembalikan `null` tidak lagi meninggalkan kanvas kosong tanpa penjelasan — muncul pesan "canvas 2D tidak tersedia" + tombol "Coba lagi", sementara unduh & cetak tetap aktif karena memakai blob.
 
+### Diubah
+- **Renderer lama (A5/A6, tanda terima, pinjaman) memakai bahasa visual baru.** Aksen biru diganti tinta monokrom dan mark "H" resmi (`frontend/public/habil-mark.svg`, dirasterisasi saat runtime agar bisa dipakai jsPDF) sebagai satu-satunya aksen identitas; ukuran font A6 disesuaikan (7 → 7.5). Perubahan visual yang disengaja pada semua cetakan jalur lama.
+- **Tanda terima mendapat validasi konten.** `validateSalesDocument` untuk `type: 'terima'` memblokir dokumen tanpa item dan item dengan qty ≤ 0/non-numerik.
+- **Modal Opsi Cetak tidak bisa ditutup saat penyimpanan status cetak berjalan.** Escape dan tombol X ditahan (`closeSession` menolak saat `savingRef` aktif) agar konfirmasi retry PATCH tidak hilang di tengah proses.
+- **Migrasi 022 kompatibel `print_settings.setting_value` bertipe TEXT maupun JSONB.** DB lama menyimpan `setting_value` sebagai TEXT (bukan JSONB seperti definisi migrasi 014), sehingga merge NPWP memakai blok `DO` yang memilih operator sesuai tipe kolom aktual; seed flag memakai literal teks yang valid untuk keduanya.
+
 ### Ditambahkan
 - **Preview PDF aktual di modal Opsi Cetak.** Satu modul sumber (`buildSalesDocumentPdf`) menghasilkan blob yang sama untuk preview, unduh, dan cetak; preview merender via `pdfjs-dist` (lazy) dengan canvas, toolbar ukuran/zoom/fit, navigasi halaman, jumlah halaman selalu terlihat, state loading/error + "Coba lagi", dan tata letak responsif (target sentuh ≥44px, akses keyboard).
 - **Panel validasi sebelum cetak.** Pemeriksaan nomor nota, kelengkapan identitas A4, jatuh tempo, panjang referensi pengadaan, jumlah item vs ukuran, dan konsistensi nominal. Ketidakkonsistenan nominal serta data wajib A4 memblokir unduh dan cetak; peringatan lain bersifat informatif.
@@ -23,12 +29,13 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
 ### Catatan
 - Flag `documents_renderer_v2` **masih `false`** — A5/A6 tetap memakai renderer lama sampai paritas terbukti; `terima` tetap di renderer lama, nota hasil konversi pinjaman ikut jalur lama selama flag masih `false` (A4 nota selalu renderer baru).
-- **Migration 022 belum dijalankan di database mana pun** pada saat commit rilis ini dibuat. Urutan rollout, audit penulis kolom baru, verifikasi read-only, dan rollback ada di `docs/superpowers/notes/2026-09-22-migration-022-rollout.md`.
+- **Migration 022 sudah dijalankan ke database target pada 26 Sep 2026** (backup penuh `pg_dump` lebih dulu, 1 applied / 21 skipped), dengan verifikasi read-only: 20/20 kolom `sales_orders`, 8/8 kolom `customers`, `nota_layout.npwp` ter-seed, flag `documents_renderer_v2` tetap `false`. Urutan rollout, audit penulis kolom baru, verifikasi read-only, dan rollback ada di `docs/superpowers/notes/2026-09-22-migration-022-rollout.md`.
 - Panel "Preview Live" di form (draft HTML saat mengetik) belum diganti PDF — keputusan pemilik.
 - Verifikasi visual PDF (layout, halaman, ukuran) tetap manual oleh Harun.
 
 ### Diverifikasi
-- Frontend lulus 171/171 test (23 berkas) termasuk test baru fase 2–4 (PrintSettings anti-timpa, PPN snapshot, PdfPreviewPanel prompt status + retry kanvas + kanvas 2D null, validasi total item-based, `printBlobInIframe`, dan race sesi/retry PATCH/anti klik ganda `useSalesPrintFlow`); production build Vite lulus. Backend lulus 21 delta unit checks, 4 delta confirmation checks, 16 delta safety checks, 13 schema boundary checks, 25 HTTP smoke checks, dan 43 adjustment hardening checks. Version checker `v1.67.19-stable` lulus; `git diff --check` bersih. Tidak ada migration yang dijalankan saat validasi rilis ini.
+- Frontend lulus **192/192 test (24 berkas)** termasuk test baru fase 2–4 dan batch final (PrintSettings anti-timpa, PPN snapshot, PdfPreviewPanel prompt status + retry kanvas + kanvas 2D null, validasi total item-based + `terima`, `printBlobInIframe`, race sesi/retry PATCH/anti klik ganda `useSalesPrintFlow`, logo `habil-mark`); production build Vite lulus. Backend lulus 21 delta unit checks, 4 delta confirmation checks, 16 delta safety checks, 13 schema boundary checks, 25 HTTP smoke checks, dan 43 adjustment hardening checks. Version checker `v1.67.19-stable` lulus; `git diff --check` bersih.
+- Migrasi 022 dijalankan 26 Sep 2026 setelah backup `~/Downloads/habil-db-backup-pre-022-20260923.dump` (1.64 MB): **1 applied, 21 skipped**; verifikasi read-only pasca-migrasi lulus (kolom 20/20 + 8/8, `npwp` ter-seed, flag `false`). Verifikasi visual aplikasi pasca-deploy tetap manual oleh owner.
 
 ## [v1.67.18-stable] - 2026-09-22
 

@@ -1137,17 +1137,36 @@ const migrations = [
           ADD COLUMN IF NOT EXISTS tax_invoice_date DATE
       `);
       // NPWP pindah dari hardcode frontend ke print_settings (hanya bila belum ada).
+      // setting_value bisa TEXT (DB lama) atau JSONB (DB baru) — tangani keduanya.
       await db.query(`
-        UPDATE print_settings
-           SET setting_value = setting_value || '{"npwp":"93.813.949.0-609.000"}'::jsonb,
-               updated_at = NOW()
-         WHERE setting_key = 'nota_layout'
-           AND NOT (setting_value ? 'npwp')
+        DO $$
+        DECLARE
+          setting_type text;
+        BEGIN
+          SELECT data_type INTO setting_type
+            FROM information_schema.columns
+           WHERE table_name = 'print_settings' AND column_name = 'setting_value';
+
+          IF setting_type = 'jsonb' THEN
+            UPDATE print_settings
+               SET setting_value = setting_value || '{"npwp":"93.813.949.0-609.000"}'::jsonb,
+                   updated_at = NOW()
+             WHERE setting_key = 'nota_layout'
+               AND NOT (setting_value ? 'npwp');
+          ELSE
+            UPDATE print_settings
+               SET setting_value = (setting_value::jsonb || '{"npwp":"93.813.949.0-609.000"}'::jsonb)::text,
+                   updated_at = NOW()
+             WHERE setting_key = 'nota_layout'
+               AND setting_value IS NOT NULL
+               AND NOT ((setting_value::jsonb) ? 'npwp');
+          END IF;
+        END $$;
       `);
       // Flag rollout renderer baru — default OFF (jalur lama tetap dipakai).
       await db.query(`
         INSERT INTO print_settings (setting_key, setting_value)
-        VALUES ('documents_renderer_v2', '{"enabled": false}'::jsonb)
+        VALUES ('documents_renderer_v2', '{"enabled": false}')
         ON CONFLICT (setting_key) DO NOTHING
       `);
     },

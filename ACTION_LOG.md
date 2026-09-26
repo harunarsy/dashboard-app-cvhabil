@@ -4,6 +4,22 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 26 Sep 2026 — Batch final (renderer lama monokrom + mark H) + migrasi 022 DIJALANKAN + merge ke main
+- **Batch final dari sesi owner** (renderer lama jadi monokrom + mark "H" resmi `habil-mark.svg`, modal cetak tidak bisa ditutup saat PATCH saving, validasi `terima`, logo di nota pinjaman) sudah diverifikasi mandor: frontend **192/192 test (24 berkas)**, build Vite lulus, backend lulus 21/4/16/13/25/43 checks. Batch tidak menyentuh backend.
+- **Fix mandor pra-migrasi:** statement settings di migrasi 022 dibuat type-safe — DB live menyimpan `print_settings.setting_value` sebagai **TEXT** (bukan JSONB seperti definisi migrasi 014), jadi merge NPWP memakai blok `DO` pemilih tipe. Tanpa ini migrasi akan gagal saat dijalankan.
+- **Migrasi 022 DIJALANKAN 26 Sep 2026** setelah backup penuh `pg_dump` 17 → `~/Downloads/habil-db-backup-pre-022-20260923.dump` (1.64 MB). Hasil: **1 applied, 21 skipped** (`[Migration] confirmed host ep-frosty-glitter-...neon.tech`). Verifikasi read-only: 20/20 kolom `sales_orders`, 8/8 kolom `customers`, `nota_layout.npwp` ter-seed, `documents_renderer_v2` ada dengan `enabled=false`.
+- **Merge ke main + push dilakukan dalam sesi ini** (setelah migrasi, urutan benar: migrasi → backend → frontend): branch di-push, fast-forward ke `main`, `main` di-push → Vercel deploy otomatis. Bukti: `git log origin/main`.
+- **Flag `documents_renderer_v2` tetap `false`** — A5/A6 memakai renderer lama (dengan tampilan monokrom baru) sampai cutover; A4 selalu engine baru.
+- Rollback aplikasi: redeploy commit main sebelumnya — kolom additive boleh tetap ada, tidak ada backfill/data bisnis yang diubah oleh migrasi.
+
+### ✅ Checklist pasca-deploy (owner)
+1. Buka app produksi → login → version label `v1.67.19-stable`.
+2. Nota A5/A6, tanda terima, nota pinjaman: tampilan monokrom + mark H; cetak/unduh normal; blob sama antara preview & file.
+3. Nota A4 instansi: faktur + NPWP terbaca dari `nota_layout` (sudah ter-seed oleh migrasi).
+4. Form nota → bagian "Dokumen Resmi (A4)": isi & simpan, buka lagi → snapshot terbaca (kolom DB sudah ada).
+5. PrintSettings: ubah satu field → simpan → muat ulang → `npwp`/`email`/kunci lain tetap utuh.
+6. Validasi: nota dengan total ≠ jumlah item → unduh/cetak terkunci; prompt status hanya menandai setelah "Ya, tandai".
+
 ## Update 23 Sep 2026 — Official Sales Documents Fase 2 + Fase 3 + rilis v1.67.19-stable (branch, belum di-push)
 - **Fase 2 + Fase 3 SELESAI di branch `feat/official-sales-documents`** (sejak docs plan `b9cc34a`; HEAD: lipatan fase 3 ke CHANGELOG/ACTION_LOG — lihat `git log`) — **BELUM di-push, belum dideploy, tidak ada migrasi/SQL yang dijalankan.**
 - Tiga bug diperbaiki dengan test-gagal-dulu: preservasi kunci `nota_layout` saat simpan PrintSettings (npwp/email tidak lagi terhapus), PPN 0% & tarif pecahan sesuai snapshot, judul per ukuran (A4 faktur, A5/A6 nota).

@@ -1,11 +1,11 @@
 # Rollout Migrasi 022 — Sales Document Legal (Rilis v1.67.19-stable)
 
-**Tanggal:** 23 September 2026
-**Konteks:** Fase 2 Official Sales Documents — branch `feat/official-sales-documents`, **belum di-push dan belum dideploy**
-**Status migrasi:** `20260922_022_sales_document_legal` **belum dijalankan di database mana pun**
+**Tanggal:** 23 September 2026 (audit) · **Update 26 September 2026 (dijalankan)**
+**Konteks:** Fase 2 Official Sales Documents — branch `feat/official-sales-documents` → merge ke `main`
+**Status migrasi:** ✅ **SUDAH DIJALANKAN 26 Sep 2026** ke DB target setelah backup penuh (`~/Downloads/habil-db-backup-pre-022-20260923.dump`, 1.64 MB) — hasil **1 applied, 21 skipped**; verifikasi read-only lulus (20/20 kolom `sales_orders`, 8/8 kolom `customers`, `nota_layout.npwp` ter-seed, `documents_renderer_v2` `enabled=false`). Catatan eksekusi: DB live menyimpan `setting_value` sebagai **TEXT**, sehingga statement settings memakai blok `DO` pemilih tipe (sudah masuk repo).
 **Flag renderer:** `documents_renderer_v2` masih `false` (seed) — A5/A6 tetap memakai renderer lama; `terima` selalu jalur lama; `pinjaman` (nota hasil konversi bertipe `nota`) ikut jalur lama hanya di A5/A6 selama flag off — A4 sudah v2
 
-> Dokumen ini adalah hasil audit kode (read-only). Semua perintah di bawah **untuk dijalankan manual oleh Harun**, bukan oleh agen.
+> Dokumen ini adalah hasil audit kode (read-only). Semua perintah di bawah **untuk dijalankan manual oleh Harun**, bukan oleh agen. (Seksi 2-5 dipertahankan sebagai referensi rollback/verifikasi.)
 
 ---
 
