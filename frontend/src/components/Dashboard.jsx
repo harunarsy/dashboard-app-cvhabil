@@ -6374,10 +6374,10 @@ export default function Dashboard({
                       className="ui-surface-card ui-hover-delight rounded-2xl p-5 mb-4 border shadow-sm"
                       style={{ backgroundColor: cardBg, borderColor: border }}
                     >
-                      <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center gap-3">
+                      <div className="flex justify-between items-center mb-4 flex-wrap gap-x-3 gap-y-1">
+                        <div className="flex items-center gap-3 flex-wrap">
                           <span
-                            className="text-lg font-bold"
+                            className="text-lg font-bold whitespace-nowrap"
                             style={{ color: text }}
                           >
                             {rel.version}
@@ -6399,7 +6399,7 @@ export default function Dashboard({
                           </span>
                         </div>
                         <span
-                          className="text-xs font-medium"
+                          className="text-xs font-medium whitespace-nowrap shrink-0"
                           style={{ color: sub }}
                         >
                           {rel.date}

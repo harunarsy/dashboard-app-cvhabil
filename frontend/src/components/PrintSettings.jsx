@@ -1,11 +1,27 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Save, Loader2, Printer, Monitor, Activity } from "lucide-react";
 import Skeleton from "./common/Skeleton";
+import NotaPreview from "./common/NotaPreview";
 import { printSettingsAPI, settingsAPI } from "../services/api";
 import Breadcrumb from "./common/Breadcrumb";
 import { UI_MOTION, uiTransition } from "../constants/ui";
 import SectionHeader from "./common/SectionHeader";
 import ToastNotice from "./common/ToastNotice";
+
+// v1.67.20: data contoh untuk Live Preview (pakai komponen NotaPreview asli)
+const PREVIEW_FORM = {
+  order_number: "HSB-NOTA-0001",
+  sale_date: new Date().toISOString().slice(0, 10),
+  customer_name: "Contoh Customer",
+  customer_phone: "0812-3456-7890",
+  customer_address: "Jl. Contoh No. 1, Sidoarjo",
+  payment_method: "Tunai",
+  channel: "offline",
+};
+const PREVIEW_ITEMS = [
+  { product_name: "Contoh Produk A", qty: 2, qty_in_unit: 2, unit_price: 50000 },
+  { product_name: "Contoh Produk B", qty: 1, qty_in_unit: 1, unit_price: 75000 },
+];
 export default function PrintSettings({
   isDarkMode,
   isSidebarOpen,
@@ -207,7 +223,7 @@ export default function PrintSettings({
     settings.address || "Alamat toko Anda akan muncul di sini";
   const previewPhone = settings.phone || "";
   const previewFooter =
-    settings.footer_text || "Dokumen dicetak otomatis oleh Habil SuperApp";
+    settings.footer_text || "Dokumen dicetak otomatis oleh Habil Operational";
   const previewKetentuan = settings.ketentuan
     ? settings.ketentuan
         .split("\n")
@@ -405,7 +421,12 @@ export default function PrintSettings({
                 gap: "16px",
               }}
             >
-              <div style={fieldGroupStyle}>
+              <div
+                style={{
+                  ...fieldGroupStyle,
+                  gridColumn: isMobile ? "auto" : "1 / -1",
+                }}
+              >
                 {" "}
                 <label style={labelStyle}>NAMA TOKO</label>{" "}
                 <input
@@ -419,11 +440,16 @@ export default function PrintSettings({
                   style={fieldStyle}
                 />{" "}
               </div>{" "}
-              <div style={fieldGroupStyle}>
+              <div
+                style={{
+                  ...fieldGroupStyle,
+                  gridColumn: isMobile ? "auto" : "1 / -1",
+                }}
+              >
                 {" "}
                 <label style={labelStyle}>ALAMAT</label>{" "}
                 <textarea
-                  rows={3}
+                  rows={2}
                   className="ui-form-field ui-focus-ring"
                   value={settings.address}
                   onChange={(e) =>
@@ -505,7 +531,7 @@ export default function PrintSettings({
                   KETENTUAN / NOTES (opsional)
                 </label>{" "}
                 <textarea
-                  rows={4}
+                  rows={6}
                   className="ui-form-field ui-focus-ring"
                   value={settings.ketentuan}
                   onChange={(e) =>
@@ -514,10 +540,10 @@ export default function PrintSettings({
                   placeholder={
                     "Satu baris = satu poin. Contoh:\nHarap mengecek kembali barang yang diterima\nWajib video unboxing apabila menggunakan ekspedisi"
                   }
-                  style={{ ...fieldStyle, resize: "vertical" }}
+                  style={{ ...fieldStyle, resize: "vertical", lineHeight: "1.55" }}
                 />{" "}
                 <p style={{ fontSize: "11px", color: sub, marginTop: "6px" }}>
-                  Tampil merah di PDF. Satu baris = satu nomor poin.
+                  Satu baris = satu poin ketentuan di nota.
                 </p>{" "}
               </div>{" "}
               <div
@@ -574,17 +600,17 @@ export default function PrintSettings({
                   {
                     key: "high",
                     label: "Untung tinggi (%)",
-                    helper: "di atas ambang ini",
+                    helper: "ambang untung tinggi",
                   },
                   {
                     key: "normal",
                     label: "Untung normal (%)",
-                    helper: "batas bawah kategori normal",
+                    helper: "ambang untung normal",
                   },
                   {
                     key: "thin",
                     label: "Tipis (%)",
-                    helper: "di bawah ini dianggap rugi",
+                    helper: "di bawah ini = rugi",
                   },
                 ].map((field) => (
                   <div key={field.key}>
@@ -680,359 +706,15 @@ export default function PrintSettings({
               <SectionHeader
                 title="Live Preview"
                 icon={<Monitor size={16} />}
-                description="Tampilan real-time saat diisi."
+                description="Tampilan real-time saat diisi — lembar landscape (sama dengan hasil cetak)."
               />{" "}
-              {/* Document Preview Card */}{" "}
-              <div
-                style={{
-                  backgroundColor: "#FFF",
-                  borderRadius: "12px",
-                  padding: "16px",
-                  border: "1px solid var(--color-border)",
-                  boxShadow: "var(--shadow-card)",
-                  fontFamily: "Helvetica, Arial, sans-serif",
-                  maxWidth: "100%",
-                  overflow: "hidden",
-                }}
-              >
-                {" "}
-                {/* Header */}{" "}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "10px",
-                  }}
-                >
-                  {" "}
-                  <div style={{ flex: 1 }}>
-                    {" "}
-                    <div
-                      style={{
-                        fontSize: "13px",
-                        fontWeight: "800",
-                        color: "var(--color-action)",
-                        marginBottom: "3px",
-                      }}
-                    >
-                      {previewName}
-                    </div>{" "}
-                    <div
-                      style={{
-                        fontSize: "9px",
-                        color: "#555",
-                        lineHeight: "1.4",
-                      }}
-                    >
-                      {previewAddr}
-                    </div>{" "}
-                    {previewPhone && (
-                      <div style={{ fontSize: "9px", color: "#555" }}>
-                        {previewPhone}
-                      </div>
-                    )}{" "}
-                  </div>{" "}
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    {" "}
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "800",
-                        color: "#000",
-                        marginBottom: "2px",
-                      }}
-                    >
-                      NOTA PENJUALAN
-                    </div>{" "}
-                    <div style={{ fontSize: "8px", color: "#777" }}>
-                      No: NT/2026/001
-                    </div>{" "}
-                    <div style={{ fontSize: "8px", color: "#777" }}>
-                      11 Mei 2026
-                    </div>{" "}
-                  </div>{" "}
-                </div>{" "}
-                <div
-                  style={{
-                    height: "1.5px",
-                    backgroundColor: "var(--color-action)",
-                    marginBottom: "8px",
-                    borderRadius: "2px",
-                  }}
-                />{" "}
-                <div style={{ marginBottom: "6px" }}>
-                  {" "}
-                  <span style={{ fontSize: "9px", color: "#555" }}>
-                    Kepada Yth:{" "}
-                  </span>{" "}
-                  <span
-                    style={{
-                      fontSize: "9px",
-                      fontWeight: "700",
-                      color: "#000",
-                    }}
-                  >
-                    Nama Customer
-                  </span>{" "}
-                </div>{" "}
-                <div
-                  style={{
-                    backgroundColor: "var(--color-bg)",
-                    borderRadius: "6px",
-                    overflow: "hidden",
-                    marginBottom: "8px",
-                  }}
-                >
-                  {" "}
-                  <table
-                    style={{
-                      width: "100%",
-                      fontSize: "8px",
-                      borderCollapse: "collapse",
-                    }}
-                  >
-                    {" "}
-                    <thead>
-                      {" "}
-                      <tr
-                        style={{
-                          backgroundColor: "var(--color-action)",
-                          color: "#FFF",
-                        }}
-                      >
-                        {" "}
-                        {["No", "Nama Barang", "Qty", "Harga", "Total"].map(
-                          (h) => (
-                            <th
-                              key={h}
-                              style={{ padding: "3px 5px", textAlign: "left" }}
-                            >
-                              {h}
-                            </th>
-                          ),
-                        )}{" "}
-                      </tr>{" "}
-                    </thead>{" "}
-                    <tbody>
-                      {" "}
-                      <tr>
-                        {" "}
-                        <td
-                          style={{
-                            padding: "3px 5px",
-                            color: "var(--color-border-strong)",
-                          }}
-                        >
-                          1
-                        </td>{" "}
-                        <td
-                          style={{
-                            padding: "3px 5px",
-                            color: "var(--color-border-strong)",
-                          }}
-                        >
-                          Contoh Produk
-                        </td>{" "}
-                        <td
-                          style={{
-                            padding: "3px 5px",
-                            color: "var(--color-border-strong)",
-                          }}
-                        >
-                          2
-                        </td>{" "}
-                        <td
-                          style={{
-                            padding: "3px 5px",
-                            color: "var(--color-border-strong)",
-                          }}
-                        >
-                          Rp 50.000
-                        </td>{" "}
-                        <td
-                          style={{
-                            padding: "3px 5px",
-                            color: "var(--color-border-strong)",
-                          }}
-                        >
-                          Rp 100.000
-                        </td>{" "}
-                      </tr>{" "}
-                    </tbody>{" "}
-                  </table>{" "}
-                </div>{" "}
-                <div
-                  style={{
-                    textAlign: "right",
-                    fontSize: "9px",
-                    fontWeight: "800",
-                    color: "#000",
-                    marginBottom: "6px",
-                  }}
-                >
-                  GRAND TOTAL: Rp 100.000
-                </div>{" "}
-                {/* Ketentuan preview */}{" "}
-                {previewKetentuan.length > 0 && (
-                  <div style={{ marginBottom: "6px" }}>
-                    {" "}
-                    <span
-                      style={{
-                        fontSize: "7px",
-                        fontWeight: "700",
-                        color: "var(--color-danger)",
-                      }}
-                    >
-                      NOTE:{" "}
-                    </span>{" "}
-                    {previewKetentuan.map((line, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          fontSize: "7px",
-                          color: "var(--color-danger)",
-                        }}
-                      >
-                        {i + 1}. {line}
-                      </div>
-                    ))}{" "}
-                    {settings.ketentuan &&
-                      settings.ketentuan.split("\n").filter((l) => l.trim())
-                        .length > 2 && (
-                        <div
-                          style={{
-                            fontSize: "7px",
-                            color: "var(--color-danger)",
-                            opacity: 0.6,
-                          }}
-                        >
-                          …
-                        </div>
-                      )}{" "}
-                  </div>
-                )}{" "}
-                {/* Bank info preview */}{" "}
-                {settings.bank_info && (
-                  <div
-                    style={{
-                      textAlign: "center",
-                      fontSize: "8px",
-                      fontWeight: "700",
-                      color: "#000",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    {" "}
-                    REK {settings.bank_info}{" "}
-                  </div>
-                )}{" "}
-                {settings.qris_text && (
-                  <div
-                    style={{
-                      textAlign: "center",
-                      fontSize: "8px",
-                      fontWeight: "700",
-                      color: "#000",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    {" "}
-                    {settings.qris_text}{" "}
-                  </div>
-                )}{" "}
-                {/* Signatures preview */}{" "}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "6px",
-                    fontSize: "8px",
-                  }}
-                >
-                  {" "}
-                  <div style={{ textAlign: "center" }}>
-                    {" "}
-                    <div style={{ color: "#555" }}>Penerima,</div>{" "}
-                    <div
-                      style={{
-                        borderBottom: "1px solid #555",
-                        width: "60px",
-                        margin: "14px auto 4px",
-                      }}
-                    />{" "}
-                    <div style={{ color: "#999" }}>( )</div>{" "}
-                  </div>{" "}
-                  <div style={{ textAlign: "center" }}>
-                    {" "}
-                    <div style={{ color: "#555" }}>Hormat kami,</div>{" "}
-                    <div
-                      style={{
-                        borderBottom: "1px solid #555",
-                        width: "60px",
-                        margin: "14px auto 4px",
-                      }}
-                    />{" "}
-                    {settings.signer_name && (
-                      <div style={{ color: "#333", fontSize: "7px" }}>
-                        {settings.signer_name}
-                      </div>
-                    )}{" "}
-                  </div>{" "}
-                </div>{" "}
-                {/* Footer */}{" "}
-                <div
-                  style={{
-                    borderTop: "1px dashed var(--color-border)",
-                    paddingTop: "5px",
-                    textAlign: "center",
-                  }}
-                >
-                  {" "}
-                  <div style={{ fontSize: "7px", color: "#AEAEB2" }}>
-                    {previewFooter}
-                  </div>{" "}
-                </div>{" "}
-              </div>{" "}
-              {/* Legend */}{" "}
-              <div
-                style={{
-                  marginTop: "12px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "4px",
-                }}
-              >
-                {" "}
-                {[
-                  { color: "var(--color-action)", label: "Nama Toko" },
-                  { color: "#555", label: "Alamat & Telepon" },
-                  { color: "var(--color-danger)", label: "Ketentuan / Notes" },
-                  { color: "#AEAEB2", label: "Footer / Catatan Kaki" },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    {" "}
-                    <div
-                      style={{
-                        width: "8px",
-                        height: "8px",
-                        borderRadius: "50%",
-                        backgroundColor: item.color,
-                        flexShrink: 0,
-                      }}
-                    />{" "}
-                    <span style={{ fontSize: "11px", color: sub }}>
-                      {item.label}
-                    </span>{" "}
-                  </div>
-                ))}{" "}
-              </div>{" "}
+              {/* v1.67.20: Live Preview pakai komponen NotaPreview asli — kini berbentuk
+                  lembar landscape konsisten dengan cetak A5/A6; geser kiri/kanan bila sempit */}
+              <NotaPreview
+                form={PREVIEW_FORM}
+                items={PREVIEW_ITEMS}
+                settings={settings}
+              />
             </div>{" "}
           </div>{" "}
         </div>

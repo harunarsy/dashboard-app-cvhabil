@@ -32,8 +32,6 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
   const qrisText = settings.qris_text || '';
   const ketentuan = settings.ketentuan || '';
 
-  const isCash = payment_method === 'Tunai' || payment_method === 'Cash';
-
   const { dpp, ppn, ongkir, ccFee, totalBayar, terbilang } = useMemo(() => {
     const t = items.reduce((s, i) => {
       const qty = parseFloat(i.qty_in_unit ?? i.qty) || 0;
@@ -87,11 +85,17 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
   }, [displayNo]);
 
   return (
-    <div style={{
-      backgroundColor: '#FFF', borderRadius: '10px', padding: '16px',
-      border: '1px solid var(--color-border)', boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-      fontFamily: 'Helvetica, Arial, sans-serif', color: INK,
-    }}>
+    // v1.67.20: pratinjau disajikan sebagai LEMBAR landscape (rasio kertas 210:148,
+    // sama dengan orientasi cetak A5/A6 di generateNotaPDF). Kolom sempit → geser
+    // kiri/kanan (overflowX), bukan memaksa tata letak berdiri/portrait.
+    <div style={{ overflowX: 'auto', paddingBottom: '4px' }}>
+      <div style={{
+        backgroundColor: '#FFF', borderRadius: '10px', padding: '16px',
+        border: '1px solid var(--color-border)', boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+        fontFamily: 'Helvetica, Arial, sans-serif', color: INK,
+        minWidth: '520px', width: '100%', maxWidth: '680px', margin: '0 auto',
+        aspectRatio: '210 / 148', display: 'flex', flexDirection: 'column',
+      }}>
       {/* Header — logo mark H + identitas perusahaan (kiri), judul + metadata (kanan) */}
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
         <div style={{ display: 'flex', gap: '10px', flex: 1, minWidth: 0 }}>
@@ -117,7 +121,7 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
           )}
           <div style={{ fontSize: '11px', color: SUB }}>No: {displayNo}</div>
           <div style={{ fontSize: '11px', color: SUB }}>{headerDate}</div>
-          {due_date && !isCash && (
+          {due_date && (
             <div style={{ fontSize: '11px', color: INK, fontWeight: '700', marginTop: '2px' }}>Jatuh Tempo Pembayaran: {fmtDate(due_date)}</div>
           )}
           {payment_method && (
@@ -201,6 +205,10 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
         <div style={{ fontSize: '13px', fontWeight: '800', color: INK, marginTop: '2px' }}>GRAND TOTAL: {fmtRp(totalBayar)}</div>
       </div>
 
+      {/* v1.67.20: blok bawah menempel ke dasar lembar (seperti cetak) — catatan
+          di kiri, bank di tengah, tanda tangan kiri/kanan, footer di dasar. */}
+      <div style={{ marginTop: 'auto', paddingTop: '8px' }}>
+      <div style={{ maxWidth: '58%' }}>
       {terbilang && (
         <div style={{ fontSize: '10px', color: SUB, fontStyle: 'italic', marginBottom: '6px' }}>Terbilang: {terbilang}</div>
       )}
@@ -223,6 +231,7 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
           {ketentuanMore && <div style={{ fontSize: '10px', color: FAINT }}>…</div>}
         </div>
       )}
+      </div>
 
       {/* Bank */}
       {bankInfo && (
@@ -252,6 +261,8 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
           <div style={{ fontSize: '10px', color: FAINT }}>{footerText}</div>
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }
