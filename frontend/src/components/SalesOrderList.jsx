@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Plus,
   Trash2,
@@ -266,20 +266,23 @@ export default function SalesOrderList({
   const [showModal, setShowModal] = useState(false);
   // Auto-buka modal create saat datang dari Akses Cepat Dashboard (state quickCreate).
   const location = useLocation();
+  const navigate = useNavigate();
   useEffect(() => {
-    if (new URLSearchParams(location.search).get("tab") === "pinjaman") {
-      setPageTab("pinjaman");
-    }
+    // v1.67.20: sinkron dua arah tab ↔ URL — tab aktif selalu mengikuti ?tab=pinjaman
+    // (dulu satu arah, jadi klik "Penjualan" tidak mengubah URL & sidebar tetap
+    // menyorot "Pinjaman Produk").
+    const tabParam = new URLSearchParams(location.search).get("tab");
+    setPageTab(tabParam === "pinjaman" || location.state?.loanTab ? "pinjaman" : "nota");
     if (location.state?.quickCreate) {
       setShowModal(true);
       window.history.replaceState({}, document.title); // cegah re-open saat reload/back
     }
     // v1.54.0: banner pinjaman overdue di Dashboard → langsung buka tab Pinjaman
     if (location.state?.loanTab) {
-      setPageTab("pinjaman");
       window.history.replaceState({}, document.title);
+      navigate("/sales?tab=pinjaman", { replace: true });
     }
-  }, [location.search, location.state]);
+  }, [location.search, location.state, navigate]);
   // Mobile: form & preview tidak muat berdampingan → tab; filter dilipat default
   const [formTab, setFormTab] = useState("form"); // 'form' | 'preview'
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -2048,7 +2051,7 @@ export default function SalesOrderList({
         await importWithReload(() => import("../utils/generateLaporanPDF"));
       const selected = orders.filter((o) => selectedNotaIds.has(o.id));
       generateLaporanPDF(selected, {
-        companyName: "HABIL SUPERAPP",
+        companyName: "Habil Operational",
         filterInfo: `${selected.length} nota dipilih`,
         dateRange: "Custom selection",
       });
@@ -2292,7 +2295,7 @@ export default function SalesOrderList({
       items: enriched,
       total: grandTotal,
       orderNumber,
-      dueDate: form.payment_method !== "Tunai" ? form.due_date : "",
+      dueDate: form.due_date,
     });
   };
   const handleCopyWaMessage = async () => {
@@ -2345,7 +2348,12 @@ export default function SalesOrderList({
       ].map((t) => (
         <button
           key={t.key}
-          onClick={() => setPageTab(t.key)}
+          onClick={() => {
+            setPageTab(t.key);
+            // v1.67.20: tab aktif ikut mengubah URL supaya sidebar (isCurrent =
+            // pathname+search) tidak salah sorot "Pinjaman Produk".
+            navigate(t.key === "pinjaman" ? "/sales?tab=pinjaman" : "/sales");
+          }}
           className="ui-motion-button"
           style={{
             padding: "6px 16px",
@@ -4923,10 +4931,6 @@ export default function SalesOrderList({
                           setForm((p) => ({
                             ...p,
                             payment_method: v,
-                            // v1.8.1: Tunai → auto-clear due_date (gak ada tempo untuk cash)
-                            ...(v === "Tunai"
-                              ? { due_date: "", payment_terms: null }
-                              : {}),
                             // v1.25.1: pindah ke Kartu Kredit → prefill fee default;
                             // metode lain → fee dinolkan
                             ...(v === "Kartu Kredit"
@@ -5033,9 +5037,8 @@ export default function SalesOrderList({
                     </div>
                   )}
 
-                  {/* Tempo Pembayaran — v1.8.1: hide kalau Tunai (cash gak ada tempo) */}
-                  {form.payment_method !== "Tunai" ? (
-                    <div>
+                  {/* Tempo Pembayaran — v1.67.20: semua metode (termasuk Tunai) bisa pakai tempo */}
+                  <div>
                       <label style={labelStyle}>
                         Tempo Pembayaran (Jatuh Tempo)
                       </label>
@@ -5099,23 +5102,6 @@ export default function SalesOrderList({
                         placeholder="Atau pilih tanggal manual"
                       />
                     </div>
-                  ) : (
-                    <div
-                      style={{
-                        padding: "10px 12px",
-                        background: isDarkMode
-                          ? "var(--color-surface-elevated)"
-                          : "var(--color-bg)",
-                        borderRadius: "10px",
-                        border: `1px dashed ${isDarkMode ? "var(--color-border-strong)" : "var(--color-border)"}`,
-                      }}
-                    >
-                      <p style={{ margin: 0, fontSize: "11px", color: sub }}>
-                        Pembayaran <strong>Tunai</strong> — tidak ada tempo.
-                        Ganti metode (Transfer / QRIS) kalau perlu jatuh tempo.
-                      </p>
-                    </div>
-                  )}
 
                   <div>
                     <label style={labelStyle}>Saluran Penjualan</label>
@@ -6404,15 +6390,13 @@ export default function SalesOrderList({
                       style={{
                         flex: 1,
                         padding: "13px",
-                        backgroundColor: isDarkMode
-                          ? "var(--color-surface-raised)"
-                          : "var(--color-bg)",
-                        color: text,
-                        border: "none",
+                        backgroundColor: "var(--color-danger-soft)",
+                        color: "var(--color-danger)",
+                        border: "1px solid var(--color-danger-soft-strong)",
                         borderRadius: "10px",
                         cursor: "pointer",
                         fontSize: "14px",
-                        fontWeight: "600",
+                        fontWeight: "700",
                       }}
                     >
                       Batal
