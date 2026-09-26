@@ -368,6 +368,7 @@ describe('PdfPreviewPanel', () => {
 
     const confirm = screen.getByRole('button', { name: 'Ya, tandai' });
     const dismiss = screen.getByRole('button', { name: 'Tidak' });
+    expect(screen.getByText('Menyimpan status cetak…')).toBeInTheDocument();
     expect(confirm).toBeDisabled();
     expect(dismiss).toBeDisabled();
     fireEvent.click(confirm);

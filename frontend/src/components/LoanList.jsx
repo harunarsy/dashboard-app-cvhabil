@@ -24,6 +24,7 @@ import {
 } from "../utils/waMessage";
 import { importWithReload } from "../utils/importWithReload";
 import { dateOnlyTimestamp } from "../utils/dateOnly";
+import { getMonochromeLogoDataUrl } from "../utils/documents/monochromeLogo";
 
 // v1.54.0: Peminjaman produk — "nota gantung": stok sudah keluar saat pinjam,
 // belum dihitung penjualan sampai dikembalikan atau dikonversi jadi nota.
@@ -432,6 +433,7 @@ export default function LoanList({ isDarkMode, isMobile }) {
         /* pakai default */
       }
       const { generateNotaPDF } = await importWithReload(() => import("../utils/generateNotaPDF"));
+      const logo_data_url = await getMonochromeLogoDataUrl();
       const doc = generateNotaPDF(
         {
           order_number: loan.loan_number,
@@ -453,7 +455,7 @@ export default function LoanList({ isDarkMode, isMobile }) {
             pack_size_at_sale: 1,
           })),
         },
-        { format: "A5", type: "pinjaman", settings },
+        { format: "A5", type: "pinjaman", settings: { ...settings, logo_data_url } },
       );
       doc.save(`NotaPinjaman_${loan.loan_number}.pdf`);
     } catch (e) {

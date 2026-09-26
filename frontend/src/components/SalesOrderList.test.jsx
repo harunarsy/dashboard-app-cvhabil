@@ -40,7 +40,7 @@ vi.mock('react-router-dom', () => ({
   useLocation: () => ({ state: null }),
 }));
 
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SalesOrderList from './SalesOrderList';
@@ -102,5 +102,24 @@ describe('SalesOrderList Component - Loading State', () => {
     // Skeletons should be gone
     const remainingSkeletons = document.querySelectorAll('.skeleton');
     expect(remainingSkeletons.length).toBe(0);
+  });
+
+  test('pilihan Tanda Terima tetap aktif saat ukuran diganti A5, A4, lalu A6', async () => {
+    salesAPI.getAll.mockResolvedValue({ data: [
+      { id: 11, order_number: 'HSB-NOTA-2609001', sale_date: '2026-09-13',
+        customer_name: 'Toko Sehat', customer_address: 'Surabaya', total: 72000,
+        payment_method: 'Tunai', status: 'final', items: [{ product_name: 'Produk A', qty: 1, unit_price: 72000 }] },
+    ] });
+    renderWithQueryClient(<SalesOrderList isDarkMode={false} isSidebarOpen={true} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Cetak nota HSB-NOTA-2609001' }));
+
+    const receipt = screen.getByRole('radio', { name: /Tanda Terima/ });
+    expect(receipt).toBeEnabled();
+    fireEvent.click(receipt);
+    expect(receipt).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Ukuran kertas A4' }));
+    expect(receipt).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Ukuran kertas A6' }));
+    expect(receipt).toBeChecked();
   });
 });

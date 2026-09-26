@@ -28,7 +28,7 @@ const itemLineTotal = (item) => {
   return qty * unitPrice;
 };
 
-export function validateSalesDocument({ order = {}, format = 'A5', type: _type = 'nota' } = {}) {
+export function validateSalesDocument({ order = {}, format = 'A5', type = 'nota' } = {}) {
   const blockers = [];
   const warnings = [];
   const safeOrder = order || {};
@@ -61,16 +61,23 @@ export function validateSalesDocument({ order = {}, format = 'A5', type: _type =
   const grandTotalRaw = Number(safeOrder.total);
   const grandTotalValid = Number.isFinite(grandTotalRaw) && grandTotalRaw > 0;
   const items = Array.isArray(safeOrder.items) ? safeOrder.items : [];
+  if (type === 'terima') {
+    if (!items.length) {
+      blockers.push({ code: 'missing_items', message: 'Tanda terima membutuhkan setidaknya satu barang.' });
+    } else if (items.some((item) => !Number.isFinite(Number(item.qty_in_unit ?? item.qty)) || Number(item.qty_in_unit ?? item.qty) <= 0)) {
+      blockers.push({ code: 'invalid_quantity', message: 'Jumlah barang pada tanda terima harus lebih dari nol.' });
+    }
+  }
   const itemsSum = items.reduce((acc, item) => acc + itemLineTotal(item), 0);
   const expectedTotal = itemsSum + totals.shippingCharge + totals.paymentFee;
   const itemsTotalConsistent =
     items.length === 0 || Math.abs(expectedTotal - grandTotalRaw) <= TOTALS_TOLERANCE;
-  if (!grandTotalValid) {
+  if (type !== 'terima' && !grandTotalValid) {
     blockers.push({
       code: 'inconsistent_totals',
       message: 'Total transaksi tidak valid (nol, negatif, atau bukan angka).',
     });
-  } else if (!itemsTotalConsistent) {
+  } else if (type !== 'terima' && !itemsTotalConsistent) {
     blockers.push({
       code: 'inconsistent_totals',
       message: 'Total tidak cocok dengan jumlah item + ongkir + biaya. Periksa nilai transaksi.',

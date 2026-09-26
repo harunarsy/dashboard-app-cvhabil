@@ -6,6 +6,7 @@ import autoTable from 'jspdf-autotable';
 // jadi jsbarcode ikut chunk PDF, tidak membebani bundle utama.
 import JsBarcode from 'jsbarcode';
 import { angkaKeTerbilang } from './angkaKeTerbilang';
+import { MONO } from './documents/salesDocumentTheme';
 
 const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
 
@@ -41,15 +42,31 @@ export function generateNotaPDF(order, options = {}) {
   const compactPaper = isA5 || isA6;
 
   // Compact paper tune-up: A5/A6 tighter spacing + smaller footer/sign blocks.
-  const baseFontSize = isA6 ? 7 : (isA5 ? 8 : 10);
+  const baseFontSize = isA6 ? 7.5 : (isA5 ? 8 : 10);
   const margin = isA6 ? 5 : (isA5 ? 8 : 12);
-  const accentColor = [0, 122, 255]; // Premium Blue
+  const accentColor = MONO.ink;
+  const logoDataUrl = settings.logo_data_url;
+  const logoWidth = isA6 ? 8 : (isA5 ? 11 : 14);
+  const identityX = logoDataUrl ? margin + logoWidth + (isA6 ? 2 : 4) : margin;
+  const headStep = isA6 ? 3.4 : 4.2;
+  let headY = margin + (isA6 ? 8.5 : 9.5);
+  if (logoDataUrl) {
+    const logoHeight = logoWidth * (233.443 / 240);
+    const textTop = margin + 2;
+    const textBottom = headY + 2 * headStep + 1;
+    const logoY = Math.max(margin, (textTop + textBottom - logoHeight) / 2);
+    try {
+      doc.addImage(logoDataUrl, 'PNG', margin, logoY, logoWidth, logoHeight);
+    } catch (error) {
+      // Nota tetap dapat dicetak tanpa gambar bila data logo rusak.
+    }
+  }
 
   // ─── Header Section ───────────────────────────────────────────────────
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(baseFontSize + 4);
   doc.setTextColor(...accentColor);
-  doc.text(String(companyName), margin, margin + 5);
+  doc.text(String(companyName), identityX, margin + 5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(baseFontSize - 1);
@@ -57,13 +74,11 @@ export function generateNotaPDF(order, options = {}) {
   // v1.23.0: NPWP di bawah nama CV — step rapat supaya muat di atas divider
   // (A6 divider margin+18, A4/A5 margin+24)
   const npwp = settings.npwp || '93.813.949.0-609.000';
-  const headStep = isA6 ? 3.4 : 4.2;
-  let headY = margin + (isA6 ? 8.5 : 9.5);
-  doc.text(`NPWP: ${npwp}`, margin, headY);
+  doc.text(`NPWP: ${npwp}`, identityX, headY);
   headY += headStep;
-  doc.text(String(settings.address || '-'), margin, headY);
+  doc.text(String(settings.address || '-'), identityX, headY);
   headY += headStep;
-  doc.text(String(settings.phone || '-'), margin, headY);
+  doc.text(String(settings.phone || '-'), identityX, headY);
 
   // Doc Info (Top Right)
   // v1.54.0: type 'pinjaman' — Nota Pinjaman (bukan tagihan): tanpa breakdown PPN,
@@ -73,7 +88,7 @@ export function generateNotaPDF(order, options = {}) {
   const docTitle = type === 'terima' ? 'TANDA TERIMA' : (isLoan ? 'NOTA PINJAMAN' : 'NOTA PENJUALAN');
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(baseFontSize + 2);
+  doc.setFontSize(compactPaper ? baseFontSize + 4 : baseFontSize + 2);
   doc.setTextColor(0);
   const titleY = isA6 ? margin + 4 : margin + 5;
   doc.text(docTitle, infoX, titleY, { align: 'right' });
@@ -104,7 +119,7 @@ export function generateNotaPDF(order, options = {}) {
   }
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(baseFontSize - 1.5);
+  doc.setFontSize(compactPaper ? baseFontSize - 1 : baseFontSize - 1.5);
   doc.setTextColor(50, 50, 50);
   doc.text(`No: ${String(order.order_number || '-')}`, infoX, titleY + 5 + infoShift, { align: 'right' });
   const saleDateStr = order.sale_date
@@ -115,23 +130,11 @@ export function generateNotaPDF(order, options = {}) {
   const hasDueDate = Boolean(
     order.due_date && (isLoan || (order.payment_method !== 'Tunai' && type !== 'terima'))
   );
-  const compactDueDate = isA6 && hasDueDate && !isLoan;
   const infoDateY = titleY + 9 + infoShift;
-  if (compactDueDate) {
-    const saleDateWidth = doc.getTextWidth(saleDateStr);
+  doc.text(saleDateStr, infoX, infoDateY, { align: 'right' });
+  if (hasDueDate) {
     const dueStr = new Date(order.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-    doc.text(saleDateStr, infoX, infoDateY, { align: 'right' });
-    doc.setTextColor(255, 59, 48);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`JT: ${dueStr}`, infoX - saleDateWidth - 2, infoDateY, { align: 'right' });
-    doc.setTextColor(60, 60, 60);
-    doc.setFont('helvetica', 'normal');
-  } else {
-    doc.text(saleDateStr, infoX, infoDateY, { align: 'right' });
-  }
-  if (hasDueDate && !compactDueDate) {
-    const dueStr = new Date(order.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-    doc.setTextColor(255, 59, 48);
+    doc.setTextColor(...MONO.ink);
     doc.setFont('helvetica', 'bold');
     doc.text(`${isLoan ? 'Batas Pengembalian' : 'Jatuh Tempo Pembayaran'}: ${dueStr}`, infoX, titleY + 13 + infoShift, { align: 'right' });
     doc.setTextColor(60, 60, 60);
@@ -141,11 +144,11 @@ export function generateNotaPDF(order, options = {}) {
   // Blue Line Divider — follow the last right-side metadata line. This keeps
   // the barcode clear while recovering the unused vertical space it used to
   // add to every section below the header.
-  const lastInfoY = titleY + (hasDueDate && !compactDueDate ? 13 : 9) + infoShift;
+  const lastInfoY = titleY + (hasDueDate ? 13 : 9) + infoShift;
   const dividerBaseY = margin + (isA6 ? 18 : 24);
   const dividerClearance = isA6 ? 1.5 : (isA5 ? 3 : 4);
   const dividerY = Math.max(dividerBaseY, lastInfoY + dividerClearance);
-  doc.setDrawColor(...accentColor);
+  doc.setDrawColor(...MONO.rule);
   doc.setLineWidth(0.4);
   doc.line(margin, dividerY, pageWidth - margin, dividerY);
 
@@ -309,7 +312,7 @@ export function generateNotaPDF(order, options = {}) {
   // Measure the post-table tail before AutoTable lays out rows. The tail is
   // reserved only on the final table page; reserving it globally wastes the
   // lower half of earlier pages on compact paper.
-  const lineH = isA6 ? 2.1 : (isA5 ? 2.6 : 4);
+  const lineH = isA6 ? 2.3 : (isA5 ? 2.6 : 4);
   const footerGap = isA6 ? 1.5 : (isA5 ? 2.5 : 4);
   const sigGap = isA6 ? 3 : (isA5 ? 4 : 5);
   const sigLineOffset = isA6 ? 8 : (isA5 ? 12 : 19);
@@ -394,7 +397,15 @@ export function generateNotaPDF(order, options = {}) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(baseFontSize + 1);
     doc.setTextColor(...accentColor);
-    doc.text(String(companyName), margin, margin + 4);
+    if (logoDataUrl) {
+      const continuationLogoWidth = isA6 ? 5 : 7;
+      try {
+        doc.addImage(logoDataUrl, 'PNG', margin, margin, continuationLogoWidth, continuationLogoWidth * (233.443 / 240));
+      } catch (error) {
+        // Halaman lanjutan tetap dapat dicetak tanpa gambar.
+      }
+    }
+    doc.text(String(companyName), logoDataUrl ? margin + (isA6 ? 7 : 9) : margin, margin + 4);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(baseFontSize);
@@ -403,7 +414,7 @@ export function generateNotaPDF(order, options = {}) {
     doc.text(`No: ${String(order.order_number || '-')}`, infoX, margin + 4, { align: 'right' });
     doc.text(`Halaman ${pageNumber}`, infoX, margin + 8, { align: 'right' });
 
-    doc.setDrawColor(...accentColor);
+    doc.setDrawColor(...MONO.rule);
     doc.setLineWidth(0.3);
     doc.line(margin, continuationLineY, pageWidth - margin, continuationLineY);
   };
@@ -412,8 +423,8 @@ export function generateNotaPDF(order, options = {}) {
     head: tableHead,
     theme: 'striped',
     headStyles: {
-      fillColor: accentColor,
-      textColor: 255,
+      fillColor: MONO.headFill,
+      textColor: MONO.ink,
       fontStyle: 'bold',
       fontSize: baseFontSize - 1.5,
       halign: 'center',
@@ -423,9 +434,9 @@ export function generateNotaPDF(order, options = {}) {
       lineWidth: 0,
       fillColor: [255, 255, 255],
     },
-    alternateRowStyles: { fillColor: [248, 248, 250] },
+    alternateRowStyles: { fillColor: MONO.zebra },
     styles: {
-      fontSize: baseFontSize - (compactPaper ? 1.8 : 1.5),
+      fontSize: isA6 ? 6 : (isA5 ? 7 : baseFontSize - 1.5),
       cellPadding: isA6 ? 0.45 : (isA5 ? 0.6 : 1.8),
       lineWidth: 0,
     },
@@ -555,7 +566,7 @@ export function generateNotaPDF(order, options = {}) {
     doc.text(`Terbilang: ${(angkaKeTerbilang(totalValue) + ' Rupiah').trim()}`, margin, finalY);
     finalY += (isA6 ? 2.6 : (isA5 ? 4 : 6));
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(255, 59, 48);
+    doc.setTextColor(...MONO.ink);
     doc.text(loanNote, margin, finalY);
     finalY += loanNote.length * (isA6 ? 2.6 : (isA5 ? 3.3 : 4.2));
     doc.setTextColor(0);
@@ -649,7 +660,7 @@ export function generateNotaPDF(order, options = {}) {
     finalY += notesTopGap;
     doc.setFontSize(baseFontSize - 2);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 59, 48);
+    doc.setTextColor(...MONO.ink);
     doc.text('NOTE:', margin, finalY);
     finalY += isA6 ? 2.5 : (isA5 ? 3 : 4);
     doc.setFont('helvetica', 'normal');
@@ -663,7 +674,7 @@ export function generateNotaPDF(order, options = {}) {
         if (ensureTailSpace(lineH)) {
           doc.setFontSize(baseFontSize - 2);
           doc.setFont('helvetica', 'normal');
-          doc.setTextColor(255, 59, 48);
+          doc.setTextColor(...MONO.ink);
         }
         doc.text(line, margin, finalY);
         finalY += lineH;
@@ -692,7 +703,10 @@ export function generateNotaPDF(order, options = {}) {
   // On a continuation page, keep bank/signature content near the continuation
   // header. Anchoring it to the footer creates a mostly blank second page.
   const sigY = compactPaper
-    ? (continuationStarted ? finalY + sigGap : compactSigY)
+    ? Math.min(
+      compactSigY,
+      Math.max(finalY + sigGap, type === 'terima' && !continuationStarted ? pageHeight * 0.64 : 0),
+    )
     : finalY + sigGap;
 
   doc.setFontSize(baseFontSize - 1);
@@ -714,7 +728,7 @@ export function generateNotaPDF(order, options = {}) {
 
   // ─── Footer ───────────────────────────────────────────────────────────
   if (footerText) {
-    doc.setFontSize(isA6 ? 4.5 : (isA5 ? 5 : 6));
+    doc.setFontSize(isA6 ? 5.5 : (isA5 ? 5 : 6));
     doc.setTextColor(180);
     doc.text(String(footerText), pageWidth / 2, pageHeight - 4, { align: 'center' });
   }

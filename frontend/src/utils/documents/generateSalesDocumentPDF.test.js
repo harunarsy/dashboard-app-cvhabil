@@ -39,6 +39,28 @@ describe('generateSalesDocumentPDF', () => {
     }
   });
 
+  it('A6 nota menampilkan logo resmi pada header ringkas', () => {
+    const { order, settings } = SALES_DOCUMENT_FIXTURES[0];
+    const doc = generateSalesDocumentPDF(order, {
+      format: 'A6', settings: { ...settings, logo_data_url: ONE_PIXEL_PNG },
+    });
+    const imageOps = doc.internal.pages[1].join('\n').match(/\/I\d+ Do/g) || [];
+    expect(imageOps).toHaveLength(2);
+  });
+
+  it('A6 v2 menampilkan Jatuh Tempo Pembayaran lengkap bila ada', () => {
+    const { order, settings } = SALES_DOCUMENT_FIXTURES[0];
+    const doc = generateSalesDocumentPDF({ ...order, due_date: '2026-10-03' }, { format: 'A6', settings });
+    expect(allText(doc)).toContain('Jatuh Tempo Pembayaran:');
+  });
+
+  it('A6 tetap menghasilkan PDF bila gambar logo rusak', () => {
+    const { order, settings } = SALES_DOCUMENT_FIXTURES[0];
+    expect(() => generateSalesDocumentPDF(order, {
+      format: 'A6', settings: { ...settings, logo_data_url: 'data:image/png;base64,broken' },
+    })).not.toThrow();
+  });
+
   it('A4 tidak mencetak placeholder teknis untuk field kosong', () => {
     const { order, settings } = SALES_DOCUMENT_FIXTURES[0];
     const text = allText(generateSalesDocumentPDF(order, { format: 'A4', settings }));

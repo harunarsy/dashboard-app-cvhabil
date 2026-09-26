@@ -89,6 +89,20 @@ describe('validateSalesDocument — blockers', () => {
     expect(codes(blockers)).toContain('inconsistent_totals');
   });
 
+  it('tanda terima memvalidasi barang, bukan nominal transaksi', () => {
+    const result = validateSalesDocument({
+      order: order({ total: 0, items: [item({ unit_price: 0 })] }),
+      type: 'terima', format: 'A5',
+    });
+    expect(codes(result.blockers)).not.toContain('inconsistent_totals');
+    expect(result.blockers).toEqual([]);
+  });
+
+  it('tanda terima menolak daftar barang kosong', () => {
+    const result = validateSalesDocument({ order: order({ items: [] }), type: 'terima' });
+    expect(codes(result.blockers)).toContain('missing_items');
+  });
+
   it('total bukan angka → blocker inconsistent_totals', () => {
     const { blockers } = validateSalesDocument({ order: order({ total: 'bukan angka' }) });
     expect(codes(blockers)).toContain('inconsistent_totals');

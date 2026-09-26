@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+const ONE_PIXEL_PNG =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+vi.mock('./monochromeLogo', () => ({ getMonochromeLogoDataUrl: vi.fn(async () => ONE_PIXEL_PNG) }));
 import { buildSalesDocumentPdf, resolveSalesPdfRoute, salesPdfFilename } from './salesDocumentPdfSource';
 import { SALES_DOCUMENT_FIXTURES } from './__fixtures__/salesDocumentFixtures';
 
@@ -8,6 +11,8 @@ describe('resolveSalesPdfRoute', () => {
     expect(resolveSalesPdfRoute({ format: 'A5', type: 'nota', documentsV2: false }).engine).toBe('legacy');
     expect(resolveSalesPdfRoute({ format: 'A5', type: 'nota', documentsV2: true }).engine).toBe('v2');
     expect(resolveSalesPdfRoute({ format: 'A6', type: 'terima', documentsV2: true }).engine).toBe('legacy');
+    expect(resolveSalesPdfRoute({ format: 'A5', type: 'terima', documentsV2: true }).engine).toBe('legacy');
+    expect(resolveSalesPdfRoute({ format: 'A4', type: 'terima', documentsV2: true }).engine).toBe('legacy');
   });
 });
 
@@ -28,5 +33,14 @@ describe('buildSalesDocumentPdf', () => {
     const legacy = await buildSalesDocumentPdf(order, { format: 'A5', settings });
     expect(legacy.engine).toBe('legacy');
     expect(legacy.blob.size).toBeGreaterThan(0);
+  });
+
+  it.each(['A4', 'A5', 'A6'])('tanda terima %s memakai logo dan PDF yang sama untuk preview/cetak', async (format) => {
+    const { order, settings } = SALES_DOCUMENT_FIXTURES[0];
+    const result = await buildSalesDocumentPdf(order, { format, type: 'terima', settings, documentsV2: true });
+    expect(result.engine).toBe('legacy');
+    expect(result.filename).toBe(`TT_${order.order_number}.pdf`);
+    expect(result.blob.size).toBeGreaterThan(0);
+    expect(Object.keys(result.doc.internal.collections.addImage_images || {})).toHaveLength(1);
   });
 });

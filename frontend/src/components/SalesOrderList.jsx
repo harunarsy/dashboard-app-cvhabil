@@ -614,8 +614,8 @@ export default function SalesOrderList({
         return;
       }
       if (showPrintModal) {
+        if (!printFlow.closeSession()) return;
         setShowPrintModal(false);
-        printFlow.closeSession();
         return;
       }
       if (showModal) {
@@ -1870,12 +1870,10 @@ export default function SalesOrderList({
     setShowPrintModal(true);
   };
 
-  // A6 satu-satunya format yang mendukung Tanda Terima → balikkan ke Nota saat pindah format.
   const changePrintFormat = (f) => {
     setPrintOptions((prev) => ({
       ...prev,
       format: f,
-      type: f === "A6" ? prev.type : "nota",
     }));
   };
 
@@ -6492,15 +6490,18 @@ export default function SalesOrderList({
                 </h2>
                 <button
                   onClick={() => {
+                    if (!printFlow.closeSession()) return;
                     setShowPrintModal(false);
-                    printFlow.closeSession();
                   }}
                   aria-label="Tutup modal cetak PDF"
+                  disabled={printFlow.saving}
+                  title={printFlow.saving ? "Tunggu hingga status cetak selesai disimpan" : undefined}
                   className="ui-motion-button ui-focus-ring"
                   style={{
                     background: "none",
                     border: "none",
-                    cursor: "pointer",
+                    cursor: printFlow.saving ? "not-allowed" : "pointer",
+                    opacity: printFlow.saving ? 0.5 : 1,
                     color: sub,
                     padding: "10px",
                     display: "flex",
@@ -6627,11 +6628,7 @@ export default function SalesOrderList({
                       display: "flex",
                       alignItems: "center",
                       gap: "10px",
-                      cursor:
-                        printOptions.format === "A6"
-                          ? "pointer"
-                          : "not-allowed",
-                      opacity: printOptions.format === "A6" ? 1 : 0.5,
+                      cursor: "pointer",
                       padding: "10px",
                       borderRadius: "10px",
                       backgroundColor: isDarkMode
@@ -6642,13 +6639,12 @@ export default function SalesOrderList({
                     <input
                       type="radio"
                       checked={printOptions.type === "terima"}
-                      disabled={printOptions.format !== "A6"}
                       onChange={() =>
                         setPrintOptions({ ...printOptions, type: "terima" })
                       }
                     />
                     <span style={{ fontSize: "14px", color: text }}>
-                      Tanda Terima (Khusus A6)
+                      Tanda Terima
                     </span>
                   </label>
                 </div>

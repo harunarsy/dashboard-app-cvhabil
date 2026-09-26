@@ -57,7 +57,11 @@ export default function useSalesPrintFlow({ updateStatus, refreshOrders, flash }
   }, [resetSession]);
 
   const closeSession = useCallback(() => {
+    // Menutup modal saat PATCH berjalan membuang prompt retry dan menyembunyikan
+    // kegagalan. Pakai ref sinkron agar Escape/X pada render yang sama tetap tertahan.
+    if (savingRef.current) return false;
     resetSession();
+    return true;
   }, [resetSession]);
 
   // Unduh memakai blob yang sedang ditampilkan — sinkron, tidak menandai status otomatis.
@@ -122,26 +126,35 @@ export default function useSalesPrintFlow({ updateStatus, refreshOrders, flash }
       savingRef.current = true;
       setSaving(true);
       try {
-        await depsRef.current.updateStatus?.(active.orderId, PRINTED_STATUS);
-        // Toast hanya untuk sesi yang masih aktif — hasil PATCH sesi basi tidak
-        // boleh muncul di konteks modal/nota yang sudah hilang.
-        if (sessionRef.current === session) {
-          depsRef.current.flash?.("Nota ditandai sudah dicetak");
-        }
-        depsRef.current.refreshOrders?.();
-        // Bersihkan hanya prompt yang sama & sesi yang masih aktif.
-        if (sessionRef.current === session && promptRef.current === active) {
-          writePrompt(null);
-        }
+        await depsRef.current.updateStatus(active.orderId, PRINTED_STATUS);
       } catch (e) {
         // Gagal → prompt DIPERTAHANKAN supaya operator bisa retry tanpa unduh ulang.
         if (sessionRef.current === session) {
           depsRef.current.flash?.("Status cetak gagal disimpan", "error");
         }
+        return;
       } finally {
         if (sessionRef.current === session) {
           savingRef.current = false;
           setSaving(false);
+        }
+      }
+
+      // PATCH sudah sukses. Refresh daftar adalah langkah terpisah; jika gagal,
+      // jangan klaim status gagal disimpan atau meminta PATCH kedua.
+      if (sessionRef.current === session) {
+        if (promptRef.current === active) writePrompt(null);
+        depsRef.current.flash?.("Nota ditandai sudah dicetak");
+      }
+      try {
+        const refreshed = await depsRef.current.refreshOrders?.();
+        if (refreshed?.isError) throw refreshed.error || new Error("Refetch failed");
+      } catch (e) {
+        if (sessionRef.current === session) {
+          depsRef.current.flash?.(
+            "Status cetak tersimpan, tetapi daftar nota gagal diperbarui. Muat ulang halaman.",
+            "error",
+          );
         }
       }
     },

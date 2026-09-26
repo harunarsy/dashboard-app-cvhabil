@@ -163,6 +163,103 @@ describe('useSalesPrintFlow', () => {
     expect(result.current.prompt).toBeNull();
   });
 
+  test('modal tidak bisa ditutup saat PATCH berjalan; gagal tetap memberi retry tanpa unduh ulang', async () => {
+    const patchDeferred = deferred();
+    updateStatus.mockReturnValueOnce(patchDeferred.promise).mockResolvedValueOnce({});
+    const { result } = renderFlow();
+
+    act(() => result.current.openSession());
+    act(() => {
+      result.current.download({ blob: BLOB, filename: 'Nota_A.pdf', orderId: 'A' });
+    });
+    act(() => {
+      result.current.confirmStatus('A');
+    });
+
+    let closed;
+    act(() => {
+      closed = result.current.closeSession();
+    });
+    expect(closed).toBe(false);
+    expect(result.current.saving).toBe(true);
+    expect(result.current.prompt).toMatchObject({ orderId: 'A' });
+
+    await act(async () => {
+      patchDeferred.reject(new Error('500'));
+      await Promise.resolve();
+    });
+    expect(flash).toHaveBeenCalledWith('Status cetak gagal disimpan', 'error');
+    expect(result.current.prompt).toMatchObject({ orderId: 'A' });
+
+    await act(async () => {
+      await result.current.confirmStatus('A');
+    });
+    expect(updateStatus).toHaveBeenCalledTimes(2);
+    expect(result.current.prompt).toBeNull();
+    act(() => {
+      closed = result.current.closeSession();
+    });
+    expect(closed).toBe(true);
+  });
+
+  test('PATCH sukses tetap menghapus prompt jika refresh daftar gagal sinkron', async () => {
+    updateStatus.mockResolvedValue({});
+    refreshOrders.mockImplementation(() => { throw new Error('refresh failed'); });
+    const { result } = renderFlow();
+
+    act(() => result.current.openSession());
+    act(() => {
+      result.current.download({ blob: BLOB, filename: 'Nota_A.pdf', orderId: 'A' });
+    });
+    await act(async () => {
+      await result.current.confirmStatus('A');
+    });
+
+    expect(updateStatus).toHaveBeenCalledTimes(1);
+    expect(result.current.prompt).toBeNull();
+    expect(result.current.saving).toBe(false);
+    expect(flash).toHaveBeenCalledWith('Nota ditandai sudah dicetak');
+    expect(flash).toHaveBeenCalledWith('Status cetak tersimpan, tetapi daftar nota gagal diperbarui. Muat ulang halaman.', 'error');
+    expect(flash).not.toHaveBeenCalledWith('Status cetak gagal disimpan', 'error');
+  });
+
+  test('PATCH sukses tetap menghapus prompt jika refresh daftar gagal async', async () => {
+    updateStatus.mockResolvedValue({});
+    refreshOrders.mockRejectedValue(new Error('refresh failed'));
+    const { result } = renderFlow();
+
+    act(() => result.current.openSession());
+    act(() => {
+      result.current.download({ blob: BLOB, filename: 'Nota_A.pdf', orderId: 'A' });
+    });
+    await act(async () => {
+      await result.current.confirmStatus('A');
+    });
+
+    expect(result.current.prompt).toBeNull();
+    expect(result.current.saving).toBe(false);
+    expect(flash).toHaveBeenCalledWith('Status cetak tersimpan, tetapi daftar nota gagal diperbarui. Muat ulang halaman.', 'error');
+    expect(flash).not.toHaveBeenCalledWith('Status cetak gagal disimpan', 'error');
+  });
+
+  test('PATCH sukses tidak salah dilaporkan gagal saat refetch mengembalikan isError', async () => {
+    updateStatus.mockResolvedValue({});
+    refreshOrders.mockResolvedValue({ isError: true, error: new Error('offline') });
+    const { result } = renderFlow();
+
+    act(() => result.current.openSession());
+    act(() => {
+      result.current.download({ blob: BLOB, filename: 'Nota_A.pdf', orderId: 'A' });
+    });
+    await act(async () => {
+      await result.current.confirmStatus('A');
+    });
+
+    expect(result.current.prompt).toBeNull();
+    expect(flash).toHaveBeenCalledWith('Status cetak tersimpan, tetapi daftar nota gagal diperbarui. Muat ulang halaman.', 'error');
+    expect(flash).not.toHaveBeenCalledWith('Status cetak gagal disimpan', 'error');
+  });
+
   test('PATCH sukses tidak menghapus prompt baru yang muncul selama in-flight', async () => {
     const patchDeferred = deferred();
     updateStatus.mockReturnValue(patchDeferred.promise);

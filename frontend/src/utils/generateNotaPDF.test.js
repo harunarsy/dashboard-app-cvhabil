@@ -61,6 +61,19 @@ describe('generateNotaPDF compact pagination', () => {
     footer_text: 'dengan senang hati melayani anda',
   };
 
+  it('A6 menulis label Jatuh Tempo Pembayaran lengkap, bukan JT', () => {
+    const doc = generateNotaPDF(createThreeItemDueDateOrder(), { format: 'A6', settings });
+    const text = doc.internal.pages.flat().join('\n');
+    expect(text).toContain('Jatuh Tempo Pembayaran:');
+    expect(text).not.toContain('JT:');
+  });
+
+  it('A6 tetap menghasilkan PDF bila gambar logo rusak', () => {
+    expect(() => generateNotaPDF(createThreeItemDueDateOrder(), {
+      format: 'A6', settings: { ...settings, logo_data_url: 'data:image/png;base64,broken' },
+    })).not.toThrow();
+  });
+
   const createThreeItemDueDateOrder = () => ({
     order_number: 'TEST-NOTA-002',
     sale_date: '2026-09-02',
@@ -126,7 +139,7 @@ describe('generateNotaPDF compact pagination', () => {
     expect(doc.getNumberOfPages()).toBe(1);
   });
 
-  it('keeps an A6 three-item due-date nota on one page', () => {
+  it('keeps all three A6 due-date items and the final summary across readable pages', () => {
     const doc = generateNotaPDF(createThreeItemDueDateOrder(), {
       format: 'A6',
       settings: {
@@ -139,16 +152,29 @@ describe('generateNotaPDF compact pagination', () => {
       },
     });
 
-    expect(doc.getNumberOfPages()).toBe(1);
+    expect(doc.getNumberOfPages()).toBe(2);
+    const pages = doc.internal.pages.slice(1).map((page) => page.join('\n'));
+    expect(pages.join('\n')).toContain('Jatuh Tempo Pembayaran:');
+    expect(pages.join('\n')).toContain('ANPF24W');
+    expect(pages.join('\n')).toContain('ANQF19V');
+    expect(pages.join('\n')).toContain('ANPF03VB');
+    expect(pages[1]).toContain('GRAND TOTAL:');
+    expect(pages[1]).toContain('Penerima,');
   });
 
-  it('keeps a compact A6 multi-batch nota on one page', () => {
+  it('keeps every A6 multi-batch row and the final summary across readable pages', () => {
     const doc = generateNotaPDF(createCompactMultiBatchOrder(), {
       format: 'A6',
       settings,
     });
 
-    expect(doc.getNumberOfPages()).toBe(1);
+    expect(doc.getNumberOfPages()).toBe(2);
+    const pages = doc.internal.pages.slice(1).map((page) => page.join('\n'));
+    expect(pages.join('\n')).toContain('26T0506GU');
+    expect(pages.join('\n')).toContain('25Q1102GU');
+    expect(pages.join('\n')).toContain('26T0507GU');
+    expect(pages[1]).toContain('GRAND TOTAL:');
+    expect(pages[1]).toContain('Penerima,');
   });
 
   it('moves notes, bank, and signatures together when an A6 needs a continuation', () => {
@@ -210,6 +236,22 @@ describe('generateNotaPDF compact pagination', () => {
     expect(doc.getNumberOfPages()).toBe(1);
     expect(pageCommands).toContain('GRAND TOTAL:');
     expect(pageCommands).toContain('Penerima,');
+  });
+
+  it.each(['A4', 'A5', 'A6'])('tanda terima %s mencetak barang tanpa nilai uang dan memakai logo Habil', (format) => {
+    const doc = generateNotaPDF(createCompactMultiBatchOrder(), {
+      format, type: 'terima', settings: { ...settings, logo_data_url: ONE_PIXEL_PNG },
+    });
+    const content = doc.internal.pages.flat().join('\n');
+    expect(content).toContain('TANDA TERIMA');
+    expect(content).toContain('TEST-NOTA-001');
+    expect(content).toContain('Produk Nutrisi Vanila');
+    expect(content).toContain('Penerima,');
+    expect(content).toContain('Hormat kami,');
+    expect(content).not.toContain('GRAND TOTAL');
+    expect(content).not.toContain('Harga Satuan');
+    expect(content).not.toContain('Rp');
+    expect(Object.keys(doc.internal.collections.addImage_images || {})).toHaveLength(1);
   });
 
   it('paginates wrapped A6 items across more than two pages without losing rows', () => {

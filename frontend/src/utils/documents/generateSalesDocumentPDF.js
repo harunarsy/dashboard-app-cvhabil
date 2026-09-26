@@ -62,12 +62,24 @@ function tryDrawBarcode(doc, value, x, top, width, height) {
 // barcode + nomor + tanggal pada baris kedua. Mengembalikan Y garis pemisah.
 function drawOneLineHeader(doc, ctx) {
   const { vm, profile, margin, contentWidth, infoX, base, metrics } = ctx;
+  const logoSize = 8;
+  const identityX = hasText(vm.identity.logo) ? margin + logoSize + 2 : margin;
+  if (hasText(vm.identity.logo)) {
+    const logoHeight = logoSize * (233.443 / 240);
+    const logoY = (margin + 1 + margin + 9 - logoHeight) / 2;
+    try {
+      const logoFormat = /^data:image\/jpe?g/i.test(vm.identity.logo) ? 'JPEG' : 'PNG';
+      doc.addImage(vm.identity.logo, logoFormat, margin, logoY, logoSize, logoHeight);
+    } catch (error) {
+      // Logo pelengkap; PDF tetap dapat dicetak bila data gambar rusak.
+    }
+  }
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(base + 1);
   doc.setTextColor(...MONO.ink);
   if (hasText(vm.identity.companyName)) {
-    const nameLines = doc.splitTextToSize(String(vm.identity.companyName), contentWidth - 58);
-    doc.text(nameLines[0], margin, margin + 4);
+    const nameLines = doc.splitTextToSize(String(vm.identity.companyName), contentWidth - 58 - (identityX - margin));
+    doc.text(nameLines[0], identityX, margin + 4);
   }
   doc.setFontSize(profile.titleFontSize);
   doc.text(profile.title, infoX, margin + 4, { align: 'right' });
@@ -104,10 +116,21 @@ function drawOneLineHeader(doc, ctx) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(base - 2);
     doc.setTextColor(...MONO.sub);
-    doc.text(identityBits.join(' · '), margin, infoY);
+    doc.text(identityBits.join(' · '), identityX, infoY);
+  }
+  const dueDate = formatDateID(vm.document.dueDate);
+  if (dueDate) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(base - 1);
+    doc.setTextColor(...MONO.ink);
+    doc.text(`Jatuh Tempo Pembayaran: ${dueDate}`, infoX, infoY + metrics.infoStep, { align: 'right' });
   }
 
-  return Math.max(margin + metrics.dividerMin, infoY + 4);
+  const dividerY = Math.max(margin + metrics.dividerMin, infoY + (dueDate ? metrics.infoStep + 2 : 4));
+  doc.setDrawColor(...MONO.rule);
+  doc.setLineWidth(0.3);
+  doc.line(margin, dividerY, infoX, dividerY);
+  return dividerY;
 }
 
 /**
@@ -167,14 +190,6 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
     const logoSize = 14;
     const identityX = hasLogo ? margin + logoSize + 4 : margin;
     const identityMaxW = contentWidth - 78;
-    if (hasLogo) {
-      try {
-        const logoFormat = /^data:image\/jpe?g/i.test(vm.identity.logo) ? 'JPEG' : 'PNG';
-        doc.addImage(vm.identity.logo, logoFormat, margin, margin, logoSize, logoSize);
-      } catch (error) {
-        // Logo pelengkap — dokumen tetap harus bisa dicetak tanpa logo.
-      }
-    }
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(base + 3);
@@ -195,6 +210,16 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
     if (contactLine) identityLines.push(contactLine);
     const identityNextY = drawWrappedLines(identityLines, identityX, margin + 11, identityMaxW);
     const identityBottomY = identityLines.length ? identityNextY - detailStep : margin + 6;
+    if (hasLogo) {
+      const logoHeight = logoSize * (233.443 / 240);
+      const logoY = Math.max(margin, (margin + 3 + identityBottomY + 1 - logoHeight) / 2);
+      try {
+        const logoFormat = /^data:image\/jpe?g/i.test(vm.identity.logo) ? 'JPEG' : 'PNG';
+        doc.addImage(vm.identity.logo, logoFormat, margin, logoY, logoSize, logoHeight);
+      } catch (error) {
+        // Logo pelengkap; PDF tetap dapat dicetak bila data gambar rusak.
+      }
+    }
 
     // ─── Judul + metadata kanan ─────────────────────────────────────────
     doc.setFont('helvetica', 'bold');

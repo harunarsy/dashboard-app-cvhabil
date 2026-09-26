@@ -622,9 +622,11 @@ export default function PdfPreviewPanel({
             aria-live="polite"
             style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.45, color: 'var(--color-text)' }}
           >
-            {statusPrompt.kind === 'download'
-              ? 'PDF diunduh. Tandai nota sebagai sudah dicetak?'
-              : 'Dialog cetak selesai. Tandai nota sebagai sudah dicetak?'}
+            {statusSaving
+              ? 'Menyimpan status cetak…'
+              : statusPrompt.kind === 'download'
+                ? 'PDF diunduh. Tandai nota sebagai sudah dicetak?'
+                : 'Dialog cetak selesai. Tandai nota sebagai sudah dicetak?'}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
