@@ -22,6 +22,7 @@
 - **Bukti visual:** render PDF asli (A6 tanpa logo, A6 + A5 dengan logo placeholder) → PNG via `sips`, diperiksa manual — header bersih di ketiga ukuran.
 - **Temuan menyusul (belum dikerjakan, sesuai arahan "SP dulu"):** renderer nota lama (`generateNotaPDF.js`) punya pola header yang sama dan **A6 juga bertabrakan**: company end **81,2 mm** vs title "NOTA PENJUALAN" start **63,1 mm** (−18,1 mm); A5 aman (+9,4 mm). Kandidat fix berikutnya dengan pola `computeSpHeaderMetrics`.
 - Verifikasi batch fix: frontend **204/204 test (27 berkas)** + Vite build + checker lulus.
+- **OCD pass daftar nota (26 Sep):** nomor nota, tanggal, nama customer, dan baris "Jatuh Tempo Pembayaran" dibuat `white-space: nowrap` — masing-masing satu baris utuh (sebelumnya pecah "HSB-NOTA-" / "2609054", "17 Sep" / "2026", "…Kamis," / "24 Sep 2026"). Label "Jatuh Tempo Pembayaran" DIPERTAHANKAN (konsisten dengan PDF/preview — standar lama); wrapper tabel sudah `overflowX: auto` jadi layar sempit scroll, bukan potong teks.
 
 ### ✅ Checklist review manual Harun (batch lokal v1.67.20)
 1. Form nota → Buat/Edit → "Preview Live" tampil monokrom + mark H, isi setara PDF (harga satuan, estimasi berat).

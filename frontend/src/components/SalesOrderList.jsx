@@ -3350,7 +3350,7 @@ export default function SalesOrderList({
                           color: "var(--color-action)",
                         }}
                       >
-                        <div>{o.order_number}</div>
+                        <div style={{ whiteSpace: "nowrap" }}>{o.order_number}</div>
                         {o.pdf_status === "sudah_dicetak" && (
                           <span
                             style={{
@@ -3369,11 +3369,11 @@ export default function SalesOrderList({
                           </span>
                         )}
                       </td>
-                      <td style={{ padding: "12px 14px", color: text }}>
+                      <td style={{ padding: "12px 14px", color: text, whiteSpace: "nowrap" }}>
                         {fmtDate(o.sale_date)}
                       </td>
                       <td style={{ padding: "12px 14px", color: text }}>
-                        <div>{o.customer_name}</div>
+                        <div style={{ whiteSpace: "nowrap" }}>{o.customer_name}</div>
                         <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginTop: "4px" }}>
                           <span
                             style={{
@@ -3500,6 +3500,7 @@ export default function SalesOrderList({
                                     margin: 0,
                                     fontSize: "9px",
                                     color: sub,
+                                    whiteSpace: "nowrap",
                                   }}
                                 >
                                   Jatuh Tempo Pembayaran: {fmtDateDay(o.due_date)}
