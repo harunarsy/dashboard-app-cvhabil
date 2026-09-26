@@ -10,7 +10,7 @@ export default function useOnboarding(enabled = true) {
     () => [
       {
         selector: "[data-onboarding='sidebar']",
-        title: "Selamat datang di HABIL SUPERAPP",
+        title: "Selamat datang di Habil Operational",
         body: "Navigasi utama ada di sini. Semua modul operasional bisa diakses dari satu panel.",
       },
       {

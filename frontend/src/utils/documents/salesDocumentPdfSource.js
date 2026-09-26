@@ -24,7 +24,7 @@ export async function buildSalesDocumentPdf(order, { format = 'A5', type = 'nota
   // nama file pada "Simpan sebagai PDF" dari dialog cetak — tanpa ini nama jadi UUID
   // blob URL. Berlaku untuk kedua engine; kegagalan metadata tidak fatal.
   try {
-    doc.setDocumentProperties?.({ title: filename.replace(/\.pdf$/i, ''), creator: 'Habil SuperApp' });
+    doc.setDocumentProperties?.({ title: filename.replace(/\.pdf$/i, ''), creator: 'Habil Operational' });
   } catch (_) { /* metadata opsional */ }
   return { doc, blob: doc.output('blob'), engine, filename };
 }

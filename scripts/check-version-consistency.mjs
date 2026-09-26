@@ -20,7 +20,7 @@ const assertIncludes = (relativePath, fragment) => {
   }
 };
 
-assertIncludes('frontend/src/components/Login.jsx', `HABIL SUPERAPP ${expected}`);
+assertIncludes('frontend/src/components/Login.jsx', expected);
 assertIncludes('frontend/src/components/Sidebar.jsx', `const appVersion = "${expected}"`);
 assertIncludes('frontend/src/index.js', expected);
 assertIncludes('SUPERAPP_BRAIN.md', `Current Version: ${expected}`);

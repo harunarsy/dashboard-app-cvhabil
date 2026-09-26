@@ -492,7 +492,7 @@ export default function Sidebar({
                       className="text-[11px] font-extrabold uppercase tracking-wider"
                       style={{ color: sub }}
                     >
-                      HABIL SUPERAPP
+                      Habil Operational
                     </div>
                     <div
                       className="text-base font-bold leading-tight truncate"
@@ -522,20 +522,31 @@ export default function Sidebar({
             </div>
           ) : (
             isSidebarOpen && (
-              <div>
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <img
+                  src="/habil-mark.svg"
+                  alt=""
+                  aria-hidden="true"
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    objectFit: "contain",
+                    flexShrink: 0,
+                  }}
+                />
                 <h1
                   style={{
-                    fontSize: "1.25rem",
-                    fontWeight: "bold",
-                    margin: "0 0 0.25rem 0",
+                    fontSize: "0.95rem",
+                    fontWeight: "600",
+                    margin: 0,
                     color: txt,
+                    letterSpacing: "-0.015em",
+                    whiteSpace: "nowrap",
+                    fontFamily: "var(--font-sans)",
                   }}
                 >
-                  Dashboard
+                  Habil Operational
                 </h1>
-                <p style={{ fontSize: "0.875rem", color: sub, margin: 0 }}>
-                  HABIL SUPERAPP
-                </p>
               </div>
             )
           )}

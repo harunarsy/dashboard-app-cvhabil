@@ -1,7 +1,7 @@
 import React, { useState, useContext, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { Lock, User, Building2, Sun, Moon } from "lucide-react";
+import { Lock, User, Sun, Moon } from "lucide-react";
 import Tooltip from "./common/Tooltip";
 import FieldError from "./common/FieldError";
 import useReducedMotion from "../hooks/useReducedMotion";
@@ -133,22 +133,32 @@ export default function Login({
           }}
         >
           <div
-            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl text-white shadow-lg mb-4"
-            style={{ backgroundColor: focusRing }}
+            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl shadow-lg mb-4"
+            style={{ backgroundColor: "#0B3D91" }}
           >
-            <Building2 size={28} />
+            <img
+              src="/habil-mark.svg"
+              alt=""
+              aria-hidden="true"
+              style={{
+                width: "30px",
+                height: "30px",
+                objectFit: "contain",
+                filter: "brightness(0) invert(1)",
+              }}
+            />
           </div>
           <h1
-            className="text-3xl font-extrabold tracking-tight"
+            className="text-3xl font-bold tracking-tight"
             style={{ color: text }}
           >
-            HABIL SUPERAPP
+            Habil Operational
           </h1>
           <p
             className="ui-over-media-copy mt-3 px-3 py-1 text-xs font-semibold"
             style={{ color: sub }}
           >
-            HABIL SUPERAPP v1.67.20-stable — 2026
+            v1.67.20-stable — 2026
           </p>
         </div>
 
@@ -163,14 +173,11 @@ export default function Login({
           }}
         >
           <h2
-            className="text-xl font-bold mb-2 text-center"
+            className="text-xl font-bold mb-6 text-center"
             style={{ color: text }}
           >
             Masuk
           </h2>
-          <p className="text-xs font-medium text-center mb-6" style={{ color: sub }}>
-            Masuk ke dashboard operasional CV Habil Sejahtera Bersama
-          </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <FieldError id="login-error" message={error} visible={!!error} />
@@ -269,7 +276,7 @@ export default function Login({
             className="ui-over-media-copy px-3 py-1 text-center text-xs"
             style={{ color: subtle }}
           >
-            &copy; 2026 HABIL SUPERAPP. Hak cipta dilindungi.
+            &copy; 2026 Habil Operational.
           </p>
         </div>
       </div>

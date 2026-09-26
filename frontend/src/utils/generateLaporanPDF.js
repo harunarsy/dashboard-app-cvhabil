@@ -13,7 +13,7 @@ export const generateLaporanPDF = (orders, options = {}) => {
   }
 
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const { companyName = 'HABIL SUPERAPP', filterInfo, dateRange } = options;
+  const { companyName = 'Habil Operational', filterInfo, dateRange } = options;
 
   // ─── Header ─────────────────────────────────────────────────────────
   doc.setFont('helvetica', 'bold'); doc.setFontSize(16);

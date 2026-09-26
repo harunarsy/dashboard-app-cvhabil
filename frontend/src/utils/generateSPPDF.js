@@ -73,12 +73,12 @@ export function generateSPPDF(order, options = {}) {
     salesmanInfo = {},
     settings = {
       company_name: 'CV. HABIL SEJAHTERA BERSAMA',
-      footer_text: 'Dokumen dicetak otomatis oleh Habil SuperApp',
+      footer_text: 'Dokumen dicetak otomatis oleh Habil Operational',
     },
   } = options;
 
   const companyName = settings.company_name || settings.shop_name || 'CV HABIL SEJAHTERA BERSAMA';
-  const footerText = settings.footer_text || settings.footer || 'Dokumen dicetak otomatis oleh Habil SuperApp';
+  const footerText = settings.footer_text || settings.footer || 'Dokumen dicetak otomatis oleh Habil Operational';
 
   const doc = new jsPDF('p', 'mm', format.toLowerCase());
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -299,7 +299,7 @@ export function generateSPPDF(order, options = {}) {
   // Judul metadata = nama file (Chrome "Simpan sebagai PDF" memakai judul ini).
   const filename = options.filename || `SP_${order.po_number || 'dokumen'}`;
   try {
-    doc.setDocumentProperties?.({ title: filename.replace(/\.pdf$/i, ''), creator: 'Habil SuperApp' });
+    doc.setDocumentProperties?.({ title: filename.replace(/\.pdf$/i, ''), creator: 'Habil Operational' });
   } catch (_) {
     /* metadata opsional */
   }
