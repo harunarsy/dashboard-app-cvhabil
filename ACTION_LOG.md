@@ -4,6 +4,24 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 26 Sep 2026 — Ronde 2 temuan owner (LOKAL, masih v1.67.20-stable)
+- **Masih LOKAL di branch `feat/official-sales-documents`** — belum push. Tidak menyentuh DB/backend.
+- **Temuan ronde 2 & perbaikannya:**
+  1. Sidebar salah sorot "Pinjaman Produk" saat tab "Penjualan" aktif → akar masalah: `SalesOrderList.jsx` `pageTab` hanya disink SATU ARAH dari `?tab=pinjaman` (tidak pernah reset ke "nota"), tombol tab tidak mengubah URL, sementara sidebar menyamakan `pathname + search` persis. Fix: efek jadi dua arah + klik tab `navigate()` ke `/sales` / `/sales?tab=pinjaman`; state `loanTab` dari banner Dashboard ikut menormalkan URL.
+  2. Preview nota "berdiri" (portrait) dan tidak konsisten → `NotaPreview.jsx` kini berupa **lembar landscape** rasio kertas 210:148 (sama dengan cetak A5/A6), blok bawah menempel dasar lembar (catatan kiri / bank tengah / tanda tangan kiri-kanan / footer dasar), kolom sempit `overflowX: auto` (geser kiri/kanan). Berlaku otomatis di PrintSettings Live Preview & Preview Live form nota. Fakta penguat: `generateNotaPDF` baris 32 `orientation = isA4 ? 'p' : 'l'` — bukti visual A6/A5 landscape dirender via `sips` dari PDF asli (temp test, sudah dihapus).
+  3. Form Pengaturan Cetak ("isian bikin OCD") → NAMA TOKO + ALAMAT kini full-width (tidak terpotong), ALAMAT 2 baris; deskripsi Live Preview diperjelas.
+  4. Modal Changelog Dashboard terpotong di layar sempit → baris versi `flex-wrap`, tanggal `whitespace-nowrap`.
+  5. "Faktur Pembelian masih error" → regresi parse `InvoiceList.jsx` (satu `</div>` berlebih di penutup panel filter); dihapus — halaman render normal kembali.
+- **Housekeeping:** file temp `frontend/sp-visual-check.tmp.test.js` DIHAPUS (penyebab "No test suite found" di vitest). Assertion checker versi (label login) disesuaikan pasca-rebrand — tidak lagi menuntut teks "HABIL SUPERAPP".
+- **Verifikasi ronde 2:** frontend **204/204 test (27 berkas)**; fokus `SalesOrderList.test.jsx` + `NotaPreview.test.jsx` lulus; Vite production build lulus; checker `v1.67.20-stable` lulus; `git diff --check` bersih. Backend tidak berubah (tidak dijalankan ulang).
+- **Catatan:** item "temuan menyusul" tabrakan header A6 di renderer nota lama (`generateNotaPDF`, −18,1 mm) BELUM dikerjakan — masih kandidat fix berikutnya (belum jadi keluhan owner di ronde ini).
+
+### ✅ Checklist tambahan review manual (ronde 2)
+6. Penjualan → klik tab "Pinjaman" lalu "Penjualan": URL berubah (`?tab=pinjaman` muncul/hilang) dan sorotan sidebar ikut pindah — tidak lagi nyangkut di "Pinjaman Produk".
+7. Pengaturan Cetak → Live Preview kini berbentuk lembar landscape (catatan kiri, bank tengah, ttd kiri/kanan); Preview Live di form nota sama; layar sempit bisa digeser kiri/kanan.
+8. Dashboard → modal Changelog: baris versi `v1.67.20-stable` + tanggal tidak terpotong.
+9. Invoice/Pembelian: filter & tabel tampil normal (regresi parse hilang).
+
 ## Update 26 Sep 2026 — Batch UX/desain lanjutan dari temuan owner (LOKAL, belum di-push)
 - **Batch ini dikerjakan LOKAL di branch `feat/official-sales-documents` atas permintaan owner** — menunggu review manual Harun sebelum push/merge. Tidak ada migrasi/DB/backend yang disentuh.
 - **Temuan owner pasca-deploy v1.67.19 → semua dikerjakan:**
