@@ -635,16 +635,22 @@ export default function PurchaseOrderList({
     setPdfLoading(o.id);
     try {
       const { generateSPPDF } = await importWithReload(() => import("../utils/generateSPPDF"));
-      const bInfo = await printSettingsAPI.get();
+      const { getMonochromeLogoDataUrl } = await import("../utils/documents/monochromeLogo");
+      const [bInfo, logo_data_url] = await Promise.all([
+        printSettingsAPI.get(),
+        getMonochromeLogoDataUrl(),
+      ]);
       const settings = bInfo.data.nota_layout || undefined;
       const sInfo =
         distributors.find((d) => d.name === o.distributor_name) || {};
+      const spFilename = `SP_${o.po_number}`;
       const doc = generateSPPDF(o, {
         format: "A6",
         salesmanInfo: sInfo,
-        settings,
+        settings: { ...(settings || {}), logo_data_url },
+        filename: spFilename,
       });
-      doc.save(`SP_${o.po_number}.pdf`);
+      doc.save(`${spFilename}.pdf`);
       flash("Cetak SP Berhasil");
       await purchaseOrdersAPI.update(o.id, { status: "sent" });
       fetchOrders();

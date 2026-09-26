@@ -518,7 +518,15 @@ export default function SalesOrderList({
   // Task 25 (spec §10): alur unduh/cetak + konfirmasi status — hasil async terikat sesi
   // modal & orderId (buka/tutup modal = sesi baru; prompt basi dibuang, retry PATCH).
   const printFlow = useSalesPrintFlow({
-    updateStatus: (id, status) => salesAPI.updatePdfStatus(id, status),
+    updateStatus: async (id, status) => {
+      const result = await salesAPI.updatePdfStatus(id, status);
+      // Sinkronkan objek nota yang sedang dibuka supaya chip "Sudah dicetak" langsung tampil
+      // tanpa menunggu tutup-buka modal.
+      setPrintOrder((prev) =>
+        prev && prev.id === id ? { ...prev, pdf_status: status } : prev,
+      );
+      return result;
+    },
     refreshOrders: fetchOrders,
     flash,
   });
@@ -3342,7 +3350,24 @@ export default function SalesOrderList({
                           color: "var(--color-action)",
                         }}
                       >
-                        {o.order_number}
+                        <div>{o.order_number}</div>
+                        {o.pdf_status === "sudah_dicetak" && (
+                          <span
+                            style={{
+                              display: "inline-block",
+                              marginTop: "4px",
+                              fontSize: "9px",
+                              fontWeight: "700",
+                              padding: "1px 5px",
+                              borderRadius: "3px",
+                              whiteSpace: "nowrap",
+                              backgroundColor: "var(--color-success-soft)",
+                              color: "var(--color-success)",
+                            }}
+                          >
+                            ✓ Sudah dicetak
+                          </span>
+                        )}
                       </td>
                       <td style={{ padding: "12px 14px", color: text }}>
                         {fmtDate(o.sale_date)}
@@ -6674,6 +6699,7 @@ export default function SalesOrderList({
                   onPrint={handlePreviewPrint}
                   actionsDisabled={!printOrder || printValidation.blockers.length > 0 || printFlow.busy}
                   isMobile={isMobile}
+                  printed={printOrder?.pdf_status === "sudah_dicetak"}
                   statusPrompt={printFlow.prompt}
                   statusSaving={printFlow.saving}
                   onStatusConfirm={() => printFlow.confirmStatus(printOrder?.id)}

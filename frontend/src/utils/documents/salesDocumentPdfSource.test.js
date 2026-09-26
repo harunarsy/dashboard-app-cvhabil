@@ -35,6 +35,14 @@ describe('buildSalesDocumentPdf', () => {
     expect(legacy.blob.size).toBeGreaterThan(0);
   });
 
+  it.each(['A4', 'A5'])('judul metadata %s = nama file tanpa ekstensi (nama "Simpan sebagai PDF" di dialog cetak)', async (format) => {
+    const { order, settings } = SALES_DOCUMENT_FIXTURES[0];
+    const result = await buildSalesDocumentPdf(order, { format, settings });
+    const bytes = new TextDecoder('latin1').decode(new Uint8Array(result.doc.output('arraybuffer')));
+    expect(bytes).toContain('/Title');
+    expect(bytes).toContain(`Nota_${order.order_number}`);
+  });
+
   it.each(['A4', 'A5', 'A6'])('tanda terima %s memakai logo dan PDF yang sama untuk preview/cetak', async (format) => {
     const { order, settings } = SALES_DOCUMENT_FIXTURES[0];
     const result = await buildSalesDocumentPdf(order, { format, type: 'terima', settings, documentsV2: true });

@@ -4,6 +4,25 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 26 Sep 2026 — Batch UX/desain lanjutan dari temuan owner (LOKAL, belum di-push)
+- **Batch ini dikerjakan LOKAL di branch `feat/official-sales-documents` atas permintaan owner** — menunggu review manual Harun sebelum push/merge. Tidak ada migrasi/DB/backend yang disentuh.
+- **Temuan owner pasca-deploy v1.67.19 → semua dikerjakan:**
+  1. Preview Live form Buat/Edit Nota masih bahasa desain lama (biru) → `NotaPreview.jsx` dirombak: monokrom, mark H, kolom Harga Satuan, baris Estimasi Berat Paket, NOTE tinta — paritas isi dengan PDF.
+  2. Nama file "Simpan sebagai PDF" di dialog cetak = UUID blob URL, bukan nomor nota ("vital") → akar masalah: jsPDF tidak menyetel judul metadata; fix di `salesDocumentPdfSource.js` (`setDocumentProperties({ title: <nama file>, creator })`) untuk kedua engine (A4 v2 + legacy A5/A6/TT). Tombol Unduh langsung sudah benar sejak awal.
+  3. Tidak ada indikator persisten sudah dicetak/diunduh (UX flaw) → chip "Sudah dicetak" di `PdfPreviewPanel` (prop `printed`), badge "✓ Sudah dicetak" di kolom nomor `SalesOrderList`, copy prompt unduh diperjelas, status cetak disinkronkan langsung setelah PATCH sukses (tanpa tutup-buka modal).
+  4. Permintaan tambahan owner: Surat Pesanan (PDF + preview form Buat/Edit) format baru + logo → `generateSPPDF.js` & `SPPreview.jsx` dirombak monokrom + mark H + header dua kolom + tabel headFill/zebra tanpa harga + tanda tangan aman multi-halaman; `PurchaseOrderList.jsx` memuat logo via `getMonochromeLogoDataUrl`; judul metadata `SP_<po>`.
+- **Test baru/updated:** `NotaPreview.test.jsx`, `SPPreview.test.jsx`, `generateSPPDF.test.js` (judul metadata), judul metadata A4+A5 di `salesDocumentPdfSource.test.js`, chip + copy prompt di `PdfPreviewPanel.test.jsx`.
+- **Versi:** `v1.67.20-stable` (CHANGELOG + README + SUPERAPP_BRAIN + Login + `index.js` + Sidebar + Dashboard `RELEASES[0]`; entri v1.67.19 di Dashboard dikoreksi: migrasi 022 sudah dijalankan).
+- **Verifikasi:** frontend **200/200 test (27 berkas)** + Vite production build; version checker `v1.67.20-stable` lulus; `git diff --check` bersih. Backend tidak berubah (tidak dijalankan ulang).
+- **Hasil audit batch deploy sebelumnya:** tidak ada bug baru di luar 3 temuan UX owner di atas; kolom `pdf_status` sebelumnya tidak dipakai di UI mana pun (gap yang kini ditutup).
+
+### ✅ Checklist review manual Harun (batch lokal v1.67.20)
+1. Form nota → Buat/Edit → "Preview Live" tampil monokrom + mark H, isi setara PDF (harga satuan, estimasi berat).
+2. Opsi Cetak → Cetak → pilih "Simpan sebagai PDF" di dialog Chrome → nama file otomatis `Nota_HSB-NOTA-….pdf` (bukan UUID) untuk A4/A5/A6; cek juga tanda terima `TT_…`.
+3. Setelah "Ya, tandai" → chip "Sudah dicetak" di toolbar; tutup modal → badge "✓ Sudah dicetak" di daftar nota.
+4. Surat Pesanan → Buat/Edit → preview baru (logo + header + tabel tanpa harga); Cetak SP → PDF bernama `SP_HSB-SP-….pdf` dan berlogo.
+5. **Belum push** — setelah oke, lanjut merge ke main.
+
 ## Update 26 Sep 2026 — Batch final (renderer lama monokrom + mark H) + migrasi 022 DIJALANKAN + merge ke main
 - **Batch final dari sesi owner** (renderer lama jadi monokrom + mark "H" resmi `habil-mark.svg`, modal cetak tidak bisa ditutup saat PATCH saving, validasi `terima`, logo di nota pinjaman) sudah diverifikasi mandor: frontend **192/192 test (24 berkas)**, build Vite lulus, backend lulus 21/4/16/13/25/43 checks. Batch tidak menyentuh backend.
 - **Fix mandor pra-migrasi:** statement settings di migrasi 022 dibuat type-safe — DB live menyimpan `print_settings.setting_value` sebagai **TEXT** (bukan JSONB seperti definisi migrasi 014), jadi merge NPWP memakai blok `DO` pemilih tipe. Tanpa ini migrasi akan gagal saat dijalankan.

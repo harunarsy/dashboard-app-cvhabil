@@ -1,9 +1,20 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import JsBarcode from 'jsbarcode';
 import { angkaKeTerbilang } from '../../utils/angkaKeTerbilang';
+import { MONO } from '../../utils/documents/salesDocumentTheme';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n || 0);
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+const rgb = (c) => `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+
+// Live preview dokumen nota — SATU bahasa desain dengan PDF monokrom v2/legacy:
+// tinta hitam (#111), abu untuk metadata, mark H biru sebagai satu-satunya aksen.
+const INK = rgb(MONO.ink);
+const SUB = rgb(MONO.sub);
+const FAINT = rgb(MONO.faint);
+const RULE = rgb(MONO.rule);
+const HEAD_FILL = rgb(MONO.headFill);
+const ZEBRA = rgb(MONO.zebra);
 
 export default function NotaPreview({ form = {}, items = [], settings = {}, ppnExcluded = false }) {
   const {
@@ -49,12 +60,12 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
   const ketentuanLines = ketentuan.split('\n').filter(l => l.trim()).slice(0, 3);
   const ketentuanMore = ketentuan.split('\n').filter(l => l.trim()).length > 3;
 
+  const estWeightGram = Math.max(0, parseInt(form.est_weight_gram) || 0);
+  const estWeightKg = (estWeightGram / 1000).toFixed(2).replace('.', ',');
+
   const headerNo = order_number || 'AUTO';
   const headerDate = sale_date ? fmtDate(sale_date) : fmtDate(new Date());
   const displayNo = headerNo.startsWith('HSB-') ? headerNo : `HSB-NOTA-${headerNo}`;
-  const bodyText = '#000';
-  const mutedText = '#333';
-  const subText = '#555';
 
   // v1.65.1: Ref & effect untuk barcode di antara heading dan nomor nota
   const barcodeRef = useRef(null);
@@ -79,62 +90,69 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
     <div style={{
       backgroundColor: '#FFF', borderRadius: '10px', padding: '16px',
       border: '1px solid var(--color-border)', boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-      fontFamily: 'Helvetica, Arial, sans-serif', color: '#000',
+      fontFamily: 'Helvetica, Arial, sans-serif', color: INK,
     }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--color-action)', marginBottom: '3px' }}>{companyName}</div>
-          {npwp && <div style={{ fontSize: '11px', color: subText }}>NPWP: {npwp}</div>}
-          {address && <div style={{ fontSize: '11px', color: subText, lineHeight: '1.45' }}>{address}</div>}
-          {phone && <div style={{ fontSize: '11px', color: subText }}>{phone}</div>}
+      {/* Header — logo mark H + identitas perusahaan (kiri), judul + metadata (kanan) */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', flex: 1, minWidth: 0 }}>
+          <img
+            src="/habil-mark.svg"
+            alt="Mark Habil"
+            style={{ width: '34px', height: '34px', flexShrink: 0, objectFit: 'contain' }}
+          />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '13px', fontWeight: '800', color: INK, marginBottom: '3px' }}>{companyName}</div>
+            {npwp && <div style={{ fontSize: '11px', color: SUB }}>NPWP: {npwp}</div>}
+            {address && <div style={{ fontSize: '11px', color: SUB, lineHeight: '1.45' }}>{address}</div>}
+            {phone && <div style={{ fontSize: '11px', color: SUB }}>{phone}</div>}
+          </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: '14px', fontWeight: '800', color: bodyText, marginBottom: '2px' }}>NOTA PENJUALAN</div>
+          <div style={{ fontSize: '14px', fontWeight: '800', color: INK, marginBottom: '2px' }}>NOTA PENJUALAN</div>
           {/* v1.65.1: Barcode SVG di antara heading dan nomor nota */}
           {displayNo && displayNo !== 'HSB-NOTA-AUTO' && (
             <div style={{ textAlign: 'center', marginBottom: '2px', maxWidth: '100%', overflow: 'hidden' }}>
               <svg ref={barcodeRef} style={{ maxWidth: '100%', height: 'auto' }} />
             </div>
           )}
-          <div style={{ fontSize: '11px', color: mutedText }}>No: {displayNo}</div>
-          <div style={{ fontSize: '11px', color: mutedText }}>{headerDate}</div>
+          <div style={{ fontSize: '11px', color: SUB }}>No: {displayNo}</div>
+          <div style={{ fontSize: '11px', color: SUB }}>{headerDate}</div>
           {due_date && !isCash && (
-            <div style={{ fontSize: '11px', color: 'var(--color-danger)', fontWeight: '700', marginTop: '2px' }}>Jatuh Tempo Pembayaran: {fmtDate(due_date)}</div>
+            <div style={{ fontSize: '11px', color: INK, fontWeight: '700', marginTop: '2px' }}>Jatuh Tempo Pembayaran: {fmtDate(due_date)}</div>
           )}
           {payment_method && (
-            <div style={{ fontSize: '11px', color: subText, marginTop: '2px' }}>Metode: {payment_method}</div>
+            <div style={{ fontSize: '11px', color: SUB, marginTop: '2px' }}>Metode: {payment_method}</div>
           )}
         </div>
       </div>
 
-      <div style={{ height: '1.5px', backgroundColor: 'var(--color-action)', marginBottom: '8px', borderRadius: '2px' }} />
+      <div style={{ height: '1.5px', backgroundColor: RULE, marginBottom: '8px' }} />
 
       {/* Customer — v1.23.0: No. HP & Alamat berlabel di bawah nama.
           v1.52.8: overflowWrap 'anywhere' supaya nama/HP/alamat panjang (mis. teks
           tanpa spasi) membungkus ke bawah, tidak narik melebar ke kanan. */}
       <div style={{ marginBottom: '8px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
-        <span style={{ fontSize: '11px', color: subText }}>Kepada Yth: </span>
-        <span style={{ fontSize: '11px', fontWeight: '700', color: bodyText, overflowWrap: 'anywhere' }}>{customer_name || '—'}</span>
-        {customer_phone && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px', overflowWrap: 'anywhere' }}>{String(customer_phone).replace(/[^\d+()\-\s]/g, '').replace(/\s+/g, ' ').trim()}</div>}
-        {customer_address && <div style={{ fontSize: '11px', color: mutedText, marginLeft: '52px', lineHeight: '1.45', overflowWrap: 'anywhere' }}>{String(customer_address).trim()}</div>}
+        <span style={{ fontSize: '11px', color: SUB }}>Kepada Yth: </span>
+        <span style={{ fontSize: '11px', fontWeight: '700', color: INK, overflowWrap: 'anywhere' }}>{customer_name || '—'}</span>
+        {customer_phone && <div style={{ fontSize: '11px', color: SUB, marginLeft: '52px', overflowWrap: 'anywhere' }}>{String(customer_phone).replace(/[^\d+()\-\s]/g, '').replace(/\s+/g, ' ').trim()}</div>}
+        {customer_address && <div style={{ fontSize: '11px', color: SUB, marginLeft: '52px', lineHeight: '1.45', overflowWrap: 'anywhere' }}>{String(customer_address).trim()}</div>}
       </div>
 
-      {/* Items table */}
-      <div style={{ backgroundColor: 'var(--color-bg)', borderRadius: '6px', overflow: 'hidden', marginBottom: '8px', border: '1px solid var(--color-action)' }}>
+      {/* Items table — headFill monokrom + zebra, tanpa garis (paritas PDF) */}
+      <div style={{ borderRadius: '6px', overflow: 'hidden', marginBottom: '8px' }}>
         <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ backgroundColor: 'var(--color-action)', color: '#FFF' }}>
-              <th style={{ padding: '5px 5px', textAlign: 'center', width: '24px' }}>No</th>
-              <th style={{ padding: '5px 5px', textAlign: 'left' }}>Nama Barang</th>
-              <th style={{ padding: '5px 5px', textAlign: 'center', width: '48px' }}>Qty</th>
-              <th style={{ padding: '5px 5px', textAlign: 'right', width: '70px' }}>Harga</th>
-              <th style={{ padding: '5px 5px', textAlign: 'right', width: '80px' }}>Total</th>
+            <tr style={{ backgroundColor: HEAD_FILL }}>
+              <th style={{ padding: '5px 5px', textAlign: 'center', width: '24px', color: INK }}>No</th>
+              <th style={{ padding: '5px 5px', textAlign: 'left', color: INK }}>Nama Barang</th>
+              <th style={{ padding: '5px 5px', textAlign: 'center', width: '48px', color: INK }}>Qty</th>
+              <th style={{ padding: '5px 5px', textAlign: 'right', width: '76px', color: INK }}>Harga Satuan</th>
+              <th style={{ padding: '5px 5px', textAlign: 'right', width: '80px', color: INK }}>Total</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: '12px', textAlign: 'center', color: '#999', fontStyle: 'italic', fontSize: '11px' }}>Belum ada produk</td></tr>
+              <tr><td colSpan={5} style={{ padding: '12px', textAlign: 'center', color: FAINT, fontStyle: 'italic', fontSize: '11px' }}>Belum ada produk</td></tr>
             )}
             {items.map((it, idx) => {
               const qty = parseFloat(it.qty_in_unit ?? it.qty) || 0;
@@ -143,21 +161,21 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
               const ed = fmtDate(it.expired_date_snapshot);
               const hasMeta = it.batch_no_snapshot || ed;
               return (
-                <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#FFF' : '#FAFAFA' }}>
-                  <td style={{ padding: '5px 5px', textAlign: 'center', color: bodyText, verticalAlign: 'top', fontSize: '11px' }}>{idx + 1}</td>
-                  <td style={{ padding: '5px 5px', color: bodyText, fontSize: '11px' }}>
+                <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#FFF' : ZEBRA }}>
+                  <td style={{ padding: '5px 5px', textAlign: 'center', color: INK, verticalAlign: 'top', fontSize: '11px' }}>{idx + 1}</td>
+                  <td style={{ padding: '5px 5px', color: INK, fontSize: '11px' }}>
                     <div>{it.product_name || '—'}</div>
                     {hasMeta && (
-                      <div style={{ fontSize: '10px', color: mutedText, marginTop: '1px' }}>
+                      <div style={{ fontSize: '10px', color: SUB, marginTop: '1px' }}>
                         {it.batch_no_snapshot ? `Batch: ${it.batch_no_snapshot}` : ''}
                         {it.batch_no_snapshot && ed ? ' · ' : ''}
                         {ed ? `ED: ${ed}` : ''}
                       </div>
                     )}
                   </td>
-                  <td style={{ padding: '5px 5px', textAlign: 'center', color: bodyText, verticalAlign: 'top', fontSize: '11px' }}>{qty} {it.unit || 'pcs'}</td>
-                  <td style={{ padding: '5px 5px', textAlign: 'right', color: bodyText, verticalAlign: 'top', fontSize: '11px' }}>{fmtRp(price)}</td>
-                  <td style={{ padding: '5px 5px', textAlign: 'right', color: bodyText, verticalAlign: 'top', fontWeight: '600', fontSize: '11px' }}>{fmtRp(lineTotal)}</td>
+                  <td style={{ padding: '5px 5px', textAlign: 'center', color: INK, verticalAlign: 'top', fontSize: '11px' }}>{qty} {it.unit || 'pcs'}</td>
+                  <td style={{ padding: '5px 5px', textAlign: 'right', color: INK, verticalAlign: 'top', fontSize: '11px' }}>{fmtRp(price)}</td>
+                  <td style={{ padding: '5px 5px', textAlign: 'right', color: INK, verticalAlign: 'top', fontWeight: '600', fontSize: '11px' }}>{fmtRp(lineTotal)}</td>
                 </tr>
               );
             })}
@@ -170,64 +188,68 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
         {/* v1.65.0: Tampilkan DPP & PPN hanya jika ppnExcluded false */}
         {!ppnExcluded && (
           <>
-            <div style={{ fontSize: '11px', color: subText }}>Subtotal (DPP): {fmtRp(dpp)}</div>
-            <div style={{ fontSize: '11px', color: subText }}>PPN 11%: {fmtRp(ppn)}</div>
+            <div style={{ fontSize: '11px', color: SUB }}>Subtotal (DPP): {fmtRp(dpp)}</div>
+            <div style={{ fontSize: '11px', color: SUB }}>PPN 11%: {fmtRp(ppn)}</div>
           </>
         )}
         {ongkir > 0 && (
-          <div style={{ fontSize: '11px', color: subText }}>Ongkir: {fmtRp(ongkir)}</div>
+          <div style={{ fontSize: '11px', color: SUB }}>Ongkir: {fmtRp(ongkir)}</div>
         )}
         {ccFee > 0 && (
-          <div style={{ fontSize: '11px', color: subText }}>Biaya Kartu Kredit: {fmtRp(ccFee)}</div>
+          <div style={{ fontSize: '11px', color: SUB }}>Biaya Kartu Kredit: {fmtRp(ccFee)}</div>
         )}
-        <div style={{ fontSize: '12px', fontWeight: '800', color: bodyText, marginTop: '2px' }}>GRAND TOTAL: {fmtRp(totalBayar)}</div>
+        <div style={{ fontSize: '13px', fontWeight: '800', color: INK, marginTop: '2px' }}>GRAND TOTAL: {fmtRp(totalBayar)}</div>
       </div>
 
       {terbilang && (
-        <div style={{ fontSize: '10px', color: mutedText, fontStyle: 'italic', marginBottom: '6px' }}>Terbilang: {terbilang}</div>
+        <div style={{ fontSize: '10px', color: SUB, fontStyle: 'italic', marginBottom: '6px' }}>Terbilang: {terbilang}</div>
+      )}
+
+      {estWeightGram > 0 && (
+        <div style={{ fontSize: '10px', color: SUB, marginBottom: '6px' }}>Estimasi Berat Paket: {estWeightKg} kg</div>
       )}
 
       {notes && (
-        <div style={{ fontSize: '10px', color: mutedText, marginBottom: '6px' }}>Catatan: {notes}</div>
+        <div style={{ fontSize: '10px', color: SUB, marginBottom: '6px' }}>Catatan: {notes}</div>
       )}
 
-      {/* Ketentuan */}
+      {/* Ketentuan — tinta penuh (bukan aksen warna) */}
       {ketentuanLines.length > 0 && (
         <div style={{ marginBottom: '8px' }}>
-          <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--color-danger)' }}>NOTE:</div>
+          <div style={{ fontSize: '10px', fontWeight: '700', color: INK }}>NOTE:</div>
           {ketentuanLines.map((line, i) => (
-            <div key={i} style={{ fontSize: '10px', color: 'var(--color-danger)' }}>{i + 1}. {line}</div>
+            <div key={i} style={{ fontSize: '10px', color: INK }}>{i + 1}. {line}</div>
           ))}
-          {ketentuanMore && <div style={{ fontSize: '10px', color: 'var(--color-danger)', opacity: 0.6 }}>…</div>}
+          {ketentuanMore && <div style={{ fontSize: '10px', color: FAINT }}>…</div>}
         </div>
       )}
 
       {/* Bank */}
       {bankInfo && (
-        <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: '700', color: bodyText, marginBottom: '4px' }}>REK {bankInfo}</div>
+        <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: '700', color: INK, marginBottom: '4px' }}>REK {bankInfo}</div>
       )}
       {qrisText && (
-        <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: '700', color: bodyText, marginBottom: '6px' }}>{qrisText}</div>
+        <div style={{ textAlign: 'center', fontSize: '10px', fontWeight: '700', color: INK, marginBottom: '6px' }}>{qrisText}</div>
       )}
 
       {/* Signatures */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', marginTop: '16px' }}>
         <div style={{ textAlign: 'center', flex: 1 }}>
-          <div style={{ fontSize: '10px', color: subText }}>Penerima,</div>
-          <div style={{ borderBottom: '1px solid #555', width: '80px', margin: '16px auto 5px' }} />
-          <div style={{ fontSize: '10px', color: '#999' }}>(                    )</div>
+          <div style={{ fontSize: '10px', color: INK }}>Penerima,</div>
+          <div style={{ borderBottom: `1px solid ${INK}`, width: '80px', margin: '16px auto 5px' }} />
+          <div style={{ fontSize: '10px', color: FAINT }}>(                    )</div>
         </div>
         <div style={{ textAlign: 'center', flex: 1 }}>
-          <div style={{ fontSize: '10px', color: subText }}>Hormat kami,</div>
-          <div style={{ borderBottom: '1px solid #555', width: '80px', margin: '16px auto 5px' }} />
-          {signerName && <div style={{ fontSize: '10px', color: mutedText }}>{signerName}</div>}
+          <div style={{ fontSize: '10px', color: INK }}>Hormat kami,</div>
+          <div style={{ borderBottom: `1px solid ${INK}`, width: '80px', margin: '16px auto 5px' }} />
+          {signerName && <div style={{ fontSize: '10px', color: SUB }}>{signerName}</div>}
         </div>
       </div>
 
       {/* Footer */}
       {footerText && (
-        <div style={{ borderTop: '1px dashed var(--color-border)', paddingTop: '6px', textAlign: 'center', marginTop: '8px' }}>
-          <div style={{ fontSize: '10px', color: '#777' }}>{footerText}</div>
+        <div style={{ borderTop: `1px dashed ${RULE}`, paddingTop: '6px', textAlign: 'center', marginTop: '8px' }}>
+          <div style={{ fontSize: '10px', color: FAINT }}>{footerText}</div>
         </div>
       )}
     </div>

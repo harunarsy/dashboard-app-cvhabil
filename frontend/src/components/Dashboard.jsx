@@ -39,9 +39,28 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.67.20-stable",
+    date: "26 September 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Preview Live form Buat/Edit Nota dan Surat Pesanan memakai bahasa desain baru: monokrom + mark H, tabel headFill/zebra, isi lebih setara dengan PDF.",
+      },
+      {
+        type: "fix",
+        text: "Nama file saat menyimpan PDF dari dialog cetak kini mengikuti nomor nota (A4/A5/A6 dan tanda terima) — bukan lagi nama UUID.",
+      },
+      {
+        type: "feat",
+        text: "Status cetak terlihat persisten: chip \"Sudah dicetak\" di Opsi Cetak dan badge di daftar nota; teks prompt unduh diperjelas.",
+      },
+    ],
+  },
+  {
     version: "v1.67.19-stable",
     date: "23 September 2026",
-    status: "latest",
+    status: "previous",
     changes: [
       {
         type: "fix",
@@ -53,7 +72,7 @@ const RELEASES = [
       },
       {
         type: "improvement",
-        text: "Flag documents_renderer_v2 masih false — A5/A6 tetap memakai renderer lama; migration 022 belum dijalankan.",
+        text: "Flag documents_renderer_v2 masih false — A5/A6 tetap memakai renderer lama; migration 022 dijalankan 26 September 2026 sebelum deploy.",
       },
     ],
   },

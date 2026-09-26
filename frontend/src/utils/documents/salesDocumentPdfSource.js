@@ -12,12 +12,19 @@ export async function buildSalesDocumentPdf(order, { format = 'A5', type = 'nota
   const { engine } = resolveSalesPdfRoute({ format, type, documentsV2 });
   const filename = salesPdfFilename({ type, orderNumber: order.order_number });
   const logo_data_url = await getMonochromeLogoDataUrl();
+  let doc;
   if (engine === 'v2') {
     const { generateSalesDocumentPDF } = await import('./generateSalesDocumentPDF');
-    const doc = generateSalesDocumentPDF(order, { format, type, settings: { ...settings, logo_data_url } });
-    return { doc, blob: doc.output('blob'), engine, filename };
+    doc = generateSalesDocumentPDF(order, { format, type, settings: { ...settings, logo_data_url } });
+  } else {
+    const { generateNotaPDF } = await import('../generateNotaPDF');
+    doc = generateNotaPDF(order, { format, type, settings: { ...settings, logo_data_url } });
   }
-  const { generateNotaPDF } = await import('../generateNotaPDF');
-  const doc = generateNotaPDF(order, { format, type, settings: { ...settings, logo_data_url } });
+  // Judul metadata PDF = nama file (tanpa ekstensi). Chrome memakai judul ini sebagai
+  // nama file pada "Simpan sebagai PDF" dari dialog cetak — tanpa ini nama jadi UUID
+  // blob URL. Berlaku untuk kedua engine; kegagalan metadata tidak fatal.
+  try {
+    doc.setDocumentProperties?.({ title: filename.replace(/\.pdf$/i, ''), creator: 'Habil SuperApp' });
+  } catch (_) { /* metadata opsional */ }
   return { doc, blob: doc.output('blob'), engine, filename };
 }

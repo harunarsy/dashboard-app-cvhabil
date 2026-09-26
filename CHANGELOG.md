@@ -2,6 +2,18 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.20-stable] - 2026-09-26
+
+### Diubah
+- **Preview Live form Buat/Edit Nota memakai bahasa desain baru, setara PDF.** Panel preview kini monokrom (tinta untuk teks utama, abu untuk metadata, headFill/zebra untuk tabel), memakai mark "H" resmi sebagai satu-satunya aksen, kolom "Harga Satuan", baris "Estimasi Berat Paket", label NOTE bertinta (bukan merah), dan kepala dokumen logo + identitas persis seperti PDF.
+- **Surat Pesanan (PDF + preview form Buat/Edit) memakai format baru dengan logo.** Header dua kolom (logo + identitas perusahaan / judul + No. SP + tanggal + estimasi tiba), tabel headFill/zebra tanpa harga, catatan abu, tanda tangan aman multi-halaman, footer rapi. PDF SP kini membawa mark H (sebelumnya tanpa logo) dan judul metadata `SP_<nomor>`.
+- **Nama file saat menyimpan PDF dari dialog cetak mengikuti nomor nota.** Judul metadata PDF diset ke nama file (`Nota_HSB-…`, `TT_…`) untuk A4/A5/A6 sehingga "Simpan sebagai PDF" dari dialog cetak tidak lagi menawarkan nama UUID blob URL; tombol Unduh PDF tetap seperti sebelumnya.
+- **Status cetak kini terlihat persisten.** Panel Opsi Cetak menampilkan chip "Sudah dicetak" (langsung muncul setelah operator menandai, tanpa tutup-buka modal) dan daftar nota menampilkan badge "✓ Sudah dicetak" di kolom nomor; teks prompt unduh diperjelas menjadi "PDF sudah diunduh…".
+
+### Diverifikasi
+- Frontend lulus 200/200 test (27 berkas) termasuk test baru `NotaPreview.test.jsx`, `SPPreview.test.jsx`, `generateSPPDF.test.js`, judul metadata PDF di `salesDocumentPdfSource.test.js`, dan chip status di `PdfPreviewPanel.test.jsx`; production build Vite lulus; version checker `v1.67.20-stable` lulus; `git diff --check` bersih.
+- Perubahan ini **belum di-push/dideploy** — menunggu review owner di lokal. Tidak ada perubahan database/migrasi di batch ini.
+
 ## [v1.67.19-stable] - 2026-09-23
 
 ### Diperbaiki

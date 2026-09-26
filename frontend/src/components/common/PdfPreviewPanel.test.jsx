@@ -342,7 +342,7 @@ describe('PdfPreviewPanel', () => {
     const { props } = setup({ blob: makeBlob(), statusPrompt: { kind: 'download' } });
 
     expect(
-      screen.getByText('PDF diunduh. Tandai nota sebagai sudah dicetak?'),
+      screen.getByText('PDF sudah diunduh. Tandai nota sebagai sudah dicetak?'),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Ya, tandai' }));
     expect(props.onStatusConfirm).toHaveBeenCalledTimes(1);
@@ -357,6 +357,15 @@ describe('PdfPreviewPanel', () => {
       screen.getByText('Dialog cetak selesai. Tandai nota sebagai sudah dicetak?'),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ya, tandai' })).toBeInTheDocument();
+  });
+
+  test('chip status cetak persisten hanya tampil saat printed true', () => {
+    const { unmount } = setup({ blob: makeBlob(), printed: false });
+    expect(screen.queryByText('Sudah dicetak')).not.toBeInTheDocument();
+    unmount();
+
+    setup({ blob: makeBlob(), printed: true });
+    expect(screen.getByText('Sudah dicetak')).toBeInTheDocument();
   });
 
   test('statusSaving true → "Ya, tandai" dan "Tidak" disabled; klik keduanya tidak memanggil handler', () => {

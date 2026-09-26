@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  Check,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -103,6 +104,7 @@ export default function PdfPreviewPanel({
   onPrint,
   actionsDisabled = false,
   isMobile = false,
+  printed = false,
   statusPrompt = null,
   statusSaving = false,
   onStatusConfirm,
@@ -295,6 +297,27 @@ export default function PdfPreviewPanel({
             </button>
           ))}
         </div>
+
+        {/* Status cetak persisten — operator selalu tahu nota ini sudah ditandai atau belum. */}
+        {printed && (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '4px 10px',
+              borderRadius: 999,
+              backgroundColor: 'var(--color-success-soft)',
+              color: 'var(--color-success)',
+              fontSize: 11,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Check size={12} />
+            Sudah dicetak
+          </span>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button
@@ -625,7 +648,7 @@ export default function PdfPreviewPanel({
             {statusSaving
               ? 'Menyimpan status cetak…'
               : statusPrompt.kind === 'download'
-                ? 'PDF diunduh. Tandai nota sebagai sudah dicetak?'
+                ? 'PDF sudah diunduh. Tandai nota sebagai sudah dicetak?'
                 : 'Dialog cetak selesai. Tandai nota sebagai sudah dicetak?'}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
