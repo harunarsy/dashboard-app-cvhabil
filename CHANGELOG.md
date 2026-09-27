@@ -2,18 +2,7 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
-## [v1.67.21-stable] - 2026-09-27
-
-### Diperbaiki
-- **P0 — "Buat Nota Baru" selalu gagal di produksi dengan `invalid input syntax for type date: "final"`.** Statement `INSERT INTO sales_orders` (POST `/api/sales`) menaruh literal `'final'` di posisi nilai terakhir padahal kolom `status` ada di posisi ke-26 — PostgreSQL lalu menugaskan `'final'` ke kolom DATE `tax_invoice_date` dan seluruh snapshot formal (buyer_*, ppn_rate, tax_invoice_*) bergeser satu kolom. Literal `'final'` kini tepat di posisi kolom `status`, snapshot formal menyusul setelahnya. Bug diperkenalkan commit `e165485` (persist legal/procurement snapshots) yang sudah ter-deploy. Tidak ada data korup — INSERT gagal sebelum menulis; jalur edit nota dan konversi pinjaman→nota memakai statement terpisah yang sudah benar sehingga tidak terpengaruh.
-- **Contract test baru `backend/scripts/test-sales-insert-contract.js`** menjaga paritas kolom↔value dan posisi literal `'final'` pada INSERT create nota (statis, tanpa DB) — ikut berjalan di `npm test`.
-
-### Diverifikasi
-- Repro statement di dalam `BEGIN..ROLLBACK` terhadap DB target: versi lama memberi error identik dengan laporan produksi; versi terkoreksi menyimpan `status='final'` dan seluruh kolom formal di posisi benar (read-back di dalam transaksi, tidak ada data tertulis).
-- Contract test dibuktikan **gagal pada kode lama** sebelum fix dan **lulus setelah fix**. Backend `npm test` seluruh skrip lulus; frontend **204/204 test (27 berkas)** + Vite production build lulus; checker versi `v1.67.21-stable` lulus; `git diff --check` bersih.
-- Perubahan ini **belum di-push** — menunggu keputusan owner (prod P0, direkomendasikan push secepatnya).
-
-## [v1.67.20-stable] - 2026-09-26
+## [v1.67.21-stable] - 2026-09-26
 
 ### Diubah
 - **Preview Live form Buat/Edit Nota memakai bahasa desain baru, setara PDF.** Panel preview kini monokrom (tinta untuk teks utama, abu untuk metadata, headFill/zebra untuk tabel), memakai mark "H" resmi sebagai satu-satunya aksen, kolom "Harga Satuan", baris "Estimasi Berat Paket", label NOTE bertinta (bukan merah), dan kepala dokumen logo + identitas persis seperti PDF.
@@ -30,8 +19,21 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 - **Checker versi ikut rebrand.** Assertion label login tidak lagi menuntut teks "HABIL SUPERAPP" — cukup versi stabil terkini.
 
 ### Diverifikasi
-- Frontend lulus 204/204 test (27 berkas) termasuk test baru `NotaPreview.test.jsx`, `SPPreview.test.jsx`, `generateSPPDF.test.js`, judul metadata PDF di `salesDocumentPdfSource.test.js`, chip status di `PdfPreviewPanel.test.jsx`, serta regresi header SP anti-tabrakan (`computeSpHeaderMetrics`, A4/A5/A6); production build Vite lulus; version checker `v1.67.20-stable` lulus; `git diff --check` bersih. Batch ronde 2 (26 Sep, lokal) diverifikasi ulang setelah fix tab↔URL, lembar landscape preview, kerapian form Pengaturan Cetak, modal Changelog, dan fix parse daftar Invoice: frontend 204/204 (27 berkas), Vite build, checker, `git diff --check` — semuanya lulus.
+- Frontend lulus 204/204 test (27 berkas) termasuk test baru `NotaPreview.test.jsx`, `SPPreview.test.jsx`, `generateSPPDF.test.js`, judul metadata PDF di `salesDocumentPdfSource.test.js`, chip status di `PdfPreviewPanel.test.jsx`, serta regresi header SP anti-tabrakan (`computeSpHeaderMetrics`, A4/A5/A6); production build Vite lulus; version checker `v1.67.21-stable` lulus; `git diff --check` bersih. Batch ronde 2 (26 Sep, lokal) diverifikasi ulang setelah fix tab↔URL, lembar landscape preview, kerapian form Pengaturan Cetak, modal Changelog, dan fix parse daftar Invoice: frontend 204/204 (27 berkas), Vite build, checker, `git diff --check` — semuanya lulus.
 - Perubahan ini **belum di-push/dideploy** — menunggu review owner di lokal. Tidak ada perubahan database/migrasi di batch ini.
+
+## [v1.67.20-stable] - 2026-09-27
+
+### Diperbaiki
+- **P0 — "Buat Nota Baru" selalu gagal di produksi dengan `invalid input syntax for type date: "final"`.** Statement `INSERT INTO sales_orders` (POST `/api/sales`) menaruh literal `'final'` di posisi nilai terakhir padahal kolom `status` ada di posisi ke-26 — PostgreSQL lalu menugaskan `'final'` ke kolom DATE `tax_invoice_date` dan seluruh snapshot formal (buyer_*, ppn_rate, tax_invoice_*) bergeser satu kolom. Literal `'final'` kini tepat di posisi kolom `status`, snapshot formal menyusul setelahnya. Bug diperkenalkan commit `e165485` (persist legal/procurement snapshots) yang sudah ter-deploy bersama v1.67.19. Tidak ada data korup — INSERT gagal sebelum menulis; jalur edit nota dan konversi pinjaman→nota memakai statement terpisah yang sudah benar sehingga tidak terpengaruh.
+- **Contract test baru `backend/scripts/test-sales-insert-contract.js`** menjaga paritas kolom↔value dan posisi literal `'final'` pada INSERT create nota (statis, tanpa DB) — ikut berjalan di `npm test`.
+
+### Diverifikasi
+- Repro statement di dalam `BEGIN..ROLLBACK` terhadap DB target: versi lama memberi error identik dengan laporan produksi; versi terkoreksi menyimpan `status='final'` dan seluruh kolom formal di posisi benar (read-back di dalam transaksi, tidak ada data tertulis).
+- Contract test dibuktikan **gagal pada kode lama** sebelum fix dan **lulus setelah fix**. Backend `npm test` lulus seluruh skrip (21 + 4 + 16 + 25 + 43 checks, schema boundary, dan contract baru); frontend **192/192 test (24 berkas)** + Vite production build lulus; checker versi `v1.67.20-stable` lulus; `git diff --check` bersih.
+
+### Catatan
+- Hotfix di-push langsung ke `main` (jalur cepat prod P0). Batch "ronde 2" (`feat/official-sales-documents`) tidak ikut push dan telah di-renumber menjadi `v1.67.21-stable` di branch lokal tersebut — siap di-merge setelah review owner.
 
 ## [v1.67.19-stable] - 2026-09-23
 

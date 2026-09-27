@@ -4,20 +4,21 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
-## Update 27 Sep 2026 — P0 PROD: Buat Nota gagal `invalid input syntax for type date: "final"` (fix LOKAL, belum push)
+## Update 27 Sep 2026 — P0 PROD: Buat Nota gagal `invalid input syntax for type date: "final"` — FIX TER-DEPLOY (v1.67.20-stable)
 - **Laporan owner dari produksi:** modal Buat Nota Baru menampilkan `invalid input syntax for type date: "final"` di bawah NOMOR NOTA — create nota gagal sejak v1.67.19 ter-deploy.
 - **Akar masalah (terbukti, bukan dugaan):** `backend/routes/sales.js` POST `/api/sales` — daftar kolom INSERT menaruh `status` di posisi 26, tetapi VALUES menaruh literal `'final'` di posisi terakhir (46) → literal jatuh ke kolom DATE `tax_invoice_date`; snapshot formal bergeser satu kolom. Baris diperkenalkan commit `e165485` (persist legal/procurement snapshots) — sudah ada di `origin/main`.
 - **Bukti repro:** statement dijalankan di `BEGIN..ROLLBACK` ke DB target — versi lama: error identik laporan; versi fix: `status='final'` + seluruh kolom formal landing benar, tidak ada data tertulis. Jalur PUT/edit nota & konversi pinjaman→nota tidak terpengaruh (statement terpisah, sudah benar).
 - **Fix:** geser literal `'final'` ke posisi kolom status (setelah `$25`). Contract test statis baru `backend/scripts/test-sales-insert-contract.js` — dibuktikan **GAGAL di kode lama, LULUS di kode fix** — masuk `npm test`.
 - **Kesenjangan tes:** tidak ada tes yang menyentuh create nota via `POST /api/sales` (HTTP smoke memakai DB mock dan hanya menguji adjustments; skrip lain memakai fixture kolom parsial). Kandidat tindak lanjut: tes integrasi create nota penuh dengan cleanup stok/counter — BELUM dikerjakan.
-- **Versi:** `v1.67.21-stable` (CHANGELOG + README + SUPERAPP_BRAIN + Login + `index.js` + Sidebar + Dashboard `RELEASES[0]`; entri v1.67.20 → `previous`). Batch ronde-2 (v1.67.20) ikut ter-label v1.67.21 saat push nanti.
-- **Verifikasi:** backend `npm test` lulus seluruh skrip (21/4/16/25/43 checks + schema-boundary + contract baru); frontend **204/204 test (27 berkas)** + Vite build; checker `v1.67.21-stable` lulus; `git diff --check` bersih.
-- **STATUS: LOKAL — belum push.** Keputusan owner: (a) push seluruh branch (batch ronde-2 + hotfix) sekaligus, atau (b) cherry-pick khusus fix backend ke `main` supaya prod sembuh lebih dulu tanpa UI ronde-2.
+- **Deploy (opsi 2 owner, 27 Sep):** branch `hotfix/sales-create-date-p0` dari `origin/main` → fast-forward ke `main` → push → Vercel auto-deploy. Hotfix ini menjadi **`v1.67.20-stable`** yang live di produksi.
+- **Versi batch ronde-2 (lokal):** di-renumber dari `v1.67.20` → **`v1.67.21-stable`** (CHANGELOG + README + SUPERAPP_BRAIN + Login + `index.js` + Sidebar + Dashboard `RELEASES[0]`; entri v1.67.20 = hotfix, `previous`). Siap di-merge setelah review owner.
+- **Verifikasi:** hotfix (main): backend `npm test` seluruh skrip lulus (21/4/16/25/43 checks + schema-boundary + contract baru); frontend **192/192 test (24 berkas)** + Vite build; checker `v1.67.20-stable`; `git diff --check` bersih. Branch ronde-2: frontend **204/204 test (27 berkas)** + Vite build; checker `v1.67.21-stable`; `git diff --check` bersih.
+- **STATUS: TER-DEPLOY (main).** Sisa: merge batch ronde-2 (`feat/official-sales-documents`, v1.67.21) setelah review manual owner.
 
-### ✅ Checklist review manual tambahan (hotfix 27 Sep)
-10. Buka Buat Nota Baru → isi seperti biasa → Simpan → nota tersimpan (tidak ada lagi error `"...final"`), lalu cek: status nota `final`, dan form A4 "Dokumen Resmi" (jika diisi) tersimpan di kolom yang benar (NPWP di buyer_npwp, status faktur di tax_invoice_status, tanggal faktur di tax_invoice_date).
+### ✅ Checklist pasca-deploy (owner)
+7. Produksi → login: label versi `v1.67.20-stable` (rebrand "Habil Operational" menyusul di ronde-2). Lalu Penjualan → Buat Nota Baru → isi → Simpan → nota tersimpan (tidak ada lagi error `"...final"`); cek juga form A4 "Dokumen Resmi" (jika diisi) tampil benar saat dibuka ulang.
 
-## Update 26 Sep 2026 — Ronde 2 temuan owner (LOKAL, masih v1.67.20-stable)
+## Update 26 Sep 2026 — Ronde 2 temuan owner (LOKAL, akan menjadi v1.67.21-stable)
 - **Masih LOKAL di branch `feat/official-sales-documents`** — belum push. Tidak menyentuh DB/backend.
 - **Temuan ronde 2 & perbaikannya:**
   1. Sidebar salah sorot "Pinjaman Produk" saat tab "Penjualan" aktif → akar masalah: `SalesOrderList.jsx` `pageTab` hanya disink SATU ARAH dari `?tab=pinjaman` (tidak pernah reset ke "nota"), tombol tab tidak mengubah URL, sementara sidebar menyamakan `pathname + search` persis. Fix: efek jadi dua arah + klik tab `navigate()` ke `/sales` / `/sales?tab=pinjaman`; state `loanTab` dari banner Dashboard ikut menormalkan URL.
@@ -26,13 +27,13 @@
   4. Modal Changelog Dashboard terpotong di layar sempit → baris versi `flex-wrap`, tanggal `whitespace-nowrap`.
   5. "Faktur Pembelian masih error" → regresi parse `InvoiceList.jsx` (satu `</div>` berlebih di penutup panel filter); dihapus — halaman render normal kembali.
 - **Housekeeping:** file temp `frontend/sp-visual-check.tmp.test.js` DIHAPUS (penyebab "No test suite found" di vitest). Assertion checker versi (label login) disesuaikan pasca-rebrand — tidak lagi menuntut teks "HABIL SUPERAPP".
-- **Verifikasi ronde 2:** frontend **204/204 test (27 berkas)**; fokus `SalesOrderList.test.jsx` + `NotaPreview.test.jsx` lulus; Vite production build lulus; checker `v1.67.20-stable` lulus; `git diff --check` bersih. Backend tidak berubah (tidak dijalankan ulang).
+- **Verifikasi ronde 2:** frontend **204/204 test (27 berkas)**; fokus `SalesOrderList.test.jsx` + `NotaPreview.test.jsx` lulus; Vite production build lulus; checker `v1.67.21-stable` lulus; `git diff --check` bersih. Backend tidak berubah (tidak dijalankan ulang).
 - **Catatan:** item "temuan menyusul" tabrakan header A6 di renderer nota lama (`generateNotaPDF`, −18,1 mm) BELUM dikerjakan — masih kandidat fix berikutnya (belum jadi keluhan owner di ronde ini).
 
 ### ✅ Checklist tambahan review manual (ronde 2)
 6. Penjualan → klik tab "Pinjaman" lalu "Penjualan": URL berubah (`?tab=pinjaman` muncul/hilang) dan sorotan sidebar ikut pindah — tidak lagi nyangkut di "Pinjaman Produk".
 7. Pengaturan Cetak → Live Preview kini berbentuk lembar landscape (catatan kiri, bank tengah, ttd kiri/kanan); Preview Live di form nota sama; layar sempit bisa digeser kiri/kanan.
-8. Dashboard → modal Changelog: baris versi `v1.67.20-stable` + tanggal tidak terpotong.
+8. Dashboard → modal Changelog: baris versi `v1.67.21-stable` + tanggal tidak terpotong.
 9. Invoice/Pembelian: filter & tabel tampil normal (regresi parse hilang).
 
 ## Update 26 Sep 2026 — Batch UX/desain lanjutan dari temuan owner (LOKAL, belum di-push)
@@ -43,8 +44,8 @@
   3. Tidak ada indikator persisten sudah dicetak/diunduh (UX flaw) → chip "Sudah dicetak" di `PdfPreviewPanel` (prop `printed`), badge "✓ Sudah dicetak" di kolom nomor `SalesOrderList`, copy prompt unduh diperjelas, status cetak disinkronkan langsung setelah PATCH sukses (tanpa tutup-buka modal).
   4. Permintaan tambahan owner: Surat Pesanan (PDF + preview form Buat/Edit) format baru + logo → `generateSPPDF.js` & `SPPreview.jsx` dirombak monokrom + mark H + header dua kolom + tabel headFill/zebra tanpa harga + tanda tangan aman multi-halaman; `PurchaseOrderList.jsx` memuat logo via `getMonochromeLogoDataUrl`; judul metadata `SP_<po>`.
 - **Test baru/updated:** `NotaPreview.test.jsx`, `SPPreview.test.jsx`, `generateSPPDF.test.js` (judul metadata), judul metadata A4+A5 di `salesDocumentPdfSource.test.js`, chip + copy prompt di `PdfPreviewPanel.test.jsx`.
-- **Versi:** `v1.67.20-stable` (CHANGELOG + README + SUPERAPP_BRAIN + Login + `index.js` + Sidebar + Dashboard `RELEASES[0]`; entri v1.67.19 di Dashboard dikoreksi: migrasi 022 sudah dijalankan).
-- **Verifikasi:** frontend **200/200 test (27 berkas)** + Vite production build; version checker `v1.67.20-stable` lulus; `git diff --check` bersih. Backend tidak berubah (tidak dijalankan ulang).
+- **Versi:** `v1.67.21-stable` (CHANGELOG + README + SUPERAPP_BRAIN + Login + `index.js` + Sidebar + Dashboard `RELEASES[0]`; entri v1.67.19 di Dashboard dikoreksi: migrasi 022 sudah dijalankan).
+- **Verifikasi:** frontend **200/200 test (27 berkas)** + Vite production build; version checker `v1.67.21-stable` lulus; `git diff --check` bersih. Backend tidak berubah (tidak dijalankan ulang).
 - **Hasil audit batch deploy sebelumnya:** tidak ada bug baru di luar 3 temuan UX owner di atas; kolom `pdf_status` sebelumnya tidak dipakai di UI mana pun (gap yang kini ditutup).
 
 ### 🔧 Fix lanjutan dari review owner (26 Sep, lokal — SP dulu)

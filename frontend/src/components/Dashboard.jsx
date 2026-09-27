@@ -40,23 +40,8 @@ const {
 const RELEASES = [
   {
     version: "v1.67.21-stable",
-    date: "27 September 2026",
-    status: "latest",
-    changes: [
-      {
-        type: "fix",
-        text: "P0: pembuatan nota baru di produksi gagal dengan error tanggal \"final\" — literal 'final' pada INSERT salah posisi sehingga jatuh ke kolom tax_invoice_date; kini kembali tepat ke kolom status.",
-      },
-      {
-        type: "improvement",
-        text: "Contract test statis menjaga paritas kolom↔value pada INSERT nota agar pergeseran serupa tidak lolos lagi.",
-      },
-    ],
-  },
-  {
-    version: "v1.67.20-stable",
     date: "26 September 2026",
-    status: "previous",
+    status: "latest",
     changes: [
       {
         type: "improvement",
@@ -69,6 +54,21 @@ const RELEASES = [
       {
         type: "feat",
         text: "Status cetak terlihat persisten: chip \"Sudah dicetak\" di Opsi Cetak dan badge di daftar nota; teks prompt unduh diperjelas.",
+      },
+    ],
+  },
+  {
+    version: "v1.67.20-stable",
+    date: "27 September 2026",
+    status: "previous",
+    changes: [
+      {
+        type: "fix",
+        text: "P0: pembuatan nota baru gagal dengan error tanggal \"final\" — literal 'final' pada INSERT salah posisi sehingga jatuh ke kolom tax_invoice_date; kini kembali tepat ke kolom status.",
+      },
+      {
+        type: "improvement",
+        text: "Contract test statis menjaga paritas kolom↔value pada INSERT nota agar pergeseran serupa tidak lolos lagi.",
       },
     ],
   },
