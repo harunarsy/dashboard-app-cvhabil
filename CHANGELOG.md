@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.21-stable] - 2026-09-27
+
+### Diperbaiki
+- **P0 — "Buat Nota Baru" selalu gagal di produksi dengan `invalid input syntax for type date: "final"`.** Statement `INSERT INTO sales_orders` (POST `/api/sales`) menaruh literal `'final'` di posisi nilai terakhir padahal kolom `status` ada di posisi ke-26 — PostgreSQL lalu menugaskan `'final'` ke kolom DATE `tax_invoice_date` dan seluruh snapshot formal (buyer_*, ppn_rate, tax_invoice_*) bergeser satu kolom. Literal `'final'` kini tepat di posisi kolom `status`, snapshot formal menyusul setelahnya. Bug diperkenalkan commit `e165485` (persist legal/procurement snapshots) yang sudah ter-deploy. Tidak ada data korup — INSERT gagal sebelum menulis; jalur edit nota dan konversi pinjaman→nota memakai statement terpisah yang sudah benar sehingga tidak terpengaruh.
+- **Contract test baru `backend/scripts/test-sales-insert-contract.js`** menjaga paritas kolom↔value dan posisi literal `'final'` pada INSERT create nota (statis, tanpa DB) — ikut berjalan di `npm test`.
+
+### Diverifikasi
+- Repro statement di dalam `BEGIN..ROLLBACK` terhadap DB target: versi lama memberi error identik dengan laporan produksi; versi terkoreksi menyimpan `status='final'` dan seluruh kolom formal di posisi benar (read-back di dalam transaksi, tidak ada data tertulis).
+- Contract test dibuktikan **gagal pada kode lama** sebelum fix dan **lulus setelah fix**. Backend `npm test` seluruh skrip lulus; frontend **204/204 test (27 berkas)** + Vite production build lulus; checker versi `v1.67.21-stable` lulus; `git diff --check` bersih.
+- Perubahan ini **belum di-push** — menunggu keputusan owner (prod P0, direkomendasikan push secepatnya).
+
 ## [v1.67.20-stable] - 2026-09-26
 
 ### Diubah

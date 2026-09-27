@@ -4,6 +4,19 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 27 Sep 2026 — P0 PROD: Buat Nota gagal `invalid input syntax for type date: "final"` (fix LOKAL, belum push)
+- **Laporan owner dari produksi:** modal Buat Nota Baru menampilkan `invalid input syntax for type date: "final"` di bawah NOMOR NOTA — create nota gagal sejak v1.67.19 ter-deploy.
+- **Akar masalah (terbukti, bukan dugaan):** `backend/routes/sales.js` POST `/api/sales` — daftar kolom INSERT menaruh `status` di posisi 26, tetapi VALUES menaruh literal `'final'` di posisi terakhir (46) → literal jatuh ke kolom DATE `tax_invoice_date`; snapshot formal bergeser satu kolom. Baris diperkenalkan commit `e165485` (persist legal/procurement snapshots) — sudah ada di `origin/main`.
+- **Bukti repro:** statement dijalankan di `BEGIN..ROLLBACK` ke DB target — versi lama: error identik laporan; versi fix: `status='final'` + seluruh kolom formal landing benar, tidak ada data tertulis. Jalur PUT/edit nota & konversi pinjaman→nota tidak terpengaruh (statement terpisah, sudah benar).
+- **Fix:** geser literal `'final'` ke posisi kolom status (setelah `$25`). Contract test statis baru `backend/scripts/test-sales-insert-contract.js` — dibuktikan **GAGAL di kode lama, LULUS di kode fix** — masuk `npm test`.
+- **Kesenjangan tes:** tidak ada tes yang menyentuh create nota via `POST /api/sales` (HTTP smoke memakai DB mock dan hanya menguji adjustments; skrip lain memakai fixture kolom parsial). Kandidat tindak lanjut: tes integrasi create nota penuh dengan cleanup stok/counter — BELUM dikerjakan.
+- **Versi:** `v1.67.21-stable` (CHANGELOG + README + SUPERAPP_BRAIN + Login + `index.js` + Sidebar + Dashboard `RELEASES[0]`; entri v1.67.20 → `previous`). Batch ronde-2 (v1.67.20) ikut ter-label v1.67.21 saat push nanti.
+- **Verifikasi:** backend `npm test` lulus seluruh skrip (21/4/16/25/43 checks + schema-boundary + contract baru); frontend **204/204 test (27 berkas)** + Vite build; checker `v1.67.21-stable` lulus; `git diff --check` bersih.
+- **STATUS: LOKAL — belum push.** Keputusan owner: (a) push seluruh branch (batch ronde-2 + hotfix) sekaligus, atau (b) cherry-pick khusus fix backend ke `main` supaya prod sembuh lebih dulu tanpa UI ronde-2.
+
+### ✅ Checklist review manual tambahan (hotfix 27 Sep)
+10. Buka Buat Nota Baru → isi seperti biasa → Simpan → nota tersimpan (tidak ada lagi error `"...final"`), lalu cek: status nota `final`, dan form A4 "Dokumen Resmi" (jika diisi) tersimpan di kolom yang benar (NPWP di buyer_npwp, status faktur di tax_invoice_status, tanggal faktur di tax_invoice_date).
+
 ## Update 26 Sep 2026 — Ronde 2 temuan owner (LOKAL, masih v1.67.20-stable)
 - **Masih LOKAL di branch `feat/official-sales-documents`** — belum push. Tidak menyentuh DB/backend.
 - **Temuan ronde 2 & perbaikannya:**

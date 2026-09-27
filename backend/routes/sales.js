@@ -368,9 +368,11 @@ router.post('/', auth, async (req, res) => {
       if (cm.length === 1) resolvedCustomerId = cm[0].id;
     }
     // v1.65.0: Tambah ppn_excluded + audit tracking (ppn_marked_by, ppn_marked_at)
+    // P0 27 Sep 2026: literal 'final' WAJIB tepat di posisi kolom status (ke-26) —
+    // snapshot formal ($26..$45) menyusul setelahnya (dijaga test-sales-insert-contract.js).
     const { rows } = await client.query(
       `INSERT INTO sales_orders (order_number, customer_id, customer_name, customer_address, customer_phone, sale_date, total, gross_profit, notes, payment_method, payment_details, created_by, channel, due_date, payment_terms, ongkir, ongkir_cost, payment_fee_rate, payment_fee_mode, payment_fee, package_weight_gram, est_weight_gram, ppn_excluded, ppn_marked_by, ppn_marked_at, status, buyer_npwp, buyer_nik, buyer_entity_type, buyer_email, buyer_pic_name, buyer_pic_position, buyer_work_unit, billing_address, shipping_address, procurement_source, platform_order_number, purchase_order_number, package_number, contract_number, procurement_method, government_agency, ppn_rate, tax_invoice_status, tax_invoice_number, tax_invoice_date)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,'final') RETURNING *`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,'final',$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45) RETURNING *`,
       [orderNumber, resolvedCustomerId, customer_name.trim(), customer_address || '', customer_phone || '', sale_date || new Date(), total, gross_profit, notes || '', payment_method || 'Tunai', payment_details || '', req.user?.id || null, channel, due_date || null, payment_terms || null, ongkir, ongkirCost, pfRate, pfMode, paymentFee, packageWeightGram, 0, ppnExcluded, ppnMarkedBy, ppnExcluded ? new Date() : null, ...snapshotParams]
     );
     const order = rows[0];
