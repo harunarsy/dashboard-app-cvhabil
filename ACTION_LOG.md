@@ -4,6 +4,19 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 27 Sep 2026 — P0 PROD: Buat Nota gagal `invalid input syntax for type date: "final"` — HOTFIX (v1.67.20-stable, deploy ke main)
+- **Laporan owner dari produksi (27 Sep):** modal Buat Nota Baru menampilkan error tersebut → create nota gagal sejak v1.67.19 ter-deploy.
+- **Akar masalah (terbukti, bukan dugaan):** `backend/routes/sales.js` POST `/api/sales` — kolom `status` di posisi 26 tetapi literal `'final'` di VALUES posisi terakhir (46) → jatuh ke kolom DATE `tax_invoice_date`; snapshot formal bergeser satu kolom. Diperkenalkan commit `e165485` (sudah ada di `origin/main` sejak v1.67.19).
+- **Bukti repro:** statement dijalankan `BEGIN..ROLLBACK` ke DB target — versi lama error identik dengan laporan; versi fix `status='final'` + kolom formal landing benar; tidak ada data tertulis. Jalur edit nota & konversi pinjaman→nota tidak terpengaruh (statement terpisah, sudah benar).
+- **Fix:** literal `'final'` dipindah ke posisi kolom status + contract test statis baru `backend/scripts/test-sales-insert-contract.js` (dibuktikan GAGAL di kode lama → LULUS di kode fix) yang masuk `npm test`.
+- **Deploy (opsi 2 owner):** branch `hotfix/sales-create-date-p0` dari `origin/main` → fast-forward ke `main` → push → Vercel auto-deploy. **v1.67.20-stable.**
+- **Batch ronde-2 (lokal, `feat/official-sales-documents`) TIDAK ikut push ini.** Akan di-renumber menjadi `v1.67.21-stable` saat di-merge; koreksi entri v1.67.19 Dashboard ("migration 022 belum dijalankan" → sudah dijalankan 26 Sep) ikut batch itu.
+- **Kesenjangan tes yang ditemukan:** tidak ada tes yang menyentuh create nota via `POST /api/sales` (HTTP smoke memakai DB mock dan hanya menguji adjustments; skrip lain memakai fixture kolom parsial). Kandidat tindak lanjut: tes integrasi create nota penuh dengan cleanup stok/counter — BELUM dikerjakan.
+- **Verifikasi:** backend `npm test` seluruh skrip lulus; frontend **192/192 test (24 berkas)** + Vite production build; checker `v1.67.20-stable` lulus; `git diff --check` bersih.
+
+### ✅ Checklist pasca-deploy (owner)
+7. Produksi → login: label versi `v1.67.20-stable` (rebrand "Habil Operational" menyusul di ronde-2). Lalu Penjualan → Buat Nota Baru → isi → Simpan → nota berhasil dibuat (tidak ada lagi error `"...final"`); cek juga isi form A4 "Dokumen Resmi" (jika diisi) tampil benar saat dibuka ulang.
+
 ## Update 26 Sep 2026 — Batch final (renderer lama monokrom + mark H) + migrasi 022 DIJALANKAN + merge ke main
 - **Batch final dari sesi owner** (renderer lama jadi monokrom + mark "H" resmi `habil-mark.svg`, modal cetak tidak bisa ditutup saat PATCH saving, validasi `terima`, logo di nota pinjaman) sudah diverifikasi mandor: frontend **192/192 test (24 berkas)**, build Vite lulus, backend lulus 21/4/16/13/25/43 checks. Batch tidak menyentuh backend.
 - **Fix mandor pra-migrasi:** statement settings di migrasi 022 dibuat type-safe — DB live menyimpan `print_settings.setting_value` sebagai **TEXT** (bukan JSONB seperti definisi migrasi 014), jadi merge NPWP memakai blok `DO` pemilih tipe. Tanpa ini migrasi akan gagal saat dijalankan.

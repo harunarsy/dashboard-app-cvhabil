@@ -39,9 +39,24 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.67.20-stable",
+    date: "27 September 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "P0: pembuatan nota baru gagal dengan error tanggal \"final\" — literal 'final' pada INSERT salah posisi sehingga jatuh ke kolom tax_invoice_date; kini kembali tepat ke kolom status.",
+      },
+      {
+        type: "improvement",
+        text: "Contract test statis menjaga paritas kolom↔value pada INSERT nota agar pergeseran serupa tidak lolos lagi.",
+      },
+    ],
+  },
+  {
     version: "v1.67.19-stable",
     date: "23 September 2026",
-    status: "latest",
+    status: "previous",
     changes: [
       {
         type: "fix",

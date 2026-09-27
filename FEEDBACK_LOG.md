@@ -1,5 +1,13 @@
 # Feedback Log
 
+## [2026-09-27] - Buat Nota Gagal: Literal 'final' Tertulis ke Kolom DATE (P0)
+- **Seluruh pembuatan nota di produksi gagal** dengan error PostgreSQL `invalid input syntax for type date: "final"` (terlihat di form Buat Nota Baru, beberapa saat setelah v1.67.19 ter-deploy).
+- **Akar masalah**: `backend/routes/sales.js` — statement `INSERT INTO sales_orders` jalur POST `/api/sales` menaruh kolom `status` di posisi ke-26, tetapi daftar VALUES menempatkan literal `'final'` di posisi terakhir (ke-46). Akibatnya PostgreSQL menugaskan literal itu ke kolom `tax_invoice_date` (DATE) dan seluruh snapshot formal (buyer_*, ppn_rate, tax_invoice_*) bergeser satu kolom. Baris bermasalah diperkenalkan commit `e165485` (persist legal/procurement snapshots) yang sudah ada di `origin/main`.
+- **Dampak**: tidak ada data korup/parsial — INSERT gagal sebelum menulis (satu statement tanpa COMMIT di dalam transaksi yang akhirnya gagal). Tetapi jalur "Buat Nota Baru" berhenti total; jalur EDIT nota dan konversi pinjaman→nota memakai statement terpisah yang sudah benar, sehingga tidak terpengaruh.
+- **Repro**: statement dijalankan di dalam `BEGIN..ROLLBACK` terhadap DB target — versi lama memberi error identik dengan laporan; versi terkoreksi menyimpan `status='final'` serta seluruh kolom formal di posisi yang benar.
+- **Kesenjangan tes**: tidak ada tes yang menyentuh jalur create nota (`test-route-http.js` memakai DB mock read-only dan hanya menguji endpoint adjustments; skrip lain menyisipkan fixture kolom parsial), sehingga pergeseran ini lolos.
+- **Tindakan**: geser literal `'final'` ke posisi kolom `status` (setelah `$25`) dan tambahkan contract test statis paritas kolom↔value (`backend/scripts/test-sales-insert-contract.js`) yang ikut berjalan di `npm test`.
+
 ## [2026-09-13] - Invoice Delta Confirmation Empty DATE Boundary
 - **Konfirmasi edit faktur gagal dan transaksi di-roll back** dengan error PostgreSQL `invalid input syntax for type date: ""` setelah preview delta berhasil.
 - **Akar masalah**: payload edit mempertahankan `due_date`/`payment_date` kosong sebagai string `""`, sementara `itemDbValues()` juga mengubah Expired Date kosong menjadi `""`. Nilai tersebut kemudian diikat langsung ke kolom PostgreSQL `DATE` pada jalur commit.
