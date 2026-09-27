@@ -13,13 +13,13 @@
 - **Deploy (opsi 2 owner, 27 Sep):** branch `hotfix/sales-create-date-p0` dari `origin/main` → fast-forward ke `main` → push → Vercel auto-deploy. Hotfix ini menjadi **`v1.67.20-stable`** yang live di produksi.
 - **Versi batch ronde-2 (lokal):** di-renumber dari `v1.67.20` → **`v1.67.21-stable`** (CHANGELOG + README + SUPERAPP_BRAIN + Login + `index.js` + Sidebar + Dashboard `RELEASES[0]`; entri v1.67.20 = hotfix, `previous`). Siap di-merge setelah review owner.
 - **Verifikasi:** hotfix (main): backend `npm test` seluruh skrip lulus (21/4/16/25/43 checks + schema-boundary + contract baru); frontend **192/192 test (24 berkas)** + Vite build; checker `v1.67.20-stable`; `git diff --check` bersih. Branch ronde-2: frontend **204/204 test (27 berkas)** + Vite build; checker `v1.67.21-stable`; `git diff --check` bersih.
-- **STATUS: TER-DEPLOY (main).** Sisa: merge batch ronde-2 (`feat/official-sales-documents`, v1.67.21) setelah review manual owner.
+- **STATUS: TER-DEPLOY.** Ronde-2 di-merge dan di-push 27 Sep sebagai **`v1.67.21-stable`** (fast-forward `main` → Vercel auto-deploy).
 
 ### ✅ Checklist pasca-deploy (owner)
 7. Produksi → login: label versi `v1.67.20-stable` (rebrand "Habil Operational" menyusul di ronde-2). Lalu Penjualan → Buat Nota Baru → isi → Simpan → nota tersimpan (tidak ada lagi error `"...final"`); cek juga form A4 "Dokumen Resmi" (jika diisi) tampil benar saat dibuka ulang.
 
-## Update 26 Sep 2026 — Ronde 2 temuan owner (LOKAL, akan menjadi v1.67.21-stable)
-- **Masih LOKAL di branch `feat/official-sales-documents`** — belum push. Tidak menyentuh DB/backend.
+## Update 26 Sep 2026 — Ronde 2 temuan owner (v1.67.21-stable — DEPLOY 27 Sep)
+- **Batch ini dikerjakan lokal lalu ter-deploy 27 Sep sebagai `v1.67.21-stable`** (fast-forward `main` → Vercel auto-deploy). Tidak menyentuh DB/backend.
 - **Temuan ronde 2 & perbaikannya:**
   1. Sidebar salah sorot "Pinjaman Produk" saat tab "Penjualan" aktif → akar masalah: `SalesOrderList.jsx` `pageTab` hanya disink SATU ARAH dari `?tab=pinjaman` (tidak pernah reset ke "nota"), tombol tab tidak mengubah URL, sementara sidebar menyamakan `pathname + search` persis. Fix: efek jadi dua arah + klik tab `navigate()` ke `/sales` / `/sales?tab=pinjaman`; state `loanTab` dari banner Dashboard ikut menormalkan URL.
   2. Preview nota "berdiri" (portrait) dan tidak konsisten → `NotaPreview.jsx` kini berupa **lembar landscape** rasio kertas 210:148 (sama dengan cetak A5/A6), blok bawah menempel dasar lembar (catatan kiri / bank tengah / tanda tangan kiri-kanan / footer dasar), kolom sempit `overflowX: auto` (geser kiri/kanan). Berlaku otomatis di PrintSettings Live Preview & Preview Live form nota. Fakta penguat: `generateNotaPDF` baris 32 `orientation = isA4 ? 'p' : 'l'` — bukti visual A6/A5 landscape dirender via `sips` dari PDF asli (temp test, sudah dihapus).
@@ -36,8 +36,8 @@
 8. Dashboard → modal Changelog: baris versi `v1.67.21-stable` + tanggal tidak terpotong.
 9. Invoice/Pembelian: filter & tabel tampil normal (regresi parse hilang).
 
-## Update 26 Sep 2026 — Batch UX/desain lanjutan dari temuan owner (LOKAL, belum di-push)
-- **Batch ini dikerjakan LOKAL di branch `feat/official-sales-documents` atas permintaan owner** — menunggu review manual Harun sebelum push/merge. Tidak ada migrasi/DB/backend yang disentuh.
+## Update 26 Sep 2026 — Batch UX/desain lanjutan dari temuan owner (deploy 27 Sep sebagai v1.67.21)
+- **Batch ini dikerjakan lokal atas permintaan owner, lalu ter-deploy 27 Sep sebagai bagian `v1.67.21-stable`.** Tidak ada migrasi/DB/backend yang disentuh.
 - **Temuan owner pasca-deploy v1.67.19 → semua dikerjakan:**
   1. Preview Live form Buat/Edit Nota masih bahasa desain lama (biru) → `NotaPreview.jsx` dirombak: monokrom, mark H, kolom Harga Satuan, baris Estimasi Berat Paket, NOTE tinta — paritas isi dengan PDF.
   2. Nama file "Simpan sebagai PDF" di dialog cetak = UUID blob URL, bukan nomor nota ("vital") → akar masalah: jsPDF tidak menyetel judul metadata; fix di `salesDocumentPdfSource.js` (`setDocumentProperties({ title: <nama file>, creator })`) untuk kedua engine (A4 v2 + legacy A5/A6/TT). Tombol Unduh langsung sudah benar sejak awal.
@@ -61,7 +61,7 @@
 2. Opsi Cetak → Cetak → pilih "Simpan sebagai PDF" di dialog Chrome → nama file otomatis `Nota_HSB-NOTA-….pdf` (bukan UUID) untuk A4/A5/A6; cek juga tanda terima `TT_…`.
 3. Setelah "Ya, tandai" → chip "Sudah dicetak" di toolbar; tutup modal → badge "✓ Sudah dicetak" di daftar nota.
 4. Surat Pesanan → Buat/Edit → preview baru (logo ter-center + header + tabel tanpa harga); Cetak SP → PDF bernama `SP_HSB-SP-….pdf`, berlogo, dan **header tidak tumpang-tindih** (nama perusahaan vs SURAT PESANAN) — cek ulang hasil cetak A6 seperti temuan 26 Sep.
-5. **Belum push** — setelah oke, lanjut merge ke main.
+5. ✅ Sudah di-push 27 Sep 2026 (fast-forward `main` ke `v1.67.21-stable`).
 
 ## Update 26 Sep 2026 — Batch final (renderer lama monokrom + mark H) + migrasi 022 DIJALANKAN + merge ke main
 - **Batch final dari sesi owner** (renderer lama jadi monokrom + mark "H" resmi `habil-mark.svg`, modal cetak tidak bisa ditutup saat PATCH saving, validasi `terima`, logo di nota pinjaman) sudah diverifikasi mandor: frontend **192/192 test (24 berkas)**, build Vite lulus, backend lulus 21/4/16/13/25/43 checks. Batch tidak menyentuh backend.

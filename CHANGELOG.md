@@ -20,7 +20,7 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
 ### Diverifikasi
 - Frontend lulus 204/204 test (27 berkas) termasuk test baru `NotaPreview.test.jsx`, `SPPreview.test.jsx`, `generateSPPDF.test.js`, judul metadata PDF di `salesDocumentPdfSource.test.js`, chip status di `PdfPreviewPanel.test.jsx`, serta regresi header SP anti-tabrakan (`computeSpHeaderMetrics`, A4/A5/A6); production build Vite lulus; version checker `v1.67.21-stable` lulus; `git diff --check` bersih. Batch ronde 2 (26 Sep, lokal) diverifikasi ulang setelah fix tab↔URL, lembar landscape preview, kerapian form Pengaturan Cetak, modal Changelog, dan fix parse daftar Invoice: frontend 204/204 (27 berkas), Vite build, checker, `git diff --check` — semuanya lulus.
-- Perubahan ini **belum di-push/dideploy** — menunggu review owner di lokal. Tidak ada perubahan database/migrasi di batch ini.
+- Di-push/dideploy **27 September 2026** (fast-forward `main` → Vercel auto-deploy). Tidak ada perubahan database/migrasi di batch ini.
 
 ## [v1.67.20-stable] - 2026-09-27
 
