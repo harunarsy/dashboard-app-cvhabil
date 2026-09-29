@@ -4,6 +4,25 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 29 Sep 2026: ED fix wave F1-F3 (checkpoint RED menunggu controller)
+- Scope owner: tiga Important findings di `docs/superpowers/plans/2026-09-29-expiry-review.md`; routes purchaseOrders/inventory/sales, SalesOrderList dan behavioral tests. Instruksi terbaru melarang test/build execution, DB/.env, git writes dan subagents pada wave ini.
+- Root cause ditelusuri: PO SELECT/mapping dan inventory available-batches menghilangkan precision; edit frontend membuang sales item ID dan memasang inferred batch ID; backend fallback dapat mengambil history baris lain dari batch tujuan.
+- Tes ditulis sebelum code fix: `backend/scripts/test-expiry.js`, fixture baru `backend/test/fixtures/expiry-po.cjs`, `frontend/src/components/SalesOrderList.test.jsx`, dan `frontend/src/components/InvoiceList.expiry.test.jsx`. Fixture PO menjalankan reader asli, membatasi response sesuai SELECT, lalu menguji prefill+payload komponen faktur.
+- Pemeriksaan sintaks statis empat berkas lulus tanpa module evaluation. **Test/build belum dijalankan; RED/GREEN belum terverifikasi.** Route/komponen implementation belum diubah pada wave ini.
+- Menunggu controller: jalankan `node backend/scripts/test-expiry.js` dan `TZ=Asia/Jakarta npm --prefix frontend test -- src/components/InvoiceList.expiry.test.jsx src/components/SalesOrderList.test.jsx`, kirim output+exit codes. Expected failures dan fixture cases: `docs/superpowers/plans/2026-09-29-expiry-fix-wave-checkpoint.md`.
+- Berikutnya setelah expected RED: fix precision projections, item-ID ownership+safe legacy identity, intent pengguna vs hydration; no-op menjaga exact historical ED/raw precision, real selection mengambil metadata current DB. Semua tiga findings masih menunggu implementation/verification.
+- Belum di-commit: tes/fixture/checkpoint report/log wave ini, di atas working tree ED precision existing. Tidak stage/commit/push.
+
+## Update 29 Sep 2026: ED dual-presisi (implementasi disetujui, berjalan)
+- Permintaan owner: petakan dampak ED bulan/tahun di seluruh aplikasi, termasuk inventory, faktur pembelian, nota, dan dokumen. Owner meminta diberi tahu jika membutuhkan perubahan database.
+- Baseline terverifikasi: `main` / `origin/main` = `4e97c70`; checker versi lulus `v1.67.21-stable`. Perubahan lokal `.gitignore`, `AGENTS.md`, dan berkas untracked merupakan pekerjaan existing, tidak disentuh.
+- Audit source frontend/backend selesai: lima input tanggal ED, lima tabel pemilik ED/snapshot, parser delta menolak YYYY-MM, PDF/WA dan FEFO memakai hari. Laporan agent diverifikasi selama implementasi/review.
+- Owner memberi izin eksplisit implementasi + database + commit lokal + push main/Vercel tanpa konfirmasi tambahan. Scope terbaru menggantikan izin audit-only sebelumnya.
+- Desain: dual-presisi day/month; month berlaku akhir bulan kalender; tanggal lengkap lama tidak diubah; metadata additive enam kolom di lima tabel. Spec/plan: `docs/superpowers/{specs,plans}/2026-09-29-expiry-precision*.md`.
+- Sedang berjalan: test-first backend, lalu frontend input/dokumen, review/regresi, backup+migration, version bump v1.67.22 dan deploy.
+- Keputusan controller: gunakan checkout existing dan branch fitur supaya user work tetap utuh; model selection tidak tersedia pada tool task, gunakan general. Anti-slop diterapkan selama UI sesuai izin owner menyelesaikan mandiri.
+- Belum di-commit: ACTION_LOG dan dokumen spec/plan. Database belum berubah, produksi masih v1.67.21.
+
 ## Update 27 Sep 2026 — P0 PROD: Buat Nota gagal `invalid input syntax for type date: "final"` — FIX TER-DEPLOY (v1.67.20-stable)
 - **Laporan owner dari produksi:** modal Buat Nota Baru menampilkan `invalid input syntax for type date: "final"` di bawah NOMOR NOTA — create nota gagal sejak v1.67.19 ter-deploy.
 - **Akar masalah (terbukti, bukan dugaan):** `backend/routes/sales.js` POST `/api/sales` — daftar kolom INSERT menaruh `status` di posisi 26, tetapi VALUES menaruh literal `'final'` di posisi terakhir (46) → literal jatuh ke kolom DATE `tax_invoice_date`; snapshot formal bergeser satu kolom. Baris diperkenalkan commit `e165485` (persist legal/procurement snapshots) — sudah ada di `origin/main`.

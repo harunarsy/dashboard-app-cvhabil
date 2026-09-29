@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import ExpiryInput from "./common/ExpiryInput";
+import { formatExpiry } from "../utils/expiry";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import {
@@ -166,6 +168,7 @@ const blankItem = () => ({
   product_id: null,
   batch_number: "",
   expired_date: "",
+  expired_date_precision: null,
   quantity: "",
   hna: "",
   hna_times_qty: 0,
@@ -644,6 +647,7 @@ export default function InvoiceList({
                     product_id: it.product_id || null,
                     batch_number: batch.batch_no || '',
                     expired_date: batch.expired_date || '',
+                    expired_date_precision: batch.expired_date_precision ?? null,
                     quantity: batch.source_qty_value || batch.received_qty_base || it.qty || 1,
                     unit: batch.source_qty_unit || it.unit || 'pcs',
                     hna: batch.hna || '',
@@ -1101,6 +1105,7 @@ export default function InvoiceList({
             product_name: i.product_name,
             product_id: i.product_id || null,
             expired_date: i.expired_date || null,
+            expired_date_precision: i.expired_date ? i.expired_date_precision ?? null : null,
             quantity: parseNum(i.quantity),
             hna: parseNum(i.hna),
             price_basis: i.price_basis || "hna_exc",
@@ -1337,6 +1342,7 @@ export default function InvoiceList({
                   product_id: i.product_id || null,
                   batch_number: i.batch_number || "",
                   expired_date: i.expired_date?.split("T")[0] || "",
+                  expired_date_precision: i.expired_date_precision ?? null,
                   quantity: invoiceFormQuantity(i),
                   hna: i.hna || i.unit_price || "",
                   hna_times_qty: i.hna_times_qty || 0,
@@ -1396,6 +1402,7 @@ export default function InvoiceList({
                   product_id: i.product_id || null,
                   batch_number: i.batch_number || "",
                   expired_date: i.expired_date?.split("T")[0] || "",
+                  expired_date_precision: i.expired_date_precision ?? null,
                   quantity: invoiceFormQuantity(i),
                   hna: i.hna || i.unit_price || "",
                   hna_times_qty: i.hna_times_qty || 0,
@@ -4191,9 +4198,9 @@ function InvoiceDeltaPreviewModal({
                   <div key={row.key} style={{ ...grid, minWidth: isMobile ? "565px" : undefined, gridTemplateColumns: stockTableColumns, alignItems: "center", fontSize: "11px" }}>
                     <span>
                       <strong>{row.product_name}</strong>
-                      <small style={{ display: "block", color: muted }}>batch {row.batch_before || "baru"}</small>
+                      <small style={{ display: "block", color: muted }}>batch {row.batch_before || "baru"} · ED {formatExpiry(row.expired_before, row.expired_before_precision)}</small>
                     </span>
-                    <span>{row.batch_after || "—"}</span>
+                    <span>{row.batch_after || "—"}<small style={{ display: "block", color: muted }}>ED {formatExpiry(row.expired_after, row.expired_after_precision)}</small></span>
                     <span>{formatDeltaQty(row.before_qty)}</span>
                     <span style={{ color: row.delta_base < 0 ? "var(--color-danger)" : "var(--color-success)", fontWeight: 750 }}>{formatSignedDelta(row.delta_base)}</span>
                     <span style={{ color: row.status === "minus" ? "var(--color-danger)" : text, fontWeight: 750 }}>{formatDeltaQty(row.after_qty)}</span>
@@ -4211,8 +4218,8 @@ function InvoiceDeltaPreviewModal({
               <div style={{ display: "grid", gap: "7px", overflowX: "auto" }}>
                 {lineRows.map((row) => (
                   <div key={row.line_key} style={{ display: "grid", minWidth: isMobile ? "530px" : undefined, gridTemplateColumns: lineTableColumns, gap: "8px", alignItems: "center", fontSize: "11px" }}>
-                    <span><strong>{row.product_name_before || "—"}</strong><small style={{ display: "block", color: muted }}>{row.batch_number_before || "batch —"}</small></span>
-                    <span><strong>{row.product_name_after || "—"}</strong><small style={{ display: "block", color: muted }}>{row.batch_number_after || "batch —"}</small></span>
+                    <span><strong>{row.product_name_before || "—"}</strong><small style={{ display: "block", color: muted }}>{row.batch_number_before || "batch —"} · ED {formatExpiry(row.expired_date_before, row.expired_date_precision_before)}</small></span>
+                    <span><strong>{row.product_name_after || "—"}</strong><small style={{ display: "block", color: muted }}>{row.batch_number_after || "batch —"} · ED {formatExpiry(row.expired_date_after, row.expired_date_precision_after)}</small></span>
                     <span>{formatDeltaQty(row.old_qty_base)}</span>
                     <span>{formatDeltaQty(row.new_qty_base)}</span>
                     <span style={{ fontWeight: 700 }}>{row.status} · {formatSignedDelta(row.delta_base)}</span>
@@ -4761,7 +4768,7 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
             </div>
             {item.expired_date && (
               <div style={{ fontSize: "11px", color: "var(--color-warning)" }}>
-                Exp: {formatLocalDate(item.expired_date)}
+                Exp: {formatExpiry(item.expired_date, item.expired_date_precision)}
               </div>
             )}
           </div>
@@ -5459,12 +5466,14 @@ function InvoiceModal({
                 <div style={{ ...r2, marginBottom: "10px" }}>
                   <div>
                     <label style={S.label}>Expired Date</label>
-                    <input
-                      type="date"
+                    <ExpiryInput
                       style={S.input}
                       value={item.expired_date}
-                      onChange={(e) =>
-                        updateItem(idx, "expired_date", e.target.value)
+                      precision={item.expired_date_precision}
+                      onChange={(value, precision) =>
+                        setItems((prev) => prev.map((entry, index) => index === idx
+                          ? { ...entry, expired_date: value, expired_date_precision: precision }
+                          : entry))
                       }
                     />
                   </div>

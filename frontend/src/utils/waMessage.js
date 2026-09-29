@@ -1,3 +1,5 @@
+import { formatExpiry } from "./expiry";
+
 export const normalizeIndonesianPhone = (value = "") => {
   const digits = String(value).replace(/\D/g, "");
   if (!digits) return "";
@@ -53,7 +55,12 @@ export const buildNotaWaMessage = ({
       );
       // v1.52.x: info batch + ED per item (kalau ada)
       const batchNo = item._batch_no || item.batch_no_snapshot || "";
-      const ed = fmtEd(item._expired_date || item.expired_date_snapshot);
+      const hasSelectedExpiry = Object.prototype.hasOwnProperty.call(item, "_expired_date");
+      const ed = formatExpiry(
+        hasSelectedExpiry ? item._expired_date : item.expired_date_snapshot,
+        hasSelectedExpiry ? item._expired_date_precision : item.expired_date_snapshot_precision,
+        "",
+      );
       const meta = [];
       if (batchNo) meta.push(`Batch ${batchNo}`);
       if (ed) meta.push(`ED ${ed}`);
@@ -106,7 +113,7 @@ export const buildLoanReminderMessage = ({
       );
       const meta = [];
       if (it.batch_no_snapshot) meta.push(`Batch ${it.batch_no_snapshot}`);
-      const ed = fmtEd(it.expired_date_snapshot);
+      const ed = formatExpiry(it.expired_date_snapshot, it.expired_date_snapshot_precision, "");
       if (ed) meta.push(`ED ${ed}`);
       if (meta.length) lines.push(`   ${meta.join(" · ")}`);
     });

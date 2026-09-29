@@ -1,4 +1,5 @@
 const express = require('express');
+const { normalizeExpiry } = require('../utils/expiry');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
@@ -156,7 +157,7 @@ router.get('/:id', auth, async (req, res) => {
     const { rows: items } = await pool.query('SELECT * FROM purchase_order_items WHERE po_id = $1 ORDER BY id', [req.params.id]);
     // Attach received_batches per item from inventory_batches
     const { rows: batches } = await pool.query(
-      `SELECT b.id, b.product_id, b.batch_no, b.expired_date, b.qty_current, b.source_qty_value, b.source_qty_unit, b.hna, b.is_active,
+      `SELECT b.id, b.product_id, b.batch_no, b.expired_date, b.expired_date_precision, b.qty_current, b.source_qty_value, b.source_qty_unit, b.hna, b.is_active,
               COALESCE(SUM(m.qty), 0) AS received_qty_base
        FROM inventory_batches b
        LEFT JOIN inventory_mutations m ON m.batch_id = b.id AND m.reference_type = 'purchase' AND m.reference_id = $2 AND m.type = 'in'
@@ -172,6 +173,7 @@ router.get('/:id', auth, async (req, res) => {
         id: b.id,
         batch_no: b.batch_no,
         expired_date: b.expired_date,
+        expired_date_precision: b.expired_date_precision ?? null,
         qty_current: b.qty_current,
         source_qty_value: b.source_qty_value,
         source_qty_unit: b.source_qty_unit,
@@ -329,8 +331,9 @@ router.post('/:id/receive', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const expiries = items.map((item) => normalizeExpiry(item.expired_date, item.expired_date_precision));
 
-    for (const item of items) {
+    for (const [index, item] of items.entries()) {
       // v1.6.0: receive qty bisa dikirim di unit asal PO (e.g., 5 karton) atau base unit (60 pcs)
       // Frontend convention: kirim received_qty_in_unit (di unit PO) + received_qty (di base unit) untuk clarity
       // Backward compat: kalau cuma `received_qty` dikirim (assumed base unit by old frontend)
@@ -386,10 +389,10 @@ router.post('/:id/receive', auth, async (req, res) => {
         const displayUnit = current.unit || product.base_unit || 'pcs';
         // Auto stock-in to inventory (qty_current di base unit + source snapshot)
         const { rows: [batch] } = await client.query(
-          `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size)
-           VALUES ($1,$2,$3,$4,$5,'purchase',$6,$7,$8,$9) RETURNING *`,
-          [product.id, item.batch_no || null, item.expired_date || null, stockInBase, product.hna || 0, `PO-${req.params.id}`,
-           sourceQtyValue, displayUnit, packSize]
+          `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size, expired_date_precision)
+           VALUES ($1,$2,$3,$4,$5,'purchase',$6,$7,$8,$9,$10) RETURNING *`,
+          [product.id, item.batch_no || null, expiries[index].date, stockInBase, product.hna || 0, `PO-${req.params.id}`,
+           sourceQtyValue, displayUnit, packSize, expiries[index].precision]
         );
         await client.query(
           `INSERT INTO inventory_mutations (product_id, batch_id, type, qty, reference_type, reference_id, notes, created_by, qty_unit, qty_in_unit)
@@ -417,7 +420,7 @@ router.post('/:id/receive', auth, async (req, res) => {
     res.json({ message: 'Barang diterima', status: newStatus });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    res.status(err.statusCode || 500).json({ error: err.message });
   } finally { client.release(); }
 });
 

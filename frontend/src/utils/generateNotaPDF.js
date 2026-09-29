@@ -1,4 +1,6 @@
 import jsPDF from 'jspdf';
+import { formatExpiry } from "./expiry";
+import { formatDateOnly } from "./dateOnly";
 import autoTable from 'jspdf-autotable';
 // v1.65.1: barcode nomor nota. Impor STATIS (bukan dynamic import) supaya
 // generateNotaPDF tetap sinkron — mengubahnya jadi async berarti mengubah
@@ -123,7 +125,7 @@ export function generateNotaPDF(order, options = {}) {
   doc.setTextColor(50, 50, 50);
   doc.text(`No: ${String(order.order_number || '-')}`, infoX, titleY + 5 + infoShift, { align: 'right' });
   const saleDateStr = order.sale_date
-    ? new Date(order.sale_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+    ? formatDateOnly(order.sale_date, { day: '2-digit', month: 'short', year: 'numeric' })
     : '-';
   // v1.8.1: tampilkan Jatuh Tempo di header kalau ada AND non-cash
   // v1.54.0: nota pinjaman → label "Batas Pengembalian" (selalu tampil kalau ada due_date)
@@ -133,7 +135,7 @@ export function generateNotaPDF(order, options = {}) {
   const infoDateY = titleY + 9 + infoShift;
   doc.text(saleDateStr, infoX, infoDateY, { align: 'right' });
   if (hasDueDate) {
-    const dueStr = new Date(order.due_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    const dueStr = formatDateOnly(order.due_date, { day: '2-digit', month: 'short', year: 'numeric' });
     doc.setTextColor(...MONO.ink);
     doc.setFont('helvetica', 'bold');
     doc.text(`${isLoan ? 'Batas Pengembalian' : 'Jatuh Tempo Pembayaran'}: ${dueStr}`, infoX, titleY + 13 + infoShift, { align: 'right' });
@@ -241,6 +243,7 @@ export function generateNotaPDF(order, options = {}) {
         item.batch_id_snapshot ?? '',
         item.batch_no_snapshot ?? '',
         item.expired_date_snapshot ?? '',
+        item.expired_date_snapshot_precision ?? 'day',
         hasQtyInUnit(item) ? 'unit-qty' : 'base-qty',
       ].join('\u001F');
       const existingIndex = bySnapshot.get(key);
@@ -265,7 +268,6 @@ export function generateNotaPDF(order, options = {}) {
     const unitShow = item.unit || 'pcs';
     return `${qtyShow} ${unitShow}`;
   };
-  const fmtItemDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : null;
   const formatProductName = (item) => {
     const packSize = parseInt(item.pack_size_at_sale) || 1;
     const qtyInUnit = item.qty_in_unit !== undefined && item.qty_in_unit !== null ? parseFloat(item.qty_in_unit) : null;
@@ -278,7 +280,7 @@ export function generateNotaPDF(order, options = {}) {
     // v1.7.0 Sub-line 2: batch + ED snapshot (kalau ada — skip silently kalau both NULL)
     const meta = [];
     if (item.batch_no_snapshot) meta.push(`Batch: ${item.batch_no_snapshot}`);
-    const edStr = fmtItemDate(item.expired_date_snapshot);
+    const edStr = formatExpiry(item.expired_date_snapshot, item.expired_date_snapshot_precision, "");
     if (edStr) meta.push(`ED: ${edStr}`);
     if (meta.length) lines.push(`  ${meta.join(' · ')}`);
     return lines.join('\n');

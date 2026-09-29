@@ -8,6 +8,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const tax = require('../utils/tax');
+const { normalizeExpiry } = require('../utils/expiry');
 const { generateMonthlyDocNumber } = require('../utils/docNumbers');
 
 
@@ -83,6 +84,8 @@ router.post('/', auth, async (req, res) => {
     if (!Number.isFinite(qty) || qty <= 0) return res.status(400).json({ error: `Qty produk "${label}" harus angka lebih dari 0` });
     const price = parseFloat(it.unit_price ?? 0);
     if (!Number.isFinite(price) || price < 0) return res.status(400).json({ error: `Harga produk "${label}" tidak valid` });
+    try { normalizeExpiry(it.expired_date_snapshot, it.expired_date_snapshot_precision); }
+    catch (error) { return res.status(400).json({ error: error.message }); }
   }
 
   const client = await pool.connect();
@@ -172,11 +175,12 @@ router.post('/', auth, async (req, res) => {
       await client.query(
         `INSERT INTO loan_items (loan_id, product_id, product_name, qty, unit, unit_price,
            unit_hpp, unit_hpp_tax_type, unit_hpp_ppn_rate,
-           batch_id_snapshot, batch_no_snapshot, expired_date_snapshot)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+           batch_id_snapshot, batch_no_snapshot, expired_date_snapshot, expired_date_snapshot_precision)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
         [loan.id, product.id, product.name, qty, product.base_unit || 'pcs', unitPrice,
          batch.hna || 0, tax.normalizeTaxType(batch.tax_type), batch.ppn_rate ?? null,
-         batch.id, batch.batch_no, batch.expired_date]
+         batch.id, batch.batch_no ?? null, normalizeExpiry(batch.expired_date, batch.expired_date_precision).date,
+         normalizeExpiry(batch.expired_date, batch.expired_date_precision).precision]
       );
 
       await client.query('UPDATE inventory_batches SET qty_current = qty_current - $1 WHERE id = $2', [qty, batch.id]);
@@ -193,7 +197,7 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json(await fetchLoanFull(pool, loan.id));
   } catch (err) {
     try { await client.query('ROLLBACK'); } catch (e) { /* noop */ }
-    res.status(500).json({ error: err.message });
+    res.status(err.statusCode || 500).json({ error: err.message });
   } finally { client.release(); }
 });
 
@@ -205,12 +209,14 @@ router.post('/:id/return', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const expiries = items.map((item) => item.mode === 'new'
+      ? normalizeExpiry(item.expired_date, item.expired_date_precision) : null);
     const { rows: [loan] } = await client.query(
       `SELECT * FROM loans WHERE id = $1 AND is_deleted = FALSE FOR UPDATE`, [req.params.id]
     );
     if (!loan) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Dokumen pinjaman tidak ditemukan' }); }
 
-    for (const r of items) {
+    for (const [index, r] of items.entries()) {
       const qty = parseInt(r.qty);
       if (!Number.isFinite(qty) || qty <= 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'Qty retur harus angka lebih dari 0' }); }
       const { rows: [li] } = await client.query(
@@ -230,10 +236,10 @@ router.post('/:id/return', auth, async (req, res) => {
           return res.status(400).json({ error: `No. Batch baru wajib diisi untuk retur ${li.product_name}` });
         }
         const { rows: [nb] } = await client.query(
-          `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, tax_type, ppn_rate)
-           VALUES ($1,$2,$3,$4,$5,'loan-return',$6,$7,$8) RETURNING id`,
-          [li.product_id, String(r.batch_no).trim(), r.expired_date || null, qty,
-           li.unit_hpp || 0, loan.loan_number, li.unit_hpp_tax_type, li.unit_hpp_ppn_rate]
+          `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, tax_type, ppn_rate, expired_date_precision)
+           VALUES ($1,$2,$3,$4,$5,'loan-return',$6,$7,$8,$9) RETURNING id`,
+          [li.product_id, String(r.batch_no).trim(), expiries[index].date, qty,
+           li.unit_hpp || 0, loan.loan_number, li.unit_hpp_tax_type ?? null, li.unit_hpp_ppn_rate ?? null, expiries[index].precision]
         );
         targetBatchId = nb.id;
       } else {
@@ -266,7 +272,7 @@ router.post('/:id/return', auth, async (req, res) => {
     res.json(await fetchLoanFull(pool, loan.id));
   } catch (err) {
     try { await client.query('ROLLBACK'); } catch (e) { /* noop */ }
-    res.status(500).json({ error: err.message });
+    res.status(err.statusCode || 500).json({ error: err.message });
   } finally { client.release(); }
 });
 
@@ -298,6 +304,7 @@ router.post('/:id/convert', auth, async (req, res) => {
         await client.query('ROLLBACK');
         return res.status(400).json({ error: `Qty konversi ${li.product_name} melebihi sisa pinjaman (sisa: ${outstandingOf(li)})` });
       }
+      normalizeExpiry(li.expired_date_snapshot, li.expired_date_snapshot_precision);
       resolvedItems.push({ li, qty });
     }
 
@@ -335,11 +342,13 @@ router.post('/:id/convert', auth, async (req, res) => {
       await client.query(
         `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp,
            unit_hpp_tax_type, unit_hpp_ppn_rate, subtotal, qty_in_unit, pack_size_at_sale,
-           batch_id_snapshot, batch_no_snapshot, expired_date_snapshot)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+           batch_id_snapshot, batch_no_snapshot, expired_date_snapshot, expired_date_snapshot_precision)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
         [order.id, li.product_name, qty, li.unit || 'pcs', price, li.unit_hpp || 0,
-         li.unit_hpp_tax_type, li.unit_hpp_ppn_rate, qty * price, qty, pm?.pack_size || 1,
-         li.batch_id_snapshot, li.batch_no_snapshot, li.expired_date_snapshot]
+         li.unit_hpp_tax_type ?? null, li.unit_hpp_ppn_rate ?? null, qty * price, qty, pm?.pack_size || 1,
+         li.batch_id_snapshot ?? null, li.batch_no_snapshot ?? null,
+         normalizeExpiry(li.expired_date_snapshot, li.expired_date_snapshot_precision).date,
+         normalizeExpiry(li.expired_date_snapshot, li.expired_date_snapshot_precision).precision]
       );
       await client.query(
         `INSERT INTO loan_conversions (loan_id, loan_item_id, sales_order_id, qty)
@@ -357,7 +366,7 @@ router.post('/:id/convert', auth, async (req, res) => {
     res.status(201).json({ loan: loanFull, order });
   } catch (err) {
     try { await client.query('ROLLBACK'); } catch (e) { /* noop */ }
-    res.status(500).json({ error: err.message });
+    res.status(err.statusCode || 500).json({ error: err.message });
   } finally { client.release(); }
 });
 

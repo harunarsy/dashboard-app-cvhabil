@@ -1,4 +1,5 @@
 const express = require('express');
+const { normalizeExpiry, normalizeExpiryEdit } = require('../utils/expiry');
 const router = express.Router();
 const crypto = require('crypto');
 const pool = require('../config/database');
@@ -496,6 +497,7 @@ const canonicalInvoiceItem = async (client, item) => {
     unit,
     unit_price: round2(item.unit_price || item.hna || 0),
     expired_date: toDateOnly(item.expired_date),
+    expired_date_precision: normalizeExpiry(item.expired_date, item.expired_date_precision).precision,
     hna: round2(item.hna),
     hna_baru: round2(item.hna_baru),
     batch_number: item.batch_number || '',
@@ -509,14 +511,31 @@ const canonicalStoredInvoiceItem = (item) => ({
   unit: item.unit || 'pcs',
   unit_price: round2(item.unit_price || item.hna || 0),
   expired_date: toDateOnly(item.expired_date),
+  expired_date_precision: normalizeExpiry(item.expired_date, item.expired_date_precision).precision,
   hna: round2(item.hna),
   hna_baru: round2(item.hna_baru),
   batch_number: item.batch_number || '',
 });
 
+const normalizeInvoiceExpiries = async (client, items, invoiceId = null) => {
+  const stored = invoiceId
+    ? (await client.query('SELECT * FROM invoice_items WHERE invoice_id = $1 ORDER BY id', [invoiceId])).rows
+    : [];
+  for (const [index, item] of items.entries()) {
+    const current = stored.find((row) => (item.id && String(row.id) === String(item.id))
+      || (item.line_key && (row.line_key || legacyLineKey(row.id)) === item.line_key))
+      || (!item.id && !item.line_key && stored[index]?.product_name === item.product_name ? stored[index] : null);
+    const expiry = current
+      ? normalizeExpiryEdit(item.expired_date, item.expired_date_precision, current.expired_date, current.expired_date_precision)
+      : normalizeExpiry(item.expired_date, item.expired_date_precision);
+    item.expired_date = expiry.date;
+    item.expired_date_precision = expiry.precision;
+  }
+};
+
 const invoiceItemsChanged = async (client, invoiceId, nextItems = []) => {
   const { rows: currentItems } = await client.query(
-    `SELECT product_id, product_name, quantity, unit, unit_price, expired_date, hna, hna_baru, batch_number
+    `SELECT product_id, product_name, quantity, unit, unit_price, expired_date, expired_date_precision, hna, hna_baru, batch_number
      FROM invoice_items
      WHERE invoice_id = $1
      ORDER BY id`,
@@ -1037,6 +1056,7 @@ router.post('/', auth, async (req, res) => {
       'SELECT id FROM invoices WHERE invoice_number = $1 AND deleted_at IS NULL AND (is_draft IS NULL OR is_draft = FALSE)',
       [invoice_number]
     );
+    await normalizeInvoiceExpiries(client, invoiceItems, existing.rows[0]?.id);
 
     let invoiceId;
     if (existing.rows.length > 0) {
@@ -1122,15 +1142,15 @@ router.post('/', auth, async (req, res) => {
           `INSERT INTO invoice_items
 	            (invoice_id, product_name, product_id, quantity, unit_price, total_price,
              expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
-             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice, tax_type, line_key)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice, tax_type, line_key, expired_date_precision)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
           [invoiceId, item.product_name, storedProductId, qtyBase,
            item.unit_price||item.hna||0, item.total_price||item.hna_times_qty||0,
            item.expired_date||null, item.hna||0, item.hna_times_qty||0,
            item.disc_percent||0, item.disc_nominal||0, item.hna_baru||0,
            item.hna_per_item||0, item.margin||0,
            item.disc_cod_per_item||0, item.hna_after_cod||0, item.hpp_inc_ppn||0,
-           item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize, taxType, item.line_key]
+            item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize, taxType, item.line_key, item.expired_date_precision]
         );
       }
     }
@@ -1221,9 +1241,9 @@ router.post('/', auth, async (req, res) => {
           // HNA per pcs menggelembung (1jt/40 = 25rb padahal benar 1jt/100 = 10rb).
           const batchHna = effectiveHna(item, qtyBase, product);
           const { rows: [batch] } = await client.query(
-            `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size, tax_type, ppn_rate)
-             VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9, $10, $11) RETURNING id`,
-            [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize, taxType, resolvedPpnRate]
+             `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, source_qty_value, source_qty_unit, source_pack_size, tax_type, ppn_rate, expired_date_precision)
+             VALUES ($1, $2, $3, $4, $5, 'faktur', $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+            [product.id, item.batch_number || invoice_number, item.expired_date || null, stockQtyBase, batchHna, `invoice-${invoiceId}`, sourceQtyValue, displayUnit, packSize, taxType, resolvedPpnRate, item.expired_date_precision]
           );
           await client.query(
             `INSERT INTO inventory_mutations
@@ -1255,7 +1275,7 @@ router.post('/', auth, async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Create invoice error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(err.statusCode || 500).json({ error: err.message });
   } finally {
     client.release();
   }
@@ -1293,6 +1313,7 @@ router.put('/:id', auth, async (req, res) => {
     // snapshot before
     const snap = await client.query('SELECT * FROM invoices WHERE id = $1 FOR UPDATE', [id]);
     const beforeSnap = snap.rows[0] || null;
+    if (items !== undefined) await normalizeInvoiceExpiries(client, invoiceItems, id);
 
     const { rows: mutationRows } = await client.query(
       `SELECT 1 FROM inventory_mutations
@@ -1458,7 +1479,7 @@ router.put('/:id', auth, async (req, res) => {
     if (shouldPatchItemMeta) {
       const invNo = result.rows[0].invoice_number;
       const { rows: storedItems } = await client.query(
-        'SELECT id, product_id, batch_number, expired_date FROM invoice_items WHERE invoice_id = $1 ORDER BY id',
+        'SELECT id, product_id, batch_number, expired_date, expired_date_precision FROM invoice_items WHERE invoice_id = $1 ORDER BY id',
         [id]
       );
       let metaChanged = false;
@@ -1470,20 +1491,21 @@ router.put('/:id', auth, async (req, res) => {
         const newEd = toDateOnly(next.expired_date);
         const oldBatch = stored.batch_number || null;
         const oldEd = toDateOnly(stored.expired_date);
-        if ((newBatch || '') === (oldBatch || '') && (newEd || '') === (oldEd || '')) continue;
+        if ((newBatch || '') === (oldBatch || '') && (newEd || '') === (oldEd || '')
+          && next.expired_date_precision === normalizeExpiry(stored.expired_date, stored.expired_date_precision).precision) continue;
         metaChanged = true;
         await client.query(
-          'UPDATE invoice_items SET batch_number = $1, expired_date = $2 WHERE id = $3',
-          [newBatch, newEd, stored.id]
+          'UPDATE invoice_items SET batch_number = $1, expired_date = $2, expired_date_precision = $4 WHERE id = $3',
+          [newBatch, newEd, stored.id, next.expired_date_precision]
         );
         await client.query(
           `UPDATE inventory_batches
-             SET batch_no = $1, expired_date = $2
+             SET batch_no = $1, expired_date = $2, expired_date_precision = $7
            WHERE source_type = 'faktur' AND source_ref = $3 AND product_id = $4
              AND COALESCE(batch_no, '') = COALESCE($5, '')
              AND COALESCE(expired_date::text, '') = COALESCE($6, '')`,
           [newBatch || invNo, newEd, `invoice-${id}`, stored.product_id,
-           oldBatch || invNo, oldEd]
+           oldBatch || invNo, oldEd, next.expired_date_precision]
         );
       }
       if (metaChanged) {
@@ -1507,15 +1529,15 @@ router.put('/:id', auth, async (req, res) => {
           `INSERT INTO invoice_items
 	            (invoice_id, product_name, product_id, quantity, unit_price, total_price,
 	             expired_date, hna, hna_times_qty, disc_percent, disc_nominal, hna_baru, hna_per_item, margin,
-             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice, tax_type, line_key)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+             disc_cod_per_item, hna_after_cod, hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice, tax_type, line_key, expired_date_precision)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
           [id, item.product_name, storedProductId, qtyBase,
            item.unit_price||item.hna||0, item.total_price||item.hna_times_qty||0,
            item.expired_date||null, item.hna||0, item.hna_times_qty||0,
            item.disc_percent||0, item.disc_nominal||0, item.hna_baru||0,
            item.hna_per_item||0, item.margin||0,
            item.disc_cod_per_item||0, item.hna_after_cod||0, item.hpp_inc_ppn||0,
-                   item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize, taxType, item.line_key]
+                   item.batch_number||null, item.unit || product?.base_unit || 'pcs', qtyInUnit, packSize, taxType, item.line_key, item.expired_date_precision]
 	        );
 	        // v1.8.2: sync product_master.hna ke RAW HNA per pcs dari faktur edit (mirror POST behavior)
 	        // v1.65.2: item.hna = harga per satuan yang diketik operator. Kalau barisnya
@@ -1546,7 +1568,7 @@ router.put('/:id', auth, async (req, res) => {
     res.json({ ...result.rows[0], unmatchedProducts: [] });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    res.status(err.statusCode || 500).json({ error: err.message });
   } finally {
     client.release();
   }

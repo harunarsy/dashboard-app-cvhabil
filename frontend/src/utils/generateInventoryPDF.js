@@ -5,8 +5,7 @@
 // NOTE: jsPDF helvetica = ASCII only — JANGAN pakai emoji.
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+import { formatExpiry } from './expiry';
 
 export const generateInventoryPDF = (rows, options = {}) => {
   if (!Array.isArray(rows) || rows.length === 0) {
@@ -71,7 +70,7 @@ export const generateInventoryPDF = (rows, options = {}) => {
     r.name || '-',
     r.unit || 'pcs',
     r.batch_no || '',
-    fmtDate(r.expired_date),
+    formatExpiry(r.expired_date, r.expired_date_precision, ''),
     r.qty_current != null ? String(r.qty_current) : '0',
     '', // Stok Fisik — kosong (diisi tangan)
     '', // Selisih — kosong

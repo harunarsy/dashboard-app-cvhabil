@@ -2,6 +2,25 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.22-stable] - 2026-09-29
+
+### Ditambahkan
+- **Presisi ED bulan/tahun (dual precision) di seluruh alur.** Input ED kini punya pilihan "Bulan/tahun" atau "Tanggal lengkap" (`ExpiryInput`). `YYYY-MM` disimpan sebagai DATE akhir bulan kalender (kabisat: `2028-02` → `2028-02-29`) plus metadata presisi `month`; tanggal lengkap legacy tetap disimpan apa adanya dengan presisi `day`. Dipakai di Stok Masuk, Edit Batch, Surat Pesanan, Faktur Pembelian, dan Pinjaman Produk.
+- **Migrasi `20260929_023_expiry_precision`.** Enam kolom presisi nullable di 5 tabel (`inventory_batches`, `invoice_items`, `sales_items`, `loan_items`, `sales_adjustment_items`) + CHECK nilai hanya `day`/`month`. **Tanpa backfill** — jumlah dan hash tanggal lama identik sebelum/sesudah migrasi (319 batch, 247 invoice item, 564 sales item, 1 loan item).
+- **Snapshot presisi ikut terbawa** ke delta/hash/preview faktur, audit adjustment, tampilan PDF/preview/WA (ED bulan tampil `Sep 2027`, tanggal lengkap tampil penuh), dan konversi pinjaman→nota.
+
+### Diperbaiki
+- **P0 — edit nota bisa menimpa ED historis baris lain.** `PUT /api/sales/:id` kini mencocokkan identitas item lebih dulu: ID item eksplisit wajib milik nota itu, unik, dan produknya sama; baris tanpa ID (client lama) hanya dicocokkan lewat posisi (saat jumlah baris sama) atau snapshot asal yang unik — bila ambigu permintaan ditolak `400` sebelum COMMIT. FE ikut mengirim `id` item + flag `selected_batch_changed`, sehingga memilih batch yang sama / memperbarui HPP tidak lagi dianggap "ganti batch".
+- **Presisi hilang di dua endpoint.** Detail Surat Pesanan (`received_batches`) dan daftar batch per produk (Inventory) kini mengembalikan `expired_date_precision` — sebelumnya kolom tidak ikut di-SELECT sehingga faktur dari SP jatuh ke mode tanggal lengkap.
+- **Hidrasi batch saat Edit Nota tidak lagi menebak.** Pencocokan nama+ED kini precision-aware (legacy `day` tidak lengket ke batch `month` dengan DATE sama) dan pencocokan nama saja hanya dipakai bila nomornya unik; nomor batch kembar membiarkan picker kosong alih-alih memilih acak.
+- **Penting saat deploy:** kode ini membaca kolom presisi baru, jadi migrasi 023 harus sudah diterapkan sebelum backend baru melayani permintaan (sudah diterapkan di DB produksi 29 Sep 2026 14:10 UTC). Bila belum, daftar produk/batch akan error dan Inventory tampak kosong.
+
+### Diverifikasi
+- `backend/scripts/test-expiry.js` 67/67 lulus dan seluruh `npm test` backend lulus (exit 0).
+- Unit `ExpiryInput` 13/13 dan `SalesOrderList` (identitas/intent/payload edit nota) 13/13 lulus.
+- Migrasi 023 dijalankan dengan `pg_dump` backup lebih dulu (`~/Downloads/habil-db-backup-pre-023-20260929.dump`); 6 kolom + 6 CHECK terpasang; audit pasca-migrasi: 0 orphan item, 0 transaksi DB menggantung, 0 baris presisi tidak valid.
+- Catatan: `InvoiceList.expiry.test.jsx` di-skip — mounting `<InvoiceList/>` di jsdom membuat proses spin 100% CPU (terbukti juga pada render tanpa modal/data, jadi bukan akibat fitur ini; komponen belum pernah punya test render). Kontrak PO→faktur diverifikasi lewat test backend + wiring prefill/payload yang ditelusuri langsung.
+
 ## [v1.67.21-stable] - 2026-09-26
 
 ### Diubah

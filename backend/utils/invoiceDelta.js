@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { normalizeExpiry, normalizeExpiryEdit } = require('./expiry');
 
 const PRICE_TOLERANCE = 0.005;
 const QTY_TOLERANCE = 0.0001;
@@ -11,7 +12,8 @@ const toNumber = (value) => {
 const roundQty = (value) => Number(toNumber(value).toFixed(4));
 
 const normalizeText = (value) => String(value ?? '').trim();
-const normalizeDate = (value) => (value ? String(value).slice(0, 10) : '');
+const normalizeDate = (value) => (value instanceof Date
+  ? normalizeExpiry(value).date || '' : value ? String(value).slice(0, 10) : '');
 const normalizeProductId = (value) => {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
@@ -69,6 +71,7 @@ const addBucketDelta = (buckets, key, bucket, delta) => {
     batch_id: bucket.batch_id || null,
     batch_number: normalizeText(bucket.batch_number),
     expired_date: normalizeDate(bucket.expired_date),
+    expired_date_precision: normalizeExpiry(bucket.expired_date, bucket.expired_date_precision).precision,
     unit: normalizeText(bucket.unit) || 'pcs',
     hna_base: toNumber(bucket.hna_base),
     line_keys: new Set(bucket.line_key ? [bucket.line_key] : []),
@@ -111,6 +114,13 @@ const buildInvoiceDelta = ({
   stockByLine = new Map(),
   batchEditMode = 'metadata',
 }) => {
+  nextLines = nextLines.map((line) => {
+    const current = currentLines.find((entry) => entry.line_key === line.line_key);
+    const expiry = current
+      ? normalizeExpiryEdit(line.expired_date, line.expired_date_precision, current.expired_date, current.expired_date_precision)
+      : normalizeExpiry(line.expired_date, line.expired_date_precision);
+    return { ...line, expired_date: expiry.date || '', expired_date_precision: expiry.precision };
+  });
   if (!['metadata', 'move'].includes(batchEditMode)) {
     throw Object.assign(new Error('batch_edit_mode harus metadata atau move'), {
       code: 'INVALID_BATCH_EDIT_MODE',
@@ -231,18 +241,26 @@ const buildInvoiceDelta = ({
         batch_id_after: null,
         batch_number_before: stockEntries[0]?.batch_number || normalizeText(current.batch_number),
         batch_number_after: null,
+        expired_date_before: normalizeExpiry(current.expired_date, current.expired_date_precision).date,
+        expired_date_after: null,
+        expired_date_precision_before: normalizeExpiry(current.expired_date, current.expired_date_precision).precision,
+        expired_date_precision_after: null,
       });
       continue;
     }
 
     const newQty = roundQty(next.quantity_base);
     const sameProduct = normalizeProductId(current.product_id) === normalizeProductId(next.product_id);
+    const beforeExpiry = normalizeExpiry(current.expired_date, current.expired_date_precision);
+    const afterExpiry = normalizeExpiry(next.expired_date, next.expired_date_precision);
+    const precisionOnly = normalizeText(current.batch_number) === normalizeText(next.batch_number)
+      && beforeExpiry.date === afterExpiry.date && beforeExpiry.precision !== afterExpiry.precision;
     const batchIdentityChanged = normalizeText(current.batch_number) !== normalizeText(next.batch_number)
-      || normalizeDate(current.expired_date) !== normalizeDate(next.expired_date);
+      || beforeExpiry.date !== afterExpiry.date || beforeExpiry.precision !== afterExpiry.precision;
     const quantityChanged = !sameNumber(oldQty, newQty);
     if (
       sameProduct
-      && batchEditMode === 'metadata'
+      && (batchEditMode === 'metadata' || precisionOnly)
       && activeStockEntries.length > 1
       && (batchIdentityChanged || quantityChanged)
     ) {
@@ -267,7 +285,7 @@ const buildInvoiceDelta = ({
     }
     const canKeepOwnership = sameProduct && !batchIdentityChanged && !quantityChanged;
     const canPatchMetadata = sameProduct
-      && batchEditMode === 'metadata'
+      && (batchEditMode === 'metadata' || precisionOnly)
       && activeStockEntries.length === 1
       && activeStockEntries[0].batch_id;
     const canPatchExisting = sameProduct
@@ -283,7 +301,7 @@ const buildInvoiceDelta = ({
       addExisting(current, stock, roundQty(newQty - oldQty));
       if (
         normalizeText(current.batch_number) !== normalizeText(next.batch_number) ||
-        normalizeDate(current.expired_date) !== normalizeDate(next.expired_date)
+        normalizeDate(current.expired_date) !== normalizeDate(next.expired_date) || beforeExpiry.precision !== afterExpiry.precision
       ) {
         metadataChanges.push({
           line_key: key,
@@ -292,6 +310,8 @@ const buildInvoiceDelta = ({
           after_batch_number: normalizeText(next.batch_number),
           before_expired_date: normalizeDate(current.expired_date),
           after_expired_date: normalizeDate(next.expired_date),
+          before_expired_date_precision: beforeExpiry.precision,
+          after_expired_date_precision: afterExpiry.precision,
         });
       }
     } else {
@@ -302,12 +322,25 @@ const buildInvoiceDelta = ({
       // post stock during an edit. New lines are handled below; a legacy or
       // unposted invoice must be reconciled/posted through its own workflow.
       if (newQty && activeStockEntries.length > 0) addDestination(next, newQty);
+      if (sameProduct && activeStockEntries.length === 0 && batchIdentityChanged) {
+        metadataChanges.push({
+          line_key: key, batch_id: null,
+          before_batch_number: normalizeText(current.batch_number),
+          after_batch_number: normalizeText(next.batch_number),
+          before_expired_date: beforeExpiry.date || '',
+          after_expired_date: afterExpiry.date || '',
+          before_expired_date_precision: beforeExpiry.precision,
+          after_expired_date_precision: afterExpiry.precision,
+        });
+      }
     }
 
     if (shouldTrackHna(current, next)) {
       addTargetHna(next.product_id, next.hna_base, key);
     }
-    const status = !oldQty && newQty
+    const status = metadataChanges.some((change) => change.line_key === key)
+      ? 'metadata_changed'
+      : !oldQty && newQty
       ? 'added'
       : oldQty && !newQty
         ? 'removed'
@@ -334,6 +367,10 @@ const buildInvoiceDelta = ({
       batch_id_after: canPatchMetadata || canPatchExisting ? activeStockEntries[0].batch_id || null : null,
       batch_number_before: activeStockEntries[0]?.batch_number || normalizeText(current.batch_number),
       batch_number_after: normalizeText(next.batch_number),
+      expired_date_before: beforeExpiry.date,
+      expired_date_after: afterExpiry.date,
+      expired_date_precision_before: beforeExpiry.precision,
+      expired_date_precision_after: afterExpiry.precision,
     });
   }
 
@@ -357,6 +394,10 @@ const buildInvoiceDelta = ({
       batch_id_after: null,
       batch_number_before: null,
       batch_number_after: normalizeText(next.batch_number),
+      expired_date_before: null,
+      expired_date_after: normalizeExpiry(next.expired_date, next.expired_date_precision).date,
+      expired_date_precision_before: null,
+      expired_date_precision_after: normalizeExpiry(next.expired_date, next.expired_date_precision).precision,
     });
   }
 

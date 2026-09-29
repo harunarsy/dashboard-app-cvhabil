@@ -29,7 +29,7 @@ const createClient = () => {
       if (/UPDATE inventory_mutations SET invoice_line_key/.test(sql)) return { rows: [{ id: params[1] }] };
       if (/UPDATE invoice_items SET/.test(sql)) {
         assert.strictEqual(params[5], null, 'Expired Date kosong wajib menjadi NULL saat update item');
-        return { rows: [{ id: params[22] }] };
+        return { rows: [{ id: params[23] }] };
       }
       if (/INSERT INTO invoice_items/.test(sql)) {
         assert.strictEqual(params[5], null, 'Expired Date kosong wajib menjadi NULL saat insert item');

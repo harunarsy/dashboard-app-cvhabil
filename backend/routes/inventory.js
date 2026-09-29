@@ -4,6 +4,7 @@ const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const pricing = require('../utils/pricing');
 const tax = require('../utils/tax');
+const { normalizeExpiry, normalizeExpiryEdit } = require('../utils/expiry');
 const { seedProductAlias } = require('../utils/productAliases');
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -29,10 +30,12 @@ router.get('/products', auth, async (req, res) => {
       SELECT p.*,
         COALESCE(stats.total_stock, 0) AS total_stock,
         stats.nearest_expiry,
+        nearest.expired_date_precision AS nearest_expiry_precision,
         COALESCE(stats.expiring_batches, 0) AS expiring_batches,
         latest.hna AS latest_hna,
         latest.batch_no AS latest_batch_no,
         latest.expired_date AS latest_batch_expired_date,
+        latest.expired_date_precision AS latest_batch_expired_date_precision,
         COALESCE(stockval.stock_value, 0) AS stock_value,
         COALESCE(stockval.stock_value_inc_ppn, 0) AS stock_value_inc_ppn,
         stockval.avg_hna AS avg_hna,
@@ -66,7 +69,13 @@ router.get('/products', auth, async (req, res) => {
         WHERE b.product_id = p.id
       ) stats ON TRUE
       LEFT JOIN LATERAL (
-        SELECT b.hna, b.batch_no, b.expired_date
+        SELECT b.expired_date_precision FROM inventory_batches b
+        WHERE b.product_id = p.id AND b.qty_current > 0 AND b.expired_date IS NOT NULL
+          AND COALESCE(b.is_active, TRUE) = TRUE
+        ORDER BY b.expired_date, b.id LIMIT 1
+      ) nearest ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT b.hna, b.batch_no, b.expired_date, b.expired_date_precision
         FROM inventory_batches b
         WHERE b.product_id = p.id
           AND COALESCE(b.is_active, TRUE) = TRUE
@@ -135,7 +144,7 @@ router.get('/opname-template', auth, async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT p.id AS product_id, p.code, p.name, p.unit,
-             b.id AS batch_id, b.batch_no, b.expired_date, b.qty_current
+             b.id AS batch_id, b.batch_no, b.expired_date, b.expired_date_precision, b.qty_current
       FROM product_master p
       LEFT JOIN inventory_batches b ON b.product_id = p.id AND b.is_active = TRUE AND b.qty_current > 0
       WHERE p.is_active = TRUE
@@ -152,10 +161,11 @@ router.get('/products/:id', auth, async (req, res) => {
       SELECT p.*,
         latest.hna AS latest_hna,
         latest.batch_no AS latest_batch_no,
-        latest.expired_date AS latest_batch_expired_date
+        latest.expired_date AS latest_batch_expired_date,
+        latest.expired_date_precision AS latest_batch_expired_date_precision
       FROM product_master p
       LEFT JOIN LATERAL (
-        SELECT b.hna, b.batch_no, b.expired_date
+        SELECT b.hna, b.batch_no, b.expired_date, b.expired_date_precision
         FROM inventory_batches b
         WHERE b.product_id = p.id
           AND COALESCE(b.is_active, TRUE) = TRUE
@@ -258,7 +268,7 @@ router.post('/stock-in', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+    const expiry = normalizeExpiry(expired_date, req.body.expired_date_precision);
     // Get product to use its hna as default if not provided
     let finalHna = hna;
     if (!finalHna) {
@@ -268,9 +278,9 @@ router.post('/stock-in', auth, async (req, res) => {
     
     // Create or update batch
     const { rows: [batch] } = await client.query(
-      `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [product_id, batch_no || null, expired_date || null, qty, finalHna, source_type || 'manual', source_ref || null]
+       `INSERT INTO inventory_batches (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, expired_date_precision)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+       [product_id, batch_no || null, expiry.date, qty, finalHna, source_type || 'manual', source_ref || null, expiry.precision]
     );
     // Record mutation
     await client.query(
@@ -282,7 +292,7 @@ router.post('/stock-in', auth, async (req, res) => {
     res.status(201).json(batch);
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    res.status(err.statusCode || 500).json({ error: err.message });
   } finally { client.release(); }
 });
 
@@ -370,10 +380,11 @@ router.get('/products/:id/full', auth, async (req, res) => {
       SELECT p.*,
         latest.hna AS latest_hna,
         latest.batch_no AS latest_batch_no,
-        latest.expired_date AS latest_batch_expired_date
+        latest.expired_date AS latest_batch_expired_date,
+        latest.expired_date_precision AS latest_batch_expired_date_precision
       FROM product_master p
       LEFT JOIN LATERAL (
-        SELECT b.hna, b.batch_no, b.expired_date
+        SELECT b.hna, b.batch_no, b.expired_date, b.expired_date_precision
         FROM inventory_batches b
         WHERE b.product_id = p.id
           AND COALESCE(b.is_active, TRUE) = TRUE
@@ -412,15 +423,21 @@ router.put('/batches/:id', auth, async (req, res) => {
   try {
     // v1.39.0: ambil state lama dulu untuk audit-log perubahan identitas batch
     const { rows: [before] } = await pool.query(
-      'SELECT batch_no, expired_date, hna FROM inventory_batches WHERE id = $1',
+      'SELECT batch_no, expired_date, expired_date_precision, hna, notes FROM inventory_batches WHERE id = $1',
       [req.params.id]
     );
     if (!before) return res.status(404).json({ error: 'Batch not found' });
+    const expiry = normalizeExpiryEdit(expired_date, req.body.expired_date_precision,
+      before.expired_date, before.expired_date_precision);
     const { rows } = await pool.query(
       `UPDATE inventory_batches
-       SET batch_no = $1, expired_date = $2, hna = $3, notes = $4
+       SET batch_no = $1, expired_date = $2, hna = $3, notes = $4, expired_date_precision = $6
        WHERE id = $5 RETURNING *`,
-      [batch_no || null, expired_date || null, hna || 0, notes || null, req.params.id]
+       [batch_no === undefined ? before.batch_no : batch_no || null, expiry.date,
+        hna === undefined ? before.hna : hna || 0, notes === undefined ? before.notes ?? null : notes || null, req.params.id,
+        expiry.date === normalizeExpiry(before.expired_date).date && req.body.expired_date_precision == null
+          && expiry.precision === normalizeExpiry(before.expired_date, before.expired_date_precision).precision
+          ? before.expired_date_precision ?? null : expiry.precision]
     );
     if (!rows.length) return res.status(404).json({ error: 'Batch not found' });
     const after = rows[0];
@@ -431,6 +448,9 @@ router.put('/batches/:id', auth, async (req, res) => {
       changes.batch_no = { from: before.batch_no || null, to: after.batch_no || null };
     if (ed(before.expired_date) !== ed(after.expired_date))
       changes.expired_date = { from: ed(before.expired_date), to: ed(after.expired_date) };
+    const oldPrecision = normalizeExpiry(before.expired_date, before.expired_date_precision).precision;
+    if (oldPrecision !== expiry.precision)
+      changes.expired_date_precision = { from: oldPrecision, to: expiry.precision };
     if (Number(before.hna || 0) !== Number(after.hna || 0))
       changes.hna = { from: Number(before.hna || 0), to: Number(after.hna || 0) };
     if (Object.keys(changes).length) {
@@ -444,19 +464,23 @@ router.put('/batches/:id', auth, async (req, res) => {
     // Kalau batch_no/ED dibetulkan di sini (mis. typo '2651103GU' → '26S1103GU'),
     // nota lama harus ikut benar — kalau tidak, nota selamanya menampilkan typo.
     // Hanya baris yang memang menunjuk batch ini (batch_id_snapshot) yang disentuh.
-    if (changes.batch_no || changes.expired_date) {
+    if (changes.batch_no || changes.expired_date || changes.expired_date_precision) {
       const { rowCount: syncedRows } = await pool.query(
         `UPDATE sales_items
-            SET batch_no_snapshot = $1, expired_date_snapshot = $2
+            SET batch_no_snapshot = $1,
+                expired_date_snapshot = CASE WHEN $5 THEN $2::date ELSE expired_date_snapshot END,
+                expired_date_snapshot_precision = CASE WHEN $5 THEN $4::text ELSE expired_date_snapshot_precision END
           WHERE batch_id_snapshot = $3
             AND (COALESCE(batch_no_snapshot,'') IS DISTINCT FROM COALESCE($1::varchar,'')
-                 OR expired_date_snapshot IS DISTINCT FROM $2::date)`,
-        [after.batch_no || null, after.expired_date || null, after.id]
+                 OR ($5 AND (expired_date_snapshot IS DISTINCT FROM $2::date
+                   OR expired_date_snapshot_precision IS DISTINCT FROM $4::text)))`,
+        [after.batch_no || null, after.expired_date || null, after.id, expiry.precision,
+         Boolean(changes.expired_date || changes.expired_date_precision)]
       );
       if (syncedRows) console.log(`[inventory] batch ${after.id} disinkron ke ${syncedRows} baris nota`);
     }
     res.json(after);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
 });
 
 // v1.39.0: riwayat perubahan identitas batch (nomor/ED/HNA)
@@ -821,7 +845,7 @@ router.get('/batches-by-product/:productId', auth, async (req, res) => {
 
 	    // batch.hna faktur = HNA exc PPN; batch.hna nota = harga beli riil.
 	    const { rows } = await pool.query(`
-	      SELECT id, batch_no, expired_date, qty_current, hna,
+	      SELECT id, batch_no, expired_date, expired_date_precision, qty_current, hna,
 	             COALESCE(tax_type, 'faktur') AS tax_type,
 	             COALESCE(ppn_rate, ${tax.PPN_RATE}) AS ppn_rate,
 	             CASE

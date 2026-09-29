@@ -1,10 +1,12 @@
 import React, { useMemo, useRef, useEffect } from 'react';
+import { formatExpiry } from "../../utils/expiry";
+import { formatDateOnly } from "../../utils/dateOnly";
 import JsBarcode from 'jsbarcode';
 import { angkaKeTerbilang } from '../../utils/angkaKeTerbilang';
 import { MONO } from '../../utils/documents/salesDocumentTheme';
 
 const fmtRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n || 0);
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+const fmtDate = (d) => formatDateOnly(d, { day: '2-digit', month: 'short', year: 'numeric' }, '');
 const rgb = (c) => `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
 
 // Live preview dokumen nota — SATU bahasa desain dengan PDF monokrom v2/legacy:
@@ -162,7 +164,7 @@ export default function NotaPreview({ form = {}, items = [], settings = {}, ppnE
               const qty = parseFloat(it.qty_in_unit ?? it.qty) || 0;
               const price = parseFloat(it.unit_price) || 0;
               const lineTotal = qty * price;
-              const ed = fmtDate(it.expired_date_snapshot);
+              const ed = formatExpiry(it.expired_date_snapshot, it.expired_date_snapshot_precision, "");
               const hasMeta = it.batch_no_snapshot || ed;
               return (
                 <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#FFF' : ZEBRA }}>

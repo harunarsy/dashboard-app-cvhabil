@@ -42,7 +42,8 @@ import Icons from "./common/Icon";
 import { UI_MOTION, UI_SIZE, uiTransition } from "../constants/ui";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import { importWithReload } from "../utils/importWithReload";
-import { daysUntilDateOnly, formatDateOnly } from "../utils/dateOnly";
+import { daysUntilExpiry, formatExpiry } from "../utils/expiry";
+import ExpiryInput from "./common/ExpiryInput";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -54,13 +55,7 @@ const fmtRp = (n, decimals = 0) =>
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(n || 0);
-const DATE_DISPLAY_OPTIONS = {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-};
-const fmtDate = (d) => formatDateOnly(d, DATE_DISPLAY_OPTIONS);
-const daysUntil = (d) => daysUntilDateOnly(d);
+const daysUntil = (d, precision) => daysUntilExpiry(d, precision);
 
 const getProductDisplayHna = (product) => {
   // v1.66.2: `batch_cost_tiers` = rincian harga BELI per batch (dari daftar produk).
@@ -89,43 +84,43 @@ const getProductDisplayHpp = (product) => {
   return hppFromHna(getProductDisplayHna(product));
 };
 
-function expirySeverity(date, isDarkMode) {
-  if (!date)
+function expirySeverity(date, isDarkMode, precision) {
+  const days = daysUntil(date, precision);
+  if (days === null)
     return {
       color: "var(--color-text-subtle)",
       bg: "transparent",
       label: "—",
       plain: true,
     };
-  const days = daysUntil(date);
   const redBg = isDarkMode
     ? "var(--color-danger-soft)"
     : "var(--color-danger-soft)";
   const orangeBg = isDarkMode
     ? "var(--color-warning-soft)"
     : "var(--color-warning-soft)";
-  if (days <= 0)
+  if (days < 0)
     return {
       color: "var(--color-danger)",
       bg: redBg,
-      label: `EXPIRED · ${fmtDate(date)}`,
+      label: `EXPIRED · ${formatExpiry(date, precision)}`,
     };
   if (days < 30)
     return {
       color: "var(--color-danger)",
       bg: redBg,
-      label: `${fmtDate(date)} (${days}d)`,
+      label: `${formatExpiry(date, precision)} (${days}d)`,
     };
   if (days < 120)
     return {
       color: "#FF9F0A",
       bg: orangeBg,
-      label: `${fmtDate(date)} (${days}d)`,
+      label: `${formatExpiry(date, precision)} (${days}d)`,
     };
   return {
     color: "var(--color-success)",
     bg: "transparent",
-    label: fmtDate(date),
+    label: formatExpiry(date, precision),
     plain: true,
   };
 }
@@ -207,6 +202,7 @@ export default function InventoryDashboard({
     product_name: "",
     batch_no: "",
     expired_date: "",
+    expired_date_precision: null,
     qty: 1,
     hna: 0,
   });
@@ -316,11 +312,11 @@ export default function InventoryDashboard({
       if (!matchSearch) return false;
       if (statusFilter === "all") return true;
       const stock = parseInt(p.total_stock) || 0;
-      const days = daysUntil(p.nearest_expiry);
+      const days = daysUntil(p.nearest_expiry, p.nearest_expiry_precision);
       if (statusFilter === "low") return stock < p.min_stock;
       if (statusFilter === "expiring")
-        return days !== null && days > 0 && days < 120;
-      if (statusFilter === "expired") return days !== null && days <= 0;
+        return days !== null && days >= 0 && days < 120;
+      if (statusFilter === "expired") return days !== null && days < 0;
       return true;
     });
   }, [products, debouncedSearch, statusFilter]);
@@ -667,6 +663,7 @@ export default function InventoryDashboard({
       product_name: p?.name || "",
       batch_no: "",
       expired_date: "",
+      expired_date_precision: null,
       qty: 1,
       hna: getProductDisplayHna(p),
     });
@@ -1230,7 +1227,7 @@ export default function InventoryDashboard({
                       </tr>
                     ))
                   : paged.map((p) => {
-                      const sev = expirySeverity(p.nearest_expiry, isDarkMode);
+                      const sev = expirySeverity(p.nearest_expiry, isDarkMode, p.nearest_expiry_precision);
                       const stock = parseInt(p.total_stock) || 0;
                       const minStockNum = parseInt(p.min_stock) || 0;
                       const hasMinStock = minStockNum > 0;
@@ -1817,7 +1814,7 @@ export default function InventoryDashboard({
             </h3>
             {alerts.expiring.length ? (
               alerts.expiring.map((b, i) => {
-                const days = daysUntil(b.expired_date);
+                const days = daysUntil(b.expired_date, b.expired_date_precision);
                 return (
                   <div
                     key={i}
@@ -1844,7 +1841,7 @@ export default function InventoryDashboard({
                         }}
                       >
                         Batch: {b.batch_no || "—"} · Qty: {b.qty_current}{" "}
-                        {b.unit}
+                        {b.unit} · ED {formatExpiry(b.expired_date, b.expired_date_precision)}
                       </span>
                     </div>
                     <span
@@ -1863,7 +1860,7 @@ export default function InventoryDashboard({
                             : "var(--color-warning)",
                       }}
                     >
-                      {days <= 0 ? "EXPIRED!" : `${days} hari lagi`}
+                      {days === null ? "-" : days < 0 ? "EXPIRED!" : `${days} hari lagi`}
                     </span>
                   </div>
                 );
@@ -2699,11 +2696,11 @@ export default function InventoryDashboard({
               />
               <div>
                 <label style={labelStyle}>Tanggal Expired</label>
-                <input
-                  type="date"
+                <ExpiryInput
                   value={siForm.expired_date}
-                  onChange={(e) =>
-                    setSiForm((p) => ({ ...p, expired_date: e.target.value }))
+                  precision={siForm.expired_date_precision}
+                  onChange={(value, precision) =>
+                    setSiForm((p) => ({ ...p, expired_date: value, expired_date_precision: precision }))
                   }
                   style={inputStyle}
                 />
@@ -2847,7 +2844,7 @@ export default function InventoryDashboard({
                     {soBatches.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.batch_no || "(tanpa no)"} · ED:{" "}
-                        {b.expired_date ? fmtDate(b.expired_date) : "-"} · Stok:{" "}
+                        {formatExpiry(b.expired_date, b.expired_date_precision)} · Stok:{" "}
                         {b.qty_current}
                       </option>
                     ))}
@@ -3506,7 +3503,7 @@ function ExpandedBatches({
         </thead>
         <tbody>
           {batches.map((b) => {
-            const sev = expirySeverity(b.expired_date, isDarkMode);
+            const sev = expirySeverity(b.expired_date, isDarkMode, b.expired_date_precision);
             return (
               <tr key={b.id} style={{ borderTop: `1px solid ${border}` }}>
                 <td
@@ -3768,7 +3765,7 @@ function ProductBatchPanel({
               </thead>
               <tbody>
                 {rows.map((b) => {
-                  const sev = expirySeverity(b.expired_date, isDarkMode);
+                  const sev = expirySeverity(b.expired_date, isDarkMode, b.expired_date_precision);
                   return (
                     <tr key={b.id} style={{ borderTop: `1px solid ${border}` }}>
                       <td

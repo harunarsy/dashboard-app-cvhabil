@@ -27,32 +27,26 @@ import ConfirmModal from "../common/ConfirmModal";
 import { UI_MOTION, uiTransition } from "../../constants/ui";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import { importWithReload } from "../../utils/importWithReload";
-import { daysUntilDateOnly, formatDateOnly } from "../../utils/dateOnly";
+import { daysUntilExpiry, formatExpiry } from "../../utils/expiry";
 
-const DATE_DISPLAY_OPTIONS = {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-};
-const fmtDate = (d) => formatDateOnly(d, DATE_DISPLAY_OPTIONS);
-const daysUntil = (d) => daysUntilDateOnly(d);
+const daysUntil = (d, precision) => daysUntilExpiry(d, precision);
 
-function expiryBadge(date, sub) {
-  if (!date) return { color: sub, bg: "transparent", text: "-" };
-  const days = daysUntil(date);
-  if (days <= 0)
+function expiryBadge(date, sub, precision) {
+  const days = daysUntil(date, precision);
+  if (days === null) return { color: sub, bg: "transparent", text: "-" };
+  if (days < 0)
     return {
       color: "var(--color-danger)",
       bg: "var(--color-danger-soft)",
-      text: `EXP ${fmtDate(date)}`,
+      text: `EXP ${formatExpiry(date, precision)}`,
     };
   if (days < 90)
     return {
       color: "var(--color-warning)",
       bg: "var(--color-warning-soft)",
-      text: `${fmtDate(date)} (${days}d)`,
+      text: `${formatExpiry(date, precision)} (${days}d)`,
     };
-  return { color: "var(--color-success)", bg: "#F0FBF3", text: fmtDate(date) };
+  return { color: "var(--color-success)", bg: "#F0FBF3", text: formatExpiry(date, precision) };
 }
 
 // Per-batch stok opname modal.
@@ -278,6 +272,7 @@ export default function OpnameModal({
         batch_no: batch.batch_no,
         qty_current: batch.qty_current,
         expired_date: batch.expired_date,
+        expired_date_precision: batch.expired_date_precision ?? null,
         physical_qty: v,
         notes: prev[batch.id]?.notes || "",
       },
@@ -401,6 +396,7 @@ export default function OpnameModal({
           product_name: v.product_name,
           batch_no: v.batch_no,
           expired_date: v.expired_date,
+          expired_date_precision: v.expired_date_precision ?? null,
           qty_current: v.qty_current,
           physical_qty: v.physical_qty,
           notes: v.notes,
@@ -914,7 +910,7 @@ export default function OpnameModal({
                         : diff < 0
                           ? "var(--color-danger)"
                           : sub;
-                    const eb = expiryBadge(b.expired_date, sub);
+                    const eb = expiryBadge(b.expired_date, sub, b.expired_date_precision);
                     return (
                       <div
                         key={b.id}

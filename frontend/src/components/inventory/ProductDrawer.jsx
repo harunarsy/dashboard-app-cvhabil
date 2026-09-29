@@ -17,7 +17,7 @@ import { UI_MOTION, UI_SIZE, uiTransition } from "../../constants/ui";
 import Icons from "../common/Icon";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import FieldError from "../common/FieldError";
-import { daysUntilDateOnly, formatDateOnly } from "../../utils/dateOnly";
+import { daysUntilExpiry, formatExpiry } from "../../utils/expiry";
 
 const fmtRp = (n, decimals = 0) =>
   new Intl.NumberFormat("id-ID", {
@@ -26,12 +26,6 @@ const fmtRp = (n, decimals = 0) =>
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(n || 0);
-const DATE_DISPLAY_OPTIONS = {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-};
-const fmtDate = (d) => formatDateOnly(d, DATE_DISPLAY_OPTIONS);
 const fmtDateTime = (d) =>
   d
     ? new Date(d).toLocaleString("id-ID", {
@@ -42,26 +36,26 @@ const fmtDateTime = (d) =>
         minute: "2-digit",
       })
     : "-";
-const daysUntil = (d) => daysUntilDateOnly(d);
+const daysUntil = (d, precision) => daysUntilExpiry(d, precision);
 
 const getDisplayHna = (data) => parseFloat(data?.latest_hna ?? data?.hna) || 0;
 
-function expiryBadge(date, sub) {
-  if (!date) return { color: sub, bg: "transparent", text: "-" };
-  const days = daysUntil(date);
-  if (days <= 0)
+function expiryBadge(date, sub, precision) {
+  const days = daysUntil(date, precision);
+  if (days === null) return { color: sub, bg: "transparent", text: "-" };
+  if (days < 0)
     return {
       color: "var(--color-danger)",
       bg: "var(--color-danger-soft)",
-      text: `EXPIRED ${fmtDate(date)}`,
+      text: `EXPIRED ${formatExpiry(date, precision)}`,
     };
   if (days < 90)
     return {
       color: "var(--color-warning)",
       bg: "var(--color-warning-soft)",
-      text: `${fmtDate(date)} (${days}d)`,
+      text: `${formatExpiry(date, precision)} (${days}d)`,
     };
-  return { color: "var(--color-success)", bg: "#F0FBF3", text: fmtDate(date) };
+  return { color: "var(--color-success)", bg: "#F0FBF3", text: formatExpiry(date, precision) };
 }
 
 const mutationLabel = {
@@ -527,7 +521,7 @@ export default function ProductDrawer({
               )}
               <div style={{ display: "grid", gap: "8px" }}>
                 {data.batches.map((b) => {
-                  const eb = expiryBadge(b.expired_date, sub);
+                  const eb = expiryBadge(b.expired_date, sub, b.expired_date_precision);
                   return (
                     <div
                       key={b.id}

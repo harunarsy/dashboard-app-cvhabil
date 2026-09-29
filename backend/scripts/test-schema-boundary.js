@@ -29,6 +29,7 @@ const expectedMigrationIds = [
   '20260911_020_invoice_delta_edit',
   '20260911_021_invoice_edit_event_retention',
   '20260922_022_sales_document_legal',
+  '20260929_023_expiry_precision',
 ];
 
 let passed = 0;

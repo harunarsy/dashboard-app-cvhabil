@@ -8,6 +8,7 @@ const uom = require('../utils/uom');
 const formDrafts = require('../utils/formDrafts');
 const { generateMonthlyDocNumber } = require('../utils/docNumbers');
 const adjustmentRules = require('../utils/adjustmentRules');
+const { normalizeExpiry } = require('../utils/expiry');
 
 // v1.65.0: Normalisasi ppn_excluded ke boolean (terima true/false dan string 'true'/'false')
 const normalizeBooleanField = (val) => {
@@ -60,18 +61,21 @@ const resolveSelectedBatchForSale = async (client, productId, item) => {
       [numericBatchId, productId]
     );
     if (batch) return { batch, source: 'id' };
+    if (item.selected_batch_id) throw Object.assign(new Error('USER: Batch terpilih tidak ditemukan untuk produk ini.'), { statusCode: 400 });
   }
 
   const batchNo = item.batch_no_snapshot || item._selected_batch;
-  const expiredDate = item.expired_date_snapshot;
+  const expiredDate = normalizeExpiry(item.expired_date_snapshot, item.expired_date_snapshot_precision).date;
 
   if (batchNo) {
     if (expiredDate) {
+      const precision = item.expired_date_snapshot_precision;
       const { rows } = await client.query(
         `SELECT * FROM inventory_batches
          WHERE product_id = $1 AND batch_no = $2 AND COALESCE(is_active, TRUE) = TRUE
-         AND (expired_date = $3 OR (expired_date IS NULL AND $3 IS NULL)) FOR UPDATE`,
-        [productId, batchNo, expiredDate]
+         AND (expired_date = $3 OR (expired_date IS NULL AND $3 IS NULL))
+         ${precision != null ? "AND COALESCE(expired_date_precision, 'day') = $4" : ''} FOR UPDATE`,
+        precision != null ? [productId, batchNo, expiredDate, precision] : [productId, batchNo, expiredDate]
       );
       if (rows.length === 1) return { batch: rows[0], source: 'name_date' };
       if (rows.length > 1) throw Object.assign(new Error('USER: Batch snapshot ambigu, pilih batch ulang.'), { statusCode: 400 });
@@ -99,6 +103,8 @@ const validateSaleItems = (items = []) => {
     if (!Number.isFinite(price) || price < 0) return `Harga produk "${label}" tidak valid (tidak boleh minus)`;
     const hpp = parseFloat(it.unit_hpp ?? 0);
     if (!Number.isFinite(hpp) || hpp < 0) return `HPP produk "${label}" tidak valid (tidak boleh minus)`;
+    try { normalizeExpiry(it.expired_date_snapshot, it.expired_date_snapshot_precision); }
+    catch (error) { return error.message; }
   }
   return null;
 };
@@ -415,6 +421,7 @@ router.post('/', auth, async (req, res) => {
       let snapshotBatchId = null;
       let snapshotBatchNo = null;
       let snapshotExpiredDate = null;
+      let snapshotExpiredPrecision = null;
       let snapshotTaxType = tax.normalizeTaxType(it.unit_hpp_tax_type);
       let snapshotPpnRate = null;
 
@@ -429,13 +436,14 @@ router.post('/', auth, async (req, res) => {
           snapshotBatchId = resolved.batch.id;
           snapshotBatchNo = resolved.batch.batch_no;
           snapshotExpiredDate = resolved.batch.expired_date;
+          snapshotExpiredPrecision = resolved.batch.expired_date_precision;
           snapshotTaxType = resolveItemHppTaxType(it, resolved.batch);
           snapshotPpnRate = resolved.batch.ppn_rate ?? null;
           itemBatchInfo.push({ product, selectedBatchId: resolved.batch.id, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: true });
         } else {
           // FEFO fallback (existing behavior)
           const { rows: [firstBatch] } = await client.query(
-            `SELECT id, batch_no, expired_date, tax_type, ppn_rate FROM inventory_batches
+            `SELECT id, batch_no, expired_date, expired_date_precision, tax_type, ppn_rate FROM inventory_batches
              WHERE product_id = $1 AND qty_current > 0 AND COALESCE(is_active, TRUE) = TRUE
              AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
              ORDER BY expired_date ASC NULLS LAST LIMIT 1`,
@@ -444,6 +452,7 @@ router.post('/', auth, async (req, res) => {
           snapshotBatchId = firstBatch?.id || null;
           snapshotBatchNo = firstBatch?.batch_no || null;
           snapshotExpiredDate = firstBatch?.expired_date || null;
+          snapshotExpiredPrecision = firstBatch?.expired_date_precision;
           snapshotTaxType = resolveItemHppTaxType(it, firstBatch);
           snapshotPpnRate = firstBatch?.ppn_rate ?? null;
           itemBatchInfo.push({ product, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: false });
@@ -453,12 +462,13 @@ router.post('/', auth, async (req, res) => {
       }
 
       actualItemGross += qtyInUnit * ((it.unit_price || 0) - tax.hppFromHnaByRate(it.unit_hpp || 0, snapshotTaxType, snapshotPpnRate));
+      const expiry = normalizeExpiry(snapshotExpiredDate, snapshotExpiredPrecision);
 
       await client.query(
-        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, unit_hpp_tax_type, subtotal, qty_in_unit, pack_size_at_sale, batch_id_snapshot, batch_no_snapshot, expired_date_snapshot, unit_hpp_ppn_rate)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, unit_hpp_tax_type, subtotal, qty_in_unit, pack_size_at_sale, batch_id_snapshot, batch_no_snapshot, expired_date_snapshot, unit_hpp_ppn_rate, expired_date_snapshot_precision)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
         [order.id, it.product_name, qtyBase, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, snapshotTaxType, subtotal, qtyInUnit, packSize,
-         snapshotBatchId, snapshotBatchNo, snapshotExpiredDate, snapshotPpnRate]
+         snapshotBatchId ?? null, snapshotBatchNo ?? null, expiry.date, snapshotPpnRate, expiry.precision]
       );
     }
 
@@ -773,10 +783,11 @@ router.post('/:id/adjustments', auth, async (req, res) => {
       const batchId = Number(original.batch_id_snapshot);
       if (!Number.isFinite(batchId)) throw Object.assign(new Error('USER: Batch asal item tidak tersedia'), { statusCode: 400 });
       const { rows: [batch] } = await client.query(
-        'SELECT id, product_id, batch_no, expired_date, hna, tax_type, ppn_rate FROM inventory_batches WHERE id = $1 FOR UPDATE',
+        'SELECT id, product_id, batch_no, expired_date, expired_date_precision, hna, tax_type, ppn_rate FROM inventory_batches WHERE id = $1 FOR UPDATE',
         [batchId],
       );
       if (!batch) throw Object.assign(new Error('USER: Batch asal tidak ditemukan'), { statusCode: 400 });
+      normalizeExpiry(batch.expired_date, batch.expired_date_precision);
       const returnCondition = item.condition || 'saleable';
       if (!['saleable', 'expired', 'damaged', 'quarantine'].includes(returnCondition)) {
         throw Object.assign(new Error('USER: Kondisi retur tidak valid'), { statusCode: 400 });
@@ -793,8 +804,9 @@ router.post('/:id/adjustments', auth, async (req, res) => {
         productId: batch.product_id,
         productName: original.product_name,
         originalBatchId: batchId,
-        originalBatchNo: batch.batch_no,
-        originalExpiredDate: batch.expired_date,
+        originalBatchNo: original.batch_no_snapshot,
+        originalExpiredDate: normalizeExpiry(original.expired_date_snapshot, original.expired_date_snapshot_precision).date,
+        originalExpiredPrecision: normalizeExpiry(original.expired_date_snapshot, original.expired_date_snapshot_precision).precision,
         replacementBatchId: null,
         qty: qtyBase,
         qtyInUnit,
@@ -815,7 +827,7 @@ router.post('/:id/adjustments', auth, async (req, res) => {
       }
 
       const { rows: [batch] } = await client.query(
-        `SELECT b.id, b.product_id, b.qty_current, b.batch_no, b.expired_date,
+        `SELECT b.id, b.product_id, b.qty_current, b.batch_no, b.expired_date, b.expired_date_precision,
                 p.id AS product_id, p.name AS product_name, p.base_unit, p.pack_unit, p.pack_size
          FROM inventory_batches b
          JOIN product_master p ON p.id = b.product_id
@@ -857,13 +869,15 @@ router.post('/:id/adjustments', auth, async (req, res) => {
         originalBatchId: null,
         replacementBatchId: batchId,
         replacementBatchNo: batch.batch_no,
-        replacementExpiredDate: batch.expired_date,
+        replacementExpiredDate: normalizeExpiry(batch.expired_date, batch.expired_date_precision).date,
+        replacementExpiredPrecision: normalizeExpiry(batch.expired_date, batch.expired_date_precision).precision,
         qty: qtyBase,
         qtyInUnit,
         unit: targetUnit,
         unitPrice,
         value,
         condition: null,
+        conditionReason: null,
         sourceInvoiceId: Number.isFinite(sourceInvoiceId) && sourceInvoiceId > 0 ? sourceInvoiceId : null,
         sourceInvoiceNumber: sourceInvoiceNumber || null,
       });
@@ -905,13 +919,16 @@ router.post('/:id/adjustments', auth, async (req, res) => {
          (adjustment_id, original_sales_item_id, product_id, product_name_snapshot,
           original_batch_id, replacement_batch_id, qty_base, qty_in_unit, unit,
           unit_price, line_amount, direction, condition, condition_reason, source_invoice_id, source_invoice_number,
-          original_batch_no, original_expired_date, replacement_batch_no, replacement_expired_date)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
-        [adjustment.id, item.originalSalesItemId, item.productId, item.productName,
-          item.originalBatchId, item.replacementBatchId, item.qty, item.qtyInUnit,
-          item.unit, item.unitPrice, item.value, item.direction, item.condition,
-          item.conditionReason, item.sourceInvoiceId, item.sourceInvoiceNumber,
-          item.originalBatchNo, item.originalExpiredDate, item.replacementBatchNo, item.replacementExpiredDate],
+          original_batch_no, original_expired_date, replacement_batch_no, replacement_expired_date,
+          original_expired_date_precision, replacement_expired_date_precision)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
+        [adjustment.id, item.originalSalesItemId ?? null, item.productId, item.productName,
+          item.originalBatchId ?? null, item.replacementBatchId ?? null, item.qty, item.qtyInUnit,
+          item.unit, item.unitPrice, item.value, item.direction, item.condition ?? null,
+          item.conditionReason ?? null, item.sourceInvoiceId ?? null, item.sourceInvoiceNumber ?? null,
+          item.originalBatchNo ?? null, item.originalExpiredDate ?? null,
+          item.replacementBatchNo ?? null, item.replacementExpiredDate ?? null,
+          item.originalExpiredPrecision ?? null, item.replacementExpiredPrecision ?? null],
       );
       const isReturn = item.direction === 'returned';
       const batchId = isReturn ? item.originalBatchId : item.replacementBatchId;
@@ -919,9 +936,9 @@ router.post('/:id/adjustments', auth, async (req, res) => {
       if (isReturn && item.condition !== 'saleable') {
         const { rows: [quarantineBatch] } = await client.query(
           `INSERT INTO inventory_batches
-           (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, tax_type, ppn_rate, is_active, notes)
+           (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref, tax_type, ppn_rate, is_active, notes, expired_date_precision)
            SELECT product_id, CONCAT(COALESCE(batch_no, 'NO-BATCH'), '-RET-', $1::text), expired_date, $2, hna,
-                  'sale-adjustment-return', $1, tax_type, ppn_rate, FALSE, $3
+                  'sale-adjustment-return', $1, tax_type, ppn_rate, FALSE, $3, expired_date_precision
             FROM inventory_batches WHERE id = $4
             RETURNING id`,
           [adjustment.id, item.qty, item.conditionReason, batchId],
@@ -1192,6 +1209,62 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(409).json({ error: 'Nota lunas tidak bisa diedit langsung. Gunakan Retur/Tukar Barang atau Edit Catatan.' });
     }
     const oldPpnExcluded = noteOld?.ppn_excluded ?? false;
+    const { rows: historicalItems } = await client.query(
+      'SELECT * FROM sales_items WHERE sales_order_id = $1 ORDER BY id FOR UPDATE', [req.params.id],
+    );
+    // v1.67.22 fix-wave: pra-match identitas item SEBELUM write apa pun supaya
+    // histori satu baris tidak pernah dicuri baris lain yang kebetulan menunjuk
+    // batch tujuan yang sama. ID eksplisit wajib milik nota ini + produk sama;
+    // baris tanpa ID (client lama) hanya dikenali via posisi (jumlah baris sama)
+    // atau snapshot asal yang unik (jumlah baris berubah). Ambigu → 400 sebelum COMMIT.
+    const productKey = (name) => String(name || '').trim().toLowerCase();
+    const saleOriginKey = (row) => JSON.stringify([
+      productKey(row.product_name),
+      row.batch_no_snapshot || null,
+      row.expired_date_snapshot == null ? null : String(row.expired_date_snapshot).slice(0, 10),
+      row.expired_date_snapshot_precision ?? null,
+    ]);
+    const hasExplicitId = (it) => it.id !== undefined && it.id !== null && it.id !== '';
+    const oldById = new Map(historicalItems.map((row) => [String(row.id), row]));
+    const matchedOld = new Map();
+    const usedOldIds = new Set();
+    for (const it of items) {
+      if (!hasExplicitId(it)) continue;
+      const sid = String(it.id);
+      const old = /^\d+$/.test(sid) && Number(sid) > 0 ? oldById.get(sid) : null;
+      if (!old || usedOldIds.has(sid) || productKey(old.product_name) !== productKey(it.product_name)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'ID item nota tidak dikenali (bukan milik nota ini, duplikat, atau beda produk). Muat ulang nota lalu coba lagi.' });
+      }
+      usedOldIds.add(sid);
+      matchedOld.set(it, old);
+    }
+    const remainingOld = historicalItems.filter((row) => !usedOldIds.has(String(row.id)));
+    const legacyItems = items.filter((it) => !hasExplicitId(it));
+    if (legacyItems.length) {
+      if (items.length === historicalItems.length) {
+        let pos = 0;
+        for (const it of legacyItems) {
+          const old = remainingOld[pos++];
+          matchedOld.set(it, old && productKey(old.product_name) === productKey(it.product_name) ? old : null);
+        }
+      } else {
+        const claimedByOrigin = new Set();
+        for (const it of legacyItems) {
+          const matches = remainingOld.filter((row) => !claimedByOrigin.has(row.id) && saleOriginKey(row) === saleOriginKey(it));
+          if (matches.length > 1) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'Snapshot item lama ambigu. Muat ulang nota, pilih batch ulang, lalu simpan.' });
+          }
+          if (matches.length === 1) { matchedOld.set(it, matches[0]); claimedByOrigin.add(matches[0].id); continue; }
+          if (items.length < historicalItems.length) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'Baris item lama tidak dikenali (jumlah baris berubah tanpa ID). Muat ulang nota lalu coba lagi.' });
+          }
+          matchedOld.set(it, null);
+        }
+      }
+    }
     // Tentukan nilai baru (jika tidak dikirim, pertahankan lama)
     const newPpnExcluded = rawPpnExcluded !== undefined ? normalizeBooleanField(rawPpnExcluded) : oldPpnExcluded;
     // Track perubahan untuk audit fields
@@ -1256,7 +1329,7 @@ router.put('/:id', auth, async (req, res) => {
     // Replace items. Each submitted row resolves and snapshots its own batch.
     await client.query('DELETE FROM sales_items WHERE sales_order_id = $1', [req.params.id]);
     // v1.6.0 multi-unit + v1.7.0 batch snapshot + v1.16.2 selected_batch safety
-    // v1.8.1: re-snapshot batch_no/expired_date on edit (sebelumnya PUT gak update snapshot)
+    // Keep historical ED when batch identity is unchanged; new selection uses the actual batch.
     const productMap = new Map();
     for (const it of items) {
       if (productMap.has(it.product_name)) continue;
@@ -1288,6 +1361,23 @@ router.put('/:id', auth, async (req, res) => {
     let actualItemGross = 0; // AUDIT-LS-06: gross dari tax_type batch AKTUAL, bukan payload
     let estimatedWeightGram = packageWeightGram;
     for (const it of items) {
+      const oldItem = matchedOld.get(it) || null;
+      const requestedBatch = it.selected_batch_id || it.batch_id_snapshot;
+      const requestedNo = it.batch_no_snapshot || it._selected_batch;
+      // Intent eksplisit FE (selected_batch_changed) adalah otoritatif; client
+      // lama tanpa flag jatuh ke perbandingan batch terpilih vs snapshot lama.
+      const batchChanged = it.selected_batch_changed === true ? true
+        : it.selected_batch_changed === false ? false
+        : Boolean(requestedBatch
+          ? String(requestedBatch) !== String(oldItem?.batch_id_snapshot ?? '')
+          : requestedNo && requestedNo !== (oldItem?.batch_no_snapshot ?? ''));
+      const preserve = Boolean(oldItem) && !batchChanged;
+      const selection = preserve
+        ? { ...it, batch_id_snapshot: oldItem.batch_id_snapshot ?? null,
+          batch_no_snapshot: oldItem.batch_no_snapshot ?? null,
+          expired_date_snapshot: oldItem.expired_date_snapshot ?? null,
+          expired_date_snapshot_precision: oldItem.expired_date_snapshot_precision ?? null }
+        : it;
       const product = productMap.get(it.product_name);
       const qtyInUnit = parseFloat(it.qty) || 1;
       const qtyBase = product ? uom.toBase(qtyInUnit, it.unit, product) : qtyInUnit;
@@ -1298,11 +1388,12 @@ router.put('/:id', auth, async (req, res) => {
       let snapshotBatchId = null;
       let snapshotBatchNo = null;
       let snapshotExpiredDate = null;
+      let snapshotExpiredPrecision = null;
       let snapshotTaxType = tax.normalizeTaxType(it.unit_hpp_tax_type);
       let snapshotPpnRate = null;
 
       if (product) {
-        const resolved = await resolveSelectedBatchForSale(client, product.id, it);
+        const resolved = await resolveSelectedBatchForSale(client, product.id, selection);
         if (resolved.batch) {
           // Deduct from this exact batch (resolved by id, name+date, or name only)
           if (resolved.batch.qty_current < qtyBase) {
@@ -1312,13 +1403,14 @@ router.put('/:id', auth, async (req, res) => {
           snapshotBatchId = resolved.batch.id;
           snapshotBatchNo = resolved.batch.batch_no;
           snapshotExpiredDate = resolved.batch.expired_date;
+          snapshotExpiredPrecision = resolved.batch.expired_date_precision;
           snapshotTaxType = resolveItemHppTaxType(it, resolved.batch);
           snapshotPpnRate = resolved.batch.ppn_rate ?? null;
           itemBatchInfo.push({ product, selectedBatchId: resolved.batch.id, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: true });
         } else {
           // FEFO fallback (existing behavior)
           const { rows: [firstBatch] } = await client.query(
-            `SELECT id, batch_no, expired_date, tax_type, ppn_rate FROM inventory_batches
+            `SELECT id, batch_no, expired_date, expired_date_precision, tax_type, ppn_rate FROM inventory_batches
              WHERE product_id = $1 AND qty_current > 0 AND COALESCE(is_active, TRUE) = TRUE
              AND (expired_date IS NULL OR expired_date >= CURRENT_DATE)
              ORDER BY expired_date ASC NULLS LAST LIMIT 1`,
@@ -1327,6 +1419,7 @@ router.put('/:id', auth, async (req, res) => {
           snapshotBatchId = firstBatch?.id || null;
           snapshotBatchNo = firstBatch?.batch_no || null;
           snapshotExpiredDate = firstBatch?.expired_date || null;
+          snapshotExpiredPrecision = firstBatch?.expired_date_precision;
           snapshotTaxType = resolveItemHppTaxType(it, firstBatch);
           snapshotPpnRate = firstBatch?.ppn_rate ?? null;
           itemBatchInfo.push({ product, qtyBase, qtyInUnit, unit: it.unit || product.base_unit || 'pcs', isSelected: false });
@@ -1335,13 +1428,23 @@ router.put('/:id', auth, async (req, res) => {
         itemBatchInfo.push({ product: null, qtyBase: 0, qtyInUnit, unit: 'pcs', isSelected: false });
       }
 
+      // Match identity, never HPP: two batches of one product may share the price.
+      const historical = preserve ? oldItem : null;
+      if (historical) {
+        snapshotBatchId = historical.batch_id_snapshot;
+        snapshotBatchNo = historical.batch_no_snapshot;
+        snapshotExpiredDate = historical.expired_date_snapshot;
+        snapshotExpiredPrecision = historical.expired_date_snapshot_precision;
+      }
+      const expiry = normalizeExpiry(snapshotExpiredDate, snapshotExpiredPrecision);
       actualItemGross += qtyInUnit * ((it.unit_price || 0) - tax.hppFromHnaByRate(it.unit_hpp || 0, snapshotTaxType, snapshotPpnRate));
 
       await client.query(
-        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, unit_hpp_tax_type, subtotal, qty_in_unit, pack_size_at_sale, batch_id_snapshot, batch_no_snapshot, expired_date_snapshot, unit_hpp_ppn_rate)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+        `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp, unit_hpp_tax_type, subtotal, qty_in_unit, pack_size_at_sale, batch_id_snapshot, batch_no_snapshot, expired_date_snapshot, unit_hpp_ppn_rate, expired_date_snapshot_precision)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
         [req.params.id, it.product_name, qtyBase, it.unit || 'pcs', it.unit_price || 0, it.unit_hpp || 0, snapshotTaxType, subtotal, qtyInUnit, packSize,
-         snapshotBatchId, snapshotBatchNo, snapshotExpiredDate, snapshotPpnRate]
+         snapshotBatchId ?? null, snapshotBatchNo ?? null, expiry.date, snapshotPpnRate,
+         historical ? historical.expired_date_snapshot_precision ?? null : expiry.precision]
       );
     }
 

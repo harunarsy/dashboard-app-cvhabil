@@ -107,6 +107,7 @@ export function groupSaleItems(items) {
       item.batch_id_snapshot ?? '',
       item.batch_no_snapshot ?? '',
       item.expired_date_snapshot ?? '',
+      item.expired_date_snapshot_precision ?? 'day',
       hasQtyInUnit(item) ? 'unit-qty' : 'base-qty',
     ].join('\u001F');
     const existingIndex = bySnapshot.get(key);
@@ -187,6 +188,7 @@ const mapSaleItem = (item) => {
     lineTotal: qty * unitPrice,
     batchNumber: emptyToNull(item.batch_no_snapshot),
     expiredDate: emptyToNull(item.expired_date_snapshot),
+    expiredDatePrecision: emptyToNull(item.expired_date_snapshot_precision),
   };
 };
 

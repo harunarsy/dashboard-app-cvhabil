@@ -6,6 +6,7 @@ import HnaHppInput from "../common/HnaHppInput";
 import Icons from "../common/Icon";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import FieldError from "../common/FieldError";
+import ExpiryInput from "../common/ExpiryInput";
 
 // Modal untuk add (qty initial via stockIn) atau edit metadata batch.
 // Mode 'add' → POST stock-in (membuat batch baru + mutation). Mode 'edit' → PUT batch (metadata only).
@@ -22,6 +23,7 @@ export default function BatchFormModal({
   const [form, setForm] = useState({
     batch_no: "",
     expired_date: "",
+    expired_date_precision: null,
     qty: 1,
     hna: 0,
     notes: "",
@@ -37,6 +39,7 @@ export default function BatchFormModal({
         expired_date: batch.expired_date
           ? batch.expired_date.split("T")[0]
           : "",
+        expired_date_precision: batch.expired_date_precision ?? null,
         qty: batch.qty_current || 0,
         hna: parseFloat(batch.hna) || 0,
         notes: batch.notes || "",
@@ -92,6 +95,7 @@ export default function BatchFormModal({
         await inventoryAPI.updateBatch(batch.id, {
           batch_no: form.batch_no || null,
           expired_date: form.expired_date || null,
+          expired_date_precision: form.expired_date ? form.expired_date_precision : null,
           hna: parseRupiah(form.hna),
           notes: form.notes || null,
         });
@@ -115,6 +119,7 @@ export default function BatchFormModal({
           product_id: productId,
           batch_no: form.batch_no || null,
           expired_date: form.expired_date || null,
+          expired_date_precision: form.expired_date ? form.expired_date_precision : null,
           qty,
           hna: parseRupiah(form.hna),
           source_type: "manual",
@@ -209,11 +214,11 @@ export default function BatchFormModal({
           </div>
           <div>
             <label style={labelStyle}>Tanggal Expired</label>
-            <input
-              type="date"
+            <ExpiryInput
               value={form.expired_date}
-              onChange={(e) =>
-                setForm({ ...form, expired_date: e.target.value })
+              precision={form.expired_date_precision}
+              onChange={(value, precision) =>
+                setForm({ ...form, expired_date: value, expired_date_precision: precision })
               }
               className="ui-form-field ui-focus-ring"
               style={inputStyle}

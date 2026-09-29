@@ -67,7 +67,8 @@ import Pagination from "./common/Pagination";
 import { importWithReload } from "../utils/importWithReload";
 import { buildSalesDocumentPdf } from "../utils/documents/salesDocumentPdfSource";
 import { validateSalesDocument } from "../utils/documents/salesDocumentValidation";
-import { dateOnlyTimestamp, formatDateOnly } from "../utils/dateOnly";
+import { formatDateOnly } from "../utils/dateOnly";
+import { expiryTimestamp, formatExpiry } from "../utils/expiry";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -115,16 +116,16 @@ const pickFefoBatch = (batches) => {
   const todayTime = today.getTime();
   const sortByEd = (arr) =>
     [...arr].sort((a, b) => {
-      const ea = dateOnlyTimestamp(a.expired_date) ?? Infinity;
-      const eb = dateOnlyTimestamp(b.expired_date) ?? Infinity;
+      const ea = expiryTimestamp(a.expired_date, a.expired_date_precision) ?? Infinity;
+      const eb = expiryTimestamp(b.expired_date, b.expired_date_precision) ?? Infinity;
       return ea - eb;
     });
   const inStock = batches.filter(
     (b) =>
       (parseFloat(b.qty_current) || 0) > 0 &&
-      (!b.expired_date || dateOnlyTimestamp(b.expired_date) >= todayTime),
+      (!b.expired_date || (expiryTimestamp(b.expired_date, b.expired_date_precision) ?? Infinity) >= todayTime),
   );
-  return sortByEd(inStock)[0] || sortByEd(batches)[0];
+  return sortByEd(inStock)[0] || null;
 };
 const fmtDate = (d) =>
   formatDateOnly(d, {
@@ -1003,7 +1004,21 @@ export default function SalesOrderList({
           matched = batches.find((b) => String(b.id) === String(selId));
         }
         if (!matched && selNo) {
-          matched = batches.find((b) => b.batch_no === selNo);
+          // v1.67.22: precision-aware + hanya bila nomor unik (mirror hidrasi Edit)
+          const byName = batches.filter((b) => b.batch_no === selNo);
+          const edDate = item.expired_date_snapshot
+            ? String(item.expired_date_snapshot).slice(0, 10)
+            : null;
+          const iPrec = item.expired_date_snapshot_precision || "day";
+          matched = edDate
+            ? byName.find(
+                (b) =>
+                  b.expired_date &&
+                  String(b.expired_date).slice(0, 10) === edDate &&
+                  (b.expired_date_precision || "day") === iPrec,
+              )
+            : undefined;
+          if (!matched && byName.length === 1) matched = byName[0];
         }
         setItemBatches((prev) => {
           const n = [...prev];
@@ -1020,8 +1035,6 @@ export default function SalesOrderList({
                 ? {
                     _selected_batch_id: matched.id,
                     _selected_batch: matched.batch_no,
-                    batch_no_snapshot: matched.batch_no,
-                    expired_date_snapshot: matched.expired_date,
                   }
                 : {}),
             };
@@ -1293,10 +1306,15 @@ export default function SalesOrderList({
           unit_price: parseFloat(i.unit_price) || 0,
           unit_hpp: parseFloat(i.unit_hpp) || 0,
           unit_hpp_tax_type: i.unit_hpp_tax_type === "nota" ? "nota" : "faktur",
+          // v1.67.22: id sales_item DIKIRIM balik saat edit supaya backend match
+          // identitas baris; _batchIntent = user benar-benar mengganti batch.
+          id: i.id ?? null,
+          _batchIntent: false,
           _selected_batch_id: i.batch_id_snapshot || null,
           _selected_batch: i.batch_no_snapshot || "",
           batch_no_snapshot: i.batch_no_snapshot,
           expired_date_snapshot: i.expired_date_snapshot,
+          expired_date_snapshot_precision: i.expired_date_snapshot_precision ?? null,
         }))
       : [blankItem()];
     setItems(editItems);
@@ -1329,18 +1347,28 @@ export default function SalesOrderList({
             );
           }
           if (!matchedBatch && item.batch_no_snapshot && item.expired_date_snapshot) {
-            // b) Match by batch_no_snapshot + expired_date_snapshot
+            // b) Match by batch_no_snapshot + expired_date_snapshot.
+            // v1.67.22: precision-aware — legacy day tidak boleh lengket ke
+            // batch month dengan DATE sama (dan sebaliknya). null dianggap day.
+            const sameExpiry = (b) => {
+              const bDate = b.expired_date ? String(b.expired_date).slice(0, 10) : null;
+              const iDate = String(item.expired_date_snapshot).slice(0, 10);
+              const bPrec = b.expired_date_precision || "day";
+              const iPrec = item.expired_date_snapshot_precision || "day";
+              return bDate === iDate && bPrec === iPrec;
+            };
             matchedBatch = batches.find(
-              (b) =>
-                b.batch_no === item.batch_no_snapshot &&
-                b.expired_date === item.expired_date_snapshot,
+              (b) => b.batch_no === item.batch_no_snapshot && sameExpiry(b),
             );
           }
           if (!matchedBatch && item.batch_no_snapshot) {
-            // c) Match by batch_no_snapshot only
-            matchedBatch = batches.find(
+            // c) Match by batch_no_snapshot only — HANYA bila nomor itu unik.
+            // v1.67.22: dua batch dengan nomor sama = ambigu; jangan pernah
+            // memilih salah satu secara arbitrer (bikin intent ganti batch palsu).
+            const byName = batches.filter(
               (b) => b.batch_no === item.batch_no_snapshot,
             );
+            if (byName.length === 1) matchedBatch = byName[0];
           }
           if (matchedBatch) {
             // v1.44.0: HPP nota DIBEKUKAN di snapshot saat terjual — JANGAN timpa
@@ -1355,8 +1383,6 @@ export default function SalesOrderList({
                   ...n[idx],
                   _selected_batch_id: matchedBatch.id,
                   _selected_batch: matchedBatch.batch_no,
-                  batch_no_snapshot: matchedBatch.batch_no,
-                  expired_date_snapshot: matchedBatch.expired_date,
                 };
               }
               return n;
@@ -1373,6 +1399,7 @@ export default function SalesOrderList({
                 id: `legacy-${item.batch_no_snapshot}`,
                 batch_no: item.batch_no_snapshot,
                 expired_date: item.expired_date_snapshot,
+                expired_date_precision: item.expired_date_snapshot_precision ?? null,
                 qty_current: 0,
                 hna:
                   (parseFloat(item.unit_hpp) || 0) /
@@ -1474,14 +1501,27 @@ export default function SalesOrderList({
         delete payload.ppn_rate;
       }
       // v1.16.2: map batch fields ke payload (selected_batch_id, batch_id_snapshot, dll)
-      payload.items = payload.items.map((i) => ({
-        ...i,
-        selected_batch_id: i._selected_batch_id || null,
-        batch_id_snapshot: i._selected_batch_id || null,
-        batch_no_snapshot: i.batch_no_snapshot || i._selected_batch || null,
-        expired_date_snapshot: i.expired_date_snapshot || null,
-        unit_hpp: parseFloat(i.unit_hpp) || 0,
-      }));
+      // v1.67.22: id item nota ikut dikirim (identitas baris utk edit); id sintetis
+      // 'legacy-*' TIDAK BOLEH dikirim sebagai id — dinormalkan ke null.
+      const numericId = (v) => {
+        const s = v == null ? "" : String(v);
+        return /^\d+$/.test(s) && Number(s) > 0 ? Number(s) : null;
+      };
+      payload.items = payload.items.map((i) => {
+        const pickedBatchId = numericId(i._selected_batch_id);
+        return {
+          ...i,
+          id: numericId(i.id),
+          selected_batch_id: pickedBatchId,
+          batch_id_snapshot: numericId(pickedBatchId ?? i.batch_id_snapshot),
+          batch_no_snapshot: Object.prototype.hasOwnProperty.call(i, "batch_no_snapshot")
+            ? i.batch_no_snapshot : i._selected_batch || null,
+          expired_date_snapshot: i.expired_date_snapshot || null,
+          expired_date_snapshot_precision: i.expired_date_snapshot ? i.expired_date_snapshot_precision ?? null : null,
+          selected_batch_changed: i._batchIntent === true,
+          unit_hpp: parseFloat(i.unit_hpp) || 0,
+        };
+      });
       if (!isAutoNota && !editId) {
         payload.order_number = notaCounter.prefix + manualNumber;
       }
@@ -1979,6 +2019,7 @@ export default function SalesOrderList({
         prepared._selected_batch_id = fefo.id || null;
         prepared.batch_no_snapshot = fefo.batch_no;
         prepared.expired_date_snapshot = fefo.expired_date;
+        prepared.expired_date_snapshot_precision = fefo.expired_date_precision ?? null;
       } else {
         prepared.unit_hpp = parseFloat(match.hna) || 0;
         prepared.unit_hpp_tax_type = "faktur";
@@ -2067,6 +2108,18 @@ export default function SalesOrderList({
 
     // Auto-fill HPP and Price when product changes
     if (field === "product_name") {
+      // v1.67.22: ganti produk = baris baru — ID sales_item lama DILEPAS supaya
+      // backend tidak mencocokkan histori produk lama, dan intent batch eksplisit.
+      updated.id = null;
+      updated._batchIntent = true;
+      updated._selected_batch_id = null;
+      updated._selected_batch = "";
+      updated.batch_no_snapshot = null;
+      updated.expired_date_snapshot = null;
+      updated.expired_date_snapshot_precision = null;
+      updated.unit_hpp = 0;
+      updated._product_id = null;
+      setItemBatches((prev) => prev.map((batches, index) => index === idx ? [] : batches));
       const match = products.find(
         (p) => p.name.toLowerCase() === value.toLowerCase(),
       );
@@ -2117,6 +2170,9 @@ export default function SalesOrderList({
               fefo.tax_type === "nota" ? "nota" : "faktur";
             updated._selected_batch = fefo.batch_no;
             updated._selected_batch_id = fefo.id || null;
+            updated.batch_no_snapshot = fefo.batch_no;
+            updated.expired_date_snapshot = fefo.expired_date;
+            updated.expired_date_snapshot_precision = fefo.expired_date_precision ?? null;
           } else {
             updated.unit_hpp = parseFloat(match.hna) || 0;
             updated.unit_hpp_tax_type = "faktur";
@@ -2171,11 +2227,26 @@ export default function SalesOrderList({
     if (field === "_selected_batch") {
       const batches = itemBatches[idx] || [];
       const batch = batches.find((b) => String(b.id) === String(value) || b.batch_no === value);
-      if (batch) {
+      if (!value) {
+        // v1.67.22: mengosongkan pilihan = intent eksplisit jika ada seleksi asal
+        if (newItems[idx].batch_id_snapshot != null || newItems[idx]._selected_batch_id != null) {
+          updated._batchIntent = true;
+        }
+        updated._selected_batch_id = null;
+        updated.batch_no_snapshot = null;
+        updated.expired_date_snapshot = null;
+        updated.expired_date_snapshot_precision = null;
+      }
+      if (batch && String(batch.id) !== String(newItems[idx]._selected_batch_id)) {
+        // Intent hanya bila id terpilih berbeda dari snapshot asal baris ini.
+        if (String(batch.id) !== String(newItems[idx].batch_id_snapshot ?? "")) {
+          updated._batchIntent = true;
+        }
         updated._selected_batch_id = batch.id;
         updated._selected_batch = batch.batch_no;
         updated.batch_no_snapshot = batch.batch_no;
         updated.expired_date_snapshot = batch.expired_date;
+        updated.expired_date_snapshot_precision = batch.expired_date_precision ?? null;
         const match =
           newItems[idx]._product ||
           products.find(
@@ -2275,8 +2346,12 @@ export default function SalesOrderList({
         );
         return {
           ...item,
-          _batch_no: item.batch_no_snapshot || b?.batch_no || item._selected_batch || "",
-          _expired_date: item.expired_date_snapshot || b?.expired_date || "",
+          _batch_no: Object.prototype.hasOwnProperty.call(item, "batch_no_snapshot")
+            ? item.batch_no_snapshot : b?.batch_no || item._selected_batch || "",
+          _expired_date: Object.prototype.hasOwnProperty.call(item, "expired_date_snapshot")
+            ? item.expired_date_snapshot : b?.expired_date || "",
+          _expired_date_precision: Object.prototype.hasOwnProperty.call(item, "expired_date_snapshot")
+            ? item.expired_date_snapshot_precision : b?.expired_date_precision,
         };
       })
       .filter(Boolean);
@@ -2823,7 +2898,7 @@ export default function SalesOrderList({
                                           ? `Batch ${it.batch_no_snapshot}`
                                           : "(tanpa no. batch)"}
                                         {it.expired_date_snapshot
-                                          ? ` · ED ${fmtDate(it.expired_date_snapshot)}`
+                                          ? ` · ED ${formatExpiry(it.expired_date_snapshot, it.expired_date_snapshot_precision)}`
                                           : ""}
                                       </div>
                                     )}
@@ -3820,7 +3895,7 @@ export default function SalesOrderList({
                                             ? `Batch ${it.batch_no_snapshot}`
                                             : "(tanpa no. batch)"}
                                           {it.expired_date_snapshot
-                                            ? ` · ED ${fmtDate(it.expired_date_snapshot)}`
+                                            ? ` · ED ${formatExpiry(it.expired_date_snapshot, it.expired_date_snapshot_precision)}`
                                             : ""}
                                         </div>
                                       )}
@@ -6008,15 +6083,7 @@ export default function SalesOrderList({
                                   return (
                                     <option key={b.id || b.batch_no} value={String(b.id)}>
                                       {b.batch_no || "(tanpa no. batch)"} | ED:{" "}
-                                      {b.expired_date
-                                        ? new Date(
-                                            b.expired_date,
-                                          ).toLocaleDateString("id-ID", {
-                                            day: "2-digit",
-                                            month: "short",
-                                            year: "numeric",
-                                          })
-                                        : "-"}{" "}
+                                      {formatExpiry(b.expired_date, b.expired_date_precision)}{" "}
                                       | Stok: {b.qty_current} | HPP
                                       {b.tax_type === "nota"
                                         ? " (nota)"
@@ -6997,7 +7064,7 @@ export default function SalesOrderList({
                 <div key={line.originalItemId} style={{ padding: "12px", borderRadius: "12px", backgroundColor: "var(--color-surface-elevated)", marginBottom: "12px" }}>
                   <label style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px", color: text, fontWeight: 700 }}><input type="checkbox" checked={line.selected} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, selected: e.target.checked } : candidate) }))} /> {index + 1}. {line.item.product_name}</label>
                   <div style={{ color: sub, fontSize: "12px", margin: "4px 0 12px" }}>
-                    Batch {line.item.batch_no_snapshot || "-"} · ED {line.item.expired_date_snapshot || "-"} · Terjual {line.item.qty_in_unit || line.item.qty}
+                    Batch {line.item.batch_no_snapshot || "-"} · ED {formatExpiry(line.item.expired_date_snapshot, line.item.expired_date_snapshot_precision)} · Terjual {line.item.qty_in_unit || line.item.qty}
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                     <label style={labelStyle}>Qty Retur<input type="number" min="0.01" step="0.01" value={line.returnQty} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, returnQty: e.target.value } : candidate) }))} style={inputStyle} /></label>
@@ -7021,7 +7088,7 @@ export default function SalesOrderList({
                   </select></label>
                   <label style={{ ...labelStyle, marginTop: "10px" }}>Batch Pengganti<select value={line.replacementBatchId} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, replacementBatchId: e.target.value } : candidate) }))} disabled={line.loading} style={inputStyle}>
                     <option value="">Pilih batch</option>
-                    {line.batches.filter((batch) => Number(batch.qty_current) > 0).map((batch) => <option key={batch.id} value={batch.id}>{batch.batch_no || batch.id} · ED {batch.expired_date || "-"} · stok {batch.qty_current}</option>)}
+                    {line.batches.filter((batch) => Number(batch.qty_current) > 0).map((batch) => <option key={batch.id} value={batch.id}>{batch.batch_no || batch.id} · ED {formatExpiry(batch.expired_date, batch.expired_date_precision)} · stok {batch.qty_current}</option>)}
                   </select></label>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                     <label style={labelStyle}>Harga Ganti<input type="number" min="0" value={line.replacementUnitPrice} onChange={(e) => setAdjustmentModal((prev) => ({ ...prev, lines: prev.lines.map((candidate, i) => i === index ? { ...candidate, replacementUnitPrice: e.target.value } : candidate) }))} style={inputStyle} /></label>

@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { formatExpiry } from "../expiry";
 import autoTable from 'jspdf-autotable';
 import JsBarcode from 'jsbarcode';
 import {
@@ -488,7 +489,7 @@ export function generateSalesDocumentPDF(order = {}, options = {}) {
     if (includeBatchMeta && hasText(item.code)) meta.push(`Kode: ${item.code}`);
     if (includeBatchMeta) {
       if (hasText(item.batchNumber)) meta.push(`Batch: ${item.batchNumber}`);
-      const expired = formatDateID(item.expiredDate);
+      const expired = formatExpiry(item.expiredDate, item.expiredDatePrecision, "");
       if (expired) meta.push(`ED: ${expired}`);
     }
     if (meta.length) nameLines.push(meta.join(' · '));

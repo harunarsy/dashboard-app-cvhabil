@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { formatExpiry } from "./expiry";
 
 const fmtRp = (value) => new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -66,7 +67,7 @@ export function generateAdjustmentPDF(adjustment, options = {}) {
       item.qty_in_unit || item.qty_base || 0,
       item.unit || "pcs",
       item.batch_no || item.original_batch_no || "-",
-      safeDate(item.expired_date || item.original_expired_date),
+      formatExpiry(item.expired_date || item.original_expired_date, item.original_expired_date_precision ?? item.expired_date_precision),
       fmtRp(item.line_amount),
       item.condition || "saleable",
     ]),
@@ -76,7 +77,7 @@ export function generateAdjustmentPDF(adjustment, options = {}) {
       item.qty_in_unit || item.qty_base || 0,
       item.unit || "pcs",
       item.batch_no || item.replacement_batch_no || "-",
-      safeDate(item.expired_date || item.replacement_expired_date),
+      formatExpiry(item.expired_date || item.replacement_expired_date, item.replacement_expired_date_precision ?? item.expired_date_precision),
       fmtRp(item.line_amount),
       item.source_invoice_number || item.source_invoice_id || "-",
     ]),

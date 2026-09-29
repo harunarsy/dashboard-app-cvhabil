@@ -39,9 +39,28 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.67.22-stable",
+    date: "29 September 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "feat",
+        text: "ED bisa diisi presisi bulan/tahun (mis. Sep 2027) di Stok Masuk, Edit Batch, Surat Pesanan, Faktur, dan Pinjaman — tanggal lengkap tetap didukung.",
+      },
+      {
+        type: "fix",
+        text: "Edit nota tidak lagi menimpa ED historis baris lain: item dicocokkan lewat ID item, dan ganti batch hanya dianggap ganti kalau kamu benar-benar memilih batch lain.",
+      },
+      {
+        type: "fix",
+        text: "Presisi ED ikut terbawa dari Surat Pesanan ke Faktur dan dari daftar batch Inventory; hidrasi batch tidak lagi menebak saat nomor batch kembar.",
+      },
+    ],
+  },
+  {
     version: "v1.67.21-stable",
     date: "26 September 2026",
-    status: "latest",
+    status: "previous",
     changes: [
       {
         type: "improvement",

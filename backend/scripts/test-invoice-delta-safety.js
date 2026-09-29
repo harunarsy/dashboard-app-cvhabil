@@ -86,7 +86,7 @@ test('delta service never deletes historical inventory mutations', () => {
 
 test('legacy item rewrite also persists a stable line key', () => {
   assert.match(routes, /item\.line_key = normalizeLineKey\(item\.line_key\)[\s\S]*generatedLineKey\(id, `update-\$\{invoice_number\}`/);
-  assert.match(routes, /pack_size_at_invoice, tax_type, line_key\)/);
+  assert.match(routes, /pack_size_at_invoice, tax_type, line_key, expired_date_precision\)/);
 });
 
 test('partial historical PO posting is blocked before delta write', () => {
@@ -142,7 +142,7 @@ test('delta confirmation consumes mapping updates from the canonical nested plan
 });
 
 test('delta commit normalizes optional DATE fields and fails closed on missing write targets', () => {
-  assert.match(service, /optionalDbDate\(raw\.expired_date/);
+  assert.match(service, /optionalDbDate\(line\.expired_date \?\? raw\.expired_date/);
   assert.match(service, /const dueDate = optionalDbDate/);
   assert.match(service, /const paymentDate = optionalDbDate/);
   assert.match(service, /STALE_INVOICE_ITEM/);

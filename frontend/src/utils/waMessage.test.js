@@ -1,4 +1,8 @@
-import { buildNotaWaMessage } from "./waMessage";
+import {
+  buildDueReminderMessage,
+  buildLoanReminderMessage,
+  buildNotaWaMessage,
+} from "./waMessage";
 
 // Regresi v1.65.4 (nota HSB-NOTA-2608018): baris item memakai `qty` (base unit/pcs)
 // padahal `unit` + `unit_price` per satuan jual → 4 karton tampil "48 karton" dan
@@ -53,5 +57,65 @@ describe("buildNotaWaMessage — qty satuan jual", () => {
       total: 1750000,
     });
     expect(msg).toContain("10 pcs");
+  });
+});
+
+describe("WA precision ED dan tanggal non-ED", () => {
+  it("nota menampilkan snapshot month tanpa hari, jatuh tempo tetap tanggal penuh", () => {
+    const msg = buildNotaWaMessage({
+      items: [{
+        product_name: "Produk uji",
+        qty: 1,
+        unit: "pcs",
+        unit_price: 1000,
+        expired_date_snapshot: "2027-09-30",
+        expired_date_snapshot_precision: "month",
+      }],
+      dueDate: "2027-09-30",
+    });
+
+    expect(msg).toContain("ED Sep 2027");
+    expect(msg).not.toContain("ED 30 Sep 2027");
+    expect(msg).toContain("Jatuh tempo pembayaran: 30 Sep 2027");
+  });
+
+  it.each([undefined, null, "day"])(
+    "snapshot legacy/day (%s) mempertahankan tanggal exact",
+    (precision) => {
+      const msg = buildNotaWaMessage({
+        items: [{
+          product_name: "Produk uji",
+          qty: 1,
+          unit_price: 1000,
+          expired_date_snapshot: "2027-05-12",
+          expired_date_snapshot_precision: precision,
+        }],
+      });
+
+      expect(msg).toContain("ED 12 Mei 2027");
+    },
+  );
+
+  it("reminder pinjaman memisahkan ED month dari batas pengembalian exact", () => {
+    const msg = buildLoanReminderMessage({
+      dueDate: "2028-02-29",
+      items: [{
+        product_name: "Produk uji",
+        outstanding: 1,
+        unit: "pcs",
+        expired_date_snapshot: "2028-02-29",
+        expired_date_snapshot_precision: "month",
+      }],
+    });
+
+    expect(msg).toContain("ED Feb 2028");
+    expect(msg).not.toContain("ED 29 Feb 2028");
+    expect(msg).toContain("Batas pengembalian: 29 Feb 2028");
+  });
+
+  it("reminder jatuh tempo tidak dibulatkan atau ditampilkan sebagai bulan", () => {
+    expect(buildDueReminderMessage({ dueDate: "2027-05-12" })).toContain(
+      "Jatuh tempo pembayaran: 12 Mei 2027",
+    );
   });
 });

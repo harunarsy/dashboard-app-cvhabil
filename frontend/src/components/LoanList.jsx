@@ -23,7 +23,8 @@ import {
   copyTextToClipboard,
 } from "../utils/waMessage";
 import { importWithReload } from "../utils/importWithReload";
-import { dateOnlyTimestamp } from "../utils/dateOnly";
+import { expiryTimestamp, formatExpiry } from "../utils/expiry";
+import ExpiryInput from "./common/ExpiryInput";
 import { getMonochromeLogoDataUrl } from "../utils/documents/monochromeLogo";
 
 // v1.54.0: Peminjaman produk — "nota gantung": stok sudah keluar saat pinjam,
@@ -80,14 +81,14 @@ const pickFefoBatch = (batches) => {
   const todayTime = today.getTime();
   const sortByEd = (arr) =>
     [...arr].sort((a, b) => {
-      const ea = dateOnlyTimestamp(a.expired_date) ?? Infinity;
-      const eb = dateOnlyTimestamp(b.expired_date) ?? Infinity;
+      const ea = expiryTimestamp(a.expired_date, a.expired_date_precision) ?? Infinity;
+      const eb = expiryTimestamp(b.expired_date, b.expired_date_precision) ?? Infinity;
       return ea - eb;
     });
   const inStock = batches.filter(
     (b) =>
       (parseFloat(b.qty_current) || 0) > 0 &&
-      (!b.expired_date || dateOnlyTimestamp(b.expired_date) >= todayTime),
+      (!b.expired_date || (expiryTimestamp(b.expired_date, b.expired_date_precision) ?? Infinity) >= todayTime),
   );
   return sortByEd(inStock)[0] || null;
 };
@@ -314,6 +315,7 @@ export default function LoanList({ isDarkMode, isMobile }) {
       mode: "same",
       batch_no: "",
       expired_date: "",
+      expired_date_precision: null,
     });
   const saveReturn = async () => {
     const m = returnModal;
@@ -333,6 +335,7 @@ export default function LoanList({ isDarkMode, isMobile }) {
             mode: m.mode,
             batch_no: m.batch_no,
             expired_date: m.expired_date || null,
+            expired_date_precision: m.expired_date ? m.expired_date_precision : null,
           },
         ],
       });
@@ -452,6 +455,7 @@ export default function LoanList({ isDarkMode, isMobile }) {
             unit_price: parseFloat(it.unit_price) || 0,
             batch_no_snapshot: it.batch_no_snapshot,
             expired_date_snapshot: it.expired_date_snapshot,
+            expired_date_snapshot_precision: it.expired_date_snapshot_precision,
             pack_size_at_sale: 1,
           })),
         },
@@ -732,7 +736,7 @@ export default function LoanList({ isDarkMode, isMobile }) {
                                   ? `Batch ${it.batch_no_snapshot}`
                                   : "Tanpa batch"}
                                 {it.expired_date_snapshot
-                                  ? ` · ED ${fmtDate(it.expired_date_snapshot)}`
+                                  ? ` · ED ${formatExpiry(it.expired_date_snapshot, it.expired_date_snapshot_precision)}`
                                   : ""}
                                 {" · "}
                                 {fmtRp(it.unit_price)}/{it.unit || "pcs"}
@@ -959,7 +963,7 @@ export default function LoanList({ isDarkMode, isMobile }) {
                       {batches.map((b) => (
                         <option key={b.id} value={b.id}>
                           {b.batch_no || "(tanpa no)"} · sisa {b.qty_current}
-                          {b.expired_date ? ` · ED ${fmtDate(b.expired_date)}` : ""}
+                          {b.expired_date ? ` · ED ${formatExpiry(b.expired_date, b.expired_date_precision)}` : ""}
                         </option>
                       ))}
                     </select>
@@ -1200,12 +1204,12 @@ export default function LoanList({ isDarkMode, isMobile }) {
                 </div>
                 <div>
                   <label style={labelStyle}>Expired Date</label>
-                  <input
-                    type="date"
+                  <ExpiryInput
                     style={inputStyle}
                     value={returnModal.expired_date}
-                    onChange={(e) =>
-                      setReturnModal((p) => ({ ...p, expired_date: e.target.value }))
+                    precision={returnModal.expired_date_precision}
+                    onChange={(value, precision) =>
+                      setReturnModal((p) => ({ ...p, expired_date: value, expired_date_precision: precision }))
                     }
                   />
                 </div>

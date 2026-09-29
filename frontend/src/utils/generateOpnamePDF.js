@@ -4,6 +4,7 @@
 // NOTE: jsPDF helvetica = ASCII only — JANGAN pakai emoji.
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { formatExpiry } from './expiry';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 
@@ -63,7 +64,7 @@ export const generateOpnamePDF = (rows, options = {}) => {
       r.code || '-',
       r.product_name || '-',
       r.batch_no || '(kosong)',
-      r.expired_date ? fmtDate(r.expired_date) : '(kosong)',
+      formatExpiry(r.expired_date, r.expired_date_precision, '(kosong)'),
       String(sys),
       String(fis),
       `${sel > 0 ? '+' : ''}${sel}`,

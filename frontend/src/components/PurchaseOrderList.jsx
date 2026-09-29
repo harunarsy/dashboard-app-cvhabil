@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import ExpiryInput from "./common/ExpiryInput";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { Plus, Trash2, X, CheckCircle, FileText } from "lucide-react";
@@ -393,6 +394,7 @@ export default function PurchaseOrderList({
         received_qty: 0,
         batch_no: "",
         expired_date: "",
+        expired_date_precision: null,
       })) || [],
     );
     setShowModal("receive");
@@ -1833,12 +1835,13 @@ export default function PurchaseOrderList({
                             />
                           </td>
                           <td style={{ padding: "6px 8px" }}>
-                            <input
-                              type="date"
+                            <ExpiryInput
                               value={ri.expired_date}
-                              onChange={(e) => {
+                              precision={ri.expired_date_precision}
+                              onChange={(value, precision) => {
                                 updateReceiveItem(idx, {
-                                  expired_date: e.target.value,
+                                  expired_date: value,
+                                  expired_date_precision: precision,
                                 });
                               }}
                               style={{

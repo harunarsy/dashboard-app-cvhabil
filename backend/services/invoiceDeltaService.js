@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const uom = require('../utils/uom');
 const tax = require('../utils/tax');
+const { normalizeExpiry, normalizeExpiryEdit } = require('../utils/expiry');
 const {
   buildInvoiceDelta,
   generatedLineKey,
@@ -28,6 +29,7 @@ const invalidDateError = (fieldName) => Object.assign(
 // PostgreSQL DATE tidak menerima string kosong. Helper ini juga menolak
 // tanggal kalender mustahil (contoh 2026-02-30) sebelum query write dijalankan.
 const optionalDbDate = (value, fieldName = 'Tanggal') => {
+  if (fieldName === 'expired_date' || /^Expired Date\b/.test(fieldName)) return normalizeExpiry(value).date;
   if (value === undefined || value === null || value === '') return null;
   if (value instanceof Date) {
     if (Number.isNaN(value.getTime())) throw invalidDateError(fieldName);
@@ -124,6 +126,11 @@ const requestHashForBody = (body = {}) => {
     idempotency_key: _idempotencyKey,
     ...payload
   } = body;
+  if (Array.isArray(payload.items)) {
+    payload.items = payload.items.map((item) => ({ ...item,
+      expired_date_precision: item.expired_date_precision ?? null,
+    }));
+  }
   return hashJson(payload);
 };
 
@@ -225,6 +232,7 @@ const loadDeltaState = async (client, invoiceId, { forUpdate = false } = {}) => 
       unit: item.unit || 'pcs',
       batch_number: item.batch_number || '',
       expired_date: normalizeDate(item.expired_date),
+      expired_date_precision: normalizeExpiry(item.expired_date, item.expired_date_precision).precision,
       hna: item.hna,
       disc_percent: item.disc_percent,
       disc_nominal: item.disc_nominal,
@@ -244,6 +252,7 @@ const loadDeltaState = async (client, invoiceId, { forUpdate = false } = {}) => 
       product_id: batch.product_id,
       batch_no: batch.batch_no || '',
       expired_date: normalizeDate(batch.expired_date),
+      expired_date_precision: normalizeExpiry(batch.expired_date, batch.expired_date_precision).precision,
       qty_current: batch.qty_current,
       hna: batch.hna,
     })),
@@ -267,7 +276,9 @@ const batchMatchesItem = (invoice, item, batch) => {
   const actualBatch = normalizeText(batch.batch_no) || normalizeText(invoice.invoice_number);
   const expectedDate = normalizeDate(item.expired_date);
   const actualDate = normalizeDate(batch.expired_date);
-  return expectedBatch === actualBatch && expectedDate === actualDate;
+  return expectedBatch === actualBatch && expectedDate === actualDate
+    && normalizeExpiry(item.expired_date, item.expired_date_precision).precision
+      === normalizeExpiry(batch.expired_date, batch.expired_date_precision).precision;
 };
 
 const resolveLegacyLineMapping = (state) => {
@@ -445,6 +456,7 @@ const buildStockByLine = (state, mapping) => {
         product_id: Number(mutation.product_id),
         batch_number: batch.batch_no || '',
         expired_date: normalizeDate(batch.expired_date),
+        expired_date_precision: normalizeExpiry(batch.expired_date, batch.expired_date_precision).precision,
         hna_base: toNumber(batch.hna),
       };
       entries.push(entry);
@@ -512,6 +524,7 @@ const normalizeNextLines = async ({ client, invoiceId, items, requestKey, helper
       unit,
       batch_number: normalizeText(item.batch_number),
       expired_date: optionalDbDate(item.expired_date, `Expired Date produk "${item.product_name}"`) || '',
+      expired_date_precision: normalizeExpiry(item.expired_date, item.expired_date_precision).precision,
       hna_base: helpers.effectiveHna(item, quantityBase, product),
       product,
     };
@@ -711,6 +724,11 @@ const buildPreview = ({ invoice, delta, state, currentLines, nextLines, stockByL
   };
   const stockDeltas = delta.batch_deltas.map((bucket) => {
     const batch = bucket.batch_id ? state.batches.get(Number(bucket.batch_id)) : null;
+    const metadata = bucket.batch_id
+      ? delta.metadata_changes.find((entry) => entry.batch_id === bucket.batch_id) : null;
+    const afterExpiry = metadata
+      ? normalizeExpiry(metadata.after_expired_date, metadata.after_expired_date_precision)
+      : normalizeExpiry(bucket.expired_date || batch?.expired_date, bucket.expired_date_precision ?? batch?.expired_date_precision);
     const before = batch ? toNumber(batch.qty_current) : 0;
     const after = roundQty(before + bucket.delta);
     return {
@@ -720,9 +738,12 @@ const buildPreview = ({ invoice, delta, state, currentLines, nextLines, stockByL
       product_name: productNameFor(bucket),
       batch_id: bucket.batch_id || null,
       batch_before: batch?.batch_no || '',
-      batch_after: bucket.batch_number || batch?.batch_no || '',
+      batch_after: metadata ? metadata.after_batch_number || invoice.invoice_number
+        : bucket.batch_number || batch?.batch_no || '',
       expired_before: normalizeDate(batch?.expired_date),
-      expired_after: normalizeDate(bucket.expired_date || batch?.expired_date),
+      expired_after: afterExpiry.date || '',
+      expired_before_precision: normalizeExpiry(batch?.expired_date, batch?.expired_date_precision).precision,
+      expired_after_precision: afterExpiry.precision,
       before_qty: before,
       delta_base: roundQty(bucket.delta),
       after_qty: after,
@@ -807,6 +828,7 @@ const buildInvoiceDeltaPlan = async ({
     unit: normalizeText(item.unit) || 'pcs',
     batch_number: normalizeText(item.batch_number),
     expired_date: normalizeDate(item.expired_date),
+    expired_date_precision: normalizeExpiry(item.expired_date, item.expired_date_precision).precision,
     hna_base: 0,
     raw: item,
   }));
@@ -820,14 +842,17 @@ const buildInvoiceDeltaPlan = async ({
   });
   const currentById = new Map(currentLines.map((line) => [String(line.id), line]));
   const alignNextLines = (lines) => lines.map((line) => {
-    const current = line.raw?.id ? currentById.get(String(line.raw.id)) : null;
+    const current = (line.raw?.id ? currentById.get(String(line.raw.id)) : null)
+      || currentLines.find((entry) => entry.line_key === line.line_key);
     if (!current) return line;
     if (line.raw.line_key && line.line_key !== current.line_key) {
       throw Object.assign(new Error(`id item #${line.raw.id} tidak cocok dengan line_key faktur`), {
         code: 'LINE_ID_KEY_MISMATCH',
       });
     }
-    return line.raw.line_key ? line : { ...line, line_key: current.line_key };
+    const expiry = normalizeExpiryEdit(line.raw.expired_date, line.raw.expired_date_precision,
+      current.expired_date, current.expired_date_precision);
+    return { ...line, line_key: current.line_key, expired_date: expiry.date || '', expired_date_precision: expiry.precision };
   });
   nextLines = alignNextLines(nextLines);
   let snapshotProductIds = [
@@ -1017,7 +1042,7 @@ const itemDbValues = (line, taxType) => {
     line.quantity_base,
     toNumber(raw.unit_price || hna),
     toNumber(raw.total_price || hnaTimesQty),
-    optionalDbDate(raw.expired_date, `Expired Date produk "${line.product_name}"`),
+    optionalDbDate(line.expired_date ?? raw.expired_date, `Expired Date produk "${line.product_name}"`),
     hna,
     hnaTimesQty,
     toNumber(raw.disc_percent),
@@ -1034,6 +1059,7 @@ const itemDbValues = (line, taxType) => {
     Number(line.product?.pack_size || raw.pack_size_at_invoice || 1),
     taxType,
     line.line_key,
+    normalizeExpiry(line.expired_date ?? raw.expired_date, line.expired_date_precision ?? raw.expired_date_precision).precision,
   ];
 };
 
@@ -1060,8 +1086,8 @@ const persistInvoiceItems = async (client, plan, taxType) => {
            expired_date=$6, hna=$7, hna_times_qty=$8, disc_percent=$9, disc_nominal=$10,
            hna_baru=$11, hna_per_item=$12, margin=$13, disc_cod_per_item=$14,
            hna_after_cod=$15, hpp_inc_ppn=$16, batch_number=$17, unit=$18,
-           qty_in_unit=$19, pack_size_at_invoice=$20, tax_type=$21, line_key=$22
-         WHERE id=$23 RETURNING id`,
+           qty_in_unit=$19, pack_size_at_invoice=$20, tax_type=$21, line_key=$22, expired_date_precision=$23
+         WHERE id=$24 RETURNING id`,
         [...values, current.id],
       );
       if (updated.rows.length !== 1) {
@@ -1076,8 +1102,8 @@ const persistInvoiceItems = async (client, plan, taxType) => {
            expired_date, hna, hna_times_qty, disc_percent, disc_nominal,
            hna_baru, hna_per_item, margin, disc_cod_per_item, hna_after_cod,
            hpp_inc_ppn, batch_number, unit, qty_in_unit, pack_size_at_invoice,
-           tax_type, line_key, invoice_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+           tax_type, line_key, expired_date_precision, invoice_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
         [...values, plan.state.invoice.id],
       );
     }
@@ -1144,6 +1170,8 @@ const updateInvoiceHeader = async (client, invoice, nextLines, body) => {
 };
 
 const applyInvoiceDeltaPlan = async ({ client, plan, body, idempotencyKey, userId }) => {
+  for (const line of plan.nextLines) normalizeExpiry(line.expired_date, line.expired_date_precision);
+  for (const change of plan.delta.metadata_changes) normalizeExpiry(change.after_expired_date, change.after_expired_date_precision);
   const calculated = calculateHeader(plan.state.invoice, plan.nextLines, body);
   for (const mapping of plan.mapping.mappingUpdates) {
     const mapped = await client.query(
@@ -1167,8 +1195,8 @@ const applyInvoiceDeltaPlan = async ({ client, plan, body, idempotencyKey, userI
     const { rows: [created] } = await client.query(
       `INSERT INTO inventory_batches
         (product_id, batch_no, expired_date, qty_current, hna, source_type, source_ref,
-         source_qty_value, source_qty_unit, source_pack_size, tax_type, ppn_rate)
-       VALUES ($1,$2,$3,0,$4,'faktur',$5,$6,$7,$8,$9,$10)
+         source_qty_value, source_qty_unit, source_pack_size, tax_type, ppn_rate, expired_date_precision)
+       VALUES ($1,$2,$3,0,$4,'faktur',$5,$6,$7,$8,$9,$10,$11)
        RETURNING id`,
       [
         line.product_id,
@@ -1181,6 +1209,7 @@ const applyInvoiceDeltaPlan = async ({ client, plan, body, idempotencyKey, userI
         Number(line.product?.pack_size || 1),
         calculated.taxType,
         calculated.rate,
+        normalizeExpiry(line.expired_date, line.expired_date_precision).precision,
       ],
     );
     if (!created?.id) throw new Error(`Batch tujuan untuk ${bucket.key} gagal dibuat`);
@@ -1188,14 +1217,16 @@ const applyInvoiceDeltaPlan = async ({ client, plan, body, idempotencyKey, userI
   }
 
   for (const metadata of plan.delta.metadata_changes) {
+    if (!metadata.batch_id) continue;
     const updated = await client.query(
       `UPDATE inventory_batches
-       SET batch_no = $1, expired_date = $2
+       SET batch_no = $1, expired_date = $2, expired_date_precision = $4
        WHERE id = $3 RETURNING id`,
       [
         metadata.after_batch_number || plan.state.invoice.invoice_number,
         optionalDbDate(metadata.after_expired_date, 'Expired Date batch'),
         metadata.batch_id,
+        normalizeExpiry(metadata.after_expired_date, metadata.after_expired_date_precision).precision,
       ],
     );
     if (updated.rows.length !== 1) {
@@ -1329,6 +1360,8 @@ const applyInvoiceDeltaPlan = async ({ client, plan, body, idempotencyKey, userI
     invoice: updatedInvoice,
     items: afterItems,
     stock_delta: plan.preview.stock_deltas,
+    metadata_changes: plan.preview.metadata_changes || [],
+    line_changes: plan.preview.line_changes || [],
     hna_revaluations: plan.preview.hna_revaluations,
     po_effects: plan.preview.po_effects,
   };

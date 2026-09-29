@@ -1,6 +1,7 @@
 import {
   dateOnlyTimestamp,
   daysUntilDateOnly,
+  formatDateOnly,
   parseDateOnly,
 } from "./dateOnly";
 
@@ -26,5 +27,15 @@ describe("dateOnly", () => {
 
   it("menolak tanggal kalender tidak valid", () => {
     expect(parseDateOnly("2026-02-31")).toBeNull();
+  });
+
+  it("formatter tanggal non-ED mempertahankan tanggal penuh, termasuk akhir bulan", () => {
+    const options = { day: "2-digit", month: "short", year: "numeric" };
+    expect(formatDateOnly("2027-05-12", options)).toBe("12 Mei 2027");
+    expect(formatDateOnly("2028-02-29", options)).toBe("29 Feb 2028");
+  });
+
+  it("parser tanggal non-ED tidak mengartikan YYYY-MM sebagai akhir bulan", () => {
+    expect(parseDateOnly("2028-02")).toBeNull();
   });
 });

@@ -1173,6 +1173,30 @@ const migrations = [
   },
 ];
 
+migrations.push({
+  id: '20260929_023_expiry_precision',
+  async up(db) {
+    for (const [table, columns] of [
+      ['inventory_batches', ['expired_date_precision']],
+      ['invoice_items', ['expired_date_precision']],
+      ['sales_items', ['expired_date_snapshot_precision']],
+      ['loan_items', ['expired_date_snapshot_precision']],
+      ['sales_adjustment_items', ['original_expired_date_precision', 'replacement_expired_date_precision']],
+    ]) {
+      for (const column of columns) {
+        await db.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${column} TEXT`);
+        await db.query(`DO $$ BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint
+            WHERE conname = '${table}_${column}_check' AND conrelid = '${table}'::regclass) THEN
+            ALTER TABLE ${table} ADD CONSTRAINT ${table}_${column}_check
+              CHECK (${column} IS NULL OR ${column} IN ('day', 'month'));
+          END IF;
+        END $$`);
+      }
+    }
+  },
+});
+
 const listRouteSchemaMigrations = () => migrations.map(({ id }) => id);
 
 const assertBaselineSchema = async (db) => {
