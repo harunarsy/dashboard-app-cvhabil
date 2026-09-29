@@ -4,6 +4,25 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 29 Sep 2026 (22:15 WIB): v1.67.24-stable — hardening audit (COMMIT LOKAL, BELUM DIPUSH)
+- **Instruksi owner:** audit aplikasi (keamanan/bug/logic + performa) lalu perbaiki semua di lokal, commit lokal, **jangan push**.
+- **Keamanan:**
+  - `backend/utils/serverError.js` (baru) + codemod 116 titik `res.status(500).json({ error: err.message })` → `sendServerError(res, err, '<file>')`, plus pola `err.statusCode || 500`, `|| 400` (sales), `status(code)` (priceList), dan `responseForDeltaError` (invoices). Error validasi (statusCode < 500) tetap menyampaikan pesan; error internal (kode Postgres / TypeError) hanya ke log server, produksi dijawab generik.
+  - `routes/auth.js`: fallback password plaintext dihapus (akun non-bcrypt ditolak + dicatat; 4/4 akun sudah bcrypt). Lockout login kini di tabel `login_attempts` (best-effort: bila tabel belum ada, login tetap jalan).
+  - `middleware/auth.js`: TokenExpiredError dibedakan pesannya, error log tidak lagi dibanjiri, `JWT_SECRET` kosong → 500 eksplisit.
+  - 11 rute destruktif diberi `roleGuard('direktur','admin')` (sales delete, invoices delete + permanent, inventory product/batch delete, products delete, customers delete, distributors delete, loans delete, marketplace store/sku-map delete).
+- **Integritas/logic:**
+  - `PUT /inventory/batches/:id` → transaksi penuh (`FOR UPDATE` + audit + sinkron snapshot nota ikut commit/rollback).
+  - `utils/docNumbers.js` → `pg_advisory_xact_lock` per docType; MAX pakai `SUBSTRING` + filter regex (nomor tak berpola tidak lagi bikin error); counter baru mulai MAX+1.
+  - `POST /marketplace/sku-map` → transaksi (kamus + katalog toko).
+- **Performa:**
+  - `GET /inventory/products` ditulis ulang (CTE agregat). Bukti: **exec 8,1 ms → 1,5 ms**, scan `inventory_batches` 5 → 1, **hasil identik 85/85 produk semua kolom** (skrip pembanding query lama vs baru).
+  - Migrasi `20260930_024_login_attempts_and_indexes` **diterapkan ke DB**: tabel `login_attempts` + indeks `purchase_order_items(po_id)`, `inventory_batches(product_id, expired_date)`, `login_attempts(locked_until)`. Terverifikasi via information_schema/pg_indexes.
+  - `frontend/src/lib/queryClient.js`: `staleTime` master data 10 menit (produk/customer/distributor/price-list/print-settings/counters), sisanya 60 detik; refetchOnWindowFocus tetap (hanya yang stale).
+- **Verifikasi:** backend `npm test` exit 0 (expiry 67/67; HTTP smoke guard read-only diperluas khusus `login_attempts`; schema-boundary memuat 024); frontend 316 lulus / 1 skip; Vite build lulus; checker versi `v1.67.24-stable`.
+- **Belum dikerjakan (perlu keputusan owner):** token JWT localStorage → cookie httpOnly, batching N+1 tulis nota/faktur, item list keluar dari payload daftar, cache agregat dashboard, base64 marketplace → object storage, gating tombol hapus di UI per role.
+- **Status git:** commit lokal menyusul di `main`; **tidak di-push** sesuai instruksi.
+
 ## Update 29 Sep 2026 (21:45 WIB): AKAR MASALAH ED DITEMUKAN — `setItems` tidak ada di InvoiceModal
 - **Gejala owner:** ED tidak bisa diisi sama sekali di Faktur Pembelian (baik "Bulan/tahun" maupun "Tanggal lengkap"), kolom kembali kosong.
 - **Akar masalah (bukan picker bawaan, bukan data):** baris item form faktur dirender komponen `InvoiceModal` (`InvoiceList.jsx:4861`). Komponen itu menerima `items` dan `updateItem` sebagai **prop** dan **tidak punya `setItems`**, tetapi handler ED di sana memanggil `setItems(...)` → setiap perubahan ED melempar `ReferenceError: setItems is not defined` → nilai tidak pernah masuk state (kolom kembali kosong). Kolom lain (qty, disc, produk) aman karena memakai prop `updateItem`.

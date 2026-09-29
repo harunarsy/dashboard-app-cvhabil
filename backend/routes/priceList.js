@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const { recommendPrice } = require('../utils/pricingEngine');
+const { sendServerError } = require('../utils/serverError');
 
 // ─── Daftar Harga (v1.24.0) ─────────────────────────────────────────────────
 // Harga jual yang di-set manual per produk, terpisah dari sell_price master:
@@ -44,7 +45,7 @@ router.get('/', auth, async (req, res) => {
       ORDER BY p.category ASC NULLS LAST, p.name ASC
     `);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'priceList'); }
 });
 
 // ─── Fee profiles marketplace (editable dari dashboard) ────────────────────
@@ -55,7 +56,7 @@ router.get('/fee-profiles', auth, async (req, res) => {
        ORDER BY platform, category_key`
     );
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'priceList'); }
 });
 
 router.put('/fee-profiles/:id', auth, async (req, res) => {
@@ -93,7 +94,7 @@ router.put('/fee-profiles/:id', auth, async (req, res) => {
     res.json(row);
   } catch (err) {
     const code = /Rate harus|tidak boleh minus/.test(err.message) ? 400 : 500;
-    res.status(code).json({ error: err.message });
+    sendServerError(res, err, 'priceList', code);
   }
 });
 
@@ -117,7 +118,7 @@ router.post('/recommend', auth, async (req, res) => {
       })),
     });
     res.json(result);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'priceList'); }
 });
 
 // GET /:productId/history — riwayat perubahan harga semua saluran (terbaru dulu)
@@ -129,7 +130,7 @@ router.get('/:productId/history', auth, async (req, res) => {
       [req.params.productId]
     );
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'priceList'); }
 });
 
 // PUT /:productId — set harga baru (insert entry; riwayat tidak ditimpa)
@@ -185,7 +186,7 @@ router.put('/:productId', auth, async (req, res) => {
       [productId, channel, price, effectiveDate, req.user?.id || null]
     );
     res.status(201).json(entry);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'priceList'); }
 });
 
 module.exports = router;

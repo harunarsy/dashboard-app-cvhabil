@@ -4,32 +4,66 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const pool = require('../config/database');
 
-const LOGIN_LOCK_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_MAX_FAILED = 5;
-const failedLogins = new Map();
 
 const normalizeUsername = (username) => String(username || '').trim();
 const getLoginKey = (username) => normalizeUsername(username).toLowerCase();
 
-const isLoginLocked = (key) => {
-  const state = failedLogins.get(key);
-  if (!state) return false;
-  if (state.lockedUntil > Date.now()) return true;
-  failedLogins.delete(key);
-  return false;
+// v1.67.24: lockout dipindah dari memori proses ke tabel login_attempts supaya
+// tetap berlaku lintas instance serverless & tidak hilang saat cold start.
+// Semua helper dibuat "best effort": kalau tabel belum ada (migration belum jalan),
+// login TIDAK boleh ikut gagal — hanya proteksi tambahannya yang tidak aktif.
+const isLoginLocked = async (key) => {
+  if (!key) return false;
+  try {
+    const { rows } = await pool.query(
+      `SELECT 1 FROM login_attempts
+       WHERE login_key = $1 AND locked_until IS NOT NULL AND locked_until > NOW()`,
+      [key]
+    );
+    return rows.length > 0;
+  } catch (err) {
+    console.error('[auth] cek lockout gagal (diabaikan):', err.message);
+    return false;
+  }
 };
 
-const recordLoginFailure = (key) => {
-  const state = failedLogins.get(key) || { count: 0, lockedUntil: 0 };
-  const count = state.count + 1;
-  failedLogins.set(key, {
-    count: count >= LOGIN_MAX_FAILED ? 0 : count,
-    lockedUntil: count >= LOGIN_MAX_FAILED ? Date.now() + LOGIN_LOCK_WINDOW_MS : 0,
-  });
+const recordLoginFailure = async (key) => {
+  if (!key) return;
+  try {
+    await pool.query(
+      `INSERT INTO login_attempts (login_key, failed_count, first_failed_at, updated_at)
+       VALUES ($1, 1, NOW(), NOW())
+       ON CONFLICT (login_key) DO UPDATE SET
+         failed_count = CASE
+           WHEN login_attempts.first_failed_at < NOW() - INTERVAL '15 minutes' THEN 1
+           ELSE login_attempts.failed_count + 1 END,
+         first_failed_at = CASE
+           WHEN login_attempts.first_failed_at < NOW() - INTERVAL '15 minutes' THEN NOW()
+           ELSE login_attempts.first_failed_at END,
+         updated_at = NOW()`,
+      [key]
+    );
+    await pool.query(
+      `UPDATE login_attempts
+       SET locked_until = NOW() + INTERVAL '15 minutes'
+       WHERE login_key = $1 AND failed_count >= $2
+         AND first_failed_at >= NOW() - INTERVAL '15 minutes'
+         AND (locked_until IS NULL OR locked_until < NOW())`,
+      [key, LOGIN_MAX_FAILED]
+    );
+  } catch (err) {
+    console.error('[auth] catat kegagalan login gagal (diabaikan):', err.message);
+  }
 };
 
-const clearLoginFailure = (key) => {
-  failedLogins.delete(key);
+const clearLoginFailure = async (key) => {
+  if (!key) return;
+  try {
+    await pool.query('DELETE FROM login_attempts WHERE login_key = $1', [key]);
+  } catch (err) {
+    console.error('[auth] reset catatan login gagal (diabaikan):', err.message);
+  }
 };
 
 const getServerError = (err) => (
@@ -46,7 +80,7 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Username and password required' });
   }
 
-  if (isLoginLocked(loginKey)) {
+  if (await isLoginLocked(loginKey)) {
     return res.status(429).json({ error: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.' });
   }
 
@@ -57,25 +91,21 @@ router.post('/login', async (req, res) => {
     );
 
     if (!rows.length) {
-      recordLoginFailure(loginKey);
+      await recordLoginFailure(loginKey);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     const user = rows[0];
-    // Dual-mode: try bcrypt first, fallback to plaintext for existing unhashed passwords
-    let passwordValid = false;
-    const stored = user.password;
-    if (stored.startsWith('$2')) {
-      passwordValid = await bcrypt.compare(password, stored);
-    } else {
-      // Plaintext — validate then re-hash for migration
-      passwordValid = stored === password;
-      if (passwordValid) {
-        const hashed = await bcrypt.hash(password, 12);
-        await pool.query('UPDATE app_users SET password = $1 WHERE id = $2', [hashed, user.id]);
-      }
+    // v1.67.24: hash plaintext legacy tidak lagi diterima — tidak boleh ada jalur
+    // login tanpa bcrypt (perbandingan plaintext juga tidak konstan waktunya).
+    const stored = String(user.password || '');
+    if (!stored.startsWith('$2')) {
+      console.error(`[auth] akun "${user.username}" menyimpan password non-bcrypt — login ditolak, password perlu di-reset`);
+      await recordLoginFailure(loginKey);
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
+    const passwordValid = await bcrypt.compare(password, stored);
     if (!passwordValid) {
-      recordLoginFailure(loginKey);
+      await recordLoginFailure(loginKey);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -92,7 +122,7 @@ router.post('/login', async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRE || '4h' }
     );
 
-    clearLoginFailure(loginKey);
+    await clearLoginFailure(loginKey);
 
     return res.json({
       token,

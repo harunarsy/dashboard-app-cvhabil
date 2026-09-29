@@ -10,6 +10,8 @@ const auth = require('../middleware/auth');
 const tax = require('../utils/tax');
 const { normalizeExpiry } = require('../utils/expiry');
 const { generateMonthlyDocNumber } = require('../utils/docNumbers');
+const { sendServerError } = require('../utils/serverError');
+const roleGuard = require('../middleware/roleGuard');
 
 
 const outstandingOf = (it) => Number(it.qty) - Number(it.qty_returned) - Number(it.qty_purchased);
@@ -66,7 +68,7 @@ router.get('/', auth, async (req, res) => {
        LIMIT 1000`
     );
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'loans'); }
 });
 
 // POST create — stok keluar per batch TERPILIH (1 item = 1 batch, biar retur
@@ -197,7 +199,7 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json(await fetchLoanFull(pool, loan.id));
   } catch (err) {
     try { await client.query('ROLLBACK'); } catch (e) { /* noop */ }
-    res.status(err.statusCode || 500).json({ error: err.message });
+    sendServerError(res, err, 'loans');
   } finally { client.release(); }
 });
 
@@ -272,7 +274,7 @@ router.post('/:id/return', auth, async (req, res) => {
     res.json(await fetchLoanFull(pool, loan.id));
   } catch (err) {
     try { await client.query('ROLLBACK'); } catch (e) { /* noop */ }
-    res.status(err.statusCode || 500).json({ error: err.message });
+    sendServerError(res, err, 'loans');
   } finally { client.release(); }
 });
 
@@ -366,13 +368,13 @@ router.post('/:id/convert', auth, async (req, res) => {
     res.status(201).json({ loan: loanFull, order });
   } catch (err) {
     try { await client.query('ROLLBACK'); } catch (e) { /* noop */ }
-    res.status(err.statusCode || 500).json({ error: err.message });
+    sendServerError(res, err, 'loans');
   } finally { client.release(); }
 });
 
 // DELETE (void) — batalkan pinjaman: sisa outstanding balik ke batch asal.
 // Item yang sudah diretur/dikonversi TIDAK disentuh (stoknya/notanya sudah sah).
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, roleGuard('direktur', 'admin'), async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -413,7 +415,7 @@ router.delete('/:id', auth, async (req, res) => {
     res.json({ message: `Pinjaman ${loan.loan_number} dibatalkan — ${restored} unit sisa dikembalikan ke stok` });
   } catch (err) {
     try { await client.query('ROLLBACK'); } catch (e) { /* noop */ }
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'loans');
   } finally { client.release(); }
 });
 

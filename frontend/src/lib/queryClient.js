@@ -2,14 +2,31 @@
 // Data tampil instan dari cache, refresh diam-diam di belakang saat sudah stale.
 import { QueryClient } from "@tanstack/react-query";
 
+// v1.67.24: master data (produk/customer/distributor/daftar harga) jarang berubah
+// tapi dipakai di banyak dropdown → tahan lebih lama di cache supaya pindah-pindah
+// tab tidak memicu rentetan refetch ke Neon. Mutasi tetap memaksa data segar lewat
+// invalidateQueries/refetch eksplisit (staleTime tidak menghalangi invalidasi).
+const MASTER_DATA_KEYS = new Set([
+  "products",
+  "customers",
+  "distributors",
+  "price-list",
+  "print-settings",
+  "counters",
+]);
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // 60 dtk dianggap fresh → kunjungan ulang halaman instan tanpa refetch.
-      staleTime: 60 * 1000,
+      // Master data: 10 menit (di-invalidate eksplisit saat berubah).
+      staleTime: (query) =>
+        MASTER_DATA_KEYS.has(String(query.queryKey?.[0] || ""))
+          ? 10 * 60 * 1000
+          : 60 * 1000,
       // cache disimpan 10 menit setelah tidak dipakai.
       gcTime: 10 * 60 * 1000,
-      refetchOnWindowFocus: true, // balik ke tab → revalidate diam-diam
+      refetchOnWindowFocus: true, // balik ke tab → revalidate diam-diam (hanya yang sudah stale)
       refetchOnReconnect: true,
       retry: 1,
     },

@@ -9,6 +9,7 @@ const formDrafts = require('../utils/formDrafts');
 const { generateMonthlyDocNumber } = require('../utils/docNumbers');
 const adjustmentRules = require('../utils/adjustmentRules');
 const { normalizeExpiry } = require('../utils/expiry');
+const { sendServerError } = require('../utils/serverError');
 
 // v1.65.0: Normalisasi ppn_excluded ke boolean (terima true/false dan string 'true'/'false')
 const normalizeBooleanField = (val) => {
@@ -172,7 +173,7 @@ router.get('/', auth, async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'sales');
   }
 });
 
@@ -186,21 +187,21 @@ router.get('/draft', auth, async (req, res) => {
   try {
     const draft = await formDrafts.getDraft(pool, 'nota', getDraftOwnerId(req));
     res.json(draft);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'sales'); }
 });
 
 router.post('/draft', auth, async (req, res) => {
   try {
     await formDrafts.saveDraft(pool, 'nota', getDraftOwnerId(req), req.body?.draft_data);
     res.json({ saved: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'sales'); }
 });
 
 router.delete('/draft/clear', auth, async (req, res) => {
   try {
     await formDrafts.clearDraft(pool, 'nota', getDraftOwnerId(req));
     res.json({ cleared: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'sales'); }
 });
 
 // GET trash — nota yang sudah di-soft-delete (is_deleted=TRUE).
@@ -223,7 +224,7 @@ router.get('/trash', auth, async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'sales');
   }
 });
 
@@ -232,7 +233,7 @@ router.get('/:id/adjustments', auth, async (req, res) => {
   try {
     orderId = adjustmentRules.parsePositiveIntId(req.params.id, 'ID nota');
   } catch (err) {
-    return res.status(err.statusCode || 400).json({ error: err.message });
+    return sendServerError(res, err, 'sales', 400);
   }
 
   try {
@@ -265,7 +266,7 @@ router.get('/:id/adjustments', auth, async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'sales');
   }
 });
 
@@ -283,7 +284,7 @@ router.get('/:id', auth, async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: 'Nota not found' });
     res.json(rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'sales');
   }
 });
 
@@ -556,7 +557,7 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ error: 'Nomor Nota sudah digunakan. Gunakan nomor lain.' });
     }
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.message.replace('USER: ','') });
-    return res.status(500).json({ error: err.message });
+    return sendServerError(res, err, 'sales');
   } finally {
     try {
       client.release();
@@ -581,7 +582,7 @@ router.patch('/:id/notes', auth, async (req, res) => {
     res.json(updated);
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'sales');
   } finally { client.release(); }
 });
 
@@ -591,7 +592,7 @@ router.post('/:id/adjustments', auth, async (req, res) => {
   try {
     orderId = adjustmentRules.parsePositiveIntId(req.params.id, 'ID nota');
   } catch (err) {
-    return res.status(err.statusCode || 400).json({ error: err.message });
+    return sendServerError(res, err, 'sales', 400);
   }
 
   const {
@@ -976,7 +977,7 @@ router.post('/:id/adjustments', auth, async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.message.replace('USER: ', '') });
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'sales');
   } finally { client.release(); }
 });
 
@@ -985,7 +986,7 @@ router.post('/adjustments/:adjustmentId/settle', auth, roleGuard('direktur'), as
   try {
     adjustmentId = adjustmentRules.parsePositiveIntId(req.params.adjustmentId, 'ID adjustment');
   } catch (err) {
-    return res.status(err.statusCode || 400).json({ error: err.message });
+    return sendServerError(res, err, 'sales', 400);
   }
 
   const client = await pool.connect();
@@ -1056,7 +1057,7 @@ router.post('/adjustments/:adjustmentId/settle', auth, roleGuard('direktur'), as
     res.json({ settlement: updatedSettlement, ledger_entry: entry });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'sales');
   } finally { client.release(); }
 });
 
@@ -1067,7 +1068,7 @@ router.post('/adjustments/:adjustmentId/void', auth, roleGuard('direktur'), asyn
     adjustmentId = adjustmentRules.parsePositiveIntId(req.params.adjustmentId, 'ID adjustment');
     voidReason = adjustmentRules.validateVoidReason(req.body?.void_reason || req.body?.reason);
   } catch (err) {
-    return res.status(err.statusCode || 400).json({ error: err.message });
+    return sendServerError(res, err, 'sales', 400);
   }
 
   const client = await pool.connect();
@@ -1157,7 +1158,7 @@ router.post('/adjustments/:adjustmentId/void', auth, roleGuard('direktur'), asyn
     res.json({ adjustment: updatedAdjustment, reversed_mutations: mutations.length, void_reason: voidReason });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'sales');
   } finally { client.release(); }
 });
 
@@ -1534,14 +1535,14 @@ router.put('/:id', auth, async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.message.replace('USER: ','') });
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'sales');
   } finally {
     client.release();
   }
 });
 
 // DELETE (soft) — v1.7.1: reverse stock (return ke batch asal) + soft-delete nota
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, roleGuard('direktur', 'admin'), async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -1618,7 +1619,7 @@ router.delete('/:id', auth, async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.message.replace('USER: ','') });
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'sales');
   } finally { client.release(); }
 });
 
@@ -1730,7 +1731,7 @@ router.put('/:id/restore', auth, async (req, res) => {
     });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'sales');
   } finally { client.release(); }
 });
 
@@ -1745,7 +1746,7 @@ router.patch('/:id/pdf-status', auth, async (req, res) => {
     );
     if (!rowCount) return res.status(404).json({ error: 'Nota not found' });
     res.json({ message: 'Status PDF diperbarui' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'sales'); }
 });
 
 // PATCH payment status
@@ -1791,7 +1792,7 @@ router.patch('/:id/payment-status', auth, async (req, res) => {
     res.json({ message: 'Status pembayaran diperbarui', payment_status, paid_at });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'sales');
   } finally { client.release(); }
 });
 

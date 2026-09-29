@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const { sendServerError } = require('../utils/serverError');
 
 // GET all active tasks (with limit)
 router.get('/', auth, async (req, res) => {
@@ -10,7 +11,7 @@ router.get('/', auth, async (req, res) => {
     const result = await pool.query('SELECT * FROM tasks WHERE is_deleted = false ORDER BY created_at DESC LIMIT $1', [limit]);
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'tasks');
   }
 });
 
@@ -21,7 +22,7 @@ router.get('/trash', auth, async (req, res) => {
     const result = await pool.query('SELECT * FROM tasks WHERE is_deleted = true ORDER BY updated_at DESC LIMIT $1', [limit]);
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'tasks');
   }
 });
 
@@ -42,7 +43,7 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('[Tasks POST] Error creating task:', err.message, { title, status, priority, due_date, pic });
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'tasks');
   }
 });
 
@@ -58,7 +59,7 @@ router.put('/:id', auth, async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
     res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'tasks');
   }
 });
 
@@ -72,7 +73,7 @@ router.get('/:id/history', auth, async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'tasks');
   }
 });
 
@@ -88,7 +89,7 @@ router.patch('/:id/soft-delete', auth, async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
     res.json({ success: true, task: result.rows[0] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'tasks');
   }
 });
 
@@ -99,7 +100,7 @@ router.delete('/:id', auth, async (req, res) => {
     await pool.query('UPDATE tasks SET is_deleted = TRUE, updated_at = NOW() WHERE id = $1', [id]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'tasks');
   }
 });
 
@@ -114,7 +115,7 @@ router.patch('/:id/restore', auth, async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
     res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'tasks');
   }
 });
 
@@ -125,7 +126,7 @@ router.delete('/:id/permanent', auth, async (req, res) => {
     await pool.query('DELETE FROM tasks WHERE id = $1', [id]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'tasks');
   }
 });
 

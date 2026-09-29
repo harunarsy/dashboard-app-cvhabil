@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const { sendServerError } = require('../utils/serverError');
 
 // Get all orders
 router.get('/', auth, async (req, res) => {
@@ -12,7 +13,7 @@ router.get('/', auth, async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('Get orders error:', err);
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'orders');
   }
 });
 
@@ -35,7 +36,7 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('Create order error:', err);
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'orders');
   }
 });
 
@@ -61,7 +62,7 @@ router.put('/:id', auth, async (req, res) => {
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Update order error:', err);
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'orders');
   }
 });
 

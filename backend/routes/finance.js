@@ -6,6 +6,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const roleGuard = require('../middleware/roleGuard');
+const { sendServerError } = require('../utils/serverError');
 
 // v1.65.7: SEBELUMNYA tiap rute hanya memakai `auth` tanpa roleGuard, sehingga admin
 // yang mengetik /finance langsung bisa melihat seluruh hutang-piutang DAN menandai
@@ -81,7 +82,7 @@ router.get('/summary', async (req, res) => {
     });
   } catch (err) {
     console.error('Finance summary Error:', err);
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'finance');
   }
 });
 
@@ -99,7 +100,7 @@ router.patch('/hutang/:invoiceNumber/lunas', async (req, res) => {
     res.json({ message: 'Faktur ditandai lunas', invoice: rows[0] });
   } catch (err) {
     console.error('Finance lunas Error:', err);
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'finance');
   }
 });
 

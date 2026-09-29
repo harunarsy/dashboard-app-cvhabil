@@ -8,6 +8,7 @@ const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const roleGuard = require('../middleware/roleGuard');
 const tax = require('../utils/tax');
+const { sendServerError } = require('../utils/serverError');
 
 
 router.use(auth, roleGuard('direktur', 'pajak'));
@@ -99,7 +100,7 @@ router.get('/summary', async (req, res) => {
         ppn_beban: Math.round(notaSourcedPpn),
       },
     });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'tax'); }
 });
 
 // GET /notas?month=YYYY-MM — daftar nota + status penandaan (buat konsultan menandai)
@@ -132,7 +133,7 @@ router.get('/notas', async (req, res) => {
       };
     });
     res.json(items);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'tax'); }
 });
 
 // PATCH /notas/:id/ppn { excluded } — tandai nota masuk/keluar PPN keluaran.
@@ -149,7 +150,7 @@ router.patch('/notas/:id/ppn', async (req, res) => {
     );
     if (!row) return res.status(404).json({ error: 'Nota tidak ditemukan' });
     res.json(row);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'tax'); }
 });
 
 // GET /export?month=YYYY-MM — CSV rekap per nota (bahan lapor / kertas kerja konsultan)
@@ -190,7 +191,7 @@ router.get('/export', async (req, res) => {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="rekap-ppn-${req.query.month}.csv"`);
     res.send('﻿' + lines.join('\n'));
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'tax'); }
 });
 
 module.exports = router;

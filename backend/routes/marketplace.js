@@ -15,6 +15,8 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const { recommendPrice } = require('../utils/pricingEngine');
+const { sendServerError } = require('../utils/serverError');
+const roleGuard = require('../middleware/roleGuard');
 
 const PPN_RATE = 0.11;
 const FLOOR_PROFIT = 3000; // laba operasional minimum per listing (Rp) — kompetitif > margin gemuk
@@ -282,7 +284,7 @@ router.post('/analyze', auth, async (req, res) => {
       total: result.length, matched: confirmed + auto, matched_confirmed: confirmed, matched_auto: auto,
       unmatched: result.length - confirmed - auto, rows: result,
     });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'marketplace'); }
 });
 
 // ── Toko ────────────────────────────────────────────────────────────────
@@ -294,7 +296,7 @@ router.get('/stores', auth, async (req, res) => {
       FROM marketplace_stores s LEFT JOIN marketplace_listings l ON l.store_id = s.id
       GROUP BY s.id ORDER BY s.updated_at DESC`);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'marketplace'); }
 });
 
 // Katalog toko tersimpan (buka lagi tanpa upload). Rekomendasi dihitung ulang fresh dari HPP terkini.
@@ -338,7 +340,7 @@ router.get('/stores/:id/listings', auth, async (req, res) => {
     const hasTemplate = (fc && fc.n > 0) || !!store.template_b64;
     res.json({ store: { id: store.id, name: store.name, platform: store.platform, last_filename: store.last_filename, has_template: hasTemplate, file_count: fc ? fc.n : 0 },
       channel: PLATFORM_CHANNEL[store.platform], total: rows.length, matched, unmatched: rows.length - matched, rows });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'marketplace'); }
 });
 
 // Bulk auto-apply saran teratas utk SEMUA listing belum dipetakan di toko (hemat klik).
@@ -372,17 +374,17 @@ router.post('/stores/:id/auto-apply', auth, async (req, res) => {
       applied += 1;
     }
     res.json({ applied, skipped, total: listings.length });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'marketplace'); }
 });
 
-router.delete('/stores/:id', auth, async (req, res) => {
+router.delete('/stores/:id', auth, roleGuard('direktur', 'admin'), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'ID tidak valid.' });
     const { rowCount } = await pool.query('DELETE FROM marketplace_stores WHERE id = $1', [id]);
     if (!rowCount) return res.status(404).json({ error: 'Toko tidak ditemukan.' });
     res.json({ deleted: true, id });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'marketplace'); }
 });
 
 // SEMUA file template tersimpan → download utuh dari DB (Shopee 1 file, TikTok bisa banyak).
@@ -398,7 +400,7 @@ router.get('/stores/:id/templates', auth, async (req, res) => {
       return res.json({ files: [] });
     }
     res.json({ files: rows.map((r) => ({ filename: r.filename, b64: r.file_b64 })) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'marketplace'); }
 });
 
 // Autosave 1 listing (harga final / stok upload / HPP override) + hitung ulang matched.
@@ -438,7 +440,7 @@ router.post('/listing-update', auth, async (req, res) => {
       }
     }
     res.json({ ok: true, final_price: l.final_price != null ? Math.round(l.final_price) : null, final_stock: l.final_stock, hpp_override: l.hpp_override != null ? Math.round(l.hpp_override) : null, matched });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'marketplace'); }
 });
 
 // ── sku-map (kamus permanen) ─────────────────────────────────────────────
@@ -451,11 +453,14 @@ router.get('/sku-map', auth, async (req, res) => {
        FROM marketplace_sku_map m LEFT JOIN product_master pm ON pm.id = m.product_id
        ${where} ORDER BY m.updated_at DESC`, params);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'marketplace'); }
 });
 
 // Konfirmasi mapping (permanen). Body: { platform, match_key, key_type, product_id, bundle_qty, listing_name, variation, store_id? }
+// v1.67.24: dua tulisan (kamus sku-map + katalog toko) dibungkus transaksi supaya
+// mapping tidak pernah tersimpan setengah (katalog toko tertinggal).
 router.post('/sku-map', auth, async (req, res) => {
+  const client = await pool.connect();
   try {
     const b = req.body || {};
     if (!PLATFORM_CHANNEL[b.platform] || !b.match_key || !b.product_id) {
@@ -463,7 +468,8 @@ router.post('/sku-map', auth, async (req, res) => {
     }
     const bundleQty = Math.max(0.001, parseFloat(b.bundle_qty) || 1); // desimal → dukung ecer/repack
     const matchKey = String(b.match_key).toUpperCase();
-    const { rows: [row] } = await pool.query(
+    await client.query('BEGIN');
+    const { rows: [row] } = await client.query(
       `INSERT INTO marketplace_sku_map (platform, match_key, key_type, product_id, bundle_qty, listing_name, variation, created_by)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
        ON CONFLICT (platform, match_key) DO UPDATE SET
@@ -473,11 +479,12 @@ router.post('/sku-map', auth, async (req, res) => {
       [b.platform, matchKey, b.key_type || 'sku', parseInt(b.product_id, 10), bundleQty, b.listing_name || null, b.variation || null, req.user?.id || null]);
     // Update katalog toko terkait (kalau ada) agar langsung sinkron & "lengket".
     if (b.store_id) {
-      await pool.query(
+      await client.query(
         `UPDATE marketplace_listings SET matched_product_id=$1, matched_auto=FALSE, bundle_qty=$2, updated_at=NOW()
          WHERE store_id=$3 AND match_key=$4`,
         [parseInt(b.product_id, 10), bundleQty, parseInt(b.store_id, 10), matchKey]);
     }
+    await client.query('COMMIT');
     // Hitung objek matched utk baris ini → frontend patch 1 baris tanpa reload (no "mecah fokus").
     let matched = null;
     try {
@@ -498,17 +505,20 @@ router.post('/sku-map', auth, async (req, res) => {
       }
     } catch (_) { /* patch opsional; abaikan kalau gagal */ }
     res.status(201).json({ ...row, matched, bundle_qty: bundleQty });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    return sendServerError(res, err, 'marketplace');
+  } finally { client.release(); }
 });
 
-router.delete('/sku-map/:id', auth, async (req, res) => {
+router.delete('/sku-map/:id', auth, roleGuard('direktur', 'admin'), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'ID tidak valid.' });
     const { rowCount } = await pool.query('DELETE FROM marketplace_sku_map WHERE id = $1', [id]);
     if (!rowCount) return res.status(404).json({ error: 'Mapping tidak ditemukan.' });
     res.json({ deleted: true, id });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'marketplace'); }
 });
 
 // ── POST /save-prices — simpan harga ke Daftar Harga HABIL + katalog toko ──
@@ -549,7 +559,7 @@ router.post('/save-prices', auth, async (req, res) => {
     res.json({ saved_count: saved.length, saved });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'marketplace');
   } finally { client.release(); }
 });
 

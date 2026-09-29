@@ -30,6 +30,7 @@ const expectedMigrationIds = [
   '20260911_021_invoice_edit_event_retention',
   '20260922_022_sales_document_legal',
   '20260929_023_expiry_precision',
+  '20260930_024_login_attempts_and_indexes',
 ];
 
 let passed = 0;

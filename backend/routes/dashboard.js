@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const tax = require('../utils/tax');
+const { sendServerError } = require('../utils/serverError');
 
 const fetchStatsData = async (monthQuery) => {
   // v1.43.0: HPP gross-up pakai rate per-batch yang di-snapshot (unit_hpp_ppn_rate),
@@ -312,7 +313,7 @@ router.get('/bootstrap', auth, async (req, res) => {
     res.json({ stats, heatmap });
   } catch (err) {
     console.error('Dashboard Bootstrap Error:', err);
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'dashboard');
   }
 });
 
@@ -323,7 +324,7 @@ router.get('/stats', auth, async (req, res) => {
     res.json(data);
   } catch (err) { 
     console.error('Dashboard Stats Error:', err);
-    res.status(500).json({ error: err.message }); 
+    sendServerError(res, err, 'dashboard'); 
   }
 });
 
@@ -334,9 +335,9 @@ router.get('/heatmap', auth, async (req, res) => {
     const data = await fetchHeatmapData(month);
     res.json(data);
   } catch (err) {
-    console.error('Heatmap Error:', err);
+    // v1.67.24: pesan internal tidak lagi dikirim mentah ke klien (lihat utils/serverError).
     const status = err.message.includes('required') ? 400 : 500;
-    res.status(status).json({ error: err.message });
+    sendServerError(res, err, 'dashboard', status);
   }
 });
 
@@ -371,7 +372,7 @@ router.get('/daily-notas', auth, async (req, res) => {
     })));
   } catch (err) {
     console.error('Daily Notas Error:', err);
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'dashboard');
   }
 });
 

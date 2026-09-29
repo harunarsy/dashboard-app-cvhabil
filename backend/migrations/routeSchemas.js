@@ -1197,6 +1197,31 @@ migrations.push({
   },
 });
 
+migrations.push({
+  id: '20260930_024_login_attempts_and_indexes',
+  async up(db) {
+    // v1.67.24 — lockout login dipindah dari memori proses ke DB supaya konsisten
+    // di serverless multi-instance (sebelumnya reset tiap cold start / tidak dibagi
+    // antar instance).
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS login_attempts (
+        login_key TEXT PRIMARY KEY,
+        failed_count INTEGER NOT NULL DEFAULT 0,
+        first_failed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        locked_until TIMESTAMPTZ,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS login_attempts_locked_until_idx ON login_attempts (locked_until)
+    `);
+    // Indeks yang hilang: detail SP memfilter po_id, dan FEFO memfilter product_id
+    // lalu mengurutkan expired_date (sebelumnya dua indeks terpisah).
+    await db.query('CREATE INDEX IF NOT EXISTS purchase_order_items_po_id_idx ON purchase_order_items (po_id)');
+    await db.query('CREATE INDEX IF NOT EXISTS inventory_batches_product_expiry_idx ON inventory_batches (product_id, expired_date)');
+  },
+});
+
 const listRouteSchemaMigrations = () => migrations.map(({ id }) => id);
 
 const assertBaselineSchema = async (db) => {

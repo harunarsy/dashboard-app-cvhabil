@@ -4,6 +4,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const uom = require('../utils/uom');
+const { sendServerError } = require('../utils/serverError');
 
 // ─── Helper: generate PO number ─────────────────────────────────────────────
 const generatePONumber = async (client) => {
@@ -146,7 +147,7 @@ router.get('/', auth, async (req, res) => {
       LIMIT $1
     `, [limit]);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'purchaseOrders'); }
 });
 
 // GET single PO
@@ -186,7 +187,7 @@ router.get('/:id', auth, async (req, res) => {
       item.received_batches = (item.product_id && batchesByProductId[item.product_id]) || [];
     });
     res.json({ ...po, items });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'purchaseOrders'); }
 });
 
 // CREATE PO (Surat Pesanan)
@@ -250,7 +251,7 @@ router.post('/', auth, async (req, res) => {
     if (err.code === '23505' && (err.constraint === 'idx_po_number_active' || err.constraint === 'purchase_orders_po_number_key' || String(err.message || '').includes('po_number'))) {
       return res.status(400).json({ error: 'Nomor SP sudah digunakan. Gunakan nomor lain.' });
     }
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'purchaseOrders');
   } finally { client.release(); }
 });
 
@@ -307,7 +308,7 @@ router.put('/:id', auth, async (req, res) => {
     res.json(updated);
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'purchaseOrders');
   } finally { client.release(); }
 });
 
@@ -317,7 +318,7 @@ router.delete('/:id', auth, async (req, res) => {
     const { rowCount } = await pool.query('UPDATE purchase_orders SET is_deleted = TRUE WHERE id = $1', [req.params.id]);
     if (!rowCount) return res.status(404).json({ error: 'Not found' });
     res.json({ message: 'SP deleted' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'purchaseOrders'); }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -420,7 +421,7 @@ router.post('/:id/receive', auth, async (req, res) => {
     res.json({ message: 'Barang diterima', status: newStatus });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(err.statusCode || 500).json({ error: err.message });
+    sendServerError(res, err, 'purchaseOrders');
   } finally { client.release(); }
 });
 

@@ -39,9 +39,28 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.67.23-stable",
+    version: "v1.67.24-stable",
     date: "29 September 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Keamanan: pesan error internal tidak lagi tampil di layar (dulu bisa menampilkan detail database), login tanpa bcrypt ditolak, dan percobaan login gagal dibatasi 5x/15 menit.",
+      },
+      {
+        type: "fix",
+        text: "Hapus data (nota, faktur, batch, produk, dll) kini hanya untuk role direktur & admin — akun pajak tidak bisa menghapus.",
+      },
+      {
+        type: "improvement",
+        text: "Performa: daftar produk Inventory ~5x lebih cepat, tambah indeks Surat Pesanan & batch, dan master data lebih hemat request saat pindah tab.",
+      },
+    ],
+  },
+  {
+    version: "v1.67.23-stable",
+    date: "29 September 2026",
+    status: "previous",
     changes: [
       {
         type: "fix",

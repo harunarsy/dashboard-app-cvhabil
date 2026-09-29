@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const { sendServerError } = require('../utils/serverError');
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
@@ -19,7 +20,7 @@ router.get('/', auth, async (req, res) => {
     });
     res.json(settings);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'printSettings');
   }
 });
 
@@ -38,7 +39,7 @@ router.post('/', auth, async (req, res) => {
     );
     res.json(rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'printSettings');
   }
 });
 
@@ -68,7 +69,7 @@ router.post('/bulk', auth, async (req, res) => {
     res.json({ success: true, count: results.length });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'printSettings');
   } finally {
     client.release();
   }

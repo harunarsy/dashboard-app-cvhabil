@@ -3,6 +3,8 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const { seedProductAlias } = require('../utils/productAliases');
+const { sendServerError } = require('../utils/serverError');
+const roleGuard = require('../middleware/roleGuard');
 
 
 // GET all products (catalog + from invoice_items), with limit + q search
@@ -29,7 +31,7 @@ router.get('/', auth, async (req, res) => {
     `, q ? [`%${q}%`, limit] : [limit]);
     res.json(result.rows.map(r => ({ name: r.name })));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'products');
   }
 });
 
@@ -44,19 +46,19 @@ router.post('/', auth, async (req, res) => {
     );
     res.json({ name: result.rows[0].name });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'products');
   }
 });
 
 // DELETE product by name
-router.delete('/', auth, async (req, res) => {
+router.delete('/', auth, roleGuard('direktur', 'admin'), async (req, res) => {
   const { name } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
   try {
     await pool.query('DELETE FROM product_catalog WHERE name = $1', [name.trim()]);
     res.json({ message: 'Deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'products');
   }
 });
 
@@ -75,7 +77,7 @@ router.patch('/', auth, async (req, res) => {
     );
     if (renamed) await seedProductAlias(pool, renamed.id, oldName);
     res.json({ success: true, oldName, newName });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'products'); }
 });
 
 module.exports = router;

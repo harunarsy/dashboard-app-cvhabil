@@ -45,8 +45,15 @@ const readOnlyQueryMock = async (query) => {
     return { rows: [], rowCount: 0 };
   }
   if (sql && !/^\s*(select|show|with)\b/i.test(sql)) {
-    blockedDbMutations += 1;
-    throw new Error(`[DB Read-Only Guard] HTTP smoke blocked query: ${sql.split(/\s+/)[0]}`);
+    // v1.67.24: lockout login disimpan di tabel login_attempts, dan smoke ini sengaja
+    // memanggil POST /api/auth/login dengan kredensial salah. Write ke tabel khusus
+    // itu saja yang diizinkan; tabel bisnis tetap dilarang mutlak.
+    const writesOnlyLoginAttempts = /\blogin_attempts\b/i.test(normalized)
+      && !/\b(sales_orders|sales_items|invoices|invoice_items|inventory_batches|inventory_mutations|purchase_orders|purchase_order_items|ledger_entries|loans|loan_items|app_users|product_master)\b/i.test(normalized);
+    if (!writesOnlyLoginAttempts) {
+      blockedDbMutations += 1;
+      throw new Error(`[DB Read-Only Guard] HTTP smoke blocked query: ${sql.split(/\s+/)[0]}`);
+    }
   }
   return { rows: [], rowCount: 0 };
 };

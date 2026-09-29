@@ -8,6 +8,7 @@ const uom = require('../utils/uom');
 const tax = require('../utils/tax');
 const { seedProductAlias } = require('../utils/productAliases');
 const formDrafts = require('../utils/formDrafts');
+const { sendServerError } = require('../utils/serverError');
 const {
   buildInvoiceDelta,
   generatedLineKey,
@@ -20,6 +21,7 @@ const {
   sameNumber,
   toNumber: deltaNumber,
 } = require('../utils/invoiceDelta');
+const roleGuard = require('../middleware/roleGuard');
 
 // Helper: log audit
 const logAudit = async (invoiceId, invoiceNumber, action, snapshot, note = '') => {
@@ -658,13 +660,21 @@ const deltaErrorStatus = (error) => {
   return 500;
 };
 
-const responseForDeltaError = (error) => ({
-  error: error.message,
-  ...(error.code ? { code: error.code } : {}),
-  ...(error.unmatchedProducts ? { unmatchedProducts: error.unmatchedProducts } : {}),
-  ...(error.ambiguities ? { ambiguities: error.ambiguities } : {}),
-  ...(error.conflicts ? { conflicts: error.conflicts } : {}),
-});
+// v1.67.24: error delta yang tidak dikenali (mis. error DB) statusnya 500 → jangan
+// kirim pesan mentah ke klien saat production (lihat utils/serverError).
+const responseForDeltaError = (error) => {
+  const internal = deltaErrorStatus(error) >= 500;
+  const message = internal && (process.env.NODE_ENV || 'development') === 'production'
+    ? 'Terjadi kesalahan server'
+    : error.message;
+  return {
+    error: message,
+    ...(internal ? {} : (error.code ? { code: error.code } : {})),
+    ...(error.unmatchedProducts ? { unmatchedProducts: error.unmatchedProducts } : {}),
+    ...(error.ambiguities ? { ambiguities: error.ambiguities } : {}),
+    ...(error.conflicts ? { conflicts: error.conflicts } : {}),
+  };
+};
 
 const runInvoiceDeltaPreview = async (req, res) => {
   const { id } = req.params;
@@ -944,7 +954,7 @@ router.get('/', auth, async (req, res) => {
       LIMIT $1
     `, [limit]);
     res.json(result.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'invoices'); }
 });
 
 // GET trash
@@ -959,7 +969,7 @@ router.get('/trash', auth, async (req, res) => {
       ORDER BY i.deleted_at DESC
     `);
     res.json(result.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'invoices'); }
 });
 
 // GET draft
@@ -967,7 +977,7 @@ router.get('/draft', auth, async (req, res) => {
   try {
     const draft = await formDrafts.getDraft(pool, 'faktur', getDraftOwnerId(req));
     res.json(draft);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'invoices'); }
 });
 
 // GET audit log for invoice
@@ -978,7 +988,7 @@ router.get('/:id/audit', auth, async (req, res) => {
       [req.params.id]
     );
     res.json(result.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'invoices'); }
 });
 
 // PREVIEW DELTA EDIT — read-only transaction. The preview token binds the
@@ -997,7 +1007,7 @@ router.get('/:id', auth, async (req, res) => {
       if (!item.line_key) item.line_key = legacyLineKey(item.id);
     });
     res.json({ invoice: inv.rows[0], items: items.rows });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'invoices'); }
 });
 
 // SAVE DRAFT — single upsert, tanpa transaksi/FOR UPDATE seperti pola lama
@@ -1005,7 +1015,7 @@ router.post('/draft', auth, async (req, res) => {
   try {
     await formDrafts.saveDraft(pool, 'faktur', getDraftOwnerId(req), req.body?.draft_data);
     res.json({ saved: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'invoices'); }
 });
 
 // DELETE DRAFT
@@ -1013,7 +1023,7 @@ router.delete('/draft/clear', auth, async (req, res) => {
   try {
     await formDrafts.clearDraft(pool, 'faktur', getDraftOwnerId(req));
     res.json({ cleared: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'invoices'); }
 });
 
 // CREATE invoice
@@ -1275,7 +1285,7 @@ router.post('/', auth, async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Create invoice error:', err);
-    res.status(err.statusCode || 500).json({ error: err.message });
+    sendServerError(res, err, 'invoices');
   } finally {
     client.release();
   }
@@ -1568,7 +1578,7 @@ router.put('/:id', auth, async (req, res) => {
     res.json({ ...result.rows[0], unmatchedProducts: [] });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(err.statusCode || 500).json({ error: err.message });
+    sendServerError(res, err, 'invoices');
   } finally {
     client.release();
   }
@@ -1595,13 +1605,13 @@ router.patch('/:id/payment-status', auth, async (req, res) => {
     if (!result.rows.length) return res.status(404).json({ error: 'Faktur tidak ditemukan' });
     await logAudit(req.params.id, result.rows[0].invoice_number, 'PAYMENT_STATUS', { status, payment_date: payDate });
     res.json({ ...result.rows[0], unmatchedProducts: [] });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'invoices'); }
 });
 
 // SOFT DELETE — v1.64.1: sekarang MENARIK BALIK stok yang masuk dari faktur ini,
 // konsisten dgn perilaku hapus nota (sales.js) yang sudah lama begini. Simetris
 // dengan RESTORE di bawah lewat mutasi penanda 'faktur-cancelled'/'faktur-restored'.
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, roleGuard('direktur', 'admin'), async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -1703,7 +1713,7 @@ router.delete('/:id', auth, async (req, res) => {
     res.json({ message: 'Moved to trash', invoice: result.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'invoices');
   } finally { client.release(); }
 });
 
@@ -1771,12 +1781,12 @@ router.put('/:id/restore', auth, async (req, res) => {
     res.json({ message: 'Restored', invoice: result.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'invoices');
   } finally { client.release(); }
 });
 
 // PERMANENT DELETE
-router.delete('/:id/permanent', auth, async (req, res) => {
+router.delete('/:id/permanent', auth, roleGuard('direktur', 'admin'), async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -1892,10 +1902,8 @@ router.delete('/:id/permanent', auth, async (req, res) => {
     res.json({ message: 'Permanently deleted' });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(deltaErrorStatus(err)).json({
-      error: err.message,
-      ...(err.code ? { code: err.code } : {}),
-    });
+    if (deltaErrorStatus(err) >= 500) console.error('[invoices] permanent delete:', err);
+    res.status(deltaErrorStatus(err)).json(responseForDeltaError(err));
   } finally { client.release(); }
 });
 

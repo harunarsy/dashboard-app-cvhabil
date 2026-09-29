@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const { sendServerError } = require('../utils/serverError');
 
 // ══════════════════════════════════════════════════════════════════════════════
 // CSV IMPORT
@@ -88,7 +89,7 @@ router.post('/import', auth, async (req, res) => {
     res.json({ message: `Berhasil import ${imported} transaksi dari ${platform}`, batchId, count: imported });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'onlineStore');
   } finally { client.release(); }
 });
 
@@ -104,7 +105,7 @@ router.get('/sales', auth, async (req, res) => {
     const { rows } = await pool.query(query, params);
     const { rows: [count] } = await pool.query('SELECT COUNT(*) FROM online_store_sales' + (platform ? ' WHERE platform = $1' : ''), platform ? [platform] : []);
     res.json({ data: rows, total: parseInt(count.count) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'onlineStore'); }
 });
 
 // GET summary / profit dashboard
@@ -129,7 +130,7 @@ router.get('/summary', auth, async (req, res) => {
       ORDER BY month DESC LIMIT 12
     `);
     res.json({ platforms: rows, monthly });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'onlineStore'); }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -138,7 +139,7 @@ router.get('/summary', auth, async (req, res) => {
 
 router.get('/withdrawals', auth, async (req, res) => {
   try { const { rows } = await pool.query('SELECT * FROM online_store_withdrawals ORDER BY withdrawal_date DESC'); res.json(rows); }
-  catch (err) { res.status(500).json({ error: err.message }); }
+  catch (err) { sendServerError(res, err, 'onlineStore'); }
 });
 
 router.post('/withdrawals', auth, async (req, res) => {
@@ -150,7 +151,7 @@ router.post('/withdrawals', auth, async (req, res) => {
       [platform, amount, withdrawal_date || new Date(), notes || '']
     );
     res.status(201).json(rows[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'onlineStore'); }
 });
 
 module.exports = router;

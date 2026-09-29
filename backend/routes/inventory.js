@@ -6,6 +6,8 @@ const pricing = require('../utils/pricing');
 const tax = require('../utils/tax');
 const { normalizeExpiry, normalizeExpiryEdit } = require('../utils/expiry');
 const { seedProductAlias } = require('../utils/productAliases');
+const { sendServerError } = require('../utils/serverError');
+const roleGuard = require('../middleware/roleGuard');
 
 // ══════════════════════════════════════════════════════════════════════════════
 // PRODUCT MASTER
@@ -27,6 +29,89 @@ router.get('/products', auth, async (req, res) => {
       idx++;
     }
     const { rows } = await pool.query(`
+      WITH active_batches AS (
+        -- v1.67.24: satu pemindaian inventory_batches per produk dipakai ulang oleh
+        -- semua agregat. Sebelumnya 4 LEFT JOIN LATERAL + 1 subquery json_agg =
+        -- ~5 pemindaian tabel yang sama untuk setiap baris produk.
+        SELECT b.product_id, b.id, b.batch_no, b.hna, b.qty_current, b.expired_date,
+               b.expired_date_precision, b.tax_type, b.ppn_rate, b.created_at,
+               COALESCE(b.is_active, TRUE) AS is_active_eff
+        FROM inventory_batches b
+      ),
+      stats AS (
+        SELECT product_id,
+          -- v1.66.2: WAJIB kecualikan batch nonaktif. Pengurangan stok FEFO saat
+          -- jualan sudah menghormati is_active, jadi batch nonaktif TIDAK bisa
+          -- keluar. Menghitungnya di total_stock bikin stok hantu.
+          COALESCE(SUM(qty_current) FILTER (WHERE is_active_eff), 0) AS total_stock,
+          MIN(expired_date) FILTER (
+            WHERE qty_current > 0 AND expired_date IS NOT NULL AND is_active_eff
+          ) AS nearest_expiry,
+          COUNT(id) FILTER (
+            WHERE qty_current > 0 AND expired_date IS NOT NULL
+              AND expired_date >= CURRENT_DATE
+              AND expired_date < CURRENT_DATE + INTERVAL '90 days'
+          ) AS expiring_batches
+        FROM active_batches
+        GROUP BY product_id
+      ),
+      nearest AS (
+        SELECT DISTINCT ON (product_id) product_id, expired_date_precision
+        FROM active_batches
+        WHERE qty_current > 0 AND expired_date IS NOT NULL AND is_active_eff
+        ORDER BY product_id, expired_date, id
+      ),
+      latest AS (
+        SELECT DISTINCT ON (product_id) product_id, hna, batch_no, expired_date,
+               expired_date_precision
+        FROM active_batches
+        WHERE is_active_eff
+        ORDER BY product_id, created_at DESC, id DESC
+      ),
+      stockval AS (
+        -- Nilai persediaan riil: hanya batch yang MASIH berstok, tiap batch menyumbang
+        -- HNA-nya sendiri (bukan satu harga "terbaru" dikali total stok).
+        -- v1.66.3: batch 'nota' = beli tanpa PPN masukan → TIDAK dikali (1+rate).
+        SELECT product_id,
+          SUM(qty_current * hna) AS stock_value,
+          SUM(
+            qty_current * hna * CASE
+              WHEN COALESCE(tax_type, 'faktur') = 'nota' THEN 1
+              ELSE 1 + COALESCE(ppn_rate, 0.11)
+            END
+          ) AS stock_value_inc_ppn,
+          SUM(qty_current * hna) / NULLIF(SUM(qty_current), 0) AS avg_hna,
+          MIN(hna) AS min_hna,
+          MAX(hna) AS max_hna,
+          COUNT(*) AS batch_count
+        FROM active_batches
+        WHERE qty_current > 0 AND is_active_eff
+        GROUP BY product_id
+      ),
+      cost_tiers AS (
+        -- Rincian harga per tingkat: batch dgn hna + jenis pajak SAMA digabung,
+        -- urut lama → baru. tax_type & ppn_rate ikut dikirim supaya frontend bisa
+        -- memakai hppForBatch() dan tidak menebak sendiri.
+        SELECT product_id,
+          json_agg(
+            json_build_object(
+              'hna', hna, 'qty', qty,
+              'tax_type', tax_type, 'ppn_rate', ppn_rate
+            )
+            ORDER BY oldest_created_at
+          ) AS batch_cost_tiers
+        FROM (
+          SELECT product_id, hna,
+            COALESCE(tax_type, 'faktur') AS tax_type,
+            COALESCE(ppn_rate, 0.11) AS ppn_rate,
+            SUM(qty_current) AS qty,
+            MIN(created_at) AS oldest_created_at
+          FROM active_batches
+          WHERE qty_current > 0 AND is_active_eff
+          GROUP BY product_id, hna, COALESCE(tax_type, 'faktur'), COALESCE(ppn_rate, 0.11)
+        ) t
+        GROUP BY product_id
+      )
       SELECT p.*,
         COALESCE(stats.total_stock, 0) AS total_stock,
         stats.nearest_expiry,
@@ -38,105 +123,23 @@ router.get('/products', auth, async (req, res) => {
         latest.expired_date_precision AS latest_batch_expired_date_precision,
         COALESCE(stockval.stock_value, 0) AS stock_value,
         COALESCE(stockval.stock_value_inc_ppn, 0) AS stock_value_inc_ppn,
-        stockval.avg_hna AS avg_hna,
-        stockval.min_hna AS min_hna,
-        stockval.max_hna AS max_hna,
+        stockval.avg_hna,
+        stockval.min_hna,
+        stockval.max_hna,
         COALESCE(stockval.batch_count, 0) AS batch_count,
-        stockval.batch_cost_tiers AS batch_cost_tiers
+        cost_tiers.batch_cost_tiers
       FROM product_master p
-      LEFT JOIN LATERAL (
-        SELECT
-          -- v1.66.2: WAJIB kecualikan batch nonaktif. Pengurangan stok FEFO saat
-          -- jualan sudah menghormati is_active, jadi batch nonaktif TIDAK bisa
-          -- keluar. Menghitungnya di total_stock bikin stok hantu: dashboard
-          -- bilang 221 pcs padahal yang bisa dijual cuma 187. Pemilik
-          -- mengonfirmasi barangnya memang sudah tidak ada. Data batch TIDAK
-          -- diubah — hanya cara menghitungnya.
-          COALESCE(SUM(b.qty_current) FILTER (
-            WHERE COALESCE(b.is_active, TRUE) = TRUE
-          ), 0) AS total_stock,
-          MIN(b.expired_date) FILTER (
-            WHERE b.qty_current > 0 AND b.expired_date IS NOT NULL
-              AND COALESCE(b.is_active, TRUE) = TRUE
-          ) AS nearest_expiry,
-          COUNT(b.id) FILTER (
-            WHERE b.qty_current > 0
-              AND b.expired_date IS NOT NULL
-              AND b.expired_date >= CURRENT_DATE
-              AND b.expired_date < CURRENT_DATE + INTERVAL '90 days'
-          ) AS expiring_batches
-        FROM inventory_batches b
-        WHERE b.product_id = p.id
-      ) stats ON TRUE
-      LEFT JOIN LATERAL (
-        SELECT b.expired_date_precision FROM inventory_batches b
-        WHERE b.product_id = p.id AND b.qty_current > 0 AND b.expired_date IS NOT NULL
-          AND COALESCE(b.is_active, TRUE) = TRUE
-        ORDER BY b.expired_date, b.id LIMIT 1
-      ) nearest ON TRUE
-      LEFT JOIN LATERAL (
-        SELECT b.hna, b.batch_no, b.expired_date, b.expired_date_precision
-        FROM inventory_batches b
-        WHERE b.product_id = p.id
-          AND COALESCE(b.is_active, TRUE) = TRUE
-        ORDER BY b.created_at DESC, b.id DESC
-        LIMIT 1
-      ) latest ON TRUE
-      LEFT JOIN LATERAL (
-        -- Nilai persediaan riil: hanya batch yang MASIH berstok, jadi tiap batch
-        -- menyumbang HNA-nya sendiri (bukan satu harga "terbaru" dikali total stok)
-        SELECT
-          SUM(b2.qty_current * b2.hna) AS stock_value,
-          -- v1.66.3: nilai persediaan SUDAH termasuk PPN, dihitung PER BATCH sesuai
-          -- jenis pajaknya. Batch 'nota' = beli tanpa PPN masukan -> HPP = harga beli
-          -- apa adanya, TIDAK dikali (1+rate). Sebelumnya frontend mengalikan 1,11 rata
-          -- ke semua batch sehingga nilai persediaan kelebihan Rp 1.083.306 (6 batch nota).
-          -- Dilaporkan pd kasus Mika Nasi: 1500 x 190 tampil Rp 316.350, seharusnya Rp 285.000.
-          SUM(
-            b2.qty_current * b2.hna * CASE
-              WHEN COALESCE(b2.tax_type, 'faktur') = 'nota' THEN 1
-              ELSE 1 + COALESCE(b2.ppn_rate, 0.11)
-            END
-          ) AS stock_value_inc_ppn,
-          SUM(b2.qty_current * b2.hna) / NULLIF(SUM(b2.qty_current), 0) AS avg_hna,
-          MIN(b2.hna) AS min_hna,
-          MAX(b2.hna) AS max_hna,
-          COUNT(*) AS batch_count,
-          -- Rincian harga per tingkat: batch dgn hna + jenis pajak SAMA digabung,
-          -- urut lama -> baru. tax_type & ppn_rate ikut dikirim supaya frontend bisa
-          -- memakai hppForBatch() dan tidak menebak sendiri.
-          (
-            SELECT json_agg(
-              json_build_object(
-                'hna', t.hna, 'qty', t.qty,
-                'tax_type', t.tax_type, 'ppn_rate', t.ppn_rate
-              )
-              ORDER BY t.oldest_created_at
-            )
-            FROM (
-              SELECT b3.hna AS hna,
-                COALESCE(b3.tax_type, 'faktur') AS tax_type,
-                COALESCE(b3.ppn_rate, 0.11) AS ppn_rate,
-                SUM(b3.qty_current) AS qty,
-                MIN(b3.created_at) AS oldest_created_at
-              FROM inventory_batches b3
-              WHERE b3.product_id = p.id
-                AND b3.qty_current > 0
-                AND COALESCE(b3.is_active, TRUE) = TRUE
-              GROUP BY b3.hna, COALESCE(b3.tax_type, 'faktur'), COALESCE(b3.ppn_rate, 0.11)
-            ) t
-          ) AS batch_cost_tiers
-        FROM inventory_batches b2
-        WHERE b2.product_id = p.id
-          AND b2.qty_current > 0
-          AND COALESCE(b2.is_active, TRUE) = TRUE
-      ) stockval ON TRUE
+      LEFT JOIN stats ON stats.product_id = p.id
+      LEFT JOIN nearest ON nearest.product_id = p.id
+      LEFT JOIN latest ON latest.product_id = p.id
+      LEFT JOIN stockval ON stockval.product_id = p.id
+      LEFT JOIN cost_tiers ON cost_tiers.product_id = p.id
       ${whereClause}
       ORDER BY p.name ASC
       LIMIT $${idx}
     `, [...params, limit]);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'inventory'); }
 });
 
 // GET data template opname per-BATCH (v1.10.3): tiap batch aktif = 1 baris; produk tanpa batch tetap 1 baris (batch/ED null)
@@ -151,7 +154,7 @@ router.get('/opname-template', auth, async (req, res) => {
       ORDER BY p.name ASC, b.expired_date ASC NULLS LAST, b.id ASC
     `);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'inventory'); }
 });
 
 // GET single product with batches and mutations
@@ -182,7 +185,7 @@ router.get('/products/:id', auth, async (req, res) => {
       'SELECT * FROM inventory_mutations WHERE product_id = $1 ORDER BY created_at DESC LIMIT 50', [req.params.id]
     );
     res.json({ ...product, batches, mutations });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'inventory'); }
 });
 
 // CREATE product
@@ -210,7 +213,7 @@ router.post('/products', auth, async (req, res) => {
        resolvedBaseUnit, pack_unit || null, resolvedPackSize, sell_price_pack || 0, resolvedWeightGram]
     );
     res.status(201).json(rows[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'inventory'); }
 });
 
 // UPDATE product
@@ -245,16 +248,16 @@ router.put('/products/:id', auth, async (req, res) => {
       await seedProductAlias(pool, rows[0].id, prevRow.name);
     }
     res.json(rows[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'inventory'); }
 });
 
 // DELETE product (soft)
-router.delete('/products/:id', auth, async (req, res) => {
+router.delete('/products/:id', auth, roleGuard('direktur', 'admin'), async (req, res) => {
   try {
     const { rowCount } = await pool.query('UPDATE product_master SET is_active = FALSE WHERE id = $1', [req.params.id]);
     if (!rowCount) return res.status(404).json({ error: 'Product not found' });
     res.json({ message: 'Product deactivated' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'inventory'); }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -292,7 +295,7 @@ router.post('/stock-in', auth, async (req, res) => {
     res.status(201).json(batch);
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(err.statusCode || 500).json({ error: err.message });
+    sendServerError(res, err, 'inventory');
   } finally { client.release(); }
 });
 
@@ -352,7 +355,7 @@ router.post('/stock-out', auth, async (req, res) => {
     res.json({ message: `Stok keluar ${qty} berhasil (FEFO)` });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'inventory');
   } finally { client.release(); }
 });
 
@@ -370,7 +373,7 @@ router.get('/products/:id/batches', auth, async (req, res) => {
       [req.params.id]
     );
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'inventory'); }
 });
 
 // GET single product full payload (product + batches + last 20 mutations) — for drawer
@@ -414,22 +417,29 @@ router.get('/products/:id/full', auth, async (req, res) => {
       [req.params.id]
     );
     res.json({ ...product, batches, mutations, total_stock: totalStock, inventory_value: inventoryValue, price_tiers: tiers });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'inventory'); }
 });
 
 // UPDATE batch metadata (batch_no, expired_date, hna, notes — NOT qty_current)
+// v1.67.24: dibungkus transaksi — dulu SELECT+UPDATE+audit+sinkron snapshot jalan
+// terpisah, sehingga gagal di tengah bisa meninggalkan batch terubah tanpa jejak audit.
 router.put('/batches/:id', auth, async (req, res) => {
   const { batch_no, expired_date, hna, notes } = req.body;
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     // v1.39.0: ambil state lama dulu untuk audit-log perubahan identitas batch
-    const { rows: [before] } = await pool.query(
-      'SELECT batch_no, expired_date, expired_date_precision, hna, notes FROM inventory_batches WHERE id = $1',
+    const { rows: [before] } = await client.query(
+      'SELECT batch_no, expired_date, expired_date_precision, hna, notes FROM inventory_batches WHERE id = $1 FOR UPDATE',
       [req.params.id]
     );
-    if (!before) return res.status(404).json({ error: 'Batch not found' });
+    if (!before) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Batch not found' });
+    }
     const expiry = normalizeExpiryEdit(expired_date, req.body.expired_date_precision,
       before.expired_date, before.expired_date_precision);
-    const { rows } = await pool.query(
+    const { rows } = await client.query(
       `UPDATE inventory_batches
        SET batch_no = $1, expired_date = $2, hna = $3, notes = $4, expired_date_precision = $6
        WHERE id = $5 RETURNING *`,
@@ -439,9 +449,12 @@ router.put('/batches/:id', auth, async (req, res) => {
           && expiry.precision === normalizeExpiry(before.expired_date, before.expired_date_precision).precision
           ? before.expired_date_precision ?? null : expiry.precision]
     );
-    if (!rows.length) return res.status(404).json({ error: 'Batch not found' });
+    if (!rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Batch not found' });
+    }
     const after = rows[0];
-    // v1.39.0: catat perubahan batch_no / expired_date / hna (fire-and-forget; audit ≠ data inti)
+    // v1.39.0: catat perubahan batch_no / expired_date / hna (satu transaksi dengan data)
     const ed = (v) => (v ? String(v).slice(0, 10) : null);
     const changes = {};
     if (String(before.batch_no || '') !== String(after.batch_no || ''))
@@ -454,18 +467,18 @@ router.put('/batches/:id', auth, async (req, res) => {
     if (Number(before.hna || 0) !== Number(after.hna || 0))
       changes.hna = { from: Number(before.hna || 0), to: Number(after.hna || 0) };
     if (Object.keys(changes).length) {
-      pool.query(
+      await client.query(
         `INSERT INTO batch_audit_log (batch_id, product_id, action, changes, changed_by)
          VALUES ($1, $2, 'edit', $3, $4)`,
         [after.id, after.product_id, JSON.stringify(changes), req.user?.id || null]
-      ).catch((e) => console.error('batch_audit_log edit:', e.message));
+      );
     }
     // v1.64.1: nota menyimpan salinan teks batch (sales_items.batch_no_snapshot).
     // Kalau batch_no/ED dibetulkan di sini (mis. typo '2651103GU' → '26S1103GU'),
     // nota lama harus ikut benar — kalau tidak, nota selamanya menampilkan typo.
     // Hanya baris yang memang menunjuk batch ini (batch_id_snapshot) yang disentuh.
     if (changes.batch_no || changes.expired_date || changes.expired_date_precision) {
-      const { rowCount: syncedRows } = await pool.query(
+      const { rowCount: syncedRows } = await client.query(
         `UPDATE sales_items
             SET batch_no_snapshot = $1,
                 expired_date_snapshot = CASE WHEN $5 THEN $2::date ELSE expired_date_snapshot END,
@@ -479,8 +492,14 @@ router.put('/batches/:id', auth, async (req, res) => {
       );
       if (syncedRows) console.log(`[inventory] batch ${after.id} disinkron ke ${syncedRows} baris nota`);
     }
-    res.json(after);
-  } catch (err) { res.status(err.statusCode || 500).json({ error: err.message }); }
+    await client.query('COMMIT');
+    return res.json(after);
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    return sendServerError(res, err, 'inventory');
+  } finally {
+    client.release();
+  }
 });
 
 // v1.39.0: riwayat perubahan identitas batch (nomor/ED/HNA)
@@ -492,11 +511,11 @@ router.get('/batches/:id/audit', auth, async (req, res) => {
       [req.params.id]
     );
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'inventory'); }
 });
 
 // DELETE batch (soft) — v1.10.3: kalau masih ada stok, otomatis di-nol-kan (catat mutasi audit) lalu dihapus
-router.delete('/batches/:id', auth, async (req, res) => {
+router.delete('/batches/:id', auth, roleGuard('direktur', 'admin'), async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -516,7 +535,7 @@ router.delete('/batches/:id', auth, async (req, res) => {
     res.json({ message: 'Batch dihapus' });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'inventory');
   } finally { client.release(); }
 });
 
@@ -549,7 +568,7 @@ router.post('/batches/:id/adjust', auth, async (req, res) => {
     res.json({ message: `Adjustment ${diff > 0 ? '+' : ''}${diff} berhasil`, batch: { ...batch, qty_current: newQty } });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'inventory');
   } finally { client.release(); }
 });
 
@@ -565,7 +584,7 @@ router.get('/products/:id/tiers', auth, async (req, res) => {
       [req.params.id]
     );
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'inventory'); }
 });
 
 // PUT bulk replace tiers — frontend kirim array lengkap, backend DELETE + INSERT atomic
@@ -592,7 +611,7 @@ router.put('/products/:id/tiers', auth, async (req, res) => {
     res.json({ message: 'Tiers updated', tiers: inserted });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'inventory');
   } finally { client.release(); }
 });
 
@@ -612,7 +631,7 @@ router.get('/opname', auth, async (req, res) => {
       LIMIT $1
     `, [limit]);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'inventory'); }
 });
 
 // POST opname (record stock check)
@@ -708,7 +727,7 @@ router.post('/opname', auth, async (req, res) => {
     res.status(201).json(results);
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'inventory');
   } finally { client.release(); }
 });
 
@@ -744,7 +763,7 @@ router.get('/alerts', auth, async (req, res) => {
       ORDER BY pm.name
     `);
     res.json({ expiring, lowStock });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'inventory'); }
 });
 
 // GET mutations history
@@ -758,7 +777,7 @@ router.get('/mutations', auth, async (req, res) => {
       LIMIT 100
     `);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'inventory'); }
 });
 
 // GET FEFO batch HNA for a product (for auto-fill in sales order)
@@ -795,7 +814,7 @@ router.get('/fefo-hna/:productId', auth, async (req, res) => {
     res.json({ hna: finalHna, sell_price: sellPrice, tax_type: batchHna ? batch.tax_type : 'faktur' });
   } catch (err) {
     console.error('[Inventory FEFO-HNA] Error:', err.message);
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'inventory');
   }
 });
 
@@ -859,7 +878,7 @@ router.get('/batches-by-product/:productId', auth, async (req, res) => {
       ORDER BY expired_date ASC NULLS LAST
     `, params);
     res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { sendServerError(res, err, 'inventory'); }
 });
 
 module.exports = router;

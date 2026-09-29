@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const { sendServerError } = require('../utils/serverError');
 
 // POST — submit bug report (no auth required, user bisa submit)
 router.post('/', async (req, res) => {
@@ -15,7 +16,7 @@ router.post('/', async (req, res) => {
     );
     res.status(201).json(r.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'bugs');
   }
 });
 
@@ -26,7 +27,7 @@ router.get('/', auth, async (req, res) => {
     const r = await pool.query('SELECT * FROM bug_reports ORDER BY reported_at DESC LIMIT $1', [limit]);
     res.json(r.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'bugs');
   }
 });
 
@@ -40,7 +41,7 @@ router.patch('/:id', auth, async (req, res) => {
     );
     res.json(r.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'bugs');
   }
 });
 

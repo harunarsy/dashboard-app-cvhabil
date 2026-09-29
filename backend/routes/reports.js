@@ -4,6 +4,7 @@ const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const XLSX = require('xlsx');
 const tax = require('../utils/tax');
+const { sendServerError } = require('../utils/serverError');
 
 // GET /api/reports/monthly?month=YYYY-MM — download Excel laporan bulanan
 router.get('/monthly', auth, async (req, res) => {
@@ -134,7 +135,7 @@ router.get('/monthly', auth, async (req, res) => {
     res.send(buf);
   } catch (err) {
     console.error('Reports monthly Error:', err);
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'reports');
   }
 });
 

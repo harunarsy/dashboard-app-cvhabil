@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const { sendServerError } = require('../utils/serverError');
+const roleGuard = require('../middleware/roleGuard');
 
 
 // GET all distributors (with limit)
@@ -14,7 +16,7 @@ router.get('/', auth, async (req, res) => {
     `, [limit]);
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'distributors');
   }
 });
 
@@ -35,12 +37,12 @@ router.post('/', auth, async (req, res) => {
     );
     res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'distributors');
   }
 });
 
 // DELETE distributor by name
-router.delete('/', auth, async (req, res) => {
+router.delete('/', auth, roleGuard('direktur', 'admin'), async (req, res) => {
   const { name } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
   try {
@@ -57,7 +59,7 @@ router.delete('/', auth, async (req, res) => {
     await pool.query('DELETE FROM distributors WHERE name = $1', [name.trim()]);
     res.json({ message: 'Deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'distributors');
   }
 });
 
@@ -83,7 +85,7 @@ router.patch('/', auth, async (req, res) => {
     res.json({ success: true, oldName: oldName.trim(), newName: newName.trim(), data: rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'distributors');
   } finally { client.release(); }
 });
 

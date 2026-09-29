@@ -2,6 +2,37 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.24-stable] - 2026-09-29
+
+Batch hardening hasil audit: keamanan (kebocoran error, sandi, lockout login, hak hapus), integritas data (transaksi + nomor dokumen), dan performa (query Inventory, cache frontend, indeks DB). **Belum dipush** — commit lokal sesuai instruksi owner.
+
+### Keamanan
+- **Pesan error internal tidak lagi bocor ke klien.** Sebelumnya ~147 titik memakai `res.status(500).json({ error: err.message })` sehingga pesan Postgres (nama tabel/kolom/constraint) terkirim ke browser — termasuk ke endpoint publik `POST /api/bugs`. Kini semua route memakai helper `backend/utils/serverError.js`: error yang disengaja (validasi/bisnis, punya `statusCode` < 500) tetap menyampaikan pesannya; error internal (kode Postgres / TypeError) hanya masuk log server dan di production dijawab "Terjadi kesalahan server". Termasuk jalur error delta faktur (`responseForDeltaError`).
+- **Login tanpa bcrypt dihapus.** Fallback password plaintext (perbandingan `===` yang tidak konstan waktunya + auto-hash) dihapus; akun non-bcrypt kini ditolak dan dicatat untuk di-reset. Verifikasi: 4/4 akun sudah bcrypt.
+- **Lockout login dipindah ke database** (tabel `login_attempts`, migrasi `20260930_024`). Sebelumnya disimpan di memori proses sehingga tidak berlaku lintas instance serverless & hilang saat cold start. Helper dibuat best-effort: bila tabel belum ada, login tidak ikut gagal.
+- **Endpoint destruktif diberi `roleGuard('direktur','admin')`** (11 rute): hapus nota, hapus faktur, hapus faktur **permanen**, hapus batch, hapus produk, hapus customer, hapus distributor, hapus pinjaman, hapus toko/mapping marketplace. Role `pajak` (konsultan) tidak lagi bisa menghapus data.
+- **`middleware/auth.js`**: token kedaluwarsa dibedakan ("Sesi berakhir, silakan login lagi") dan tidak lagi membanjiri error log; `JWT_SECRET` yang tidak diset kini gagal eksplisit (500), bukan menyamar sebagai token invalid.
+
+### Integritas data / logic
+- **`PUT /inventory/batches/:id` dibungkus transaksi** (`SELECT … FOR UPDATE` → update → audit → sinkron snapshot nota). Sebelumnya 3+ statement jalan terpisah sehingga gagal di tengah bisa meninggalkan batch terubah tanpa jejak audit; audit log yang dulu fire-and-forget kini ikut transaksi.
+- **Generator nomor dokumen diperkuat** (`utils/docNumbers.js`): (1) `pg_advisory_xact_lock` per jenis dokumen sehingga dua pembuatan dokumen bersamaan tidak lagi bertabrakan di unique index (dulu bisa error 500 ke operator); (2) perhitungan MAX memakai `SUBSTRING` + filter regex sehingga nomor tak berpola (mis. input manual) tidak lagi menggagalkan pembuatan dokumen; (3) baris counter yang belum ada mulai dari MAX+1, bukan 1, supaya nomor tidak bertabrakan.
+- **`POST /marketplace/sku-map` dibungkus transaksi** (kamus SKU + katalog toko) — mapping tidak lagi bisa tersimpan setengah.
+
+### Performa
+- **`GET /inventory/products` ditulis ulang** dari 4 `LEFT JOIN LATERAL` + subquery `json_agg` menjadi CTE agregat sekali jalan. Terukur pada data nyata (85 produk, 319 batch): **exec 8,1 ms → 1,5 ms**, pemindaian `inventory_batches` 5 → 1, dan **hasil identik 85/85 produk untuk semua kolom** (diverifikasi query lama vs baru).
+- **Indeks baru** (migrasi `20260930_024`): `purchase_order_items(po_id)` (detail SP) dan `inventory_batches(product_id, expired_date)` (FEFO).
+- **Cache frontend**: master data (produk, customer, distributor, daftar harga, pengaturan cetak, counter) kini `staleTime` 10 menit (dari 60 detik) — pindah-pindah tab tidak lagi memicu rentetan refetch ke Neon; mutasi tetap memaksa data segar lewat invalidasi eksplisit.
+
+### Diverifikasi
+- Backend: seluruh `npm test` lulus (exit 0) termasuk expiry contract 67/67, schema-boundary dengan migrasi 024, dan HTTP smoke (guard read-only diperluas khusus tabel `login_attempts`).
+- Frontend: **316 lulus / 1 skip** (32 berkas) + Vite build lulus.
+- Query produk: perbandingan hasil lama vs baru identik (85/85 baris, semua kolom).
+- Migrasi 024 diterapkan: tabel `login_attempts` + 3 indeks terverifikasi ada.
+
+### Catatan
+- Belum dipush (commit lokal saja).
+- Belum dikerjakan (butuh keputusan/lebih besar): migrasi token JWT dari `localStorage` ke cookie httpOnly (S2), batching N+1 tulis nota/faktur (P2), memindahkan item list dari payload daftar (P6), cache agregat dashboard (P7), file base64 marketplace ke object storage (P8), dan pemisahan lebih rinci hak destruktif di UI.
+
 ## [v1.67.23-stable] - 2026-09-29
 
 ### Diperbaiki

@@ -649,6 +649,7 @@ test(`loan conversion menyalin ED snapshot ${storedDate}/${storedPrecision} ke n
       if (/SELECT \* FROM loans/.test(sql)) return { rows: [{ id: 321, loan_number: 'PJM', customer_id: 1, customer_name: 'Pelanggan' }] };
       if (/SELECT \* FROM loan_items/.test(sql)) return { rows: [snapshot] };
       if (/SELECT last_number/.test(sql)) return { rows: [] };
+      if (/SELECT COALESCE\(MAX\(CAST\(SUBSTRING\(order_number/.test(sql)) return { rows: [{ max_number: 0 }] };
       if (/document_counters/.test(sql)) return { rows: [] };
       if (/SELECT weight_gram/.test(sql)) return { rows: [{ weight_gram: 0 }] };
       if (/SELECT pack_size/.test(sql)) return { rows: [{ pack_size: 1 }] };
@@ -668,6 +669,8 @@ test(`loan conversion menyalin ED snapshot ${storedDate}/${storedPrecision} ke n
       }
       if (/INSERT INTO loan_conversions|UPDATE loan_items|UPDATE loans/.test(sql)) return { rows: [] };
       if (/SELECT l\.\*/.test(sql)) return { rows: [{ id: 321 }] };
+      // v1.67.24: generator nomor dokumen mengunci counter per docType dulu.
+      if (/pg_advisory_xact_lock/.test(sql)) return { rows: [] };
       throw new Error(`Unexpected loan conversion query: ${sql}`);
     });
   assert.strictEqual(response.statusCode, 201);

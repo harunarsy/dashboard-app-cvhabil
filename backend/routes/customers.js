@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
+const { sendServerError } = require('../utils/serverError');
+const roleGuard = require('../middleware/roleGuard');
 
 // Metadata legal customer — string kosong dinormalkan ke NULL supaya renderer
 // bisa menyembunyikan field yang tidak diisi.
@@ -58,7 +60,7 @@ router.get('/', auth, async (req, res) => {
     }
     res.json(Object.values(merged).sort((a, b) => a.name.localeCompare(b.name)));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'customers');
   }
 });
 
@@ -69,7 +71,7 @@ router.get('/:id', auth, async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: 'Customer not found' });
     res.json(rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'customers');
   }
 });
 
@@ -84,7 +86,7 @@ router.post('/', auth, async (req, res) => {
     );
     res.status(201).json(rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'customers');
   }
 });
 
@@ -100,12 +102,12 @@ router.put('/:id', auth, async (req, res) => {
     if (!rows.length) return res.status(404).json({ error: 'Customer not found' });
     res.json(rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'customers');
   }
 });
 
 // DELETE
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, roleGuard('direktur', 'admin'), async (req, res) => {
   try {
     const { rows: activeOrders } = await pool.query(
       "SELECT 1 FROM sales_orders WHERE customer_name = (SELECT name FROM customers WHERE id = $1) AND payment_status != 'paid' LIMIT 1",
@@ -118,7 +120,7 @@ router.delete('/:id', auth, async (req, res) => {
     if (!rowCount) return res.status(404).json({ error: 'Customer not found' });
     res.json({ message: 'Customer deleted' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    sendServerError(res, err, 'customers');
   }
 });
 
