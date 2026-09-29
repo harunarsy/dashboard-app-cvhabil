@@ -4,6 +4,15 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 30 Sep 2026 (pasca-push): v1.67.24-stable TER-DEPLOY & TERVERIFIKASI
+- **Push:** `d1ee93e..653fe4b` → `origin/main` (2 commit: `cdb5e8e` keamanan+performa, `653fe4b` ronde-2 audit-diri).
+- **CI GitHub:** run `36591722600` → **completed (success)** (version checker + test/build frontend + test backend).
+- **Vercel backend:** `/api/health` kini memuat field `schema` → `{ok:true, expectedLatest:20260930_024…, latestApplied:20260930_024…, missingCount:0}` (kode baru live + skema sinkron). `/api/health/db` → 2 ms.
+- **Vercel frontend:** bundle produksi `assets/index-CRaMDWmJ.js` memuat `v1.67.24-stable`.
+- **Smoke produksi jalur keamanan baru:** `POST /api/auth/login` kredensial salah → **401** (bukan 500), dan tercatat di `login_attempts` (failed_count=1, belum terkunci) → lockout berbasis DB terbukti hidup. Baris smoke dibersihkan (rowcount 1 → 0; tabel kembali kosong).
+- **Status saat ini:** produksi = v1.67.24; DB = migrasi 024; `npm audit` 0 kerentanan; backend & frontend suite hijau.
+- **Sisa opsional untuk owner:** aktifkan backup terjadwal/PITR Neon (sekarang backup masih manual), dan opsional error tracking (Sentry) untuk mempercepat diagnosis.
+
 ## Update 30 Sep 2026: v1.67.24 ronde-2 — audit-diri + semua temuan dibereskan (COMMIT LOKAL, BELUM DIPUSH)
 - **Instruksi owner:** audit ulang hasil kerja sendiri + audit keseluruhan aplikasi, lalu perbaiki semuanya di lokal (belum push). Temuan besar dari audit-diri dan tindakannya:
 - **P0 tertangkap sebelum rilis — generator nomor dokumen.** `SUBSTRING(order_number FROM $1)` tanpa `::int` → PostgreSQL memilih varian REGEX → MAX ngawur (uji fungsi asli di DB: hasil `...015` padahal nomor aktif `...128`) ⇒ create nota bisa gagal/bertabrakan. Perbaikan: `SUBSTRING(... FROM $1::int)`; bukti: panggilan asli ke DB dalam transaksi ROLLBACK → `...129, ...130, ...131` unik & berurutan, 0 baris tersisa.
