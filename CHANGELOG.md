@@ -5,13 +5,14 @@ Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 ## [v1.67.23-stable] - 2026-09-29
 
 ### Diperbaiki
-- **P0 UX — input ED mode bulan/tahun tidak bisa diisi.** Pemilih bulan sebelumnya memakai `<input type="month">` bawaan browser; nilainya di-set ulang setiap render React sehingga klik bulan pada picker bawaan tidak pernah tersimpan dan kolom tampak kosong terus. Mode bulan kini memakai **dua dropdown eksplisit: Bulan (Jan–Des) + Tahun** (tahun−3 s/d tahun+12, ditambah tahun dari nilai lama) — pengisian tidak lagi bergantung pada picker bawaan browser.
+- **P0 — input ED di form Faktur Pembelian sama sekali tidak tersimpan (bulan maupun tanggal lengkap).** Baris item form faktur dirender komponen `InvoiceModal`, yang menerima `items`/`updateItem` sebagai prop dan **tidak punya `setItems`**; handler ED di sana memanggil `setItems(...)` sehingga setiap perubahan ED melempar `ReferenceError` dan nilainya kembali kosong (keluhan "ED tidak bisa diisi/select"). Sekarang handler memakai `updateItem(idx, "expired_date", …)` + `updateItem(idx, "expired_date_precision", …)`. Ditambah test regresi `InvoiceModal.expiry.test.jsx` (4 kasus: pilih bulan, tanggal lengkap, tampil bulan tersimpan, ED legacy tetap utuh) yang **gagal pada kode lama**.
+- **Audit setter se-aplikasi.** Pemindaian statis seluruh komponen (`src/**/*.jsx`) untuk setter yang dipakai tapi tidak ada di scope: hanya satu ditemukan (bug ED di atas); sisanya false positive (fungsi lokal/API/DOM). Empat pemakai `ExpiryInput` lain (Stok Masuk, Edit Batch, Surat Pesanan, Pinjaman) terverifikasi memakai setter state yang valid.
+- **Mode bulan tidak lagi bergantung picker bawaan browser.** `<input type="month">` diganti **dua dropdown eksplisit: Bulan (Jan–Des) + Tahun** (tahun−3 s/d tahun+12, ditambah tahun dari nilai lama) agar pengisian deterministik dan cepat.
 - **Nilai bulan tidak pernah ter-render kosong.** Bila data berbentuk `YYYY-MM` tetapi metadata presisi hilang (data lama/draft), input otomatis dibuka dalam mode bulan; sebelumnya bisa jatuh ke mode tanggal dan tampil kosong.
 - **Urutan pengisian bebas.** Memilih tahun lebih dulu lalu bulan (atau sebaliknya) tetap menghasilkan `YYYY-MM`; mengosongkan dropdown bulan mengembalikan nilai ke kosong (NULL).
 
 ### Diverifikasi
-- Test `ExpiryInput` diperluas menjadi 15 kasus (termasuk pilih tahun-dulu-lalu-bulan, nilai bulan tanpa metadata, dan penghapusan) — lulus; seluruh suite frontend **312 lulus / 1 skip** (31 berkas); Vite build lulus; checker versi lulus `v1.67.23-stable`.
-- Tidak ada perubahan backend/DB pada batch ini (migrasi 023 tetap seperti v1.67.22).
+- `ExpiryInput` 15/15 (termasuk tahun-dulu-lalu-bulan, nilai bulan tanpa metadata, penghapusan) dan `InvoiceModal` 4/4; seluruh suite frontend **316 lulus / 1 skip** (32 berkas); Vite build lulus; checker versi lulus `v1.67.23-stable`; seluruh `npm test` backend tetap lulus (expiry contract 67/67). **Tanpa perubahan backend/DB** pada batch ini (migrasi 023 tetap seperti v1.67.22), dan tanggal lama `dd/mm/yyyy` tidak tersentuh (dibuktikan test legacy + hash data).
 
 ## [v1.67.22-stable] - 2026-09-29
 

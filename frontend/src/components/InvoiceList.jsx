@@ -4858,7 +4858,7 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // MODAL
 // ═══════════════════════════════════════════════════════════════════════════════
-function InvoiceModal({
+export function InvoiceModal({
   isDarkMode,
   isMobile,
   form,
@@ -5470,11 +5470,14 @@ function InvoiceModal({
                       style={S.input}
                       value={item.expired_date}
                       precision={item.expired_date_precision}
-                      onChange={(value, precision) =>
-                        setItems((prev) => prev.map((entry, index) => index === idx
-                          ? { ...entry, expired_date: value, expired_date_precision: precision }
-                          : entry))
-                      }
+                      // v1.67.23: InvoiceModal TIDAK punya setItems (items/updateItem
+                      // adalah prop) — dulu memanggil setItems(...) di sini sehingga
+                      // setiap perubahan ED melempar ReferenceError dan nilainya tidak
+                      // pernah tersimpan (bulan maupun tanggal lengkap).
+                      onChange={(value, precision) => {
+                        updateItem(idx, "expired_date", value);
+                        updateItem(idx, "expired_date_precision", precision);
+                      }}
                     />
                   </div>
                   <div />

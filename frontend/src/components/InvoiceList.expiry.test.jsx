@@ -18,12 +18,12 @@ vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn(), useLocation: ()
 const require = createRequire(import.meta.url);
 const { poHeader, readReceivedPo } = require('../../../backend/test/fixtures/expiry-po.cjs');
 
-// CATATAN (v1.67.22): test ini sengaja di-skip — mounting <InvoiceList /> di
-// lingkungan jsdom membuat proses spin 100% CPU tanpa pernah selesai (terbukti
+// CATATAN (v1.67.23): test end-to-end ini sengaja di-skip — mounting <InvoiceList />
+// di lingkungan jsdom membuat proses spin 100% CPU tanpa pernah selesai (terbukti
 // juga pada test render-only tanpa modal & tanpa data, jadi bukan akibat fitur ED;
-// InvoiceList sebelumnya memang belum pernah punya test render). Kontrak yang sama
-// sudah diverifikasi di backend (test-expiry.js: PO detail mempertahankan precision)
-// + unit test ExpiryInput + pembacaan wiring prefill/payload InvoiceList.
+// InvoiceList sebelumnya memang belum pernah punya test render). Jalur yang paling
+// penting — wiring input ED di dalam InvoiceModal — SEKARANG punya test regresi
+// tersendiri: `InvoiceModal.expiry.test.jsx` (mount langsung, lulus).
 // Aktifkan lagi (hapus .skip) begitu isu mount jsdom itu dibereskan.
 test.skip('fix-wave PO month dari route asli mengisi input bulan dan payload faktur dengan precision month', async () => {
   invoicesAPI.getAll.mockResolvedValue({ data: [] });

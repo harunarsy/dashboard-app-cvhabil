@@ -4,6 +4,17 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 29 Sep 2026 (21:45 WIB): AKAR MASALAH ED DITEMUKAN — `setItems` tidak ada di InvoiceModal
+- **Gejala owner:** ED tidak bisa diisi sama sekali di Faktur Pembelian (baik "Bulan/tahun" maupun "Tanggal lengkap"), kolom kembali kosong.
+- **Akar masalah (bukan picker bawaan, bukan data):** baris item form faktur dirender komponen `InvoiceModal` (`InvoiceList.jsx:4861`). Komponen itu menerima `items` dan `updateItem` sebagai **prop** dan **tidak punya `setItems`**, tetapi handler ED di sana memanggil `setItems(...)` → setiap perubahan ED melempar `ReferenceError: setItems is not defined` → nilai tidak pernah masuk state (kolom kembali kosong). Kolom lain (qty, disc, produk) aman karena memakai prop `updateItem`.
+- **Fix:** handler ED kini memakai `updateItem(idx, "expired_date", value)` + `updateItem(idx, "expired_date_precision", precision)` (updateItem sudah functional-update, aman dipanggil berurutan). `InvoiceModal` juga diekspor untuk pengujian.
+- **Test regresi baru `frontend/src/components/InvoiceModal.expiry.test.jsx` (4 kasus)** — mount langsung `InvoiceModal`, memastikan: pilih bulan memanggil `updateItem` (bukan `setItems`), tanggal lengkap memanggil `updateItem` + precision `day`, ED bulan tersimpan tampil sebagai dropdown terpilih, dan ED legacy `dd/mm/yyyy` (presisi NULL) tetap tampil utuh di mode tanggal. **Test ini gagal pada kode lama.**
+- **Audit setter se-aplikasi (statis, `src/**/*.jsx`, 53 berkas):** satu-satunya setter "hantu" adalah bug di atas; sisanya false positive (fungsi lokal seperti `setVal`/`setFinal`, API seperti `setPrice`/`setPpn`/`setQueryData`/`setItem`, DOM `setHours`/`setDate`/`setDataTransfer`, dan prop seperti `setIsDarkMode`). Keempat pemakai `ExpiryInput` lain (Stok Masuk, Edit Batch, Surat Pesanan, Pinjaman) memakai setter state yang valid.
+- **Keamanan data lama `dd/mm/yyyy`:** tidak ada perubahan backend/DB di batch ini; handler ED legacy default memakai mode tanggal (nilai `YYYY-MM-DD` tidak pernah dianggap bulan); payload hanya menulis presisi `NULL` bila ED tidak disentuh; migrasi 023 tetap tanpa backfill (hash data lama identik — sudah diverifikasi).
+- **Verifikasi:** frontend **316 lulus / 1 skip (32 berkas)**; `ExpiryInput` 15/15; `InvoiceModal` 4/4; Vite build lulus; checker `v1.67.23-stable`; backend `npm test` exit 0 (expiry contract 67/67).
+- **Sisa diketahui (bukan bug produk):** `InvoiceList.expiry.test.jsx` end-to-end tetap di-skip karena mounting `<InvoiceList/>` di jsdom spin 100% CPU (terbukti juga tanpa modal/data; komponen ini belum pernah punya test render). Jalur ED kini tercakup `InvoiceModal.expiry.test.jsx`. Berkas sementara uji profiling sudah dibersihkan.
+- **Belum dipush** saat catatan ini ditulis: commit `167e710` (v1.67.23 dropdown ED) + commit menyusul untuk fix akar masalah ini; keduanya naik bersamaan ke `main`.
+
 ## Update 29 Sep 2026 (21:45 WIB): v1.67.23-stable — input ED bulan/tahun diperbaiki
 - **Laporan owner (masih gagal setelah v1.67.22):** mode "Bulan/tahun" terlihat, kolom ED kosong (`--/----`), picker bulan bawaan Chrome terbuka, tapi bulan tidak bisa dipilih/tersimpan.
 - **Akar masalah:** mode bulan memakai `<input type="month">` bawaan browser; nilai input di-set ulang setiap render React sehingga commit dari picker bawaan tidak pernah lengket (pilih bulan → kembali kosong). Tak terkait data/DB.
