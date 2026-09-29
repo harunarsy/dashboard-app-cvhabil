@@ -40,9 +40,9 @@ test.skip('fix-wave PO month dari route asli mengisi input bulan dan payload fak
   fireEvent.click(screen.getByRole('button', { name: 'Buat Faktur' }));
   const poOption = await screen.findByRole('option', { name: /HSB-SP-2609001/ });
   fireEvent.change(poOption.closest('select'), { target: { value: '321' } });
-  await waitFor(() => expect(screen.getByLabelText('ED')).toHaveValue('2028-02'));
+  await waitFor(() => expect(screen.getByRole('combobox', { name: 'Bulan ED' })).toHaveValue('02'));
+  expect(screen.getByRole('combobox', { name: 'Tahun ED' })).toHaveValue('2028');
   expect(screen.getByRole('combobox', { name: 'Presisi ED' })).toHaveValue('month');
-  expect(screen.getByLabelText('ED')).toHaveAttribute('type', 'month');
   fireEvent.change(screen.getByPlaceholderText('Contoh: 1260300020'), { target: { value: 'INV-PO-ED-001' } });
   fireEvent.change(screen.getByText('Tanggal Belanja / Faktur').parentElement.querySelector('input'), { target: { value: '2026-09-29' } });
   fireEvent.click(screen.getByRole('button', { name: /Simpan Faktur/ }));

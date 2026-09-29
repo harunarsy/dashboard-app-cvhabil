@@ -23,11 +23,14 @@ function ControlledExpiryInput({ value = null, precision = null }) {
   );
 }
 
+const modeSelect = () => screen.getByRole("combobox", { name: "Presisi ED" });
+const monthSelect = () => screen.getByRole("combobox", { name: "Bulan ED" });
+const yearSelect = () => screen.getByRole("combobox", { name: "Tahun ED" });
+const savedValue = () => screen.getByLabelText("ED tersimpan");
+
 function selectMode(name) {
   const option = screen.getByRole("option", { name });
-  fireEvent.change(screen.getByRole("combobox"), {
-    target: { value: option.value },
-  });
+  fireEvent.change(modeSelect(), { target: { value: option.value } });
 }
 
 describe("ExpiryInput", () => {
@@ -88,7 +91,7 @@ describe("ExpiryInput", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it("edit month memakai input bulan YYYY-MM tanpa menulis ulang DATE canonical", () => {
+  it("edit month memakai dropdown bulan+tahun dan tidak menulis ulang DATE canonical saat mount", () => {
     const onChange = vi.fn();
     render(
       <ExpiryInput
@@ -99,14 +102,14 @@ describe("ExpiryInput", () => {
       />,
     );
 
-    expect(screen.getByLabelText("ED")).toHaveAttribute("type", "month");
-    expect(screen.getByLabelText("ED")).toHaveValue("2028-02");
+    expect(monthSelect()).toHaveValue("02");
+    expect(yearSelect()).toHaveValue("2028");
     expect(
       screen.getByRole("option", { name: /Bulan.*tahun/i }).selected,
     ).toBe(true);
     expect(onChange).not.toHaveBeenCalled();
 
-    fireEvent.change(screen.getByLabelText("ED"), { target: { value: "2028-03" } });
+    fireEvent.change(monthSelect(), { target: { value: "03" } });
     expect(onChange).toHaveBeenCalledExactlyOnceWith("2028-03", "month");
   });
 
@@ -116,8 +119,11 @@ describe("ExpiryInput", () => {
       <ExpiryInput aria-label="ED" value={null} precision={null} onChange={onChange} />,
     );
 
-    expect(screen.getByLabelText("ED")).toHaveAttribute("type", "month");
-    expect(screen.getByLabelText("ED")).toHaveValue("");
+    expect(monthSelect()).toHaveValue("");
+    expect(yearSelect()).toHaveValue("");
+    expect(
+      screen.getByRole("option", { name: /Bulan.*tahun/i }).selected,
+    ).toBe(true);
     expect(onChange).not.toHaveBeenCalled();
   });
 
@@ -125,11 +131,27 @@ describe("ExpiryInput", () => {
     render(<ControlledExpiryInput value="2027-05-12" />);
 
     selectMode(/Bulan.*tahun/i);
-    expect(screen.getByLabelText("ED")).toHaveAttribute("type", "month");
-    expect(screen.getByLabelText("ED")).toHaveValue("2027-05");
-    expect(screen.getByLabelText("ED tersimpan")).toHaveTextContent(
-      '{"value":"2027-05","precision":"month"}',
-    );
+    expect(monthSelect()).toHaveValue("05");
+    expect(yearSelect()).toHaveValue("2027");
+    expect(savedValue()).toHaveTextContent('{"value":"2027-05","precision":"month"}');
+  });
+
+  it("memilih tahun lebih dulu lalu bulan tetap menghasilkan YYYY-MM", () => {
+    render(<ControlledExpiryInput />);
+
+    fireEvent.change(yearSelect(), { target: { value: "2030" } });
+    expect(yearSelect()).toHaveValue("2030");
+    expect(savedValue()).toHaveTextContent('{"value":null,"precision":null}');
+
+    fireEvent.change(monthSelect(), { target: { value: "07" } });
+    expect(savedValue()).toHaveTextContent('{"value":"2030-07","precision":"month"}');
+  });
+
+  it("nilai bulan tanpa metadata presisi tetap dirender mode bulan (tidak kosong)", () => {
+    render(<ExpiryInput aria-label="ED" value="2027-05" onChange={() => {}} />);
+
+    expect(monthSelect()).toHaveValue("05");
+    expect(yearSelect()).toHaveValue("2027");
   });
 
   it.each(["2028-02-29", "2028-02"])(
@@ -140,12 +162,12 @@ describe("ExpiryInput", () => {
       selectMode(/Tanggal lengkap/i);
       expect(screen.getByLabelText("ED")).toHaveAttribute("type", "date");
       expect(screen.getByLabelText("ED")).toHaveValue("2028-02-29");
-      expect(screen.getByLabelText("ED tersimpan")).toHaveTextContent(
+      expect(savedValue()).toHaveTextContent(
         '{"value":"2028-02-29","precision":"day"}',
       );
 
       fireEvent.change(screen.getByLabelText("ED"), { target: { value: "2028-02-12" } });
-      expect(screen.getByLabelText("ED tersimpan")).toHaveTextContent(
+      expect(savedValue()).toHaveTextContent(
         '{"value":"2028-02-12","precision":"day"}',
       );
     },
@@ -159,21 +181,22 @@ describe("ExpiryInput", () => {
     expect(screen.getByLabelText("ED")).toHaveValue("");
 
     fireEvent.change(screen.getByLabelText("ED"), { target: { value: "2027-05-12" } });
-    expect(screen.getByLabelText("ED tersimpan")).toHaveTextContent(
-      '{"value":"2027-05-12","precision":"day"}',
-    );
+    expect(savedValue()).toHaveTextContent('{"value":"2027-05-12","precision":"day"}');
   });
 
-  it.each([
-    ["2028-02-29", "month"],
-    ["2027-05-12", "day"],
-  ])("menghapus ED %s (%s) mengosongkan tanggal dan precision", (value, precision) => {
-    render(<ControlledExpiryInput value={value} precision={precision} />);
+  it("menghapus ED bulan mengosongkan bulan, tanggal, dan precision", () => {
+    render(<ControlledExpiryInput value="2028-02-29" precision="month" />);
+
+    fireEvent.change(monthSelect(), { target: { value: "" } });
+    expect(monthSelect()).toHaveValue("");
+    expect(savedValue()).toHaveTextContent('{"value":null,"precision":null}');
+  });
+
+  it("menghapus ED tanggal lengkap mengosongkan tanggal dan precision", () => {
+    render(<ControlledExpiryInput value="2027-05-12" precision="day" />);
 
     fireEvent.change(screen.getByLabelText("ED"), { target: { value: "" } });
     expect(screen.getByLabelText("ED")).toHaveValue("");
-    expect(screen.getByLabelText("ED tersimpan")).toHaveTextContent(
-      '{"value":null,"precision":null}',
-    );
+    expect(savedValue()).toHaveTextContent('{"value":null,"precision":null}');
   });
 });

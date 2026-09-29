@@ -2,6 +2,17 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.67.23-stable] - 2026-09-29
+
+### Diperbaiki
+- **P0 UX — input ED mode bulan/tahun tidak bisa diisi.** Pemilih bulan sebelumnya memakai `<input type="month">` bawaan browser; nilainya di-set ulang setiap render React sehingga klik bulan pada picker bawaan tidak pernah tersimpan dan kolom tampak kosong terus. Mode bulan kini memakai **dua dropdown eksplisit: Bulan (Jan–Des) + Tahun** (tahun−3 s/d tahun+12, ditambah tahun dari nilai lama) — pengisian tidak lagi bergantung pada picker bawaan browser.
+- **Nilai bulan tidak pernah ter-render kosong.** Bila data berbentuk `YYYY-MM` tetapi metadata presisi hilang (data lama/draft), input otomatis dibuka dalam mode bulan; sebelumnya bisa jatuh ke mode tanggal dan tampil kosong.
+- **Urutan pengisian bebas.** Memilih tahun lebih dulu lalu bulan (atau sebaliknya) tetap menghasilkan `YYYY-MM`; mengosongkan dropdown bulan mengembalikan nilai ke kosong (NULL).
+
+### Diverifikasi
+- Test `ExpiryInput` diperluas menjadi 15 kasus (termasuk pilih tahun-dulu-lalu-bulan, nilai bulan tanpa metadata, dan penghapusan) — lulus; seluruh suite frontend **312 lulus / 1 skip** (31 berkas); Vite build lulus; checker versi lulus `v1.67.23-stable`.
+- Tidak ada perubahan backend/DB pada batch ini (migrasi 023 tetap seperti v1.67.22).
+
 ## [v1.67.22-stable] - 2026-09-29
 
 ### Ditambahkan

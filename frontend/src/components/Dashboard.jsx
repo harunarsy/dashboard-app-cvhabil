@@ -39,9 +39,24 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.67.22-stable",
+    version: "v1.67.23-stable",
     date: "29 September 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Input ED bulan/tahun kini memakai dropdown Bulan + Tahun — picker bulan bawaan browser sering gagal menyimpan pilihan sehingga kolom tampak kosong.",
+      },
+      {
+        type: "fix",
+        text: "Data bulan lama (YYYY-MM) tanpa metadata presisi tetap tampil di mode bulan, dan mengosongkan pilihan kembali ke kosong (NULL).",
+      },
+    ],
+  },
+  {
+    version: "v1.67.22-stable",
+    date: "29 September 2026",
+    status: "previous",
     changes: [
       {
         type: "feat",

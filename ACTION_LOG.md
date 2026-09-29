@@ -4,6 +4,14 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 29 Sep 2026 (21:45 WIB): v1.67.23-stable — input ED bulan/tahun diperbaiki
+- **Laporan owner (masih gagal setelah v1.67.22):** mode "Bulan/tahun" terlihat, kolom ED kosong (`--/----`), picker bulan bawaan Chrome terbuka, tapi bulan tidak bisa dipilih/tersimpan.
+- **Akar masalah:** mode bulan memakai `<input type="month">` bawaan browser; nilai input di-set ulang setiap render React sehingga commit dari picker bawaan tidak pernah lengket (pilih bulan → kembali kosong). Tak terkait data/DB.
+- **Fix (frontend saja):** mode bulan diganti **dua dropdown eksplisit — Bulan (Jan–Des) + Tahun** (tahun−3 s/d tahun+12, plus tahun dari nilai lama). `initialMode` kini juga mengenali nilai `YYYY-MM` walau metadata presisi hilang → tidak lagi jatuh ke mode tanggal yang menampilkan kosong. Urutan pilih tahun-dulu-lalu-bulan didukung via state `pendingYear`; kosongkan dropdown bulan → nilai NULL.
+- **Test:** `frontend/src/components/common/ExpiryInput.test.jsx` diperluas menjadi 15 kasus (tahun-dulu-lalu-bulan, nilai bulan tanpa presisi, penghapusan) — lulus; suite frontend **312 lulus / 1 skip** (31 berkas); Vite build lulus; checker versi lulus `v1.67.23-stable`. Test InvoiceList.expiry (skip) disesuaikan ke UI baru.
+- **Tidak ada perubahan backend/DB.**
+- **Menunggu owner:** hard-refresh halaman lalu coba isi ED di Faktur (baru/edit) & Stok Masuk — sekarang lewat dropdown Bulan + Tahun.
+
 ## Update 29 Sep 2026 (21:35 WIB): v1.67.22-stable — SELESAI, DIPUSH, TER-DEPLOY
 - **Fix wave F1–F3 selesai** (sebelumnya checkpoint RED):
   - `backend/routes/purchaseOrders.js`: `expired_date_precision` masuk SELECT `received_batches` + mapping response. `backend/routes/inventory.js`: kolom yang sama di query batches-by-product.
