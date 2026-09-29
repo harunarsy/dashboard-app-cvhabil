@@ -61,6 +61,9 @@ const clearLoginFailure = async (key) => {
   if (!key) return;
   try {
     await pool.query('DELETE FROM login_attempts WHERE login_key = $1', [key]);
+    // v1.67.24: buang baris basi (mis. percobaan atas username yang tidak ada) supaya
+    // tabel tidak menumpuk. Hanya jalan saat ada login sukses — biaya sangat kecil.
+    await pool.query(`DELETE FROM login_attempts WHERE updated_at < NOW() - INTERVAL '1 day'`);
   } catch (err) {
     console.error('[auth] reset catatan login gagal (diabaikan):', err.message);
   }

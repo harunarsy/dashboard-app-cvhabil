@@ -16,6 +16,8 @@ const {
 loadRuntimeEnv({ baseDir: __dirname, context: 'backend/app' });
 ensureDbTargetSafety({ context: 'backend/app', allowProdLocal: false, allowProdSmoke: false });
 const pool = require('./config/database');
+const { sendServerError, logServerError } = require('./utils/serverError');
+const { buildSchemaStatus } = require('./utils/schemaStatus');
 
 const app = express();
 
@@ -71,8 +73,16 @@ const apiLimiter = rateLimit({
 });
 app.use('/api', apiLimiter);
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'Backend running', timestamp: new Date().toISOString(), uptime: process.uptime() });
+app.get('/api/health', async (req, res) => {
+  // v1.67.24: ikut melaporkan status skema supaya keterlambatan migrasi kelihatan
+  // (insiden "Inventory tampak kosong" dulu terjadi tanpa sinyal apa pun).
+  const schema = await buildSchemaStatus((sql) => pool.query(sql));
+  res.json({
+    status: 'Backend running',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    schema,
+  });
 });
 
 app.get('/api/health/db', async (req, res) => {
@@ -119,16 +129,25 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/finance', require('./routes/finance'));
 app.use('/api/tax', require('./routes/tax'));
 
-// Error handler
+// Error handler (Express 5 meneruskan error async ke sini; jalur yang sudah punya
+// try/catch tetap memakai sendServerError sendiri).
 app.use((err, req, res, next) => {
-  console.error(`[ERROR] ${err.message}`);
-  res.status(err.status || 500).json({
-    error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message
-  });
+  if (res.headersSent) return next(err);
+  return sendServerError(res, err, `unhandled:${req.method} ${req.originalUrl?.split('?')[0] || req.path}`);
 });
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
+
+// v1.67.24: log terstruktur untuk rejection yang tidak tertangani. Sengaja TIDAK
+// mematikan proses (serverless: mematikan proses = 500 tanpa jejak), tapi dicatat.
+process.on('unhandledRejection', (reason) => {
+  logServerError('unhandledRejection', reason);
+});
+
+// Catatan: cek status skema TIDAK dijalankan saat import (invarian project: import app
+// tidak boleh menyentuh DB — dijaga test-schema-boundary). Cek dijalankan di server.js
+// saat boot, dan statusnya juga dilaporkan oleh GET /api/health.
 
 module.exports = app;

@@ -21,9 +21,12 @@ const generateMonthlyDocNumber = async (client, { docType, prefix, table, column
   // Nomor aktif tertinggi bulan ini. Hanya nomor BERPOLA (prefix bulan + digit) yang
   // dihitung; nomor lain (mis. input manual) diabaikan supaya CAST tidak melempar error
   // dan menggagalkan pembuatan dokumen.
+  // PENTING: posisi awal WAJIB di-cast `::int`. Tanpa cast, PostgreSQL menerima
+  // parameter tanpa tipe sebagai pola REGEX (varian substring(text,text)), bukan
+  // posisi karakter — MAX jadi ngawur dan nomor dokumen bisa bertabrakan.
   const readMaxActive = async () => {
     const { rows: [row] } = await client.query(
-      `SELECT COALESCE(MAX(CAST(SUBSTRING(${column} FROM $1) AS INTEGER)), 0) AS max_number
+      `SELECT COALESCE(MAX(CAST(SUBSTRING(${column} FROM $1::int) AS INTEGER)), 0) AS max_number
        FROM ${table}
        WHERE is_deleted = FALSE AND ${column} ~ $2`,
       [startIndex, monthPattern]

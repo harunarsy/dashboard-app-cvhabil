@@ -415,7 +415,8 @@ async function main() {
 
     assert.strictEqual(statusSent, 403);
     assert.strictEqual(nextCalled, false);
-    assert.ok(jsonSent.error.includes('insufficient permissions'));
+    // v1.67.24: pesan roleGuard memakai bahasa Indonesia agar toast di UI terbaca operator.
+    assert.ok(/tidak punya izin/i.test(jsonSent.error), `pesan 403 tak terduga: ${jsonSent.error}`);
   });
 
   test('AUTH: Void role guard: authorized role (direktur) is permitted', () => {

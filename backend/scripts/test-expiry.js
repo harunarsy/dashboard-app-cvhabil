@@ -397,6 +397,7 @@ for (const [before, after] of [['day', 'month'], ['month', 'day']]) {
           eventWrite = true;
           return { rows: [] };
         }
+      if (/^\s*(SET LOCAL|SAVEPOINT|RELEASE SAVEPOINT|ROLLBACK TO SAVEPOINT)/i.test(String(sql).trim())) return { rows: [] };
         throw new Error(`Unexpected precision-only write: ${sql}`);
       } },
     });
@@ -515,6 +516,7 @@ test('inventory edit HNA saja menjaga canonical month dan tidak menyinkron snaps
         return { rows: [{ id: 321, product_id: 10, batch_no: 'B-ED', expired_date: params[1], expired_date_precision: params[5], hna: 110 }] };
       }
       if (/INSERT INTO batch_audit_log/.test(sql)) return { rows: [] };
+      if (/^\s*(SET LOCAL|SAVEPOINT|RELEASE SAVEPOINT|ROLLBACK TO SAVEPOINT)/i.test(String(sql).trim())) return { rows: [] };
       throw new Error(`Unexpected inventory edit query: ${sql}`);
     });
   assert.strictEqual(response.statusCode, 200);
@@ -530,6 +532,7 @@ test('stock-in month menulis DATE+precision dengan bind sejajar', async () => {
         return { rows: [{ id: 101, expired_date: params[2], expired_date_precision: params[7] }] };
       }
       if (/INSERT INTO inventory_mutations/.test(sql)) return { rows: [] };
+      if (/^\s*(SET LOCAL|SAVEPOINT|RELEASE SAVEPOINT|ROLLBACK TO SAVEPOINT)/i.test(String(sql).trim())) return { rows: [] };
       throw new Error(`Unexpected stock-in query: ${sql}`);
     });
   assert.strictEqual(response.statusCode, 201);
@@ -572,6 +575,7 @@ test('invoice create invalid ED mengembalikan 400 sebelum menulis header/item/ba
   }, async (sql) => {
     if (/FROM product_master/.test(sql)) return { rows: [{ id: 10, name: 'Produk ED', base_unit: 'pcs', pack_size: 1 }] };
     if (/FROM product_aliases|FROM invoices/.test(sql)) return { rows: [] };
+      if (/^\s*(SET LOCAL|SAVEPOINT|RELEASE SAVEPOINT|ROLLBACK TO SAVEPOINT)/i.test(String(sql).trim())) return { rows: [] };
     throw new Error(`Unexpected invoice query: ${sql}`);
   });
   assert.strictEqual(response.statusCode, 400, JSON.stringify(response.data));
@@ -606,6 +610,7 @@ for (const [identity, expectedDate, expectedPrecision] of [
         return { rows: [] };
       }
       if (/DELETE FROM invoice_items|UPDATE product_master/.test(sql)) return { rows: [] };
+      if (/^\s*(SET LOCAL|SAVEPOINT|RELEASE SAVEPOINT|ROLLBACK TO SAVEPOINT)/i.test(String(sql).trim())) return { rows: [] };
       throw new Error(`Unexpected invoice rewrite query: ${sql}`);
     });
     assert.strictEqual(response.statusCode, 200, JSON.stringify(response.data));
@@ -626,6 +631,7 @@ test('retur pinjaman batch baru month menulis DATE+precision', async () => {
       }
       if (/INSERT INTO inventory_mutations|UPDATE loan_items|UPDATE loans/.test(sql)) return { rows: [] };
       if (/SELECT l\.\*/.test(sql)) return { rows: [{ id: 321 }] };
+      if (/^\s*(SET LOCAL|SAVEPOINT|RELEASE SAVEPOINT|ROLLBACK TO SAVEPOINT)/i.test(String(sql).trim())) return { rows: [] };
       throw new Error(`Unexpected loan return query: ${sql}`);
     });
   assert.strictEqual(response.statusCode, 200);
@@ -671,6 +677,7 @@ test(`loan conversion menyalin ED snapshot ${storedDate}/${storedPrecision} ke n
       if (/SELECT l\.\*/.test(sql)) return { rows: [{ id: 321 }] };
       // v1.67.24: generator nomor dokumen mengunci counter per docType dulu.
       if (/pg_advisory_xact_lock/.test(sql)) return { rows: [] };
+      if (/^\s*(SET LOCAL|SAVEPOINT|RELEASE SAVEPOINT|ROLLBACK TO SAVEPOINT)/i.test(String(sql).trim())) return { rows: [] };
       throw new Error(`Unexpected loan conversion query: ${sql}`);
     });
   assert.strictEqual(response.statusCode, 201);
@@ -713,6 +720,7 @@ for (const [selectedId, storedPrecision, storedDate, addSameBatchItem = false] o
       if (/AS g\s+FROM sales_items/.test(sql)) return { rows: [{ g: 178 }] };
       if (/SELECT s\.\*/.test(sql)) return { rows: [{ id: 321 }] };
       if (/^\s*(UPDATE|DELETE|INSERT)\b/.test(sql)) return { rows: [], rowCount: 1 };
+      if (/^\s*(SET LOCAL|SAVEPOINT|RELEASE SAVEPOINT|ROLLBACK TO SAVEPOINT)/i.test(String(sql).trim())) return { rows: [] };
       throw new Error(`Unexpected sales edit query: ${sql}`);
     });
     assert.strictEqual(response.statusCode, 200, JSON.stringify(response.data));
@@ -764,6 +772,7 @@ const editSaleFixture = async (oldItems, items, batches = currentSaleBatches) =>
     if (/AS g\s+FROM sales_items/.test(sql)) return { rows: [{ g: 200 }] };
     if (/SELECT s\.\*/.test(sql)) return { rows: [{ id: 321 }] };
     if (/^\s*(UPDATE|DELETE|INSERT)\b/.test(sql)) return { rows: [], rowCount: 1 };
+      if (/^\s*(SET LOCAL|SAVEPOINT|RELEASE SAVEPOINT|ROLLBACK TO SAVEPOINT)/i.test(String(sql).trim())) return { rows: [] };
     throw new Error(`Unexpected fix-wave sale query: ${sql}`);
   });
   return { ...result, written };
@@ -962,6 +971,7 @@ test(`adjustment menyimpan ED historis retur ${returnedDate}/${returnedPrecision
       return { rows: [{ id: 103 }] };
     }
     if (/UPDATE inventory_batches|INSERT INTO inventory_mutations/.test(sql)) return { rows: [] };
+      if (/^\s*(SET LOCAL|SAVEPOINT|RELEASE SAVEPOINT|ROLLBACK TO SAVEPOINT)/i.test(String(sql).trim())) return { rows: [] };
     throw new Error(`Unexpected adjustment query: ${sql}`);
   });
   assert.strictEqual(response.statusCode, 201, JSON.stringify(response.data));

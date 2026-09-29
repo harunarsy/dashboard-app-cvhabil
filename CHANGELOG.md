@@ -26,12 +26,24 @@ Batch hardening hasil audit: keamanan (kebocoran error, sandi, lockout login, ha
 ### Diverifikasi
 - Backend: seluruh `npm test` lulus (exit 0) termasuk expiry contract 67/67, schema-boundary dengan migrasi 024, dan HTTP smoke (guard read-only diperluas khusus tabel `login_attempts`).
 - Frontend: **316 lulus / 1 skip** (32 berkas) + Vite build lulus.
-- Query produk: perbandingan hasil lama vs baru identik (85/85 baris, semua kolom).
+- Query produk: perbandingan hasil lama vs baru identik (85/85 baris, semua kolom; juga identik untuk pencarian q="a"/"tropicana"/kosong).
 - Migrasi 024 diterapkan: tabel `login_attempts` + 3 indeks terverifikasi ada.
 
+### Ronde 2 — audit-diri + tindak lanjut (masih v1.67.24, belum dipush)
+- **P0 tertangkap sebelum rilis: generator nomor dokumen.** `SUBSTRING(order_number FROM $1)` tanpa `::int` membuat PostgreSQL memilih varian REGEX, sehingga MAX nomor ngawur dan nomor dokumen bisa bertabrakan (uji nyata: dihasilkan `...015` padahal nomor aktif `...128`). Diperbaiki dengan `$1::int`; dibuktikan lewat pemanggilan fungsi asli ke DB dalam transaksi yang di-ROLLBACK → `...129, ...130, ...131` unik & berurutan, tanpa sisa baris. Penjaga: contract test statis `scripts/test-sql-param-contract.js` (ikut `npm test`) + test live opsional `npm run test:db:docnumbers`.
+- **Konflik lock tidak lagi menggantung.** `SET LOCAL lock_timeout = '5s'` pada edit nota & edit batch (dua urutan lock berlawanan), dan `sendServerError` memetakan `40P01`/`55P03` → **409 "Data sedang dipakai proses lain. Coba lagi sebentar."**
+- **Audit edit batch memakai SAVEPOINT.** Audit ikut transaksi (tidak ada "data berubah tapi audit hilang") tetapi kegagalan tabel audit tidak lagi memblokir edit batch yang sah.
+- **Lockout login dirapikan.** Baris `login_attempts` yang basi (> 1 hari) dibersihkan saat ada login sukses.
+- **Status skema terlihat.** `GET /api/health` menyertakan `schema.ok/expectedLatest/latestApplied`; `server.js` mencatat `[schema] TERTINGGAL` saat boot. (Import `app.js` tetap tidak menyentuh DB — invarian yang dijaga test.)
+- **Logging & error handling.** `sendServerError` menulis log JSON satu baris (mudah dicari/dialertkan di Vercel), ada error handler global Express 5 + log `unhandledRejection`; pesan `roleGuard` kini berbahasa Indonesia.
+- **UI mengikuti hak akses.** Hook baru `useCanDelete` (peran `direktur`/`admin`) menjaga tombol/aksi hapus pada Nota, Faktur (+ permanen), Produk, Batch, Customer, Distributor; bila peran tidak diketahui, UI fail-open dan backend tetap penjaga sebenarnya (403).
+- **Dependency:** `npm audit` **0 kerentanan** di backend & frontend (sebelumnya 1 moderate masing-masing).
+
 ### Catatan
-- Belum dipush (commit lokal saja).
-- Belum dikerjakan (butuh keputusan/lebih besar): migrasi token JWT dari `localStorage` ke cookie httpOnly (S2), batching N+1 tulis nota/faktur (P2), memindahkan item list dari payload daftar (P6), cache agregat dashboard (P7), file base64 marketplace ke object storage (P8), dan pemisahan lebih rinci hak destruktif di UI.
+- Belum dipush (commit lokal saja sesuai instruksi owner).
+- Diverifikasi lewat pemanggilan langsung ke DB untuk SQL baru (nomor dokumen, status skema) — bukan hanya test dengan mock.
+- Belum dikerjakan (sengaja, butuh keputusan atau risikonya besar): migrasi token JWT dari `localStorage` ke cookie httpOnly, batching N+1 tulis nota/faktur, memindahkan item list dari payload daftar, cache agregat dashboard, file base64 marketplace ke object storage.
+- Risiko kecil yang diterima sadar: potensi deadlock antara edit nota dan edit batch (kini dibatasi `lock_timeout` + dijawab 409), dan rate-limit API umum yang masih per-instance.
 
 ## [v1.67.23-stable] - 2026-09-29
 

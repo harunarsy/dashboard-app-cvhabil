@@ -39,6 +39,7 @@ import { useProducts, useInventoryAlerts } from "../hooks/useMasterData";
 import Tooltip from "./common/Tooltip";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
 import Icons from "./common/Icon";
+import useCanDelete from "../hooks/useCanDelete";
 import { UI_MOTION, UI_SIZE, uiTransition } from "../constants/ui";
 import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import { importWithReload } from "../utils/importWithReload";
@@ -561,8 +562,14 @@ export default function InventoryDashboard({
       setModalSaving(false);
     }
   };
+  const canDelete = useCanDelete();
   const confirmDelete = async () => {
     if (!deleteConfirmId) return;
+    if (!canDelete) {
+      flashError("Akun Anda tidak punya izin menonaktifkan produk.");
+      setDeleteConfirmId(null);
+      return;
+    }
     try {
       await inventoryAPI.deleteProduct(deleteConfirmId);
       flashSuccess("Produk dinonaktifkan");
@@ -601,6 +608,11 @@ export default function InventoryDashboard({
     setDeleteBatchConfirm({ batch, product });
   const executeDeleteBatch = async () => {
     if (!deleteBatchConfirm) return;
+    if (!canDelete) {
+      flashError("Akun Anda tidak punya izin menghapus batch.");
+      setDeleteBatchConfirm(null);
+      return;
+    }
     const { batch, product } = deleteBatchConfirm;
     setDeleteBatchConfirm(null);
     setBatchActionError("");

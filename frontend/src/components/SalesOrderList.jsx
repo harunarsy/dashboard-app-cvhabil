@@ -49,6 +49,7 @@ import FieldError from "./common/FieldError";
 import SearchBox from "./common/SearchBox";
 import ToastNotice from "./common/ToastNotice";
 import useDebouncedValue from "../hooks/useDebouncedValue";
+import useCanDelete from "../hooks/useCanDelete";
 import useSalesPrintFlow from "../hooks/useSalesPrintFlow";
 import {
   buildNotaWaMessage,
@@ -1557,8 +1558,14 @@ export default function SalesOrderList({
   };
 
   const handleDelete = (id) => setDeleteConfirmId(id);
+  const canDelete = useCanDelete();
   const confirmDelete = async () => {
     if (!deleteConfirmId) return;
+    if (!canDelete) {
+      flash("Akun Anda tidak punya izin menghapus nota.", "error");
+      setDeleteConfirmId(null);
+      return;
+    }
     try {
       await salesAPI.remove(deleteConfirmId);
       flash("Nota dipindahkan ke trash");

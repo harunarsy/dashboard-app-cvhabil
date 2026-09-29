@@ -6,10 +6,10 @@
  */
 const roleGuard = (...allowedRoles) => (req, res, next) => {
   if (!req.user || !req.user.role) {
-    return res.status(403).json({ error: 'No role information in token' });
+    return res.status(403).json({ error: 'Akun tidak punya informasi peran (role). Silakan login ulang.' });
   }
   if (!allowedRoles.includes(req.user.role)) {
-    return res.status(403).json({ error: 'Access denied — insufficient permissions' });
+    return res.status(403).json({ error: 'Akun Anda tidak punya izin untuk tindakan ini.' });
   }
   next();
 };

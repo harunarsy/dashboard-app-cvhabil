@@ -4,6 +4,22 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 30 Sep 2026: v1.67.24 ronde-2 — audit-diri + semua temuan dibereskan (COMMIT LOKAL, BELUM DIPUSH)
+- **Instruksi owner:** audit ulang hasil kerja sendiri + audit keseluruhan aplikasi, lalu perbaiki semuanya di lokal (belum push). Temuan besar dari audit-diri dan tindakannya:
+- **P0 tertangkap sebelum rilis — generator nomor dokumen.** `SUBSTRING(order_number FROM $1)` tanpa `::int` → PostgreSQL memilih varian REGEX → MAX ngawur (uji fungsi asli di DB: hasil `...015` padahal nomor aktif `...128`) ⇒ create nota bisa gagal/bertabrakan. Perbaikan: `SUBSTRING(... FROM $1::int)`; bukti: panggilan asli ke DB dalam transaksi ROLLBACK → `...129, ...130, ...131` unik & berurutan, 0 baris tersisa.
+- **Penjaga baru:** `backend/scripts/test-sql-param-contract.js` (statis, ikut `npm test`) menolak `SUBSTRING(... FROM $n)`/`INTERVAL $n` tanpa cast; `backend/scripts/test-docnumbers-live.js` (`npm run test:db:docnumbers`) menguji ke DB nyata dan selalu ROLLBACK.
+- **Deadlock edit nota ↔ edit batch** (urutan lock berlawanan): `SET LOCAL lock_timeout = '5s'` di kedua transaksi + `sendServerError` memetakan `40P01`/`55P03` → 409 "Data sedang dipakai proses lain. Coba lagi sebentar."
+- **Audit edit batch** dibungkus SAVEPOINT (audit tidak bisa hilang, tapi tabel audit rusak tidak memblokir edit sah).
+- **`login_attempts`** dibersihkan otomatis (>1 hari) saat ada login sukses.
+- **Status skema terlihat:** `/api/health.schema` + peringatan `[schema] TERTINGGAL` di `server.js` saat boot. Verifikasi DB nyata: `{ok:true, latestApplied:20260930_024...}`. Invarian "import app.js tidak menyentuh DB" tetap dijaga test (cek dipindah ke server.js).
+- **Logging/error:** log JSON terstruktur di `sendServerError`, error handler global Express 5, log `unhandledRejection`, pesan `roleGuard` berbahasa Indonesia.
+- **UI hak akses:** hook `useCanDelete` (direktur/admin) menjaga aksi hapus di Nota, Faktur (+permanen), Produk, Batch, Customer, Distributor; fail-open bila peran tak diketahui (backend tetap penjaga 403).
+- **Dependency:** `npm audit fix` → **0 kerentanan** di backend & frontend; kedua suite dijalankan ulang setelah bump.
+- **Dokumen:** `FEEDBACK_LOG.md` diisi 2 insiden (inventory kosong karena migrasi belum jalan; P0 nomor dokumen tertangkap sebelum push); `AGENTS.md` diperbaiki (referensi Supabase/6543 → Neon/`DATABASE_URL`).
+- **Verifikasi akhir:** backend `npm test` exit 0 (SQL param contract + expiry 67/67 + schema boundary + HTTP smoke + adjustment 43/43); frontend 316 lulus/1 skip; Vite build lulus; checker `v1.67.24-stable`; live doc-number & schema probe ke DB nyata lulus.
+- **Catatan jujur:** test mock tidak bisa menangkap kelas bug parameter SQL — verifikasi ke DB nyata (read-only/ROLLBACK) mulai sekarang jadi syarat untuk setiap SQL baru.
+- **Status git:** commit lokal menyusul; **tidak dipush**.
+
 ## Update 29 Sep 2026 (22:15 WIB): v1.67.24-stable — hardening audit (COMMIT LOKAL, BELUM DIPUSH)
 - **Instruksi owner:** audit aplikasi (keamanan/bug/logic + performa) lalu perbaiki semua di lokal, commit lokal, **jangan push**.
 - **Keamanan:**

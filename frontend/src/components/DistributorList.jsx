@@ -15,6 +15,7 @@ import useBodyScrollLock from "../hooks/useBodyScrollLock";
 import SearchBox from "./common/SearchBox";
 import ToastNotice from "./common/ToastNotice";
 import useDebouncedValue from "../hooks/useDebouncedValue";
+import useCanDelete from "../hooks/useCanDelete";
 import {
   normalizeIndonesianPhone,
   copyTextToClipboard,
@@ -133,10 +134,15 @@ export default function DistributorList({
     }
   };
 
+  const canDelete = useCanDelete();
   const handleDeleteConfirm = async () => {
     const name = deleteConfirm?.name;
     setDeleteConfirm(null);
     if (!name) return;
+    if (!canDelete) {
+      flash("Akun Anda tidak punya izin menghapus distributor.", "error");
+      return;
+    }
     try {
       await distributorsAPI.remove(name);
       await refetchDistributors();

@@ -1,5 +1,20 @@
 # Feedback Log
 
+## [2026-09-29] - Inventory Tampak Kosong: Kode Membaca Kolom Migrasi Sebelum Migrasinya Jalan (P1)
+- **Gejala owner**: halaman Inventory menampilkan "Belum ada produk" (0 produk) padahal data ada; muncul bersamaan dengan rilis fitur presisi ED.
+- **Akar masalah**: kode fitur sudah membaca kolom `expired_date_precision` (ditambahkan migrasi `20260929_023`) sementara migrasi belum diterapkan ke DB → query daftar produk error → daftar kosong. Bukan data hilang: 319 batch / 85 produk tetap utuh (diverifikasi hitungan + hash).
+- **Mengapa tidak terdeteksi**: tidak ada pemeriksaan status skema saat boot; kegagalan hanya muncul sebagai daftar kosong tanpa pesan.
+- **Tindakan**: migrasi 023 diterapkan (backup `pg_dump` lebih dulu, hash data lama diverifikasi identik), dan di kode ditambahkan laporan status skema: `GET /api/health` kini menyertakan `schema.ok/expectedLatest/latestApplied`, serta `server.js` mencatat peringatan `[schema] TERTINGGAL` saat boot bila DB tertinggal dari daftar migrasi.
+- **Pelajaran**: urutan rilis wajib "migrasi dulu, baru kode" — dan dev wajib melihat status skema, bukan menebak dari gejala UI.
+
+## [2026-09-29] - Generator Nomor Dokumen: SUBSTRING dengan Parameter Tanpa Cast → MAX Ngawur (P0, tertangkap sebelum push)
+- **Gejala (tertangkap saat audit-diri, belum sampai produksi)**: fungsi `generateMonthlyDocNumber` mengembalikan `HSB-NOTA-2609015` padahal nomor nota aktif sudah mencapai `...128`.
+- **Akar masalah**: `SUBSTRING(order_number FROM $1)` — parameter tanpa cast membuat PostgreSQL memilih varian `substring(text, text)` (pola REGEX), bukan posisi karakter. MAX jadi hasil pencocokan regex ("14" → 14), sehingga nomor yang dihasilkan bisa lebih kecil dan bertabrakan dengan unique index nomor nota.
+- **Mengapa lolos**: seluruh test memakai DB mock, jadi SQL-nya tidak pernah benar-benar dieksekusi. Uji "hasil identik" sebelumnya juga hanya mencakup query lain (produk inventory).
+- **Bukti perbaikan**: `SUBSTRING(... FROM $1::int)` — dipanggil ke DB nyata di dalam transaksi yang di-ROLLBACK: tiga nomor berurutan `...129, ...130, ...131` (unik, naik satu-satu), tidak ada baris tersisa setelah ROLLBACK.
+- **Tindakan**: (1) perbaikan memakai `::int`; (2) contract test statis baru `backend/scripts/test-sql-param-contract.js` (ikut `npm test`) yang menolak `SUBSTRING(... FROM $n)` / `INTERVAL $n` tanpa cast; (3) test live opsional `npm run test:db:docnumbers` (`scripts/test-docnumbers-live.js`) yang menguji ke DB nyata dan seluruh tulisannya di-ROLLBACK.
+- **Catatan**: kelas bug yang sama pernah terjadi (lihat entri 2026-09-05 "Void 500 via CONCAT Untyped Parameter") — contract test ini menutup pola dasarnya, bukan hanya satu kasus.
+
 ## [2026-09-27] - Buat Nota Gagal: Literal 'final' Tertulis ke Kolom DATE (P0)
 - **Seluruh pembuatan nota di produksi gagal** dengan error PostgreSQL `invalid input syntax for type date: "final"` (terlihat di form Buat Nota Baru, beberapa saat setelah v1.67.19 ter-deploy).
 - **Akar masalah**: `backend/routes/sales.js` — statement `INSERT INTO sales_orders` jalur POST `/api/sales` menaruh kolom `status` di posisi ke-26, tetapi daftar VALUES menempatkan literal `'final'` di posisi terakhir (ke-46). Akibatnya PostgreSQL menugaskan literal itu ke kolom `tax_invoice_date` (DATE) dan seluruh snapshot formal (buyer_*, ppn_rate, tax_invoice_*) bergeser satu kolom. Baris bermasalah diperkenalkan commit `e165485` (persist legal/procurement snapshots) yang sudah ada di `origin/main`.

@@ -1199,6 +1199,10 @@ router.put('/:id', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    // v1.67.24: edit nota mengunci sales_items lebih dulu lalu batch; kebalikannya ada di
+    // PUT /inventory/batches/:id. Batasi waktu tunggu lock supaya bentrok tidak
+    // menggantung → dijawab 409 "coba lagi" (lihat utils/serverError).
+    await client.query(`SET LOCAL lock_timeout = '5s'`);
 
     // v1.65.0: Ambil ppn_excluded lama (untuk tracking perubahan di audit fields)
     const { rows: [noteOld] } = await client.query(

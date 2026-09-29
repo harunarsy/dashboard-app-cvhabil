@@ -428,6 +428,10 @@ router.put('/batches/:id', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    // v1.67.24: kunci batch dulu lalu sentuh sales_items (urutan berlawanan dengan
+    // PUT /api/sales yang mengunci sales_items dulu). Batasi waktu tunggu supaya
+    // bentrok dua proses tidak menggantung — jadinya 409 "coba lagi" (lihat serverError).
+    await client.query(`SET LOCAL lock_timeout = '5s'`);
     // v1.39.0: ambil state lama dulu untuk audit-log perubahan identitas batch
     const { rows: [before] } = await client.query(
       'SELECT batch_no, expired_date, expired_date_precision, hna, notes FROM inventory_batches WHERE id = $1 FOR UPDATE',
@@ -467,11 +471,21 @@ router.put('/batches/:id', auth, async (req, res) => {
     if (Number(before.hna || 0) !== Number(after.hna || 0))
       changes.hna = { from: Number(before.hna || 0), to: Number(after.hna || 0) };
     if (Object.keys(changes).length) {
-      await client.query(
-        `INSERT INTO batch_audit_log (batch_id, product_id, action, changes, changed_by)
-         VALUES ($1, $2, 'edit', $3, $4)`,
-        [after.id, after.product_id, JSON.stringify(changes), req.user?.id || null]
-      );
+      // v1.67.24: audit berada di transaksi yang sama (tidak bisa "data berubah tapi
+      // audit hilang"), TAPI dibungkus SAVEPOINT — kalau tabel audit bermasalah, edit
+      // batch yang sah tetap boleh jalan (perilaku lama yang disengaja: audit ≠ data inti).
+      await client.query('SAVEPOINT batch_audit');
+      try {
+        await client.query(
+          `INSERT INTO batch_audit_log (batch_id, product_id, action, changes, changed_by)
+           VALUES ($1, $2, 'edit', $3, $4)`,
+          [after.id, after.product_id, JSON.stringify(changes), req.user?.id || null]
+        );
+        await client.query('RELEASE SAVEPOINT batch_audit');
+      } catch (auditErr) {
+        await client.query('ROLLBACK TO SAVEPOINT batch_audit');
+        console.error('[inventory] gagal menulis batch_audit_log (edit diteruskan):', auditErr.message);
+      }
     }
     // v1.64.1: nota menyimpan salinan teks batch (sales_items.batch_no_snapshot).
     // Kalau batch_no/ED dibetulkan di sini (mis. typo '2651103GU' → '26S1103GU'),

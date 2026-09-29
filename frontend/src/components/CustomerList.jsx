@@ -21,6 +21,7 @@ import useDebouncedValue from "../hooks/useDebouncedValue";
 import Pagination from "./common/Pagination";
 import { useCustomers } from "../hooks/useMasterData";
 import { normalizeIndonesianPhone, copyTextToClipboard } from "../utils/waMessage";
+import useCanDelete from "../hooks/useCanDelete";
 
 const fmtRp = (n) =>
   new Intl.NumberFormat("id-ID", {
@@ -204,8 +205,14 @@ export default function CustomerList({
   };
 
   const handleDelete = (id) => setDeleteConfirmId(id);
+  const canDelete = useCanDelete();
   const confirmDelete = async () => {
     if (!deleteConfirmId) return;
+    if (!canDelete) {
+      flash("Akun Anda tidak punya izin menghapus customer.", "error");
+      setDeleteConfirmId(null);
+      return;
+    }
     try {
       await customersAPI.remove(deleteConfirmId);
       flash("Customer dihapus");

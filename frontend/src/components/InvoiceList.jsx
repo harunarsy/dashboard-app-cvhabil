@@ -51,6 +51,7 @@ import {
 } from "../hooks/useMasterData";
 import { qk } from "../lib/queryClient";
 import { invoiceFormQuantity } from "../utils/invoiceForm";
+import useCanDelete from "../hooks/useCanDelete";
 
 const renderPortal = (node) =>
   typeof document === "undefined" ? node : createPortal(node, document.body);
@@ -1433,8 +1434,14 @@ export default function InvoiceList({
 
   const handleDeleteRequest = (inv) =>
     setDeleteConfirm({ id: inv.id, name: inv.invoice_number });
+  const canDelete = useCanDelete();
   const handleDeleteConfirm = async () => {
     if (!deleteConfirm) return;
+    if (!canDelete) {
+      showToast("❌ Akun Anda tidak punya izin menghapus faktur.");
+      setDeleteConfirm(null);
+      return;
+    }
     try {
       await invoicesAPI.softDelete(deleteConfirm.id);
       fetchInvoices();
@@ -1510,6 +1517,10 @@ export default function InvoiceList({
     const id = permanentDeleteId;
     setPermanentDeleteId(null);
     if (!id) return;
+    if (!canDelete) {
+      showToast("❌ Akun Anda tidak punya izin menghapus faktur permanen.");
+      return;
+    }
     try {
       await invoicesAPI.permanentDelete(id);
       fetchTrash();
