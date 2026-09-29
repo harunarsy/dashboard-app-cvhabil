@@ -4,6 +4,14 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 30 Sep 2026: backfill release & tag GitHub v1.67.18 → v1.67.24
+- **Temuan:** release GitHub tertinggal di `v1.67.17-stable` (13 Sep) — 7 versi berikutnya belum punya tag/release, padahal kode + CHANGELOG sudah naik.
+- **Tindakan:** dibuat tag anotasi + GitHub Release untuk tiap versi, titik tag = commit terakhir siklus rilis (commit tepat sebelum penanda versi berikutnya, diverifikasi berurutan ancestor):
+  - v1.67.18 → `b09559c` · v1.67.19 → `dbdb72b` · v1.67.20 → `4d71821` · v1.67.21 → `4e97c70` · v1.67.22 → `cd9a37f` · v1.67.23 → `d1ee93e` · v1.67.24 → `1254a13` (HEAD saat itu).
+- **Catatan rilis** diambil otomatis dari section CHANGELOG masing-masing versi. `v1.67.24-stable` ditandai **Latest**; versi lain eksplisit bukan latest.
+- **Verifikasi:** `gh release list` → Latest = **v1.67.24-stable**; 7 tag ada di origin; checker versi lulus; **7 CI run dari tag semuanya success**; produksi tidak terpengaruh (bundle `index-CRaMDWmJ.js` = v1.67.24, health OK).
+- **Status versioning:** kode, CHANGELOG, marker UI, tag, dan GitHub Release kini **sinkron di v1.67.24-stable**.
+
 ## Update 30 Sep 2026 (pasca-push): v1.67.24-stable TER-DEPLOY & TERVERIFIKASI
 - **Push:** `d1ee93e..653fe4b` → `origin/main` (2 commit: `cdb5e8e` keamanan+performa, `653fe4b` ronde-2 audit-diri).
 - **CI GitHub:** run `36591722600` → **completed (success)** (version checker + test/build frontend + test backend).
