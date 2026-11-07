@@ -1,6 +1,6 @@
-import jsPDF from 'jspdf';
 import { formatExpiry } from "./expiry";
 import { formatDateOnly } from "./dateOnly";
+import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 // v1.65.1: barcode nomor nota. Impor STATIS (bukan dynamic import) supaya
 // generateNotaPDF tetap sinkron — mengubahnya jadi async berarti mengubah
@@ -9,6 +9,7 @@ import autoTable from 'jspdf-autotable';
 import JsBarcode from 'jsbarcode';
 import { angkaKeTerbilang } from './angkaKeTerbilang';
 import { MONO } from './documents/salesDocumentTheme';
+import { PDF_FONT, lineHeightMm, baselineOffsetMm } from './documents/pdfFontMetrics';
 
 const fmtRp = (n, decimals = 0) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n || 0);
 
@@ -31,709 +32,732 @@ export function generateNotaPDF(order, options = {}) {
 
     console.log('[generateNotaPDF] Format:', format, 'Type:', type);
 
-    // Enforce Landscape for A5 and A6
-    const isA4 = format.toUpperCase() === 'A4';
-    const orientation = isA4 ? 'p' : 'l';
-    const doc = new jsPDF(orientation, 'mm', format.toLowerCase());
+    // A4 & A6 portrait; A5 landscape. A6 portrait memberi ruang vertikal supaya
+    // teks isi tetap 12pt tanpa memaksa huruf mengecil.
+    const fmt = String(format).toUpperCase();
+    const isA4 = fmt === 'A4';
+    const isA5 = fmt === 'A5';
+    const isA6 = fmt === 'A6';
+    const orientation = 'p';
+    const doc = new jsPDF(orientation, 'mm', fmt.toLowerCase());
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     console.log('[generateNotaPDF] Page dimensions - Width:', pageWidth, 'Height:', pageHeight);
 
-  const isA6 = format.toUpperCase() === 'A6';
-  const isA5 = format.toUpperCase() === 'A5';
-  const compactPaper = isA5 || isA6;
+    // ─── Tipografi & geometri ───────────────────────────────────────────
+    // 12pt = teks isi (nama barang, qty, harga, total, grand total).
+    // 10pt = teks pelengkap (NPWP, alamat, catatan, DPP/PPN, terbilang).
+    // 8pt  = footer.
+    const bodySize = PDF_FONT.body;
+    const metaSize = PDF_FONT.meta;
+    const microSize = PDF_FONT.micro;
+    const lineH = lineHeightMm(bodySize);
+    const metaLineH = lineHeightMm(metaSize);
+    const margin = isA6 ? 5 : (isA5 ? 8 : 12);
+    const accentColor = MONO.ink;
+    const logoDataUrl = settings.logo_data_url;
+    const logoWidth = isA6 ? 9 : (isA5 ? 11 : 14);
+    const identityX = logoDataUrl ? margin + logoWidth + 2 : margin;
+    const contentWidth = pageWidth - margin * 2;
+    // Kolom kanan (judul + metadata) di A6 selebar 42mm supaya "NOTA PENJUALAN"
+    // 12pt muat; nama perusahaan wrap maksimal 2 baris.
+    const rightColW = isA6 ? 42 : Math.min(60, contentWidth * 0.42);
+    const identityMaxW = Math.max(40, contentWidth - rightColW - 3);
 
-  // Compact paper tune-up: A5/A6 tighter spacing + smaller footer/sign blocks.
-  const baseFontSize = isA6 ? 7.5 : (isA5 ? 8 : 10);
-  const margin = isA6 ? 5 : (isA5 ? 8 : 12);
-  const accentColor = MONO.ink;
-  const logoDataUrl = settings.logo_data_url;
-  const logoWidth = isA6 ? 8 : (isA5 ? 11 : 14);
-  const identityX = logoDataUrl ? margin + logoWidth + (isA6 ? 2 : 4) : margin;
-  const headStep = isA6 ? 3.4 : 4.2;
-  let headY = margin + (isA6 ? 8.5 : 9.5);
-  if (logoDataUrl) {
-    const logoHeight = logoWidth * (233.443 / 240);
-    const textTop = margin + 2;
-    const textBottom = headY + 2 * headStep + 1;
-    const logoY = Math.max(margin, (textTop + textBottom - logoHeight) / 2);
-    try {
-      doc.addImage(logoDataUrl, 'PNG', margin, logoY, logoWidth, logoHeight);
-    } catch (error) {
-      // Nota tetap dapat dicetak tanpa gambar bila data logo rusak.
-    }
-  }
-
-  // ─── Header Section ───────────────────────────────────────────────────
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(baseFontSize + 4);
-  doc.setTextColor(...accentColor);
-  doc.text(String(companyName), identityX, margin + 5);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(baseFontSize - 1);
-  doc.setTextColor(40, 40, 40);
-  // v1.23.0: NPWP di bawah nama CV — step rapat supaya muat di atas divider
-  // (A6 divider margin+18, A4/A5 margin+24)
-  const npwp = settings.npwp || '93.813.949.0-609.000';
-  doc.text(`NPWP: ${npwp}`, identityX, headY);
-  headY += headStep;
-  doc.text(String(settings.address || '-'), identityX, headY);
-  headY += headStep;
-  doc.text(String(settings.phone || '-'), identityX, headY);
-
-  // Doc Info (Top Right)
-  // v1.54.0: type 'pinjaman' — Nota Pinjaman (bukan tagihan): tanpa breakdown PPN,
-  // tanpa metode bayar/bank, total = nilai barang, jatuh tempo = batas pengembalian.
-  const isLoan = type === 'pinjaman';
-  const infoX = pageWidth - margin;
-  const docTitle = type === 'terima' ? 'TANDA TERIMA' : (isLoan ? 'NOTA PINJAMAN' : 'NOTA PENJUALAN');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(compactPaper ? baseFontSize + 4 : baseFontSize + 2);
-  doc.setTextColor(0);
-  const titleY = isA6 ? margin + 4 : margin + 5;
-  doc.text(docTitle, infoX, titleY, { align: 'right' });
-
-  // v1.65.1: barcode nomor nota — di bawah judul, di atas baris "No:".
-  // Barcode hanya menggeser metadata kanan. Garis pembatas dihitung ulang dari
-  // baris metadata terakhir agar barcode tidak ikut mendorong seluruh isi nota
-  // lebih jauh dari yang benar-benar dibutuhkan.
-  let infoShift = 0;
-  const barcodeValue = String(order.order_number || '').trim();
-  if (barcodeValue && type !== 'terima') {
-    const barcodeW = isA6 ? 26 : (isA5 ? 32 : 38);
-    const barcodeH = isA6 ? 4 : (isA5 ? 6 : 7);
-    try {
-      const canvas = document.createElement('canvas');
-      JsBarcode(canvas, barcodeValue, {
-        format: 'CODE128', displayValue: false, margin: 0,
-        width: 2, height: 100, background: '#FFFFFF', lineColor: '#000000',
-      });
-      const dataUrl = canvas.toDataURL('image/png');
-      if (dataUrl && dataUrl !== 'data:,') {
-        doc.addImage(dataUrl, 'PNG', infoX - barcodeW, titleY + 1.5, barcodeW, barcodeH);
-        infoShift = barcodeH + 1.5;
-      }
-    } catch (e) {
-      // sengaja diabaikan — barcode itu pelengkap, nota tetap harus bisa dicetak
-    }
-  }
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(compactPaper ? baseFontSize - 1 : baseFontSize - 1.5);
-  doc.setTextColor(50, 50, 50);
-  doc.text(`No: ${String(order.order_number || '-')}`, infoX, titleY + 5 + infoShift, { align: 'right' });
-  const saleDateStr = order.sale_date
-    ? formatDateOnly(order.sale_date, { day: '2-digit', month: 'short', year: 'numeric' })
-    : '-';
-  // v1.8.1: tampilkan Jatuh Tempo di header kalau ada AND non-cash
-  // v1.54.0: nota pinjaman → label "Batas Pengembalian" (selalu tampil kalau ada due_date)
-  const hasDueDate = Boolean(
-    order.due_date && (isLoan || (order.payment_method !== 'Tunai' && type !== 'terima'))
-  );
-  const infoDateY = titleY + 9 + infoShift;
-  doc.text(saleDateStr, infoX, infoDateY, { align: 'right' });
-  if (hasDueDate) {
-    const dueStr = formatDateOnly(order.due_date, { day: '2-digit', month: 'short', year: 'numeric' });
-    doc.setTextColor(...MONO.ink);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${isLoan ? 'Batas Pengembalian' : 'Jatuh Tempo Pembayaran'}: ${dueStr}`, infoX, titleY + 13 + infoShift, { align: 'right' });
-    doc.setTextColor(60, 60, 60);
-    doc.setFont('helvetica', 'normal');
-  }
-
-  // Blue Line Divider — follow the last right-side metadata line. This keeps
-  // the barcode clear while recovering the unused vertical space it used to
-  // add to every section below the header.
-  const lastInfoY = titleY + (hasDueDate ? 13 : 9) + infoShift;
-  const dividerBaseY = margin + (isA6 ? 18 : 24);
-  const dividerClearance = isA6 ? 1.5 : (isA5 ? 3 : 4);
-  const dividerY = Math.max(dividerBaseY, lastInfoY + dividerClearance);
-  doc.setDrawColor(...MONO.rule);
-  doc.setLineWidth(0.4);
-  doc.line(margin, dividerY, pageWidth - margin, dividerY);
-
-  // ─── Customer & Payment ───────────────────────────────────────────────
-  const customerGap = isA6 ? 3 : 6;
-  const customerY = dividerY + customerGap;
-  doc.setFontSize(baseFontSize);
-  doc.setTextColor(0);
-  doc.setFont('helvetica', 'normal');
-  // v1.53.3: nama/HP/alamat SATU kolom rata kiri (nameX) biar lurus.
-  const nameX = margin + (isA6 ? 16 : 22);
-  const contactX = nameX;
-  const contactStep = isA6 ? 3.4 : 4.2;
-  // sanitasi No. HP: buang karakter sampah (mis. "*", ",") → cuma digit/+/()-/spasi.
-  const cleanPhone = (p) =>
-    String(p || '').replace(/[^\d+()\-\s]/g, '').replace(/\s+/g, ' ').trim();
-  // v1.52.8: teks panjang WAJIB di-wrap biar tak nabrak kolom Metode kanan.
-  const maxTextW = pageWidth - contactX - margin - (isA6 ? 26 : 40);
-  doc.text('Kepada Yth:', margin, customerY);
-  doc.setFont('helvetica', 'bold');
-  let addressY = customerY;
-  const nameLines = doc.splitTextToSize(String(order.customer_name || '-'), maxTextW);
-  nameLines.forEach((ln, i) => {
-    if (i > 0) addressY += contactStep;
-    doc.text(ln, nameX, addressY);
-  });
-
-  // v1.49.0: No. HP lalu Alamat TANPA label (langsung nilainya); semua di-wrap.
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(baseFontSize - 2);
-  doc.setTextColor(40, 40, 40);
-  const phoneClean = cleanPhone(order.customer_phone);
-  if (phoneClean) {
-    const phoneLines = doc.splitTextToSize(phoneClean, maxTextW);
-    phoneLines.forEach((ln) => {
-      addressY += contactStep;
-      doc.text(ln, contactX, addressY);
-    });
-  }
-  if (order.customer_address) {
-    const addrLines = doc.splitTextToSize(String(order.customer_address).trim(), maxTextW);
-    addrLines.forEach((ln) => {
-      addressY += contactStep;
-      doc.text(ln, contactX, addressY);
-    });
-  }
-
-  // Payment Method info — pindah ke bawah divider (clear dari JT row)
-  if (type !== 'terima' && !isLoan) {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(baseFontSize);
-    // v1.65.3: pakai customerY, bukan margin+30 hardcode. Tanpa infoShift baris ini
-    // tak ikut terdorong barcode (v1.65.1) lalu menimpa baris "Jatuh Tempo".
-    doc.text(`Metode: ${String(order.payment_method || 'Tunai')}`, infoX, customerY, { align: 'right' });
-  }
-
-  // ─── Table ────────────────────────────────────────────────────────────
-  const items = order.items || [];
-  // Cetakan boleh merangkum baris yang identik, tetapi sumber data transaksi
-  // tetap per baris. Ini mencegah nota multi-batch membuang satu halaman hanya
-  // untuk mengulang produk/batch/ED/harga yang sama (mis. batch diambil dua kali).
-  const hasQtyInUnit = (item) => item.qty_in_unit !== undefined && item.qty_in_unit !== null;
-  const toNumber = (value) => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-  };
-  const displayItems = (() => {
-    if (type === 'terima') return items;
-
-    const bySnapshot = new Map();
-    const grouped = [];
-    items.forEach((item) => {
-      // Tanpa snapshot batch yang dapat dipercaya, jangan menyatukan baris.
-      // Dengan begitu riwayat lama yang ambigu tetap terlihat apa adanya.
-      const hasBatchSnapshot = Boolean(
-        item.batch_id_snapshot || item.batch_no_snapshot || item.expired_date_snapshot
-      );
-      if (!hasBatchSnapshot) {
-        grouped.push({ ...item });
-        return;
-      }
-
-      const key = [
-        item.product_id ?? '',
-        item.product_name ?? '',
-        item.unit ?? '',
-        item.unit_base ?? '',
-        item.pack_size_at_sale ?? '',
-        item.unit_price ?? '',
-        item.batch_id_snapshot ?? '',
-        item.batch_no_snapshot ?? '',
-        item.expired_date_snapshot ?? '',
-        item.expired_date_snapshot_precision ?? 'day',
-        hasQtyInUnit(item) ? 'unit-qty' : 'base-qty',
-      ].join('\u001F');
-      const existingIndex = bySnapshot.get(key);
-      if (existingIndex === undefined) {
-        bySnapshot.set(key, grouped.length);
-        grouped.push({ ...item });
-        return;
-      }
-
-      const existing = grouped[existingIndex];
-      existing.qty = toNumber(existing.qty) + toNumber(item.qty);
-      if (hasQtyInUnit(existing)) {
-        existing.qty_in_unit = toNumber(existing.qty_in_unit) + toNumber(item.qty_in_unit);
-      }
-    });
-    return grouped;
-  })();
-  // v1.6.0 multi-unit: prefer qty_in_unit + unit (snapshot at sale time) untuk display user-friendly
-  // Tampilkan "1 karton" instead of "12 pcs" kalau pack unit dipakai. Append conversion ke nama produk untuk transparency.
-  const formatQtyDisplay = (item) => {
-    const qtyShow = item.qty_in_unit !== undefined && item.qty_in_unit !== null ? parseFloat(item.qty_in_unit) : (item.qty || 0);
-    const unitShow = item.unit || 'pcs';
-    return `${qtyShow} ${unitShow}`;
-  };
-  const formatProductName = (item) => {
-    const packSize = parseInt(item.pack_size_at_sale) || 1;
-    const qtyInUnit = item.qty_in_unit !== undefined && item.qty_in_unit !== null ? parseFloat(item.qty_in_unit) : null;
-    const qtyBase = item.qty || 0;
-    const lines = [item.product_name];
-    // Sub-line 1: konversi pack→base kalau pack unit dipakai
-    if (packSize > 1 && qtyInUnit !== null && qtyInUnit !== qtyBase) {
-      lines.push(`  (= ${qtyBase} ${item.unit_base || 'pcs'})`);
-    }
-    // v1.7.0 Sub-line 2: batch + ED snapshot (kalau ada — skip silently kalau both NULL)
-    const meta = [];
-    if (item.batch_no_snapshot) meta.push(`Batch: ${item.batch_no_snapshot}`);
-    const edStr = formatExpiry(item.expired_date_snapshot, item.expired_date_snapshot_precision, "");
-    if (edStr) meta.push(`ED: ${edStr}`);
-    if (meta.length) lines.push(`  ${meta.join(' · ')}`);
-    return lines.join('\n');
-  };
-  let tableData = displayItems.map((item, index) => {
-    if (type === 'terima') {
-      // v1.8.5.3: drop Satuan col (formatQtyDisplay sudah include unit "12 pcs")
-      return [index + 1, formatProductName(item), formatQtyDisplay(item)];
-    }
-    const qtyForCalc = item.qty_in_unit !== undefined && item.qty_in_unit !== null ? parseFloat(item.qty_in_unit) : (item.qty || 0);
-    return [
-      index + 1,
-      formatProductName(item),
-      formatQtyDisplay(item),
-      fmtRp(item.unit_price),
-      fmtRp(qtyForCalc * (item.unit_price || 0))
-    ];
-  });
-
-  const tableHead = type === 'terima'
-    ? [['No', 'Nama Barang', 'Qty']]
-    : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']];
-
-  // v1.8.5.8: tableStartY pushed below customerY (margin+23 A6, margin+30 A4/A5) +3mm
-  // v1.23.0: alamat panjang (multi-baris) mendorong tabel ke bawah, bukan ketumpuk
-  const tableStartY = Math.max(
-    margin + (isA6 ? 24 : (isA5 ? 31 : 33)),
-    addressY + (isA6 ? 3 : 4)
-  );
-
-  // Measure the post-table tail before AutoTable lays out rows. The tail is
-  // reserved only on the final table page; reserving it globally wastes the
-  // lower half of earlier pages on compact paper.
-  const lineH = isA6 ? 2.3 : (isA5 ? 2.6 : 4);
-  const footerGap = isA6 ? 1.5 : (isA5 ? 2.5 : 4);
-  const sigGap = isA6 ? 3 : (isA5 ? 4 : 5);
-  const sigLineOffset = isA6 ? 8 : (isA5 ? 12 : 19);
-  const sigNameOffset = isA6 ? 12 : (isA5 ? 17 : 24);
-  const sigHalfWidth = isA6 ? 30 : 45;
-  const sigCenter = isA6 ? 15 : 22;
-  const tableGap = isA6 ? 2.5 : (isA5 ? 3.5 : 5);
-  const notesTopGap = isA6 ? 1.2 : (isA5 ? 2 : 3);
-  const noteHeadingAdvance = isA6 ? 2.5 : (isA5 ? 3 : 4);
-  const bankLead = isA6 ? 2.5 : (isA5 ? 3.5 : 5);
-  const bankLineAdvance = isA6 ? 2.5 : (isA5 ? 3.3 : 4);
-  const bankAdvance = bankInfo && type !== 'terima' && !isLoan
-    ? bankLead + bankLineAdvance + (qrisText ? bankLineAdvance : 0)
-    : 0;
-  const compactSigY = pageHeight - 4 - footerGap - sigNameOffset;
-
-  // Use the same font metrics as the tail renderers so the reserve follows
-  // wrapped NOTE and pinjaman text instead of a fixed page threshold.
-  doc.setFontSize(baseFontSize - 2);
-  const loanNote = isLoan
-    ? doc.splitTextToSize(
-      'Barang berstatus PINJAMAN — belum termasuk penjualan. Mohon dikembalikan atau dikonfirmasi pembelian sebelum batas pengembalian.',
-      pageWidth - margin * 2
-    )
-    : [];
-  const ketentuanRows = ketentuan && type !== 'terima' && !isLoan
-    ? ketentuan.split('\n').filter((line) => line.trim()).map((line, index) => ({
-      wrapped: doc.splitTextToSize(`${index + 1}. ${line}`, pageWidth - margin * 2),
-    }))
-    : [];
-  const ketentuanBlockH = ketentuanRows.length
-    ? notesTopGap + noteHeadingAdvance + ketentuanRows.reduce((height, row) => height + row.wrapped.length * lineH, 0)
-    : 0;
-  const notesLines = order.notes
-    ? doc.splitTextToSize(`Catatan: ${String(order.notes || '')}`, pageWidth - margin * 2)
-    : [];
-  const notesBlockH = notesLines.length ? Math.max(5, notesLines.length * lineH) : 0;
-
-  const summaryAdvance = (() => {
-    if (isLoan) {
-      return (
-        (isA6 ? 2.6 : (isA5 ? 3.6 : 5)) +
-        (isA6 ? 2.6 : (isA5 ? 4 : 6)) +
-        loanNote.length * (isA6 ? 2.6 : (isA5 ? 3.3 : 4.2))
-      );
-    }
-    if (type === 'terima') return 0;
-
-    let advance = 0;
-    if (!order.ppn_excluded) {
-      advance += isA6 ? 2.4 : (isA5 ? 3.3 : 4.5);
-      advance += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
-    }
-    if ((parseFloat(order.ongkir) || 0) > 0) {
-      advance += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
-    }
-    if (order.payment_fee_mode === 'pass_on' && (parseFloat(order.payment_fee) || 0) > 0) {
-      advance += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
-    }
-    advance += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
-    advance += isA6 ? 2.6 : (isA5 ? 4 : 6);
-    if ((parseInt(order.est_weight_gram) || 0) > 0) {
-      advance += isA6 ? 2.6 : (isA5 ? 4 : 6);
-    }
-    return advance;
-  })();
-  const tailContentH = summaryAdvance + notesBlockH + ketentuanBlockH + bankAdvance;
-  const tailContentBottomY = pageHeight - 4 - footerGap;
-  const tailLimitY = tailContentBottomY - sigNameOffset;
-
-  let continuationStarted = false;
-  const continuationLineY = margin + 11;
-  const continuationTableStartY = continuationLineY + (isA6 ? 4 : 5);
-  const tailFitsSinglePage = continuationTableStartY + tailContentH + sigGap <= tailLimitY;
-  const tailTableEndY = tailFitsSinglePage
-    ? tailLimitY - tailContentH - sigGap - tableGap
-    : pageHeight - margin;
-  const tailTableBottomMargin = tailFitsSinglePage
-    ? Math.max(margin, pageHeight - tailTableEndY)
-    : margin;
-  const drawContinuationHeader = (pageNumber) => {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(baseFontSize + 1);
-    doc.setTextColor(...accentColor);
+    let headY = margin + baselineOffsetMm(bodySize);
     if (logoDataUrl) {
-      const continuationLogoWidth = isA6 ? 5 : 7;
+      const logoHeight = logoWidth * (233.443 / 240);
+      const textTop = margin;
+      const textBottom = headY + (2 * metaLineH) + 2;
+      const logoY = Math.max(margin, (textTop + textBottom - logoHeight) / 2);
       try {
-        doc.addImage(logoDataUrl, 'PNG', margin, margin, continuationLogoWidth, continuationLogoWidth * (233.443 / 240));
+        doc.addImage(logoDataUrl, 'PNG', margin, logoY, logoWidth, logoHeight);
       } catch (error) {
-        // Halaman lanjutan tetap dapat dicetak tanpa gambar.
+        // Nota tetap dapat dicetak tanpa gambar bila data logo rusak.
       }
     }
-    doc.text(String(companyName), logoDataUrl ? margin + (isA6 ? 7 : 9) : margin, margin + 4);
+
+    // ─── Header Section ─────────────────────────────────────────────────
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(bodySize);
+    doc.setTextColor(...accentColor);
+    const companyLines = doc.splitTextToSize(String(companyName), identityMaxW).slice(0, 2);
+    companyLines.forEach((line, i) => doc.text(line, identityX, headY + lineH * i));
+    headY += lineH * (companyLines.length - 1);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(baseFontSize);
-    doc.setTextColor(60, 60, 60);
-    doc.text(`${docTitle} - Lanjutan`, margin, margin + 8);
-    doc.text(`No: ${String(order.order_number || '-')}`, infoX, margin + 4, { align: 'right' });
-    doc.text(`Halaman ${pageNumber}`, infoX, margin + 8, { align: 'right' });
+    doc.setFontSize(metaSize);
+    doc.setTextColor(40, 40, 40);
+    const npwp = settings.npwp || '93.813.949.0-609.000';
+    headY += metaLineH;
+    doc.text(`NPWP: ${npwp}`, identityX, headY);
+    headY += metaLineH;
+    doc.text(String(settings.address || '-'), identityX, headY);
+    headY += metaLineH;
+    doc.text(String(settings.phone || '-'), identityX, headY);
 
-    doc.setDrawColor(...MONO.rule);
-    doc.setLineWidth(0.3);
-    doc.line(margin, continuationLineY, pageWidth - margin, continuationLineY);
-  };
+    // Doc Info (Top Right)
+    // v1.54.0: type 'pinjaman' — Nota Pinjaman (bukan tagihan): tanpa breakdown
+    // PPN, tanpa metode bayar/bank, total = nilai barang, jatuh tempo = batas pengembalian.
+    const isLoan = type === 'pinjaman';
+    const infoX = pageWidth - margin;
+    const docTitle = type === 'terima' ? 'TANDA TERIMA' : (isLoan ? 'NOTA PINJAMAN' : 'NOTA PENJUALAN');
 
-  const tableStyles = {
-    head: tableHead,
-    theme: 'striped',
-    headStyles: {
-      fillColor: MONO.headFill,
-      textColor: MONO.ink,
-      fontStyle: 'bold',
-      fontSize: baseFontSize - 1.5,
-      halign: 'center',
-      lineWidth: 0,
-    },
-    bodyStyles: {
-      lineWidth: 0,
-      fillColor: [255, 255, 255],
-    },
-    alternateRowStyles: { fillColor: MONO.zebra },
-    styles: {
-      fontSize: isA6 ? 6 : (isA5 ? 7 : baseFontSize - 1.5),
-      cellPadding: isA6 ? 0.45 : (isA5 ? 0.6 : 1.8),
-      lineWidth: 0,
-    },
-    rowPageBreak: 'avoid',
-    columnStyles: {
-      0: { halign: 'center', cellWidth: isA6 ? 7 : 10 },
-      2: { halign: 'center', cellWidth: isA6 ? 14 : 20 },
-      3: { halign: 'right' },
-      4: { halign: 'right' },
-    },
-  };
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(bodySize);
+    doc.setTextColor(0);
+    const titleY = margin + baselineOffsetMm(bodySize);
+    doc.text(docTitle, infoX, titleY, { align: 'right' });
 
-  // Use a scratch document to get AutoTable's real wrapped row heights. This
-  // lets us retain a one-page nota when it truly fits and balance longer
-  // orders across the initial and final table pages.
-  const measurementDoc = new jsPDF(orientation, 'mm', format.toLowerCase());
-  autoTable(measurementDoc, {
-    ...tableStyles,
-    startY: 0,
-    body: tableData,
-    margin: { top: 0, right: margin, bottom: 0, left: margin },
-  });
-  const measuredTable = measurementDoc.lastAutoTable;
-  const tableHeadHeight = measuredTable.head.reduce((height, row) => height + row.height, 0);
-  const bodyHeights = measuredTable.body.map((row) => row.height);
-  const completeTableEndY = tableStartY + tableHeadHeight + bodyHeights.reduce((sum, height) => sum + height, 0);
-  const tableFitsWithTail = completeTableEndY <= tailTableEndY;
-
-  let maxFinalRows = 0;
-  let finalRowsHeight = 0;
-  const finalRowsCapacity = tailTableEndY - continuationTableStartY - tableHeadHeight;
-  for (let index = bodyHeights.length - 1; index >= 0; index -= 1) {
-    if (finalRowsHeight + bodyHeights[index] > finalRowsCapacity) break;
-    finalRowsHeight += bodyHeights[index];
-    maxFinalRows += 1;
-  }
-  const balancedFinalRows = Math.min(
-    Math.max(maxFinalRows, 1),
-    Math.ceil(tableData.length / 2),
-  );
-  const initialTableRows = tableData.length - balancedFinalRows;
-  const splitTableForTail = tailFitsSinglePage && !tableFitsWithTail && initialTableRows > 0;
-
-  const renderTable = (body, startY, bottomMargin) => {
-    autoTable(doc, {
-      ...tableStyles,
-      startY,
-      body,
-      margin: {
-        top: continuationTableStartY,
-        right: margin,
-        bottom: bottomMargin,
-        left: margin,
-      },
-      willDrawPage: () => {
-        if (doc.getNumberOfPages() > 1) {
-          continuationStarted = true;
-          drawContinuationHeader(doc.getNumberOfPages());
+    // v1.65.1: barcode nomor nota — di bawah judul, di atas baris "No:".
+    let infoShift = 0;
+    const barcodeValue = String(order.order_number || '').trim();
+    if (barcodeValue && type !== 'terima') {
+      const barcodeW = isA6 ? 26 : (isA5 ? 32 : 38);
+      const barcodeH = isA6 ? 5 : (isA5 ? 6 : 7);
+      try {
+        const canvas = document.createElement('canvas');
+        JsBarcode(canvas, barcodeValue, {
+          format: 'CODE128', displayValue: false, margin: 0,
+          width: 2, height: 100, background: '#FFFFFF', lineColor: '#000000',
+        });
+        const dataUrl = canvas.toDataURL('image/png');
+        if (dataUrl && dataUrl !== 'data:,') {
+          doc.addImage(dataUrl, 'PNG', infoX - barcodeW, titleY + 2, barcodeW, barcodeH);
+          infoShift = barcodeH + 2;
         }
+      } catch (e) {
+        // sengaja diabaikan — barcode itu pelengkap, nota tetap harus bisa dicetak
+      }
+    }
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(metaSize);
+    doc.setTextColor(50, 50, 50);
+    let infoY = titleY + metaLineH + infoShift;
+    doc.text(`No: ${String(order.order_number || '-')}`, infoX, infoY, { align: 'right' });
+    const saleDateStr = order.sale_date
+      ? formatDateOnly(order.sale_date, { day: '2-digit', month: 'short', year: 'numeric' })
+      : '-';
+    // v1.8.1: tampilkan Jatuh Tempo di header kalau ada AND non-cash
+    // v1.54.0: nota pinjaman → label "Batas Pengembalian" (selalu tampil kalau ada due_date)
+    const hasDueDate = Boolean(
+      order.due_date && (isLoan || (order.payment_method !== 'Tunai' && type !== 'terima'))
+    );
+    infoY += metaLineH;
+    doc.text(saleDateStr, infoX, infoY, { align: 'right' });
+
+    // Jatuh tempo ditulis penuh pada barisnya sendiri di bawah header, supaya
+    // label "Jatuh Tempo Pembayaran" tidak bertabrakan dengan nama perusahaan.
+    let dueY = 0;
+    if (hasDueDate) {
+      const dueStr = formatDateOnly(order.due_date, { day: '2-digit', month: 'short', year: 'numeric' });
+      dueY = Math.max(headY, infoY) + metaLineH;
+      doc.setTextColor(...MONO.ink);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(metaSize);
+      doc.text(`${isLoan ? 'Batas Pengembalian' : 'Jatuh Tempo Pembayaran'}: ${dueStr}`, infoX, dueY, { align: 'right' });
+      doc.setTextColor(60, 60, 60);
+      doc.setFont('helvetica', 'normal');
+    }
+
+    // Garis pembatas mengikuti baris terakhir header (kiri atau kanan).
+    const dividerY = Math.max(headY, infoY, dueY) + (isA6 ? 2.2 : 3);
+    doc.setDrawColor(...MONO.rule);
+    doc.setLineWidth(0.4);
+    doc.line(margin, dividerY, pageWidth - margin, dividerY);
+
+    // ─── Customer & Payment ─────────────────────────────────────────────
+    const customerY = dividerY + (isA6 ? 4 : 6);
+    doc.setFontSize(bodySize);
+    doc.setTextColor(0);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Kepada Yth:', margin, customerY);
+    // Metode pembayaran sejajar dengan label, di kanan.
+    if (type !== 'terima' && !isLoan) {
+      const methodText = `Metode: ${String(order.payment_method || 'Tunai')}`;
+      doc.setFontSize(metaSize);
+      doc.text(methodText, infoX, customerY, { align: 'right' });
+      doc.setFontSize(bodySize);
+    }
+
+    // sanitasi No. HP: buang karakter sampah (mis. "*", ",") → cuma digit/+/()-/spasi.
+    const cleanPhone = (p) =>
+      String(p || '').replace(/[^\d+()\-\s]/g, '').replace(/\s+/g, ' ').trim();
+    // Nama customer: di A5/A4 sebaris dengan label (ruang lebar), di A6 turun
+    // satu baris karena "Kepada Yth:" + nama tidak muat 95mm pada 12pt.
+    let addressY = customerY;
+    doc.setFont('helvetica', 'bold');
+    const nameX = isA6 ? margin : margin + 24;
+    const nameW = isA6 ? contentWidth : contentWidth - 24 - 34;
+    const nameLines = doc.splitTextToSize(String(order.customer_name || '-'), nameW);
+    nameLines.forEach((ln, index) => {
+      // A6: nama selalu turun satu baris dari label "Kepada Yth:".
+      // A5/A4: baris pertama sejajar label, sisanya turun.
+      if (isA6 || index > 0) addressY += lineH;
+      doc.text(ln, nameX, addressY);
+    });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(metaSize);
+    doc.setTextColor(40, 40, 40);
+    const contactW = contentWidth;
+    const phoneClean = cleanPhone(order.customer_phone);
+    if (phoneClean) {
+      const phoneLines = doc.splitTextToSize(phoneClean, contactW);
+      phoneLines.forEach((ln) => {
+        addressY += metaLineH;
+        doc.text(ln, margin, addressY);
+      });
+    }
+    if (order.customer_address) {
+      const addrLines = doc.splitTextToSize(String(order.customer_address).trim(), contactW);
+      addrLines.forEach((ln) => {
+        addressY += metaLineH;
+        doc.text(ln, margin, addressY);
+      });
+    }
+
+    // ─── Table ──────────────────────────────────────────────────────────
+    const items = order.items || [];
+    // Cetakan boleh merangkum baris yang identik, tetapi sumber data transaksi
+    // tetap per baris. Ini mencegah nota multi-batch membuang satu halaman hanya
+    // untuk mengulang produk/batch/ED/harga yang sama (mis. batch diambil dua kali).
+    const hasQtyInUnit = (item) => item.qty_in_unit !== undefined && item.qty_in_unit !== null;
+    const toNumber = (value) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+    const displayItems = (() => {
+      if (type === 'terima') return items;
+
+      const bySnapshot = new Map();
+      const grouped = [];
+      items.forEach((item) => {
+        // Tanpa snapshot batch yang dapat dipercaya, jangan menyatukan baris.
+        // Dengan begitu riwayat lama yang ambigu tetap terlihat apa adanya.
+        const hasBatchSnapshot = Boolean(
+          item.batch_id_snapshot || item.batch_no_snapshot || item.expired_date_snapshot
+        );
+        if (!hasBatchSnapshot) {
+          grouped.push({ ...item });
+          return;
+        }
+
+        const key = [
+          item.product_id ?? '',
+          item.product_name ?? '',
+          item.unit ?? '',
+          item.unit_base ?? '',
+          item.pack_size_at_sale ?? '',
+          item.unit_price ?? '',
+          item.batch_id_snapshot ?? '',
+          item.batch_no_snapshot ?? '',
+          item.expired_date_snapshot ?? '',
+          item.expired_date_snapshot_precision ?? 'day',
+          hasQtyInUnit(item) ? 'unit-qty' : 'base-qty',
+        ].join('\u001F');
+        const existingIndex = bySnapshot.get(key);
+        if (existingIndex === undefined) {
+          bySnapshot.set(key, grouped.length);
+          grouped.push({ ...item });
+          return;
+        }
+
+        const existing = grouped[existingIndex];
+        existing.qty = toNumber(existing.qty) + toNumber(item.qty);
+        if (hasQtyInUnit(existing)) {
+          existing.qty_in_unit = toNumber(existing.qty_in_unit) + toNumber(item.qty_in_unit);
+        }
+      });
+      return grouped;
+    })();
+    // v1.6.0 multi-unit: prefer qty_in_unit + unit (snapshot at sale time) untuk display user-friendly
+    // Tampilkan "1 karton" instead of "12 pcs" kalau pack unit dipakai. Append conversion ke nama produk untuk transparency.
+    const formatQtyDisplay = (item) => {
+      const qtyShow = item.qty_in_unit !== undefined && item.qty_in_unit !== null ? parseFloat(item.qty_in_unit) : (item.qty || 0);
+      const unitShow = item.unit || 'pcs';
+      return `${qtyShow} ${unitShow}`;
+    };
+    const formatProductName = (item) => {
+      const packSize = parseInt(item.pack_size_at_sale) || 1;
+      const qtyInUnit = item.qty_in_unit !== undefined && item.qty_in_unit !== null ? parseFloat(item.qty_in_unit) : null;
+      const qtyBase = item.qty || 0;
+      const lines = [item.product_name];
+      // Sub-line 1: konversi pack→base kalau pack unit dipakai
+      if (packSize > 1 && qtyInUnit !== null && qtyInUnit !== qtyBase) {
+        lines.push(`(= ${qtyBase} ${item.unit_base || 'pcs'})`);
+      }
+      // Sub-line 2: ED dulu supaya tetap utuh saat baris terpotong, lalu batch.
+      const meta = [];
+      const edStr = formatExpiry(item.expired_date_snapshot, item.expired_date_snapshot_precision, "");
+      if (edStr) meta.push(`ED: ${edStr}`);
+      if (item.batch_no_snapshot) meta.push(`Batch: ${item.batch_no_snapshot}`);
+      if (meta.length) lines.push(meta.join(' · '));
+      return lines.join('\n');
+    };
+    // A6 portrait hanya 95mm lebar: kolom angka dipersempit dan nomor baris
+    // dihilangkan supaya nama barang tetap terbaca pada 12pt.
+    const compactColumns = type !== 'terima' && pageWidth < 170;
+    const tableData = displayItems.map((item, index) => {
+      if (type === 'terima') {
+        return [index + 1, formatProductName(item), formatQtyDisplay(item)];
+      }
+      const qtyForCalc = item.qty_in_unit !== undefined && item.qty_in_unit !== null ? parseFloat(item.qty_in_unit) : (item.qty || 0);
+      const total = fmtRp(qtyForCalc * (item.unit_price || 0));
+      if (compactColumns) {
+        return [formatProductName(item), formatQtyDisplay(item), total];
+      }
+      return [index + 1, formatProductName(item), formatQtyDisplay(item), fmtRp(item.unit_price), total];
+    });
+
+    const tableHead = type === 'terima'
+      ? [['No', 'Nama Barang', 'Qty']]
+      : (compactColumns ? [['Nama Barang', 'Qty', 'Total']] : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']]);
+
+    // Tabel mulai setelah blok customer, tidak pernah menabrak divider.
+    const tableStartY = Math.max(dividerY + 6, addressY + 4);
+
+    // Ukuran tail (total, catatan, rekening, tanda tangan) dihitung dari
+    // tinggi baris 12pt/10pt supaya tidak ada tumpang tindih.
+    const footerGap = 2;
+    const sigGap = 5;
+    const sigLineOffset = isA6 ? 14 : 16;
+    const sigNameOffset = isA6 ? 20 : 20;
+    const sigHalfWidth = isA6 ? 34 : 42;
+    const sigCenter = isA6 ? 17 : 21;
+    const tableGap = 3;
+    const notesTopGap = 2;
+    const noteHeadingAdvance = metaLineH;
+    const bankLead = 3;
+    const bankLineAdvance = metaLineH;
+    const bankAdvance = bankInfo && type !== 'terima' && !isLoan
+      ? bankLead + bankLineAdvance + (qrisText ? bankLineAdvance : 0)
+      : 0;
+    // Sisakan ruang footer supaya nama penanda tangan tidak menabrak teks footer.
+    const footerReserveY = footerText ? 6 : 2;
+    const compactSigY = pageHeight - 4 - footerReserveY - sigNameOffset;
+
+    doc.setFontSize(metaSize);
+    const loanNote = isLoan
+      ? doc.splitTextToSize(
+        'Barang berstatus PINJAMAN — belum termasuk penjualan. Mohon dikembalikan atau dikonfirmasi pembelian sebelum batas pengembalian.',
+        pageWidth - margin * 2
+      )
+      : [];
+    const ketentuanRows = ketentuan && type !== 'terima' && !isLoan
+      ? ketentuan.split('\n').filter((line) => line.trim()).map((line, index) => ({
+        wrapped: doc.splitTextToSize(`${index + 1}. ${line}`, pageWidth - margin * 2),
+      }))
+      : [];
+    const ketentuanBlockH = ketentuanRows.length
+      ? notesTopGap + noteHeadingAdvance + ketentuanRows.reduce((height, row) => height + row.wrapped.length * metaLineH, 0)
+      : 0;
+    const notesLines = order.notes
+      ? doc.splitTextToSize(`Catatan: ${String(order.notes || '')}`, pageWidth - margin * 2)
+      : [];
+    const notesBlockH = notesLines.length ? Math.max(metaLineH, notesLines.length * metaLineH) : 0;
+
+    const summaryAdvance = (() => {
+      if (isLoan) {
+        return lineH + metaLineH + (loanNote.length * metaLineH);
+      }
+      if (type === 'terima') return 0;
+
+      let advance = 0;
+      if (!order.ppn_excluded) {
+        advance += metaLineH * 2;
+      }
+      if ((parseFloat(order.ongkir) || 0) > 0) {
+        advance += metaLineH;
+      }
+      if (order.payment_fee_mode === 'pass_on' && (parseFloat(order.payment_fee) || 0) > 0) {
+        advance += metaLineH;
+      }
+      advance += lineH; // GRAND TOTAL 12pt bold
+      const terbilangText = `Terbilang: ${(angkaKeTerbilang(parseFloat(order.total) || 0) + ' Rupiah').trim()}`;
+      advance += Math.max(1, doc.splitTextToSize(terbilangText, contentWidth).length) * metaLineH;
+      if ((parseInt(order.est_weight_gram) || 0) > 0) {
+        advance += metaLineH;
+      }
+      return advance;
+    })();
+    const tailContentH = summaryAdvance + notesBlockH + ketentuanBlockH + bankAdvance;
+    const tailContentBottomY = pageHeight - 4 - footerGap;
+    const tailLimitY = tailContentBottomY - sigNameOffset;
+
+    let continuationStarted = false;
+    const continuationLineY = margin + baselineOffsetMm(bodySize) + metaLineH + 2;
+    const continuationTableStartY = continuationLineY + 4;
+    const tailFitsSinglePage = continuationTableStartY + tailContentH + sigGap <= tailLimitY;
+    const tailTableEndY = tailFitsSinglePage
+      ? tailLimitY - tailContentH - sigGap - tableGap
+      : pageHeight - margin;
+    const tailTableBottomMargin = tailFitsSinglePage
+      ? Math.max(margin, pageHeight - tailTableEndY)
+      : margin;
+    const drawContinuationHeader = (pageNumber) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(bodySize);
+      doc.setTextColor(...accentColor);
+      if (logoDataUrl) {
+        const continuationLogoWidth = isA6 ? 6 : 7;
+        try {
+          doc.addImage(logoDataUrl, 'PNG', margin, margin, continuationLogoWidth, continuationLogoWidth * (233.443 / 240));
+        } catch (error) {
+          // Halaman lanjutan tetap dapat dicetak tanpa gambar.
+        }
+      }
+      doc.text(String(companyName), logoDataUrl ? margin + (isA6 ? 8 : 9) : margin, margin + baselineOffsetMm(bodySize));
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(metaSize);
+      doc.setTextColor(60, 60, 60);
+      doc.text(`${docTitle} - Lanjutan`, margin, margin + baselineOffsetMm(bodySize) + metaLineH);
+      doc.text(`No: ${String(order.order_number || '-')}`, infoX, margin + baselineOffsetMm(metaSize), { align: 'right' });
+      doc.text(`Halaman ${pageNumber}`, infoX, margin + baselineOffsetMm(metaSize) + metaLineH, { align: 'right' });
+
+      doc.setDrawColor(...MONO.rule);
+      doc.setLineWidth(0.3);
+      doc.line(margin, continuationLineY, pageWidth - margin, continuationLineY);
+    };
+
+    const tableStyles = {
+      head: tableHead,
+      theme: 'striped',
+      headStyles: {
+        fillColor: MONO.headFill,
+        textColor: MONO.ink,
+        fontStyle: 'bold',
+        fontSize: bodySize,
+        halign: 'center',
+        lineWidth: 0,
       },
+      bodyStyles: {
+        lineWidth: 0,
+        fillColor: [255, 255, 255],
+        fontSize: bodySize,
+      },
+      alternateRowStyles: { fillColor: MONO.zebra },
+      styles: {
+        fontSize: bodySize,
+        cellPadding: isA6 ? 1.3 : 1.8,
+        lineWidth: 0,
+        textColor: MONO.ink,
+      },
+      rowPageBreak: 'avoid',
+      columnStyles: compactColumns
+        ? {
+          1: { halign: 'center', cellWidth: 21 },
+          2: { halign: 'right', cellWidth: 31 },
+        }
+        : {
+          0: { halign: 'center', cellWidth: isA6 ? 7 : 10 },
+          2: { halign: 'center', cellWidth: isA6 ? 15 : 18 },
+          3: { halign: 'right' },
+          4: { halign: 'right' },
+        },
+    };
+
+    // Use a scratch document to get AutoTable's real wrapped row heights. This
+    // lets us retain a one-page nota when it truly fits and balance longer
+    // orders across the initial and final table pages.
+    const measurementDoc = new jsPDF(orientation, 'mm', fmt.toLowerCase());
+    autoTable(measurementDoc, {
+      ...tableStyles,
+      startY: 0,
+      body: tableData,
+      margin: { top: 0, right: margin, bottom: 0, left: margin },
     });
-  };
+    const measuredTable = measurementDoc.lastAutoTable;
+    const tableHeadHeight = measuredTable.head.reduce((height, row) => height + row.height, 0);
+    const bodyHeights = measuredTable.body.map((row) => row.height);
+    const completeTableEndY = tableStartY + tableHeadHeight + bodyHeights.reduce((sum, height) => sum + height, 0);
+    const tableFitsWithTail = completeTableEndY <= tailTableEndY;
 
-  if (splitTableForTail) {
-    renderTable(tableData.slice(0, initialTableRows), tableStartY, margin);
-    doc.addPage();
-    renderTable(tableData.slice(initialTableRows), continuationTableStartY, tailTableBottomMargin);
-  } else {
-    renderTable(tableData, tableStartY, tailTableBottomMargin);
-  }
-
-  // Reset lineWidth standar buat sig line + dividers.
-  doc.setLineWidth(0.2);
-
-  // ─── Summary ──────────────────────────────────────────────────────────
-  const tableEndY = (doc.lastAutoTable?.finalY || 0);
-  let finalY = tableEndY > 0 ? tableEndY + tableGap : margin + (isA6 ? 28 : 50);
-  const addTailContinuationPage = () => {
-    doc.addPage();
-    continuationStarted = true;
-    drawContinuationHeader(doc.getNumberOfPages());
-    finalY = continuationTableStartY;
-  };
-  const ensureTailSpace = (height) => {
-    if (finalY + height <= tailContentBottomY) return false;
-    addTailContinuationPage();
-    return true;
-  };
-  const tailFitsOnCurrentPage = compactPaper && !continuationStarted
-    ? finalY + tailContentH + sigGap <= compactSigY
-    : finalY + tailContentH + sigGap + sigNameOffset <= pageHeight - 4 - footerGap;
-
-  if (!tailFitsOnCurrentPage) {
-    addTailContinuationPage();
-  }
-  if (!tailFitsSinglePage && summaryAdvance) {
-    ensureTailSpace(summaryAdvance);
-  }
-
-  // Debug behind localStorage flag — set `localStorage.pdfDebug = '1'` di console untuk lihat values
-  if (typeof window !== 'undefined' && window.localStorage?.getItem('pdfDebug')) {
-    console.log('[generateNotaPDF DEBUG]', {
-      format,
-      pageHeight,
-      margin,
-      finalY,
-      tailContentH,
-      tailTableBottomMargin,
-      tableFitsWithTail,
-      splitTableForTail,
-    });
-  }
-
-  if (isLoan) {
-    // v1.54.0: pinjaman = bukan tagihan → total nilai barang saja (tanpa DPP/PPN),
-    // plus keterangan status barang supaya dokumen tidak disalahartikan sebagai nota jual.
-    const totalValue = parseFloat(order.total) || 0;
-    const rightX = pageWidth - margin;
-    doc.setFontSize(baseFontSize + 1);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0);
-    doc.text(`TOTAL NILAI BARANG: ${fmtRp(totalValue)}`, rightX, finalY, { align: 'right' });
-    finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
-    doc.setFontSize(baseFontSize - 2);
-    doc.setFont('helvetica', 'italic');
-    doc.setTextColor(100);
-    doc.text(`Terbilang: ${(angkaKeTerbilang(totalValue) + ' Rupiah').trim()}`, margin, finalY);
-    finalY += (isA6 ? 2.6 : (isA5 ? 4 : 6));
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...MONO.ink);
-    doc.text(loanNote, margin, finalY);
-    finalY += loanNote.length * (isA6 ? 2.6 : (isA5 ? 3.3 : 4.2));
-    doc.setTextColor(0);
-  }
-
-  if (type !== 'terima' && !isLoan) {
-    // v1.8.1: tax-friendly breakdown — DPP (subtotal exc PPN) + PPN 11% + Grand Total
-    // Indo practice: harga jual customer = gross (inc PPN). Decompose: GT = DPP + PPN.
-    // v1.21.14: ongkir baris terpisah, TIDAK kena PPN. DPP/PPN dihitung dari nilai produk saja.
-    // v1.25.1: biaya kartu kredit pass_on = baris terpisah TANPA PPN (sudah masuk order.total);
-    // mode absorb tidak tampil di nota (internal, motong margin).
-    const grandTotal = parseFloat(order.total) || 0;
-    const ongkir = parseFloat(order.ongkir) || 0;
-    const ccFee =
-      order.payment_fee_mode === 'pass_on' ? parseFloat(order.payment_fee) || 0 : 0;
-    const productTotal = grandTotal - ongkir - ccFee;
-    const PPN_RATE = 0.11; // default DPP/PPN nota (rate historis); per-faktur diatur terpisah
-    const dpp = productTotal / (1 + PPN_RATE);
-    const ppn = productTotal - dpp;
-    const rightX = pageWidth - margin;
-
-    doc.setFontSize(baseFontSize - 1);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(80, 80, 80);
-    // v1.65.0: nota TANPA PPN (sales_orders.ppn_excluded) — rincian DPP/PPN tidak
-    // dicetak, harga tampil apa adanya. GRAND TOTAL sengaja TIDAK diubah: nilainya
-    // sama persis, yang hilang hanya dua baris rincian pajaknya.
-    if (!order.ppn_excluded) {
-      doc.text(`Subtotal (DPP): ${fmtRp(dpp)}`, rightX, finalY, { align: 'right' });
-      finalY += isA6 ? 2.4 : (isA5 ? 3.3 : 4.5);
-      doc.text(`PPN ${Math.round(PPN_RATE * 100)}%: ${fmtRp(ppn)}`, rightX, finalY, { align: 'right' });
-      finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
+    let maxFinalRows = 0;
+    let finalRowsHeight = 0;
+    const finalRowsCapacity = tailTableEndY - continuationTableStartY - tableHeadHeight;
+    for (let index = bodyHeights.length - 1; index >= 0; index -= 1) {
+      if (finalRowsHeight + bodyHeights[index] > finalRowsCapacity) break;
+      finalRowsHeight += bodyHeights[index];
+      maxFinalRows += 1;
     }
-    if (ongkir > 0) {
-      doc.text(`Ongkir: ${fmtRp(ongkir)}`, rightX, finalY, { align: 'right' });
-      finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
-    }
-    if (ccFee > 0) {
-      doc.text(`Biaya Kartu Kredit: ${fmtRp(ccFee)}`, rightX, finalY, { align: 'right' });
-      finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
+    const balancedFinalRows = Math.min(
+      Math.max(maxFinalRows, 1),
+      Math.ceil(tableData.length / 2),
+    );
+    // Baris yang benar-benar muat di halaman pertama (dibatasi dasar halaman,
+    // bukan hanya reservasi tail). Tanpa ini, sisa baris bisa terdorong ke
+    // halaman baru yang isinya cuma satu baris.
+    const firstPageCapacity = (() => {
+      const limit = pageHeight - margin - tableStartY - tableHeadHeight;
+      let used = 0;
+      let count = 0;
+      for (const height of bodyHeights) {
+        if (used + height > limit) break;
+        used += height;
+        count += 1;
+      }
+      return count;
+    })();
+    const initialTableRows = Math.min(
+      Math.max(tableData.length - balancedFinalRows, 0),
+      firstPageCapacity,
+    );
+    const splitTableForTail = tailFitsSinglePage && !tableFitsWithTail && initialTableRows > 0;
+
+    const renderTable = (body, startY, bottomMargin) => {
+      autoTable(doc, {
+        ...tableStyles,
+        startY,
+        body,
+        margin: {
+          top: continuationTableStartY,
+          right: margin,
+          bottom: bottomMargin,
+          left: margin,
+        },
+        willDrawPage: () => {
+          if (doc.getNumberOfPages() > 1) {
+            continuationStarted = true;
+            drawContinuationHeader(doc.getNumberOfPages());
+          }
+        },
+      });
+    };
+
+    if (splitTableForTail) {
+      renderTable(tableData.slice(0, initialTableRows), tableStartY, margin);
+      doc.addPage();
+      renderTable(tableData.slice(initialTableRows), continuationTableStartY, tailTableBottomMargin);
+    } else {
+      renderTable(tableData, tableStartY, tailTableBottomMargin);
     }
 
-    doc.setFontSize(baseFontSize + 1);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0);
-    doc.text(`GRAND TOTAL: ${fmtRp(grandTotal)}`, rightX, finalY, { align: 'right' });
+    // Reset lineWidth standar buat sig line + dividers.
+    doc.setLineWidth(0.2);
 
-    finalY += isA6 ? 2.6 : (isA5 ? 3.6 : 5);
-    doc.setFontSize(baseFontSize - 2);
-    doc.setFont('helvetica', 'italic');
-    doc.setTextColor(100);
-    const words = (angkaKeTerbilang(grandTotal) + " Rupiah").trim();
-    doc.text(`Terbilang: ${words}`, margin, finalY);
-    finalY += (isA6 ? 2.6 : (isA5 ? 4 : 6));
-    const estWeightGram = Math.max(0, parseInt(order.est_weight_gram) || 0);
-    if (estWeightGram > 0) {
-      const weightKg = (estWeightGram / 1000).toFixed(2).replace('.', ',');
+    // ─── Summary ──────────────────────────────────────────────────────────
+    const tableEndY = (doc.lastAutoTable?.finalY || 0);
+    let finalY = tableEndY > 0 ? tableEndY + tableGap : margin + (isA6 ? 30 : 50);
+    const addTailContinuationPage = () => {
+      doc.addPage();
+      continuationStarted = true;
+      drawContinuationHeader(doc.getNumberOfPages());
+      finalY = continuationTableStartY;
+    };
+    const ensureTailSpace = (height) => {
+      if (finalY + height <= tailContentBottomY) return false;
+      addTailContinuationPage();
+      return true;
+    };
+    const tailFitsOnCurrentPage = finalY + tailContentH + sigGap + sigNameOffset <= pageHeight - 4 - footerGap;
+
+    if (!tailFitsOnCurrentPage) {
+      addTailContinuationPage();
+    }
+    if (!tailFitsSinglePage && summaryAdvance && finalY + summaryAdvance > tailContentBottomY) {
+      ensureTailSpace(summaryAdvance);
+    }
+
+    // Debug behind localStorage flag — set `localStorage.pdfDebug = '1'` di console untuk lihat values
+    if (typeof window !== 'undefined' && window.localStorage?.getItem('pdfDebug')) {
+      console.log('[generateNotaPDF DEBUG]', {
+        format,
+        pageHeight,
+        margin,
+        finalY,
+        tailContentH,
+        tailTableBottomMargin,
+        tableFitsWithTail,
+        splitTableForTail,
+      });
+    }
+
+    if (isLoan) {
+      // v1.54.0: pinjaman = bukan tagihan → total nilai barang saja (tanpa DPP/PPN),
+      // plus keterangan status barang supaya dokumen tidak disalahartikan sebagai nota jual.
+      const totalValue = parseFloat(order.total) || 0;
+      const rightX = pageWidth - margin;
+      doc.setFontSize(bodySize);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0);
+      doc.text(`TOTAL NILAI BARANG: ${fmtRp(totalValue)}`, rightX, finalY, { align: 'right' });
+      finalY += lineH;
+      doc.setFontSize(metaSize);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(100);
+      doc.splitTextToSize(`Terbilang: ${(angkaKeTerbilang(totalValue) + ' Rupiah').trim()}`, contentWidth).forEach((line) => {
+        doc.text(line, margin, finalY);
+        finalY += metaLineH;
+      });
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...MONO.ink);
+      doc.text(loanNote, margin, finalY);
+      finalY += loanNote.length * metaLineH;
+      doc.setTextColor(0);
+    }
+
+    if (type !== 'terima' && !isLoan) {
+      // v1.8.1: tax-friendly breakdown — DPP (subtotal exc PPN) + PPN 11% + Grand Total
+      // Indo practice: harga jual customer = gross (inc PPN). Decompose: GT = DPP + PPN.
+      // v1.21.14: ongkir baris terpisah, TIDAK kena PPN. DPP/PPN dihitung dari nilai produk saja.
+      // v1.25.1: biaya kartu kredit pass_on = baris terpisah TANPA PPN (sudah masuk order.total);
+      // mode absorb tidak tampil di nota (internal, motong margin).
+      const grandTotal = parseFloat(order.total) || 0;
+      const ongkir = parseFloat(order.ongkir) || 0;
+      const ccFee =
+        order.payment_fee_mode === 'pass_on' ? parseFloat(order.payment_fee) || 0 : 0;
+      const productTotal = grandTotal - ongkir - ccFee;
+      const PPN_RATE = 0.11; // default DPP/PPN nota (rate historis); per-faktur diatur terpisah
+      const dpp = productTotal / (1 + PPN_RATE);
+      const ppn = productTotal - dpp;
+      const rightX = pageWidth - margin;
+
+      doc.setFontSize(metaSize);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(80, 80, 80);
-      doc.text(`Estimasi Berat Paket: ${weightKg} kg`, margin, finalY);
-      finalY += (isA6 ? 2.6 : (isA5 ? 4 : 6));
-    }
-    doc.setTextColor(0);
-  }
-
-  if (notesLines.length) {
-    const setNotesStyle = () => {
-      doc.setFontSize(baseFontSize - 2);
-      doc.setTextColor(120);
-    };
-    setNotesStyle();
-    if (tailFitsSinglePage) {
-      doc.text(notesLines, margin, finalY);
-      finalY += notesBlockH;
-    } else {
-      notesLines.forEach((line) => {
-        if (ensureTailSpace(lineH)) setNotesStyle();
-        doc.text(line, margin, finalY);
-        finalY += lineH;
-      });
-      finalY += Math.max(0, notesBlockH - notesLines.length * lineH);
-    }
-    doc.setTextColor(0);
-  }
-
-  // ─── Ketentuan / Notes ────────────────────────────────────────────────
-  if (ketentuanRows.length) {
-    if (!tailFitsSinglePage) {
-      ensureTailSpace(notesTopGap + noteHeadingAdvance + lineH);
-    }
-    finalY += notesTopGap;
-    doc.setFontSize(baseFontSize - 2);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...MONO.ink);
-    doc.text('NOTE:', margin, finalY);
-    finalY += isA6 ? 2.5 : (isA5 ? 3 : 4);
-    doc.setFont('helvetica', 'normal');
-    ketentuanRows.forEach(({ wrapped }) => {
-      if (tailFitsSinglePage) {
-        doc.text(wrapped, margin, finalY);
-        finalY += wrapped.length * lineH;
-        return;
+      // v1.65.0: nota TANPA PPN (sales_orders.ppn_excluded) — rincian DPP/PPN tidak
+      // dicetak, harga tampil apa adanya. GRAND TOTAL sengaja TIDAK diubah.
+      if (!order.ppn_excluded) {
+        doc.text(`Subtotal (DPP): ${fmtRp(dpp)}`, rightX, finalY, { align: 'right' });
+        finalY += metaLineH;
+        doc.text(`PPN ${Math.round(PPN_RATE * 100)}%: ${fmtRp(ppn)}`, rightX, finalY, { align: 'right' });
+        finalY += metaLineH;
       }
-      wrapped.forEach((line) => {
-        if (ensureTailSpace(lineH)) {
-          doc.setFontSize(baseFontSize - 2);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(...MONO.ink);
-        }
+      if (ongkir > 0) {
+        doc.text(`Ongkir: ${fmtRp(ongkir)}`, rightX, finalY, { align: 'right' });
+        finalY += metaLineH;
+      }
+      if (ccFee > 0) {
+        doc.text(`Biaya Kartu Kredit: ${fmtRp(ccFee)}`, rightX, finalY, { align: 'right' });
+        finalY += metaLineH;
+      }
+
+      doc.setFontSize(bodySize);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0);
+      doc.text(`GRAND TOTAL: ${fmtRp(grandTotal)}`, rightX, finalY, { align: 'right' });
+
+      finalY += lineH;
+      doc.setFontSize(metaSize);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(100);
+      const words = (angkaKeTerbilang(grandTotal) + " Rupiah").trim();
+      doc.splitTextToSize(`Terbilang: ${words}`, contentWidth).forEach((line) => {
         doc.text(line, margin, finalY);
-        finalY += lineH;
+        finalY += metaLineH;
       });
-    });
-    doc.setTextColor(0);
-  }
-
-  // ─── Bank Info ────────────────────────────────────────────────────────
-  ensureTailSpace(bankAdvance + sigGap + sigNameOffset);
-  if (bankInfo && type !== 'terima' && !isLoan) {
-    finalY += bankLead;
-    doc.setFontSize(baseFontSize - 1);
-    doc.setTextColor(0);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`REK ${bankInfo}`, pageWidth / 2, finalY, { align: 'center' });
-    finalY += bankLineAdvance; // explicit advance past REK text height biar gak collide sig
-    if (qrisText) {
-      doc.text(qrisText, pageWidth / 2, finalY, { align: 'center' });
-      finalY += bankLineAdvance;
+      const estWeightGram = Math.max(0, parseInt(order.est_weight_gram) || 0);
+      if (estWeightGram > 0) {
+        const weightKg = (estWeightGram / 1000).toFixed(2).replace('.', ',');
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(80, 80, 80);
+        doc.text(`Estimasi Berat Paket: ${weightKg} kg`, margin, finalY);
+        finalY += metaLineH;
+      }
+      doc.setTextColor(0);
     }
-  }
 
-  // ─── Signatures ──────────────────────────────────────────────────────
-  // v1.66.4: label -> line -> name spacing is intentionally consistent.
-  // On a continuation page, keep bank/signature content near the continuation
-  // header. Anchoring it to the footer creates a mostly blank second page.
-  const sigY = compactPaper
-    ? Math.min(
+    if (notesLines.length) {
+      const setNotesStyle = () => {
+        doc.setFontSize(metaSize);
+        doc.setTextColor(120);
+      };
+      setNotesStyle();
+      if (tailFitsSinglePage) {
+        doc.text(notesLines, margin, finalY);
+        finalY += notesBlockH;
+      } else {
+        notesLines.forEach((line) => {
+          if (ensureTailSpace(metaLineH)) setNotesStyle();
+          doc.text(line, margin, finalY);
+          finalY += metaLineH;
+        });
+        finalY += Math.max(0, notesBlockH - notesLines.length * metaLineH);
+      }
+      doc.setTextColor(0);
+    }
+
+    // ─── Ketentuan / Notes ────────────────────────────────────────────────
+    if (ketentuanRows.length) {
+      if (!tailFitsSinglePage) {
+        ensureTailSpace(notesTopGap + noteHeadingAdvance + metaLineH);
+      }
+      finalY += notesTopGap;
+      doc.setFontSize(metaSize);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...MONO.ink);
+      doc.text('NOTE:', margin, finalY);
+      finalY += noteHeadingAdvance;
+      doc.setFont('helvetica', 'normal');
+      ketentuanRows.forEach(({ wrapped }) => {
+        if (tailFitsSinglePage) {
+          doc.text(wrapped, margin, finalY);
+          finalY += wrapped.length * metaLineH;
+          return;
+        }
+        wrapped.forEach((line) => {
+          if (ensureTailSpace(metaLineH)) {
+            doc.setFontSize(metaSize);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...MONO.ink);
+          }
+          doc.text(line, margin, finalY);
+          finalY += metaLineH;
+        });
+      });
+      doc.setTextColor(0);
+    }
+
+    // ─── Bank Info ────────────────────────────────────────────────────────
+    ensureTailSpace(bankAdvance + sigGap + sigNameOffset);
+    if (bankInfo && type !== 'terima' && !isLoan) {
+      finalY += bankLead;
+      doc.setFontSize(metaSize);
+      doc.setTextColor(0);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`REK ${bankInfo}`, pageWidth / 2, finalY, { align: 'center' });
+      finalY += bankLineAdvance;
+      if (qrisText) {
+        doc.text(qrisText, pageWidth / 2, finalY, { align: 'center' });
+        finalY += bankLineAdvance;
+      }
+    }
+
+    // ─── Signatures ──────────────────────────────────────────────────────
+    // v1.66.4: label -> line -> name spacing is intentionally consistent.
+    // On a continuation page, keep bank/signature content near the continuation
+    // header. Anchoring it to the footer creates a mostly blank second page.
+    const sigY = Math.min(
       compactSigY,
       Math.max(finalY + sigGap, type === 'terima' && !continuationStarted ? pageHeight * 0.64 : 0),
-    )
-    : finalY + sigGap;
+    );
 
-  doc.setFontSize(baseFontSize - 1);
-  doc.setTextColor(0);
-  doc.setFont('helvetica', 'normal');
+    doc.setFontSize(bodySize);
+    doc.setTextColor(0);
+    doc.setFont('helvetica', 'normal');
 
-  // Left: Customer (Penerima) — pinjaman: Peminjam
-  doc.text(isLoan ? 'Peminjam,' : 'Penerima,', margin + sigCenter, sigY, { align: 'center' });
-  doc.line(margin, sigY + sigLineOffset, margin + sigHalfWidth, sigY + sigLineOffset);
-  doc.text('(                          )', margin + sigCenter, sigY + sigNameOffset, { align: 'center' });
+    // Left: Customer (Penerima) — pinjaman: Peminjam
+    doc.text(isLoan ? 'Peminjam,' : 'Penerima,', margin + sigCenter, sigY, { align: 'center' });
+    doc.line(margin, sigY + sigLineOffset, margin + sigHalfWidth, sigY + sigLineOffset);
+    doc.text('(                          )', margin + sigCenter, sigY + sigNameOffset, { align: 'center' });
 
-  // Right: Company/Signer (Hormat kami)
-  const rightSigX = pageWidth - margin - sigCenter;
-  doc.text('Hormat kami,', rightSigX, sigY, { align: 'center' });
-  doc.line(pageWidth - margin - sigHalfWidth, sigY + sigLineOffset, pageWidth - margin, sigY + sigLineOffset);
-  if (signerName) {
-    doc.text(signerName, rightSigX, sigY + sigNameOffset, { align: 'center' });
-  }
+    // Right: Company/Signer (Hormat kami)
+    const rightSigX = pageWidth - margin - sigCenter;
+    doc.text('Hormat kami,', rightSigX, sigY, { align: 'center' });
+    doc.line(pageWidth - margin - sigHalfWidth, sigY + sigLineOffset, pageWidth - margin, sigY + sigLineOffset);
+    if (signerName) {
+      doc.text(signerName, rightSigX, sigY + sigNameOffset, { align: 'center' });
+    }
 
-  // ─── Footer ───────────────────────────────────────────────────────────
-  if (footerText) {
-    doc.setFontSize(isA6 ? 5.5 : (isA5 ? 5 : 6));
-    doc.setTextColor(180);
-    doc.text(String(footerText), pageWidth / 2, pageHeight - 4, { align: 'center' });
-  }
+    // ─── Footer ───────────────────────────────────────────────────────────
+    if (footerText) {
+      doc.setFontSize(microSize);
+      doc.setTextColor(180);
+      doc.text(String(footerText), pageWidth / 2, pageHeight - 4, { align: 'center' });
+    }
 
     console.log('[generateNotaPDF] PDF generated successfully');
     return doc;
