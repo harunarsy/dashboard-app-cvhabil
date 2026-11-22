@@ -4,6 +4,13 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 22 Nov 2026: redesign kapasitas cetak A5/A6 (LOKAL, belum dipush)
+- Baseline sebelum redesign: A5 Nota **1 barang/halaman**, A5 Tanda Terima 5, A6 Nota 1, A6 Tanda Terima 4. Penyebabnya header 4 baris, blok pelanggan 2-3 baris, dan reservasi tanda tangan yang terlalu besar, bukan hanya ukuran font.
+- Profil baru: isi A5 9pt, A6 8pt, judul tetap 12pt, margin 7/4,5 mm, padding tabel 0,7/0,55 mm. ED dan nomor batch dipindah ke kolom sendiri (5,5-6pt) sehingga baris nama tidak lagi dua baris.
+- Hasil terukur (1 halaman, nama produk + ED/batch + jatuh tempo + ketentuan 3 baris + rekening + tanda tangan): A5 Nota **10 barang**, A5 Tanda Terima **14**, A6 Nota **5**, A6 Tanda Terima **10**. Kelebihan barang pindah halaman tanpa baris hilang.
+- Perbaikan kecil: nama pelanggan tidak lagi tercetak "Yth. Yth.", blok tanda tangan menempel ke konten pada kertas ringkas, label Opsi Cetak menampilkan batas item.
+- Verifikasi: 345 tes frontend lulus (1 skip), termasuk 10 tes kapasitas/paginasi baru; build produksi lulus. A4, Surat Pesanan, renderer v2, dan orientasi tidak berubah. Versi lokal **v1.68.2-stable**, belum di-commit/push.
+
 ## Update 22 Nov 2026: perbaikan PDF A5/A6 (lokal)
 - Commit `ee4aeea` memaksa generator legacy ke portrait walau tombol A5/A6 berlabel landscape. Nota Penjualan dan Tanda Terima kembali landscape; A4, Nota Pinjaman, Surat Pesanan, dan renderer v2 tidak diganti.
 - A6 legacy memakai judul 12 pt, isi 10 pt dan detail 8 pt. Spasi dipadatkan agar contoh nota pendek muat satu halaman; dokumen panjang tetap dapat memakai halaman lanjutan. Kolom identitas perusahaan dibungkus agar tidak masuk ke area barcode.

@@ -158,7 +158,7 @@ export default function Login({
             className="ui-over-media-copy mt-3 px-3 py-1 text-xs font-semibold"
             style={{ color: sub }}
           >
-            v1.68.1-stable · 2026
+            v1.68.2-stable · 2026
           </p>
         </div>
 

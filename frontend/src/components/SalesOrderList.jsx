@@ -6794,8 +6794,8 @@ export default function SalesOrderList({
                         {f === "A4"
                           ? "(Portrait · Formal)"
                           : f === "A5"
-                            ? "(Landscape)"
-                            : "(Landscape · Ringkas)"}
+                            ? "(Landscape · s.d. 10 item)"
+                            : "(Landscape · s.d. 5 item)"}
                       </span>
                     </button>
                   ))}

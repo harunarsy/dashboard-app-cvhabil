@@ -36,7 +36,6 @@ export function generateNotaPDF(order, options = {}) {
     const isA5 = fmt === 'A5';
     const isA6 = fmt === 'A6';
     const compactLandscape = (type === 'nota' || type === 'terima') && (isA5 || isA6);
-    const shortPage = compactLandscape && isA6;
     const orientation = compactLandscape ? 'l' : 'p';
     const doc = new jsPDF(orientation, 'mm', fmt.toLowerCase());
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -44,24 +43,25 @@ export function generateNotaPDF(order, options = {}) {
     console.log('[generateNotaPDF] Page dimensions - Width:', pageWidth, 'Height:', pageHeight);
 
     // ─── Tipografi & geometri ───────────────────────────────────────────
-    // A6 landscape has only 105 mm of height. Keep the document title at
-    // 12pt, with a compact print scale for rows and supporting information.
-    const bodySize = shortPage ? 10 : PDF_FONT.body;
-    const metaSize = shortPage ? 8 : (compactLandscape ? 9 : PDF_FONT.meta);
-    const microSize = PDF_FONT.micro;
-    const lineH = lineHeightMm(bodySize, shortPage ? 1.05 : undefined);
-    const metaLineFactor = compactLandscape ? 1.05 : 1.25;
-    const metaLineH = lineHeightMm(metaSize, metaLineFactor);
-    const margin = isA6 ? 5 : (isA5 ? 8 : 12);
+    // Profil cetak ringkas: A5 = 9pt isi, A6 = 8pt isi. Batas bawah 8pt
+    // supaya nota tetap terbaca setelah dicetak, bukan hanya di layar.
+    const bodySize = isA6 ? 8 : (isA5 ? 9 : PDF_FONT.body);
+    const metaSize = isA6 ? 7 : (isA5 ? 7.5 : PDF_FONT.meta);
+    const microSize = isA6 ? 6 : (isA5 ? 6.5 : PDF_FONT.micro);
+    const lineFactor = compactLandscape ? 1.12 : 1.25;
+    const lineH = lineHeightMm(bodySize, lineFactor);
+    const metaLineH = lineHeightMm(metaSize, lineFactor);
+    const margin = isA6 ? 4.5 : (isA5 ? 7 : 12);
     const accentColor = MONO.ink;
     const logoDataUrl = settings.logo_data_url;
-    const logoWidth = isA6 ? 9 : (isA5 ? 11 : 14);
+    const logoWidth = isA6 ? 8 : (isA5 ? 9 : 14);
     const identityX = logoDataUrl ? margin + logoWidth + 2 : margin;
     const contentWidth = pageWidth - margin * 2;
-    const rightColW = isA6 ? 42 : Math.min(60, contentWidth * 0.42);
+    const rightColW = isA6 ? 46 : (isA5 ? 54 : Math.min(60, contentWidth * 0.42));
     const identityMaxW = compactLandscape
       ? pageWidth - margin - rightColW - 3 - identityX
       : Math.max(40, contentWidth - rightColW - 3);
+    const compactRows = compactLandscape;
 
     let headY = margin + baselineOffsetMm(bodySize);
     if (logoDataUrl) {
@@ -81,7 +81,7 @@ export function generateNotaPDF(order, options = {}) {
     doc.setFontSize(bodySize);
     doc.setTextColor(...accentColor);
     const wrappedCompany = doc.splitTextToSize(String(companyName), identityMaxW);
-    const companyLines = compactLandscape ? wrappedCompany : wrappedCompany.slice(0, 2);
+    const companyLines = compactRows ? wrappedCompany.slice(0, 1) : wrappedCompany.slice(0, 2);
     companyLines.forEach((line, i) => doc.text(line, identityX, headY + lineH * i));
     headY += lineH * (companyLines.length - 1);
 
@@ -89,8 +89,16 @@ export function generateNotaPDF(order, options = {}) {
     doc.setFontSize(metaSize);
     doc.setTextColor(40, 40, 40);
     const npwp = settings.npwp || '93.813.949.0-609.000';
-    for (const field of [`NPWP: ${npwp}`, settings.address || '-', settings.phone || '-']) {
-      const lines = compactLandscape ? doc.splitTextToSize(String(field), identityMaxW) : [String(field)];
+    // Ringkas: NPWP + telepon satu baris, alamat satu baris. Hemat 1-2 baris
+    // dibanding blok 4 baris yang lama.
+    const headerFields = compactRows
+      ? [
+        [`NPWP: ${npwp}`, String(settings.phone || '')].filter(Boolean).join(' · '),
+        String(settings.address || '-'),
+      ]
+      : [`NPWP: ${npwp}`, String(settings.address || '-'), String(settings.phone || '-')];
+    for (const field of headerFields) {
+      const lines = compactRows ? doc.splitTextToSize(String(field), identityMaxW).slice(0, 1) : [String(field)];
       for (const line of lines) {
         headY += metaLineH;
         doc.text(line, identityX, headY);
@@ -114,8 +122,8 @@ export function generateNotaPDF(order, options = {}) {
     let infoShift = 0;
     const barcodeValue = String(order.order_number || '').trim();
     if (barcodeValue && type !== 'terima') {
-      const barcodeW = isA6 ? 26 : (isA5 ? 32 : 38);
-      const barcodeH = isA6 ? 5 : (isA5 ? 6 : 7);
+      const barcodeW = compactRows ? (isA6 ? 24 : 28) : (isA5 ? 32 : 38);
+      const barcodeH = compactRows ? 4 : (isA5 ? 6 : 7);
       try {
         const canvas = document.createElement('canvas');
         JsBarcode(canvas, barcodeValue, {
@@ -125,7 +133,7 @@ export function generateNotaPDF(order, options = {}) {
         const dataUrl = canvas.toDataURL('image/png');
         if (dataUrl && dataUrl !== 'data:,') {
           doc.addImage(dataUrl, 'PNG', infoX - barcodeW, titleY + 2, barcodeW, barcodeH);
-          infoShift = barcodeH + 2;
+          infoShift = barcodeH + 1.5;
         }
       } catch (e) {
         // sengaja diabaikan — barcode itu pelengkap, nota tetap harus bisa dicetak
@@ -136,7 +144,6 @@ export function generateNotaPDF(order, options = {}) {
     doc.setFontSize(metaSize);
     doc.setTextColor(50, 50, 50);
     let infoY = titleY + metaLineH + infoShift;
-    doc.text(`No: ${String(order.order_number || '-')}`, infoX, infoY, { align: 'right' });
     const saleDateStr = order.sale_date
       ? formatDateOnly(order.sale_date, { day: '2-digit', month: 'short', year: 'numeric' })
       : '-';
@@ -145,8 +152,14 @@ export function generateNotaPDF(order, options = {}) {
     const hasDueDate = Boolean(
       order.due_date && (isLoan || (order.payment_method !== 'Tunai' && type !== 'terima'))
     );
-    infoY += metaLineH;
-    doc.text(saleDateStr, infoX, infoY, { align: 'right' });
+    const infoLine = compactRows
+      ? `No: ${String(order.order_number || '-')} · ${saleDateStr}`
+      : `No: ${String(order.order_number || '-')}`;
+    doc.text(infoLine, infoX, infoY, { align: 'right' });
+    if (!compactRows) {
+      infoY += metaLineH;
+      doc.text(saleDateStr, infoX, infoY, { align: 'right' });
+    }
 
     // Jatuh tempo ditulis penuh pada barisnya sendiri di bawah header, supaya
     // label "Jatuh Tempo Pembayaran" tidak bertabrakan dengan nama perusahaan.
@@ -163,13 +176,13 @@ export function generateNotaPDF(order, options = {}) {
     }
 
     // Garis pembatas mengikuti baris terakhir header (kiri atau kanan).
-    const dividerY = Math.max(headY, infoY, dueY) + (shortPage ? 1.2 : (isA6 ? 2.2 : 3));
+    const dividerY = Math.max(headY, infoY, dueY) + (compactRows ? 1.2 : (isA6 ? 2.2 : 3));
     doc.setDrawColor(...MONO.rule);
     doc.setLineWidth(0.4);
     doc.line(margin, dividerY, pageWidth - margin, dividerY);
 
     // ─── Customer & Payment ─────────────────────────────────────────────
-    const customerY = dividerY + (isA6 ? 4 : 6);
+    const customerY = dividerY + (compactRows ? (isA6 ? 2 : 2.8) : 6);
     doc.setFontSize(bodySize);
     doc.setTextColor(0);
     doc.setFont('helvetica', 'normal');
@@ -185,14 +198,16 @@ export function generateNotaPDF(order, options = {}) {
     // sanitasi No. HP: buang karakter sampah (mis. "*", ",") → cuma digit/+/()-/spasi.
     const cleanPhone = (p) =>
       String(p || '').replace(/[^\d+()\-\s]/g, '').replace(/\s+/g, ' ').trim();
-    // A6 landscape cukup lebar untuk nama sejajar label.
     let addressY = customerY;
     doc.setFont('helvetica', 'bold');
-    const stackCustomer = isA6 && !shortPage;
-    const nameOffset = shortPage ? 21 : 24;
+    const stackCustomer = isA6 && !compactRows;
+    const nameOffset = isA6 ? 17 : 18.5;
     const nameX = stackCustomer ? margin : margin + nameOffset;
-    const nameW = stackCustomer ? contentWidth : contentWidth - nameOffset - 34;
-    const nameLines = doc.splitTextToSize(String(order.customer_name || '-'), nameW);
+    const nameW = stackCustomer ? contentWidth : contentWidth - nameOffset;
+    const customerName = String(order.customer_name || '-')
+      .replace(/^\s*(kepada\s+)?yth\.?\s+/i, '')
+      .trim() || '-';
+    const nameLines = doc.splitTextToSize(customerName, nameW);
     nameLines.forEach((ln, index) => {
       if (stackCustomer || index > 0) addressY += lineH;
       doc.text(ln, nameX, addressY);
@@ -204,7 +219,7 @@ export function generateNotaPDF(order, options = {}) {
     const contactW = contentWidth;
     const phoneClean = cleanPhone(order.customer_phone);
     const contactFields = [phoneClean, String(order.customer_address || '').trim()].filter(Boolean);
-    const contactBlocks = compactLandscape ? [contactFields.join(' · ')].filter(Boolean) : contactFields;
+    const contactBlocks = compactRows ? [contactFields.join(' · ')].filter(Boolean) : contactFields;
     for (const contact of contactBlocks) {
       for (const ln of doc.splitTextToSize(contact, contactW)) {
         addressY += metaLineH;
@@ -273,7 +288,15 @@ export function generateNotaPDF(order, options = {}) {
       const unitShow = item.unit || 'pcs';
       return `${qtyShow} ${unitShow}`;
     };
-    const formatProductName = (item) => {
+    // Kolom meta terpisah (A5): ED/batch tidak lagi menambah tinggi baris nama.
+    const itemMetaText = (item) => {
+      const edStr = formatExpiry(item.expired_date_snapshot, item.expired_date_snapshot_precision, "");
+      return [
+        edStr ? `ED: ${edStr}` : '',
+        item.batch_no_snapshot ? `Batch: ${item.batch_no_snapshot}` : '',
+      ].filter(Boolean).join('\n');
+    };
+    const formatProductName = (item, { withMeta = true } = {}) => {
       const packSize = parseInt(item.pack_size_at_sale) || 1;
       const qtyInUnit = item.qty_in_unit !== undefined && item.qty_in_unit !== null ? parseFloat(item.qty_in_unit) : null;
       const qtyBase = item.qty || 0;
@@ -282,57 +305,71 @@ export function generateNotaPDF(order, options = {}) {
       if (packSize > 1 && qtyInUnit !== null && qtyInUnit !== qtyBase) {
         lines.push(`(= ${qtyBase} ${item.unit_base || 'pcs'})`);
       }
-      // Sub-line 2: ED dulu supaya tetap utuh saat baris terpotong, lalu batch.
-      const meta = [];
-      const edStr = formatExpiry(item.expired_date_snapshot, item.expired_date_snapshot_precision, "");
-      if (edStr) meta.push(`ED: ${edStr}`);
-      if (item.batch_no_snapshot) meta.push(`Batch: ${item.batch_no_snapshot}`);
-      if (meta.length) lines.push(meta.join(' · '));
+      if (withMeta) {
+        const meta = itemMetaText(item);
+        if (meta) lines.push(meta.replace(/\n/g, ' · '));
+      }
       return lines.join('\n');
     };
-    // Kertas sempit: utamakan nama barang, qty dan total baris.
-    const compactColumns = type !== 'terima' && pageWidth < 170;
+    // A5 memakai 4 kolom (tanpa No) agar nama barang lega; A6 3 kolom.
+    const compactColumns = type !== 'terima' && compactRows;
+    const hideNumberColumn = type !== 'terima' && compactRows;
     const tableData = displayItems.map((item, index) => {
       if (type === 'terima') {
-        return [index + 1, formatProductName(item), formatQtyDisplay(item)];
+        return compactRows
+          ? [index + 1, formatProductName(item, { withMeta: false }), itemMetaText(item), formatQtyDisplay(item)]
+          : [index + 1, formatProductName(item), formatQtyDisplay(item)];
       }
       const qtyForCalc = item.qty_in_unit !== undefined && item.qty_in_unit !== null ? parseFloat(item.qty_in_unit) : (item.qty || 0);
       const total = fmtRp(qtyForCalc * (item.unit_price || 0));
       if (compactColumns) {
-        return [formatProductName(item), formatQtyDisplay(item), total];
+        return isA6
+          ? [formatProductName(item, { withMeta: false }), formatQtyDisplay(item), itemMetaText(item), total]
+          : [
+            formatProductName(item, { withMeta: false }),
+            formatQtyDisplay(item),
+            itemMetaText(item),
+            fmtRp(item.unit_price),
+            total,
+          ];
       }
       return [index + 1, formatProductName(item), formatQtyDisplay(item), fmtRp(item.unit_price), total];
     });
 
     const tableHead = type === 'terima'
-      ? [['No', 'Nama Barang', 'Qty']]
-      : (compactColumns ? [['Nama Barang', 'Qty', 'Total']] : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']]);
+      ? (compactRows
+        ? [['No', 'Nama Barang', 'ED / Batch', 'Qty']]
+        : [['No', 'Nama Barang', 'Qty']])
+      : (compactColumns
+        ? (isA6
+          ? [['Nama Barang', 'Qty', 'ED / Batch', 'Total']]
+          : [['Nama Barang', 'Qty', 'ED / Batch', 'Harga', 'Total']])
+        : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']]);
 
     // Tabel mulai setelah blok customer, tidak pernah menabrak divider.
-    const tableStartY = Math.max(
-      dividerY + (shortPage ? 4.5 : 6),
-      addressY + (shortPage ? 2 : 4),
-    );
+    const tableStartY = compactRows
+      ? Math.max(dividerY + (isA6 ? 2.8 : 3.5), addressY + (isA6 ? 1 : 1.5))
+      : Math.max(dividerY + 6, addressY + 4);
 
-    // Ukuran tail (total, catatan, rekening, tanda tangan) dihitung dari
-    // tinggi baris 12pt/10pt supaya tidak ada tumpang tindih.
-    const footerGap = 2;
-    const sigGap = shortPage ? 3 : 5;
-    const sigLineOffset = shortPage ? 8 : (compactLandscape ? 12 : (isA6 ? 14 : 16));
-    const sigNameOffset = shortPage ? 12 : (compactLandscape ? 16 : 20);
-    const sigHalfWidth = isA6 ? 34 : 42;
-    const sigCenter = isA6 ? 17 : 21;
-    const tableGap = shortPage ? 2.5 : 3;
-    const notesTopGap = shortPage ? 1.2 : 2;
-    const noteHeadingAdvance = shortPage ? 0 : metaLineH;
-    const bankLead = shortPage ? 1.5 : 3;
+    // Ukuran tail (total, catatan, rekening, tanda tangan) mengikuti profil
+    // ringkas A5/A6 supaya sisa ruang tabel maksimal.
+    const footerGap = compactRows ? 1.2 : 2;
+    const sigGap = compactRows ? 2.5 : 5;
+    const sigLineOffset = isA6 ? 7.5 : (compactRows ? 9 : 16);
+    const sigNameOffset = isA6 ? 11 : (compactRows ? 13.5 : 20);
+    const sigHalfWidth = isA6 ? 30 : (compactRows ? 34 : 42);
+    const sigCenter = isA6 ? 15 : (compactRows ? 17 : 21);
+    const tableGap = compactRows ? 2 : 3;
+    const notesTopGap = compactRows ? 0.8 : 2;
+    const noteHeadingAdvance = compactRows ? 0 : metaLineH;
+    const bankLead = compactRows ? 0.8 : 3;
     const bankLineAdvance = metaLineH;
     const bankAdvance = bankInfo && type !== 'terima' && !isLoan
       ? bankLead + bankLineAdvance + (qrisText ? bankLineAdvance : 0)
       : 0;
     // Sisakan ruang footer supaya nama penanda tangan tidak menabrak teks footer.
-    const footerReserveY = footerText ? 6 : 2;
-    const compactSigY = pageHeight - 4 - footerReserveY - sigNameOffset;
+    const footerReserveY = footerText ? (isA6 ? 4 : 5) : 1.5;
+    const compactSigY = pageHeight - 3 - footerReserveY - sigNameOffset;
 
     doc.setFontSize(metaSize);
     const loanNote = isLoan
@@ -341,16 +378,18 @@ export function generateNotaPDF(order, options = {}) {
         pageWidth - margin * 2
       )
       : [];
+    const ketentuanSize = isA6 ? 6.2 : metaSize;
+    const ketentuanLineH = isA6 ? lineHeightMm(ketentuanSize, lineFactor) : metaLineH;
     const ketentuanRows = ketentuan && type !== 'terima' && !isLoan
       ? ketentuan.split('\n').filter((line) => line.trim()).map((line, index) => ({
-        wrapped: doc.splitTextToSize(`${shortPage && index === 0 ? 'NOTE: ' : ''}${index + 1}. ${line}`, contentWidth),
+        wrapped: doc.splitTextToSize(`${compactRows && index === 0 ? 'NOTE: ' : ''}${index + 1}. ${line}`, contentWidth),
       }))
       : [];
     const ketentuanBlockH = ketentuanRows.length
-      ? notesTopGap + noteHeadingAdvance + ketentuanRows.reduce((height, row) => height + row.wrapped.length * metaLineH, 0)
+      ? notesTopGap + noteHeadingAdvance + ketentuanRows.reduce((height, row) => height + row.wrapped.length * ketentuanLineH, 0)
       : 0;
     const notesLines = order.notes
-      ? doc.splitTextToSize(`Catatan: ${String(order.notes || '')}`, pageWidth - margin * 2)
+      ? doc.splitTextToSize(`Catatan: ${String(order.notes || '')}`, contentWidth)
       : [];
     const notesBlockH = notesLines.length ? Math.max(metaLineH, notesLines.length * metaLineH) : 0;
 
@@ -362,7 +401,7 @@ export function generateNotaPDF(order, options = {}) {
 
       let advance = 0;
       if (!order.ppn_excluded) {
-        advance += metaLineH * (shortPage ? 1 : 2);
+        advance += metaLineH * (compactRows ? 1 : 2);
       }
       if ((parseFloat(order.ongkir) || 0) > 0) {
         advance += metaLineH;
@@ -372,14 +411,15 @@ export function generateNotaPDF(order, options = {}) {
       }
       advance += lineH; // GRAND TOTAL 12pt bold
       const terbilangText = `Terbilang: ${(angkaKeTerbilang(parseFloat(order.total) || 0) + ' Rupiah').trim()}`;
-      advance += Math.max(1, doc.splitTextToSize(terbilangText, contentWidth).length) * metaLineH;
+      const terbilangLines = doc.splitTextToSize(terbilangText, contentWidth);
+      advance += (compactRows ? 1 : Math.max(1, terbilangLines.length)) * metaLineH;
       if ((parseInt(order.est_weight_gram) || 0) > 0) {
         advance += metaLineH;
       }
       return advance;
     })();
     const tailContentH = summaryAdvance + notesBlockH + ketentuanBlockH + bankAdvance;
-    const tailContentBottomY = shortPage ? pageHeight - 4 - footerReserveY : pageHeight - 4 - footerGap;
+    const tailContentBottomY = compactRows ? pageHeight - 3 - footerReserveY : pageHeight - 4 - footerGap;
     const tailLimitY = tailContentBottomY - sigNameOffset;
 
     let continuationStarted = false;
@@ -434,22 +474,41 @@ export function generateNotaPDF(order, options = {}) {
       alternateRowStyles: { fillColor: MONO.zebra },
       styles: {
         fontSize: bodySize,
-        cellPadding: shortPage ? 0.65 : (isA6 ? 1.3 : 1.8),
+        cellPadding: compactRows ? (isA6 ? 0.55 : 0.7) : 1.8,
         lineWidth: 0,
         textColor: MONO.ink,
       },
       rowPageBreak: 'avoid',
-      columnStyles: compactColumns
-        ? {
-          1: { halign: 'center', cellWidth: 21 },
-          2: { halign: 'right', cellWidth: 31 },
-        }
-        : {
-          0: { halign: 'center', cellWidth: isA6 ? 7 : 10 },
-          2: { halign: 'center', cellWidth: isA6 ? 15 : 18 },
-          3: { halign: 'right' },
-          4: { halign: 'right' },
-        },
+      columnStyles: type === 'terima'
+        ? (compactRows
+          ? {
+            0: { halign: 'center', cellWidth: 7 },
+            2: { halign: 'left', cellWidth: isA6 ? 34 : 40, fontSize: isA6 ? 5.5 : 6, textColor: MONO.sub },
+            3: { halign: 'center', cellWidth: isA6 ? 14 : 18 },
+          }
+          : {
+            0: { halign: 'center', cellWidth: 7 },
+            2: { halign: 'center', cellWidth: isA6 ? 18 : 22 },
+          })
+        : (compactColumns
+          ? (isA6
+            ? {
+              1: { halign: 'center', cellWidth: 13 },
+              2: { halign: 'left', cellWidth: 32, fontSize: 5.5, textColor: MONO.sub },
+              3: { halign: 'right', cellWidth: 27 },
+            }
+            : {
+              1: { halign: 'center', cellWidth: 15 },
+              2: { halign: 'left', cellWidth: 40, fontSize: 6, textColor: MONO.sub },
+              3: { halign: 'right', cellWidth: 22 },
+              4: { halign: 'right', cellWidth: 25 },
+            })
+          : {
+            0: { halign: 'center', cellWidth: isA6 ? 7 : 10 },
+            2: { halign: 'center', cellWidth: isA6 ? 15 : 18 },
+            3: { halign: 'right' },
+            4: { halign: 'right' },
+          }),
     };
 
     // Use a scratch document to get AutoTable's real wrapped row heights. This
@@ -467,6 +526,7 @@ export function generateNotaPDF(order, options = {}) {
     const bodyHeights = measuredTable.body.map((row) => row.height);
     const completeTableEndY = tableStartY + tableHeadHeight + bodyHeights.reduce((sum, height) => sum + height, 0);
     const tableFitsWithTail = completeTableEndY <= tailTableEndY;
+
 
     let maxFinalRows = 0;
     let finalRowsHeight = 0;
@@ -624,7 +684,7 @@ export function generateNotaPDF(order, options = {}) {
       if (!order.ppn_excluded) {
         const dppText = `Subtotal (DPP): ${fmtRp(dpp)}`;
         const ppnText = `PPN ${Math.round(PPN_RATE * 100)}%: ${fmtRp(ppn)}`;
-        for (const line of shortPage ? [`${dppText}   |   ${ppnText}`] : [dppText, ppnText]) {
+        for (const line of compactRows ? [`${dppText}   |   ${ppnText}`] : [dppText, ppnText]) {
           doc.text(line, rightX, finalY, { align: 'right' });
           finalY += metaLineH;
         }
@@ -648,7 +708,12 @@ export function generateNotaPDF(order, options = {}) {
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(100);
       const words = (angkaKeTerbilang(grandTotal) + " Rupiah").trim();
-      doc.splitTextToSize(`Terbilang: ${words}`, contentWidth).forEach((line) => {
+      const terbilangLines = doc.splitTextToSize(`Terbilang: ${words}`, contentWidth);
+      if (compactRows && terbilangLines.length > 1) {
+        terbilangLines.length = 1;
+        terbilangLines[0] = `${terbilangLines[0]} ...`;
+      }
+      terbilangLines.forEach((line) => {
         doc.text(line, margin, finalY);
         finalY += metaLineH;
       });
@@ -670,7 +735,7 @@ export function generateNotaPDF(order, options = {}) {
       };
       setNotesStyle();
       if (tailFitsSinglePage) {
-        doc.text(notesLines, margin, finalY, compactLandscape ? { lineHeightFactor: metaLineFactor } : undefined);
+        doc.text(notesLines, margin, finalY, compactRows ? { lineHeightFactor: lineFactor } : undefined);
         finalY += notesBlockH;
       } else {
         notesLines.forEach((line) => {
@@ -689,26 +754,27 @@ export function generateNotaPDF(order, options = {}) {
         ensureTailSpace(notesTopGap + noteHeadingAdvance + metaLineH);
       }
       finalY += notesTopGap;
-      doc.setFontSize(metaSize);
+      doc.setFontSize(ketentuanSize);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...MONO.ink);
-      if (!shortPage) doc.text('NOTE:', margin, finalY);
+      if (!compactRows) doc.text('NOTE:', margin, finalY);
       finalY += noteHeadingAdvance;
       doc.setFont('helvetica', 'normal');
       ketentuanRows.forEach(({ wrapped }) => {
         if (tailFitsSinglePage) {
-          doc.text(wrapped, margin, finalY, compactLandscape ? { lineHeightFactor: metaLineFactor } : undefined);
-          finalY += wrapped.length * metaLineH;
+          doc.setFontSize(ketentuanSize);
+          doc.text(wrapped, margin, finalY, compactRows ? { lineHeightFactor: lineFactor } : undefined);
+          finalY += wrapped.length * ketentuanLineH;
           return;
         }
         wrapped.forEach((line) => {
-          if (ensureTailSpace(metaLineH)) {
-            doc.setFontSize(metaSize);
+          if (ensureTailSpace(ketentuanLineH)) {
+            doc.setFontSize(ketentuanSize);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(...MONO.ink);
           }
           doc.text(line, margin, finalY);
-          finalY += metaLineH;
+          finalY += ketentuanLineH;
         });
       });
       doc.setTextColor(0);
@@ -735,7 +801,10 @@ export function generateNotaPDF(order, options = {}) {
     // header. Anchoring it to the footer creates a mostly blank second page.
     const sigY = Math.min(
       compactSigY,
-      Math.max(finalY + sigGap, type === 'terima' && !continuationStarted ? pageHeight * 0.64 : 0),
+      Math.max(
+        finalY + sigGap,
+        type === 'terima' && !continuationStarted && !compactRows ? pageHeight * 0.64 : 0,
+      ),
     );
 
     doc.setFontSize(bodySize);

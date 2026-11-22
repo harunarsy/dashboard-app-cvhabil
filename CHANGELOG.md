@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.68.2-stable] - 2026-11-22
+
+- Redesign cetak A5/A6: Nota Penjualan muat sampai 10 barang (A5) dan 5 barang (A6) dalam satu halaman; Tanda Terima sampai 14 (A5) dan 10 (A6).
+- Isi A5 9pt dan A6 8pt; ED/batch pindah ke kolom sendiri agar nama barang tidak memakan dua baris. Header, pelanggan, dan blok tanda tangan dirapatkan.
+- Kelebihan barang tetap pindah halaman tanpa kehilangan baris, catatan, rekening, atau tanda tangan. Nama pelanggan dinormalkan agar tidak tercetak "Yth. Yth.".
+
 ## [v1.68.1-stable] - 2026-11-22
 
 - Pulihkan A5 dan A6 landscape untuk Nota Penjualan dan Tanda Terima. A4 tetap portrait.

@@ -61,7 +61,7 @@ describe('generateNotaPDF compact pagination', () => {
     footer_text: 'dengan senang hati melayani anda',
   };
 
-  it('mempertahankan judul 12pt dan memakai isi 10pt khusus A6 landscape', () => {
+  it('mempertahankan judul 12pt dengan isi 9pt (A5) dan 8pt (A6)', () => {
     const fontBefore = (commands, needle) => {
       const index = commands.indexOf(needle);
       if (index < 0) return null;
@@ -75,7 +75,7 @@ describe('generateNotaPDF compact pagination', () => {
       const commands = doc.internal.pages.slice(1).map((page) => page.join('\n')).join('\n');
 
       expect(fontBefore(commands, 'NOTA PENJUALAN')).toBe(12);
-      const bodySize = format === 'A6' ? 10 : 12;
+      const bodySize = format === 'A6' ? 8 : (format === 'A5' ? 9 : 12);
       expect(fontBefore(commands, 'Produk Bebas Gula')).toBe(bodySize);
       expect(fontBefore(commands, 'GRAND TOTAL:')).toBe(bodySize);
     }
@@ -187,7 +187,7 @@ describe('generateNotaPDF compact pagination', () => {
     ],
   });
 
-  it('A5 12pt: nota tiga item dengan barcode tetap menyimpan semua baris dan tail utuh', () => {
+  it('A5: nota tiga batch muat satu halaman dengan semua baris dan tail utuh', () => {
     const doc = generateNotaPDF(createCompactMultiBatchOrder(), {
       format: 'A5',
       settings,
@@ -195,9 +195,7 @@ describe('generateNotaPDF compact pagination', () => {
     const pages = doc.internal.pages.slice(1).map((page) => page.join('\n'));
     const lastPage = pages[pages.length - 1];
 
-    // 12pt menambah tinggi baris: nota pendek boleh memakai halaman lanjutan,
-    // yang wajib adalah tidak ada baris hilang dan tail tetap satu halaman.
-    expect(doc.getNumberOfPages()).toBeLessThanOrEqual(2);
+    expect(doc.getNumberOfPages()).toBe(1);
     expect(pages.join('\n')).toContain('26T0506GU');
     expect(pages.join('\n')).toContain('25Q1102GU');
     expect(pages.join('\n')).toContain('26T0507GU');
@@ -205,7 +203,7 @@ describe('generateNotaPDF compact pagination', () => {
     expect(lastPage).toContain('Penerima,');
   });
 
-  it('A5 12pt: nota tiga item dengan jatuh tempo menyimpan label penuh dan tail utuh', () => {
+  it('A5: nota tiga item dengan jatuh tempo muat satu halaman', () => {
     const doc = generateNotaPDF(createThreeItemDueDateOrder(), {
       format: 'A5',
       settings: {
@@ -219,7 +217,7 @@ describe('generateNotaPDF compact pagination', () => {
     });
     const pages = doc.internal.pages.slice(1).map((page) => page.join('\n'));
 
-    expect(doc.getNumberOfPages()).toBeLessThanOrEqual(2);
+    expect(doc.getNumberOfPages()).toBe(1);
     expect(pages.join('\n')).toContain('Jatuh Tempo Pembayaran:');
     expect(pages[pages.length - 1]).toContain('GRAND TOTAL:');
     expect(pages[pages.length - 1]).toContain('Penerima,');
@@ -238,7 +236,7 @@ describe('generateNotaPDF compact pagination', () => {
       },
     });
 
-    expect(doc.getNumberOfPages()).toBeGreaterThanOrEqual(2);
+    expect(doc.getNumberOfPages()).toBeLessThanOrEqual(2);
     const pages = doc.internal.pages.slice(1).map((page) => page.join('\n'));
     const lastPage = pages[pages.length - 1];
     expect(pages.join('\n')).toContain('Jatuh Tempo Pembayaran:');
@@ -255,7 +253,7 @@ describe('generateNotaPDF compact pagination', () => {
       settings,
     });
 
-    expect(doc.getNumberOfPages()).toBeGreaterThanOrEqual(2);
+    expect(doc.getNumberOfPages()).toBeLessThanOrEqual(2);
     const pages = doc.internal.pages.slice(1).map((page) => page.join('\n'));
     expect(pages.join('\n')).toContain('26T0506GU');
     expect(pages.join('\n')).toContain('25Q1102GU');
@@ -265,7 +263,7 @@ describe('generateNotaPDF compact pagination', () => {
     expect(lastPage).toContain('Penerima,');
   });
 
-  it('A6 12pt: nota enam batch memakai halaman lanjutan tanpa kehilangan baris dan tail tetap di halaman akhir', () => {
+  it('A6: nota enam batch tidak kehilangan baris dan tail tetap di halaman akhir', () => {
     const order = createCompactMultiBatchOrder();
     order.items = Array.from({ length: 6 }, (_, index) => ({
       ...order.items[0],
@@ -280,7 +278,7 @@ describe('generateNotaPDF compact pagination', () => {
     const pages = doc.internal.pages.slice(1).map((page) => page.join('\n'));
     const lastPageCommands = pages[pages.length - 1];
 
-    expect(doc.getNumberOfPages()).toBeGreaterThan(1);
+    expect(doc.getNumberOfPages()).toBeLessThanOrEqual(2);
     for (let index = 1; index <= 6; index += 1) {
       expect(pages.join('\n')).toContain(`26T050${index}GU`);
     }
@@ -290,7 +288,7 @@ describe('generateNotaPDF compact pagination', () => {
     expect(lastPageCommands).toContain('Penerima,');
   });
 
-  it('A5 12pt: tail tetap menempel di halaman tabel terakhir untuk nota banyak item', () => {
+  it('A5: delapan item muat satu halaman dengan tail utuh', () => {
     const order = createCompactMultiBatchOrder();
     order.items = Array.from({ length: 8 }, (_, index) => ({
       ...order.items[0],
@@ -306,7 +304,7 @@ describe('generateNotaPDF compact pagination', () => {
     const lastPageCommands = pages[pages.length - 1];
     const allCommands = pages.join('\n');
 
-    expect(doc.getNumberOfPages()).toBeGreaterThan(1);
+    expect(doc.getNumberOfPages()).toBe(1);
     for (let index = 1; index <= 8; index += 1) {
       expect(allCommands).toContain(`Produk Panjang ${index}`);
     }
@@ -363,6 +361,55 @@ describe('generateNotaPDF compact pagination', () => {
     expect(lastPageCommands).toContain('Penerima,');
   });
 
+  describe('kapasitas cetak per ukuran', () => {
+    const capacityOrder = (count) => ({
+      order_number: 'HSB-NOTA-2609111',
+      sale_date: '2026-11-22',
+      due_date: '2026-12-22',
+      customer_name: 'PELANGGAN UJI MULTI ITEM',
+      customer_phone: '0800-0000-0000',
+      customer_address: 'ALAMAT PELANGGAN UJI - KOTA CONTOH',
+      payment_method: 'Transfer',
+      total: count * 864000,
+      items: Array.from({ length: count }, (_, index) => ({
+        product_name: `Produk Nutrisi Vanila ${index + 1} 174 g`,
+        qty: 12,
+        qty_in_unit: 12,
+        unit: 'pcs',
+        unit_price: 72000,
+        batch_no_snapshot: `26T050${index}GU`,
+        expired_date_snapshot: '2027-12-02',
+      })),
+    });
+
+    it.each([
+      ['A5', 'nota', 10],
+      ['A5', 'terima', 14],
+      ['A6', 'nota', 5],
+      ['A6', 'terima', 10],
+    ])('%s %s menampung %s barang dalam satu halaman', (format, type, count) => {
+      const doc = generateNotaPDF(capacityOrder(count), { format, type, settings });
+      expect(doc.getNumberOfPages()).toBe(1);
+      const text = doc.internal.pages[1].join('\n');
+      expect(text).toContain(`Produk Nutrisi Vanila ${count} 174 g`);
+      expect(text).toContain('Penerima,');
+      expect(text).toContain('Hormat kami,');
+      if (type === 'nota') expect(text).toContain('GRAND TOTAL:');
+    });
+
+    it('kelebihan barang pindah ke halaman berikutnya tanpa baris hilang', () => {
+      const doc = generateNotaPDF(capacityOrder(14), { format: 'A6', type: 'nota', settings });
+      expect(doc.getNumberOfPages()).toBe(2);
+      const text = doc.internal.pages.slice(1).map((page) => page.join('\n')).join('\n');
+      for (let index = 1; index <= 14; index += 1) {
+        expect(text).toContain(`Produk Nutrisi Vanila ${index} 174 g`);
+      }
+      const lastPage = doc.internal.pages[doc.getNumberOfPages()].join('\n');
+      expect(lastPage).toContain('GRAND TOTAL:');
+      expect(lastPage).toContain('Penerima,');
+    });
+  });
+
   it('paginates an oversized A6 tail and keeps bank plus signatures on the final page', () => {
     const longTerms = Array.from(
       { length: 55 },
@@ -374,7 +421,9 @@ describe('generateNotaPDF compact pagination', () => {
       settings: { ...settings, ketentuan: longTerms },
     });
     const allCommands = doc.internal.pages.flat().join('\n');
-    const penultimatePageCommands = doc.internal.pages[doc.getNumberOfPages() - 1].join('\n');
+    const penultimatePageCommands = doc.getNumberOfPages() > 1
+      ? doc.internal.pages[doc.getNumberOfPages() - 1].join('\n')
+      : '';
     const lastPageCommands = doc.internal.pages[doc.getNumberOfPages()].join('\n');
 
     expect(doc.getNumberOfPages()).toBeGreaterThan(2);

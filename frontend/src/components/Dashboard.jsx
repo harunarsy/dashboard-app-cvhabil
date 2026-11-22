@@ -39,9 +39,24 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.68.1-stable",
+    version: "v1.68.2-stable",
     date: "22 November 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Cetak A5/A6 dirapikan: Nota Penjualan muat sampai 10 barang (A5) atau 5 barang (A6) dalam satu halaman. Tanda Terima sampai 14 (A5) atau 10 (A6).",
+      },
+      {
+        type: "fix",
+        text: "ED dan nomor batch kini punya kolom sendiri, sehingga nama barang tidak lagi memakan dua baris dan tanda tangan tidak melayang di tengah kertas.",
+      },
+    ],
+  },
+  {
+    version: "v1.68.1-stable",
+    date: "22 November 2026",
+    status: "previous",
     changes: [
       {
         type: "fix",
