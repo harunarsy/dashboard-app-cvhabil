@@ -2,6 +2,10 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.68.3-stable] - 2026-11-22
+
+- Perbaiki cache aset produksi: `vercel.json` tidak lagi mengarahkan `/assets/*` ke `index.html`, dan aset ber-hash kini memakai `Cache-Control: public, max-age=31536000, immutable`. Kunjungan ulang tidak lagi melakukan revalidasi 304 untuk setiap file JS/CSS.
+
 ## [v1.68.2-stable] - 2026-11-22
 
 - Redesign cetak A5/A6: Nota Penjualan muat sampai 10 barang (A5) dan 5 barang (A6) dalam satu halaman; Tanda Terima sampai 14 (A5) dan 10 (A6).

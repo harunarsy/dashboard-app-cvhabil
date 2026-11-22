@@ -4,6 +4,12 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 22 Nov 2026: audit produksi + perbaikan cache aset (LOKAL)
+- **Pengukuran publik:** Lighthouse mobile dan desktop skor **100**, LCP 1,2 s (mobile) / 0,5 s (desktop), TBT 30 ms, CLS 0, total 248 KiB. Halaman publik sudah cepat; masalahnya bukan bundler.
+- **Temuan 1:** `frontend/vercel.json` memakai rewrite `/(.*)` sehingga `/assets/*.js|css` disajikan `max-age=0, must-revalidate`. Revalidasi 304 terukur 0,11 sampai 0,20 s per aset pada kunjungan ulang. Perbaikan: rewrite dikecualikan untuk `assets/`, ditambah header `public, max-age=31536000, immutable`. Tes penjaga: `src/__tests__/vercelConfig.test.js`.
+- **Temuan 2:** halaman dalam aplikasi belum memakai React Query (Dashboard 0 `useQuery` / 3 `useEffect`, SalesOrderList 0/14, InvoiceList 0/9) padahal provider dan `staleTime` sudah ada. Endpoint hangat 0,14 sampai 0,63 s. Ini penyebab utama lag setelah login, bukan Vite/Bun.
+- **Verifikasi:** 352 tes frontend lulus (1 skip), build lulus. Versi lokal **v1.68.3-stable**, commit lokal, belum dipush. Panduan Vercel: deploy otomatis dari repo, Root Directory `frontend`; verifikasi header aset setelah deploy.
+
 ## Update 22 Nov 2026: redesign kapasitas cetak A5/A6 (LOKAL, belum dipush)
 - Baseline sebelum redesign: A5 Nota **1 barang/halaman**, A5 Tanda Terima 5, A6 Nota 1, A6 Tanda Terima 4. Penyebabnya header 4 baris, blok pelanggan 2-3 baris, dan reservasi tanda tangan yang terlalu besar, bukan hanya ukuran font.
 - Profil baru: isi A5 9pt, A6 8pt, judul tetap 12pt, margin 7/4,5 mm, padding tabel 0,7/0,55 mm. ED dan nomor batch dipindah ke kolom sendiri (5,5-6pt) sehingga baris nama tidak lagi dua baris.

@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.68.2-stable",
+    version: "v1.68.3-stable",
     date: "22 November 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Aset JS/CSS kini di-cache permanen oleh browser. Sebelumnya setiap kunjungan ulang memeriksa ulang semua file, sehingga navigasi terasa lebih lambat.",
+      },
+    ],
+  },
+  {
+    version: "v1.68.2-stable",
+    date: "22 November 2026",
+    status: "previous",
     changes: [
       {
         type: "improvement",
