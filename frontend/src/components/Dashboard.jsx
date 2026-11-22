@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.68.0-stable",
+    version: "v1.68.1-stable",
     date: "22 November 2026",
     status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Nota Penjualan dan Tanda Terima A5/A6 kembali landscape. Format A6 dirapikan agar nota pendek lebih mudah muat satu halaman.",
+      },
+    ],
+  },
+  {
+    version: "v1.68.0-stable",
+    date: "22 November 2026",
+    status: "previous",
     changes: [
       {
         type: "fix",
@@ -68,7 +79,7 @@ const RELEASES = [
   {
     version: "v1.67.24-stable",
     date: "29 September 2026",
-    status: "latest",
+    status: "previous",
     changes: [
       {
         type: "fix",

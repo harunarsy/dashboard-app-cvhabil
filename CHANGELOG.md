@@ -2,6 +2,11 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.68.1-stable] - 2026-11-22
+
+- Pulihkan A5 dan A6 landscape untuk Nota Penjualan dan Tanda Terima. A4 tetap portrait.
+- Rapikan tata letak A6 dan cegah pengulangan halaman saat tabel dan ringkasan tidak muat bersama. Pratinjau, unduhan, dan cetak memakai PDF yang sama.
+
 ## [v1.68.0-stable] - 2026-11-22
 
 Integritas qty/satuan nota & faktur, UX pilih batch, dan alat audit data.

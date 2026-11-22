@@ -61,7 +61,7 @@ describe('generateNotaPDF compact pagination', () => {
     footer_text: 'dengan senang hati melayani anda',
   };
 
-  it('memakai 12pt untuk judul dan baris barang di semua ukuran kertas', () => {
+  it('mempertahankan judul 12pt dan memakai isi 10pt khusus A6 landscape', () => {
     const fontBefore = (commands, needle) => {
       const index = commands.indexOf(needle);
       if (index < 0) return null;
@@ -75,24 +75,63 @@ describe('generateNotaPDF compact pagination', () => {
       const commands = doc.internal.pages.slice(1).map((page) => page.join('\n')).join('\n');
 
       expect(fontBefore(commands, 'NOTA PENJUALAN')).toBe(12);
-      expect(fontBefore(commands, 'Produk Bebas Gula')).toBe(12);
-      expect(fontBefore(commands, 'GRAND TOTAL:')).toBe(12);
+      const bodySize = format === 'A6' ? 10 : 12;
+      expect(fontBefore(commands, 'Produk Bebas Gula')).toBe(bodySize);
+      expect(fontBefore(commands, 'GRAND TOTAL:')).toBe(bodySize);
     }
   });
 
-  it('semua ukuran kertas memakai orientasi portrait', () => {
-    const a6 = generateNotaPDF(createCompactMultiBatchOrder(), { format: 'A6', settings });
-    const a5 = generateNotaPDF(createCompactMultiBatchOrder(), { format: 'A5', settings });
-    const a4 = generateNotaPDF(createCompactMultiBatchOrder(), { format: 'A4', settings });
+  describe.each(['nota', 'terima'])('ukuran cetak %s', (type) => {
+    it.each([
+      ['A4', 210, 297],
+      ['A5', 210, 148],
+      ['A6', 148, 105],
+    ])('%s seluruh halaman berukuran %s × %s mm', (format, width, height) => {
+      const doc = generateNotaPDF(createCompactMultiBatchOrder(), { format, type, settings });
+      for (let page = 1; page <= doc.getNumberOfPages(); page += 1) {
+        doc.setPage(page);
+        expect(doc.internal.pageSize.getWidth()).toBeCloseTo(width, 0);
+        expect(doc.internal.pageSize.getHeight()).toBeCloseTo(height, 0);
+      }
+    });
+  });
 
-    const size = (doc) => [doc.internal.pageSize.getWidth(), doc.internal.pageSize.getHeight()];
-    const [a6w, a6h] = size(a6);
-    const [a5w, a5h] = size(a5);
-    const [a4w, a4h] = size(a4);
+  it('Nota Pinjaman A5 tetap portrait', () => {
+    const doc = generateNotaPDF(createCompactMultiBatchOrder(), { format: 'A5', type: 'pinjaman', settings });
+    expect(doc.internal.pageSize.getWidth()).toBeCloseTo(148, 0);
+    expect(doc.internal.pageSize.getHeight()).toBeCloseTo(210, 0);
+  });
 
-    expect(a6h).toBeGreaterThan(a6w);
-    expect(a5h).toBeGreaterThan(a5w);
-    expect(a4h).toBeGreaterThan(a4w);
+  it.each([['A5', 'nota'], ['A5', 'terima'], ['A6', 'nota'], ['A6', 'terima']])('%s %s satu barang muat dengan tanda tangan dan logo', (format, type) => {
+    const order = createThreeItemDueDateOrder();
+    order.items = order.items.slice(0, 1);
+    order.total = 1065000;
+    const doc = generateNotaPDF(order, { format, type, settings: {
+      ...settings, logo_data_url: ONE_PIXEL_PNG,
+      ketentuan: `${settings.ketentuan} KECUALI ADA CACAT PRODUK ATAU ED TIDAK SESUAI DAN BUKAN KESALAHAN KURIR`,
+    } });
+    expect(doc.getNumberOfPages()).toBe(1);
+    const content = doc.internal.pages[1].join('\n');
+    expect(content).toContain('ANPF24W');
+    expect(content).toContain('Penerima,');
+    expect(content).toContain('Hormat kami,');
+    if (type === 'nota') expect(content).toContain('GRAND TOTAL:');
+  });
+
+  it('catatan Tanda Terima A6 tidak menempel ke label tanda tangan', () => {
+    const order = createCompactMultiBatchOrder();
+    order.items = order.items.slice(0, 1);
+    order.notes = Array.from({ length: 21 }, (_, index) => `Baris catatan ${index + 1}`).join('\n');
+    const doc = generateNotaPDF(order, { format: 'A6', type: 'terima', settings: { ...settings, footer_text: '' } });
+    const lastPage = doc.internal.pages[doc.getNumberOfPages()].join('\n');
+    const baselines = new Map();
+    for (const match of lastPage.matchAll(/BT\n([\s\S]*?)\nET/g)) {
+      const block = match[1];
+      const y = Number(block.match(/[\d.]+ ([\d.]+) Td/)?.[1]);
+      const leading = Number(block.match(/([\d.]+) TL/)?.[1]);
+      [...block.matchAll(/\(([^()]+)\) Tj/g)].forEach((text, index) => baselines.set(text[1], y - index * leading));
+    }
+    expect(baselines.get('Baris catatan 21') - baselines.get('Penerima,')).toBeGreaterThan(8.5);
   });
 
   it('A6 menulis label Jatuh Tempo Pembayaran lengkap, bukan JT', () => {

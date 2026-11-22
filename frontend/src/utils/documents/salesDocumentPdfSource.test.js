@@ -24,6 +24,23 @@ describe('salesPdfFilename', () => {
 });
 
 describe('buildSalesDocumentPdf', () => {
+  describe.each([false, true])('mode dokumen v2: %s', (documentsV2) => {
+    it.each([
+      ['A5', 'nota', 210, 148],
+      ['A6', 'nota', 148, 105],
+      ['A5', 'terima', 210, 148],
+      ['A6', 'terima', 148, 105],
+    ])('%s %s menghasilkan PDF landscape untuk preview, unduh, dan cetak', async (format, type, width, height) => {
+      const { order, settings } = SALES_DOCUMENT_FIXTURES[0];
+      const { doc } = await buildSalesDocumentPdf(order, { format, type, settings, documentsV2 });
+      for (let page = 1; page <= doc.getNumberOfPages(); page += 1) {
+        doc.setPage(page);
+        expect(doc.internal.pageSize.getWidth()).toBeCloseTo(width, 0);
+        expect(doc.internal.pageSize.getHeight()).toBeCloseTo(height, 0);
+      }
+    });
+  });
+
   it('menghasilkan blob PDF dari engine yang benar', async () => {
     const { order, settings } = SALES_DOCUMENT_FIXTURES[0];
     const v2 = await buildSalesDocumentPdf(order, { format: 'A4', settings });

@@ -1,9 +1,9 @@
 # 🧠 HABIL SUPERAPP — Source of Truth
 
-> **Current Version: v1.67.24-stable
-> System Version: v1.67.24-stable
+> **Current Version: v1.68.1-stable
+> System Version: v1.68.1-stable
 > Status: PROD-STABLE
-> **VERSI SISTEM\\*\\*: v1.67.24-stable
+> **VERSI SISTEM\\*\\*: v1.68.1-stable
 
 > **CREDENTIALS (LOKAL):** Lihat `CREDENTIALS.local.md` di root project untuk semua akses: DB URL, JWT, Vercel, GitHub. File ini hanya ada di lokal (tidak di-commit).
 
@@ -40,26 +40,10 @@
 4. **Automated Error Logging**: Jika menemukan error kritikal (misal: "Relation missing"), Agent **wajib** mencatat temuan ke `FEEDBACK_LOG.md` sebelum melakukan perbaikan.
 5. **Mandatory IDE Extensions**: Untuk auditability & stabilitas, pastikan ekstensi **ESLint**, **markdownlint**, **Git History**, dan **SQLTools (PostgreSQL)** aktif di lingkungan development.
 
-### [PROTOKOL A — AUTO-VERSIONING (v1.14.x)]
+### [PROTOKOL A: AUTO-VERSIONING]
 
-**Tujuan:** Memastikan label versi di seluruh file sinkron dengan CHANGELOG.md sebelum commit.
-
-1. **Mandatory Grep Check sebelum commit:**
-
-   ```bash
-   grep -r "v1\.14\.[0-9]*-" frontend/src \
-   --include="*.jsx" --include="*.js"
-   ```
-
-   Jika ada 1 file saja yang versinya berbeda, **JANGAN commit**. Fix semua terlebih dahulu agar semua file menunjukkan versi yang sama.
-
-2. **File Wajib Dicek setiap Shutdown (Versi Harus Konsisten):**
-   - `frontend/src/components/Login.jsx` (teks versi)
-   - `frontend/src/components/Dashboard.jsx` (version badge + modal version)
-   - `frontend/src/index.js` (if versioning exists)
-   - `CHANGELOG.md` (latest version entry)
-   - `SUPERAPP_BRAIN.md` (Current Version header)
-
+1. Versi aktif berasal dari judul stabil pertama di `CHANGELOG.md`. Sebelum commit, jalankan `node scripts/check-version-consistency.mjs`. Entri historis tidak perlu ditulis ulang.
+2. Rilis yang diminta pemilik mengikuti [docs/RELEASE.md](docs/RELEASE.md): sinkronisasi label versi, tes, commit, push, verifikasi CI, tag, dan GitHub Release. Status deploy diverifikasi terpisah.
 3. **Release Modal Wajib Pakai sessionStorage, BUKAN localStorage:**
    - Key format: `habil_release_seen_${VERSION.replace(/\./g, '_')}`
    - Contoh: `habil_release_seen_v1_3_22_stable`
@@ -148,4 +132,4 @@
 ---
 
 _Dokumen Master Brain ini menggantikan README, Master Framework, dan Roadmap lama._
-_Terakhir diupdate: v1.27.0-stable (13 Juni 2026) — prosedur Auto-Versioning sejak v1.3.16-stable_
+_Versi aktif ada di bagian atas. Prosedur rilis ada di [docs/RELEASE.md](docs/RELEASE.md)._

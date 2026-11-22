@@ -114,6 +114,9 @@ When shipping a change on top of `vX.Y.Z-stable`, use `vX.Y.(Z+1)-stable`, updat
 first, then update the checked live files. Do not use a stale version-specific grep or a hardcoded
 "current tracking" value.
 
+When asked to ship a GitHub release, use [docs/RELEASE.md](docs/RELEASE.md) and the release rules
+in `AGENTS.md`. A push to `main` is not proof that the tag, GitHub Release, CI or deployment exists.
+
 ### Release modal storage
 Use `sessionStorage`, key: `habil_release_seen_${VERSION.replace(/\./g, '_')}`.
 **Never `localStorage`** — multiple operators share one account (Harun, Fivin, Ferry); popup must appear on every login.

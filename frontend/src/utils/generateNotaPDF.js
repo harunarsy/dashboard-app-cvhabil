@@ -32,37 +32,36 @@ export function generateNotaPDF(order, options = {}) {
 
     console.log('[generateNotaPDF] Format:', format, 'Type:', type);
 
-    // A4 & A6 portrait; A5 landscape. A6 portrait memberi ruang vertikal supaya
-    // teks isi tetap 12pt tanpa memaksa huruf mengecil.
     const fmt = String(format).toUpperCase();
-    const isA4 = fmt === 'A4';
     const isA5 = fmt === 'A5';
     const isA6 = fmt === 'A6';
-    const orientation = 'p';
+    const compactLandscape = (type === 'nota' || type === 'terima') && (isA5 || isA6);
+    const shortPage = compactLandscape && isA6;
+    const orientation = compactLandscape ? 'l' : 'p';
     const doc = new jsPDF(orientation, 'mm', fmt.toLowerCase());
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     console.log('[generateNotaPDF] Page dimensions - Width:', pageWidth, 'Height:', pageHeight);
 
     // ─── Tipografi & geometri ───────────────────────────────────────────
-    // 12pt = teks isi (nama barang, qty, harga, total, grand total).
-    // 10pt = teks pelengkap (NPWP, alamat, catatan, DPP/PPN, terbilang).
-    // 8pt  = footer.
-    const bodySize = PDF_FONT.body;
-    const metaSize = PDF_FONT.meta;
+    // A6 landscape has only 105 mm of height. Keep the document title at
+    // 12pt, with a compact print scale for rows and supporting information.
+    const bodySize = shortPage ? 10 : PDF_FONT.body;
+    const metaSize = shortPage ? 8 : (compactLandscape ? 9 : PDF_FONT.meta);
     const microSize = PDF_FONT.micro;
-    const lineH = lineHeightMm(bodySize);
-    const metaLineH = lineHeightMm(metaSize);
+    const lineH = lineHeightMm(bodySize, shortPage ? 1.05 : undefined);
+    const metaLineFactor = compactLandscape ? 1.05 : 1.25;
+    const metaLineH = lineHeightMm(metaSize, metaLineFactor);
     const margin = isA6 ? 5 : (isA5 ? 8 : 12);
     const accentColor = MONO.ink;
     const logoDataUrl = settings.logo_data_url;
     const logoWidth = isA6 ? 9 : (isA5 ? 11 : 14);
     const identityX = logoDataUrl ? margin + logoWidth + 2 : margin;
     const contentWidth = pageWidth - margin * 2;
-    // Kolom kanan (judul + metadata) di A6 selebar 42mm supaya "NOTA PENJUALAN"
-    // 12pt muat; nama perusahaan wrap maksimal 2 baris.
     const rightColW = isA6 ? 42 : Math.min(60, contentWidth * 0.42);
-    const identityMaxW = Math.max(40, contentWidth - rightColW - 3);
+    const identityMaxW = compactLandscape
+      ? pageWidth - margin - rightColW - 3 - identityX
+      : Math.max(40, contentWidth - rightColW - 3);
 
     let headY = margin + baselineOffsetMm(bodySize);
     if (logoDataUrl) {
@@ -81,7 +80,8 @@ export function generateNotaPDF(order, options = {}) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(bodySize);
     doc.setTextColor(...accentColor);
-    const companyLines = doc.splitTextToSize(String(companyName), identityMaxW).slice(0, 2);
+    const wrappedCompany = doc.splitTextToSize(String(companyName), identityMaxW);
+    const companyLines = compactLandscape ? wrappedCompany : wrappedCompany.slice(0, 2);
     companyLines.forEach((line, i) => doc.text(line, identityX, headY + lineH * i));
     headY += lineH * (companyLines.length - 1);
 
@@ -89,12 +89,13 @@ export function generateNotaPDF(order, options = {}) {
     doc.setFontSize(metaSize);
     doc.setTextColor(40, 40, 40);
     const npwp = settings.npwp || '93.813.949.0-609.000';
-    headY += metaLineH;
-    doc.text(`NPWP: ${npwp}`, identityX, headY);
-    headY += metaLineH;
-    doc.text(String(settings.address || '-'), identityX, headY);
-    headY += metaLineH;
-    doc.text(String(settings.phone || '-'), identityX, headY);
+    for (const field of [`NPWP: ${npwp}`, settings.address || '-', settings.phone || '-']) {
+      const lines = compactLandscape ? doc.splitTextToSize(String(field), identityMaxW) : [String(field)];
+      for (const line of lines) {
+        headY += metaLineH;
+        doc.text(line, identityX, headY);
+      }
+    }
 
     // Doc Info (Top Right)
     // v1.54.0: type 'pinjaman' — Nota Pinjaman (bukan tagihan): tanpa breakdown
@@ -104,9 +105,9 @@ export function generateNotaPDF(order, options = {}) {
     const docTitle = type === 'terima' ? 'TANDA TERIMA' : (isLoan ? 'NOTA PINJAMAN' : 'NOTA PENJUALAN');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(bodySize);
+    doc.setFontSize(PDF_FONT.body);
     doc.setTextColor(0);
-    const titleY = margin + baselineOffsetMm(bodySize);
+    const titleY = margin + baselineOffsetMm(PDF_FONT.body);
     doc.text(docTitle, infoX, titleY, { align: 'right' });
 
     // v1.65.1: barcode nomor nota — di bawah judul, di atas baris "No:".
@@ -162,7 +163,7 @@ export function generateNotaPDF(order, options = {}) {
     }
 
     // Garis pembatas mengikuti baris terakhir header (kiri atau kanan).
-    const dividerY = Math.max(headY, infoY, dueY) + (isA6 ? 2.2 : 3);
+    const dividerY = Math.max(headY, infoY, dueY) + (shortPage ? 1.2 : (isA6 ? 2.2 : 3));
     doc.setDrawColor(...MONO.rule);
     doc.setLineWidth(0.4);
     doc.line(margin, dividerY, pageWidth - margin, dividerY);
@@ -184,17 +185,16 @@ export function generateNotaPDF(order, options = {}) {
     // sanitasi No. HP: buang karakter sampah (mis. "*", ",") → cuma digit/+/()-/spasi.
     const cleanPhone = (p) =>
       String(p || '').replace(/[^\d+()\-\s]/g, '').replace(/\s+/g, ' ').trim();
-    // Nama customer: di A5/A4 sebaris dengan label (ruang lebar), di A6 turun
-    // satu baris karena "Kepada Yth:" + nama tidak muat 95mm pada 12pt.
+    // A6 landscape cukup lebar untuk nama sejajar label.
     let addressY = customerY;
     doc.setFont('helvetica', 'bold');
-    const nameX = isA6 ? margin : margin + 24;
-    const nameW = isA6 ? contentWidth : contentWidth - 24 - 34;
+    const stackCustomer = isA6 && !shortPage;
+    const nameOffset = shortPage ? 21 : 24;
+    const nameX = stackCustomer ? margin : margin + nameOffset;
+    const nameW = stackCustomer ? contentWidth : contentWidth - nameOffset - 34;
     const nameLines = doc.splitTextToSize(String(order.customer_name || '-'), nameW);
     nameLines.forEach((ln, index) => {
-      // A6: nama selalu turun satu baris dari label "Kepada Yth:".
-      // A5/A4: baris pertama sejajar label, sisanya turun.
-      if (isA6 || index > 0) addressY += lineH;
+      if (stackCustomer || index > 0) addressY += lineH;
       doc.text(ln, nameX, addressY);
     });
 
@@ -203,19 +203,13 @@ export function generateNotaPDF(order, options = {}) {
     doc.setTextColor(40, 40, 40);
     const contactW = contentWidth;
     const phoneClean = cleanPhone(order.customer_phone);
-    if (phoneClean) {
-      const phoneLines = doc.splitTextToSize(phoneClean, contactW);
-      phoneLines.forEach((ln) => {
+    const contactFields = [phoneClean, String(order.customer_address || '').trim()].filter(Boolean);
+    const contactBlocks = compactLandscape ? [contactFields.join(' · ')].filter(Boolean) : contactFields;
+    for (const contact of contactBlocks) {
+      for (const ln of doc.splitTextToSize(contact, contactW)) {
         addressY += metaLineH;
         doc.text(ln, margin, addressY);
-      });
-    }
-    if (order.customer_address) {
-      const addrLines = doc.splitTextToSize(String(order.customer_address).trim(), contactW);
-      addrLines.forEach((ln) => {
-        addressY += metaLineH;
-        doc.text(ln, margin, addressY);
-      });
+      }
     }
 
     // ─── Table ──────────────────────────────────────────────────────────
@@ -296,8 +290,7 @@ export function generateNotaPDF(order, options = {}) {
       if (meta.length) lines.push(meta.join(' · '));
       return lines.join('\n');
     };
-    // A6 portrait hanya 95mm lebar: kolom angka dipersempit dan nomor baris
-    // dihilangkan supaya nama barang tetap terbaca pada 12pt.
+    // Kertas sempit: utamakan nama barang, qty dan total baris.
     const compactColumns = type !== 'terima' && pageWidth < 170;
     const tableData = displayItems.map((item, index) => {
       if (type === 'terima') {
@@ -316,20 +309,23 @@ export function generateNotaPDF(order, options = {}) {
       : (compactColumns ? [['Nama Barang', 'Qty', 'Total']] : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']]);
 
     // Tabel mulai setelah blok customer, tidak pernah menabrak divider.
-    const tableStartY = Math.max(dividerY + 6, addressY + 4);
+    const tableStartY = Math.max(
+      dividerY + (shortPage ? 4.5 : 6),
+      addressY + (shortPage ? 2 : 4),
+    );
 
     // Ukuran tail (total, catatan, rekening, tanda tangan) dihitung dari
     // tinggi baris 12pt/10pt supaya tidak ada tumpang tindih.
     const footerGap = 2;
-    const sigGap = 5;
-    const sigLineOffset = isA6 ? 14 : 16;
-    const sigNameOffset = isA6 ? 20 : 20;
+    const sigGap = shortPage ? 3 : 5;
+    const sigLineOffset = shortPage ? 8 : (compactLandscape ? 12 : (isA6 ? 14 : 16));
+    const sigNameOffset = shortPage ? 12 : (compactLandscape ? 16 : 20);
     const sigHalfWidth = isA6 ? 34 : 42;
     const sigCenter = isA6 ? 17 : 21;
-    const tableGap = 3;
-    const notesTopGap = 2;
-    const noteHeadingAdvance = metaLineH;
-    const bankLead = 3;
+    const tableGap = shortPage ? 2.5 : 3;
+    const notesTopGap = shortPage ? 1.2 : 2;
+    const noteHeadingAdvance = shortPage ? 0 : metaLineH;
+    const bankLead = shortPage ? 1.5 : 3;
     const bankLineAdvance = metaLineH;
     const bankAdvance = bankInfo && type !== 'terima' && !isLoan
       ? bankLead + bankLineAdvance + (qrisText ? bankLineAdvance : 0)
@@ -347,7 +343,7 @@ export function generateNotaPDF(order, options = {}) {
       : [];
     const ketentuanRows = ketentuan && type !== 'terima' && !isLoan
       ? ketentuan.split('\n').filter((line) => line.trim()).map((line, index) => ({
-        wrapped: doc.splitTextToSize(`${index + 1}. ${line}`, pageWidth - margin * 2),
+        wrapped: doc.splitTextToSize(`${shortPage && index === 0 ? 'NOTE: ' : ''}${index + 1}. ${line}`, contentWidth),
       }))
       : [];
     const ketentuanBlockH = ketentuanRows.length
@@ -366,7 +362,7 @@ export function generateNotaPDF(order, options = {}) {
 
       let advance = 0;
       if (!order.ppn_excluded) {
-        advance += metaLineH * 2;
+        advance += metaLineH * (shortPage ? 1 : 2);
       }
       if ((parseFloat(order.ongkir) || 0) > 0) {
         advance += metaLineH;
@@ -383,7 +379,7 @@ export function generateNotaPDF(order, options = {}) {
       return advance;
     })();
     const tailContentH = summaryAdvance + notesBlockH + ketentuanBlockH + bankAdvance;
-    const tailContentBottomY = pageHeight - 4 - footerGap;
+    const tailContentBottomY = shortPage ? pageHeight - 4 - footerReserveY : pageHeight - 4 - footerGap;
     const tailLimitY = tailContentBottomY - sigNameOffset;
 
     let continuationStarted = false;
@@ -393,9 +389,6 @@ export function generateNotaPDF(order, options = {}) {
     const tailTableEndY = tailFitsSinglePage
       ? tailLimitY - tailContentH - sigGap - tableGap
       : pageHeight - margin;
-    const tailTableBottomMargin = tailFitsSinglePage
-      ? Math.max(margin, pageHeight - tailTableEndY)
-      : margin;
     const drawContinuationHeader = (pageNumber) => {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(bodySize);
@@ -441,7 +434,7 @@ export function generateNotaPDF(order, options = {}) {
       alternateRowStyles: { fillColor: MONO.zebra },
       styles: {
         fontSize: bodySize,
-        cellPadding: isA6 ? 1.3 : 1.8,
+        cellPadding: shortPage ? 0.65 : (isA6 ? 1.3 : 1.8),
         lineWidth: 0,
         textColor: MONO.ink,
       },
@@ -483,6 +476,9 @@ export function generateNotaPDF(order, options = {}) {
       finalRowsHeight += bodyHeights[index];
       maxFinalRows += 1;
     }
+    // A6 can fit the summary by itself, but not a full table header + row
+    // with it. Reserving that space on every page would make AutoTable
+    // keep retrying the same row on a fresh page with no usable space.
     const balancedFinalRows = Math.min(
       Math.max(maxFinalRows, 1),
       Math.ceil(tableData.length / 2),
@@ -501,11 +497,16 @@ export function generateNotaPDF(order, options = {}) {
       }
       return count;
     })();
-    const initialTableRows = Math.min(
-      Math.max(tableData.length - balancedFinalRows, 0),
-      firstPageCapacity,
-    );
-    const splitTableForTail = tailFitsSinglePage && !tableFitsWithTail && initialTableRows > 0;
+    const rowsBeforeTail = Math.max(tableData.length - balancedFinalRows, 0);
+    // On compact paper, only the measured suffix may use the reduced page area.
+    // The preceding rows can paginate normally with the full bottom margin.
+    const initialTableRows = compactLandscape ? rowsBeforeTail : Math.min(rowsBeforeTail, firstPageCapacity);
+    const splitTableForTail = tailFitsSinglePage && !tableFitsWithTail && initialTableRows > 0
+      && (!compactLandscape || (maxFinalRows > 0 && firstPageCapacity > 0));
+    // Don't apply the tail reservation to a table that can't share a page with
+    // it. This also keeps a single item on the first page with its customer.
+    const reserveTail = tailFitsSinglePage && (!compactLandscape || tableFitsWithTail || splitTableForTail);
+    const tailTableBottomMargin = reserveTail ? Math.max(margin, pageHeight - tailTableEndY) : margin;
 
     const renderTable = (body, startY, bottomMargin) => {
       autoTable(doc, {
@@ -552,7 +553,7 @@ export function generateNotaPDF(order, options = {}) {
       addTailContinuationPage();
       return true;
     };
-    const tailFitsOnCurrentPage = finalY + tailContentH + sigGap + sigNameOffset <= pageHeight - 4 - footerGap;
+    const tailFitsOnCurrentPage = finalY + tailContentH + sigGap + sigNameOffset <= tailContentBottomY;
 
     if (!tailFitsOnCurrentPage) {
       addTailContinuationPage();
@@ -621,10 +622,12 @@ export function generateNotaPDF(order, options = {}) {
       // v1.65.0: nota TANPA PPN (sales_orders.ppn_excluded) — rincian DPP/PPN tidak
       // dicetak, harga tampil apa adanya. GRAND TOTAL sengaja TIDAK diubah.
       if (!order.ppn_excluded) {
-        doc.text(`Subtotal (DPP): ${fmtRp(dpp)}`, rightX, finalY, { align: 'right' });
-        finalY += metaLineH;
-        doc.text(`PPN ${Math.round(PPN_RATE * 100)}%: ${fmtRp(ppn)}`, rightX, finalY, { align: 'right' });
-        finalY += metaLineH;
+        const dppText = `Subtotal (DPP): ${fmtRp(dpp)}`;
+        const ppnText = `PPN ${Math.round(PPN_RATE * 100)}%: ${fmtRp(ppn)}`;
+        for (const line of shortPage ? [`${dppText}   |   ${ppnText}`] : [dppText, ppnText]) {
+          doc.text(line, rightX, finalY, { align: 'right' });
+          finalY += metaLineH;
+        }
       }
       if (ongkir > 0) {
         doc.text(`Ongkir: ${fmtRp(ongkir)}`, rightX, finalY, { align: 'right' });
@@ -667,7 +670,7 @@ export function generateNotaPDF(order, options = {}) {
       };
       setNotesStyle();
       if (tailFitsSinglePage) {
-        doc.text(notesLines, margin, finalY);
+        doc.text(notesLines, margin, finalY, compactLandscape ? { lineHeightFactor: metaLineFactor } : undefined);
         finalY += notesBlockH;
       } else {
         notesLines.forEach((line) => {
@@ -689,12 +692,12 @@ export function generateNotaPDF(order, options = {}) {
       doc.setFontSize(metaSize);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...MONO.ink);
-      doc.text('NOTE:', margin, finalY);
+      if (!shortPage) doc.text('NOTE:', margin, finalY);
       finalY += noteHeadingAdvance;
       doc.setFont('helvetica', 'normal');
       ketentuanRows.forEach(({ wrapped }) => {
         if (tailFitsSinglePage) {
-          doc.text(wrapped, margin, finalY);
+          doc.text(wrapped, margin, finalY, compactLandscape ? { lineHeightFactor: metaLineFactor } : undefined);
           finalY += wrapped.length * metaLineH;
           return;
         }

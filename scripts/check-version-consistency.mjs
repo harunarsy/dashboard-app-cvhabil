@@ -14,6 +14,10 @@ if (!latestMatch) {
 
 const expected = latestMatch[1];
 const failures = [];
+const tag = process.env.GITHUB_REF_TYPE === 'tag' ? process.env.GITHUB_REF_NAME : '';
+if (/^v\d+\.\d+\.\d+-stable$/.test(tag) && tag !== expected) {
+  failures.push(`Git tag ${tag} does not match the latest CHANGELOG version ${expected}`);
+}
 const assertIncludes = (relativePath, fragment) => {
   if (!read(relativePath).includes(fragment)) {
     failures.push(`${relativePath} does not contain ${expected}`);
@@ -28,10 +32,12 @@ assertIncludes('README.md', expected);
 
 const dashboard = read('frontend/src/components/Dashboard.jsx');
 const firstRelease = dashboard.match(
-  /const RELEASES = \[\s*\{\s*version:\s*["']([^"']+)["']/s,
+  /const RELEASES = \[\s*\{\s*version:\s*["']([^"']+)["'][^{}]*?status:\s*["']([^"']+)["']/s,
 );
 if (!firstRelease || firstRelease[1] !== expected) {
   failures.push(`frontend/src/components/Dashboard.jsx RELEASES[0] is not ${expected}`);
+} else if (firstRelease[2] !== 'latest') {
+  failures.push('frontend/src/components/Dashboard.jsx RELEASES[0] status is not latest');
 }
 
 if (failures.length) {

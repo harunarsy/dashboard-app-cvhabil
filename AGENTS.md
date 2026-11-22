@@ -60,6 +60,11 @@ Welcome, Agent. You are assisting with the **Habil SuperApp**, an integrated bus
 
     Run `node scripts/check-version-consistency.mjs` instead of a version-specific grep. Historical
     reports may retain the version they documented and are not part of the live-version check.
+
+    **Saat diminta rilis ke GitHub:** ikuti [checklist rilis](docs/RELEASE.md). Push `main`
+    saja belum selesai. Verifikasi CI pada commit yang persis, push tag stabil ke commit itu,
+    lalu buat dan verifikasi GitHub Release. Laporkan SHA, tag, URL Release, serta status
+    CI dan deploy secara terpisah. Jangan pindahkan tag yang sudah terbit.
 4.  **Critical Error Logging:** If you encounter a system-breaking error (e.g., "Relation missing"), you MUST log the findings into `FEEDBACK_LOG.md` BEFORE applying a fix.
 5.  **Design Standard:** Always prioritize Apple HIG principles: subtle gradients, high-quality typography (Inter/Roboto), and smooth micro-animations.
 

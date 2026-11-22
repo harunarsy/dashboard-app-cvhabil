@@ -4,6 +4,11 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 22 Nov 2026: perbaikan PDF A5/A6 (lokal)
+- Commit `ee4aeea` memaksa generator legacy ke portrait walau tombol A5/A6 berlabel landscape. Nota Penjualan dan Tanda Terima kembali landscape; A4, Nota Pinjaman, Surat Pesanan, dan renderer v2 tidak diganti.
+- A6 legacy memakai judul 12 pt, isi 10 pt dan detail 8 pt. Spasi dipadatkan agar contoh nota pendek muat satu halaman; dokumen panjang tetap dapat memakai halaman lanjutan. Kolom identitas perusahaan dibungkus agar tidak masuk ke area barcode.
+- Tes ukuran seluruh halaman mencakup kedua jenis dokumen dan flag v2 aktif/nonaktif pada sumber PDF yang dipakai pratinjau, unduh, dan cetak. Tidak ada perubahan database atau deploy.
+
 ## Update 30 Sep 2026: backfill release & tag GitHub v1.67.18 → v1.67.24
 - **Temuan:** release GitHub tertinggal di `v1.67.17-stable` (13 Sep) — 7 versi berikutnya belum punya tag/release, padahal kode + CHANGELOG sudah naik.
 - **Tindakan:** dibuat tag anotasi + GitHub Release untuk tiap versi, titik tag = commit terakhir siklus rilis (commit tepat sebelum penanda versi berikutnya, diverifikasi berurutan ancestor):
