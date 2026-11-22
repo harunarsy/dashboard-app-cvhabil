@@ -176,13 +176,15 @@ export function generateNotaPDF(order, options = {}) {
     }
 
     // Garis pembatas mengikuti baris terakhir header (kiri atau kanan).
-    const dividerY = Math.max(headY, infoY, dueY) + (compactRows ? 1.2 : (isA6 ? 2.2 : 3));
+    const dividerY = Math.max(headY, infoY, dueY) + (compactRows ? 1.8 : 3);
     doc.setDrawColor(...MONO.rule);
     doc.setLineWidth(0.4);
     doc.line(margin, dividerY, pageWidth - margin, dividerY);
 
     // ─── Customer & Payment ─────────────────────────────────────────────
-    const customerY = dividerY + (compactRows ? (isA6 ? 2 : 2.8) : 6);
+    // Baseline pelanggan minimal setinggi satu baris + 1 mm di bawah garis,
+    // supaya garis tidak memotong huruf kapital.
+    const customerY = dividerY + (compactRows ? lineH + (isA6 ? 0.8 : 1) : 6);
     doc.setFontSize(bodySize);
     doc.setTextColor(0);
     doc.setFont('helvetica', 'normal');
@@ -201,7 +203,9 @@ export function generateNotaPDF(order, options = {}) {
     let addressY = customerY;
     doc.setFont('helvetica', 'bold');
     const stackCustomer = isA6 && !compactRows;
-    const nameOffset = isA6 ? 17 : 18.5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(bodySize);
+    const nameOffset = doc.getTextWidth('Kepada Yth:') + 2.4;
     const nameX = stackCustomer ? margin : margin + nameOffset;
     const nameW = stackCustomer ? contentWidth : contentWidth - nameOffset;
     const customerName = String(order.customer_name || '-')
@@ -226,6 +230,11 @@ export function generateNotaPDF(order, options = {}) {
         doc.text(ln, margin, addressY);
       }
     }
+    // Garis tipis menutup blok pelanggan supaya tabel tidak tampak melayang.
+    const customerRuleY = addressY + (compactRows ? (isA6 ? 1.1 : 1.3) : 2.2);
+    doc.setDrawColor(...MONO.rule);
+    doc.setLineWidth(0.25);
+    doc.line(margin, customerRuleY, infoX, customerRuleY);
 
     // ─── Table ──────────────────────────────────────────────────────────
     const items = order.items || [];
@@ -347,22 +356,23 @@ export function generateNotaPDF(order, options = {}) {
         : [['No', 'Nama Barang', 'Qty', 'Harga Satuan', 'Total']]);
 
     // Tabel mulai setelah blok customer, tidak pernah menabrak divider.
-    const tableStartY = compactRows
-      ? Math.max(dividerY + (isA6 ? 2.8 : 3.5), addressY + (isA6 ? 1 : 1.5))
-      : Math.max(dividerY + 6, addressY + 4);
+    const tableStartY = Math.max(
+      compactRows ? dividerY + (isA6 ? 2.8 : 3.5) : dividerY + 6,
+      customerRuleY + (compactRows ? 2.2 : 3.4),
+    );
 
     // Ukuran tail (total, catatan, rekening, tanda tangan) mengikuti profil
     // ringkas A5/A6 supaya sisa ruang tabel maksimal.
     const footerGap = compactRows ? 1.2 : 2;
     const sigGap = compactRows ? 2.5 : 5;
     const sigLineOffset = isA6 ? 7.5 : (compactRows ? 9 : 16);
-    const sigNameOffset = isA6 ? 11 : (compactRows ? 13.5 : 20);
+    const sigNameOffset = isA6 ? 9.5 : (compactRows ? 12.5 : 20);
     const sigHalfWidth = isA6 ? 30 : (compactRows ? 34 : 42);
     const sigCenter = isA6 ? 15 : (compactRows ? 17 : 21);
-    const tableGap = compactRows ? 2 : 3;
-    const notesTopGap = compactRows ? 0.8 : 2;
+    const tableGap = compactRows ? (isA6 ? 1.2 : 1.8) : 3;
+    const notesTopGap = compactRows ? (isA6 ? 0.6 : 0.8) : 2;
     const noteHeadingAdvance = compactRows ? 0 : metaLineH;
-    const bankLead = compactRows ? 0.8 : 3;
+    const bankLead = compactRows ? (isA6 ? 0.6 : 0.8) : 3;
     const bankLineAdvance = metaLineH;
     const bankAdvance = bankInfo && type !== 'terima' && !isLoan
       ? bankLead + bankLineAdvance + (qrisText ? bankLineAdvance : 0)
@@ -455,6 +465,9 @@ export function generateNotaPDF(order, options = {}) {
       doc.line(margin, continuationLineY, pageWidth - margin, continuationLineY);
     };
 
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(bodySize);
+    const noColumnWidth = Math.max(isA6 ? 7 : 8, doc.getTextWidth('No') + 4);
     const tableStyles = {
       head: tableHead,
       theme: 'striped',
@@ -482,12 +495,12 @@ export function generateNotaPDF(order, options = {}) {
       columnStyles: type === 'terima'
         ? (compactRows
           ? {
-            0: { halign: 'center', cellWidth: 7 },
+            0: { halign: 'center', cellWidth: noColumnWidth },
             2: { halign: 'left', cellWidth: isA6 ? 34 : 40, fontSize: isA6 ? 5.5 : 6, textColor: MONO.sub },
             3: { halign: 'center', cellWidth: isA6 ? 14 : 18 },
           }
           : {
-            0: { halign: 'center', cellWidth: 7 },
+            0: { halign: 'center', cellWidth: noColumnWidth },
             2: { halign: 'center', cellWidth: isA6 ? 18 : 22 },
           })
         : (compactColumns
@@ -499,12 +512,12 @@ export function generateNotaPDF(order, options = {}) {
             }
             : {
               1: { halign: 'center', cellWidth: 15 },
-              2: { halign: 'left', cellWidth: 40, fontSize: 6, textColor: MONO.sub },
+              2: { halign: 'left', cellWidth: 40, fontSize: 5.5, textColor: MONO.sub },
               3: { halign: 'right', cellWidth: 22 },
               4: { halign: 'right', cellWidth: 25 },
             })
           : {
-            0: { halign: 'center', cellWidth: isA6 ? 7 : 10 },
+            0: { halign: 'center', cellWidth: noColumnWidth },
             2: { halign: 'center', cellWidth: isA6 ? 15 : 18 },
             3: { halign: 'right' },
             4: { halign: 'right' },
@@ -799,13 +812,11 @@ export function generateNotaPDF(order, options = {}) {
     // v1.66.4: label -> line -> name spacing is intentionally consistent.
     // On a continuation page, keep bank/signature content near the continuation
     // header. Anchoring it to the footer creates a mostly blank second page.
-    const sigY = Math.min(
-      compactSigY,
-      Math.max(
-        finalY + sigGap,
-        type === 'terima' && !continuationStarted && !compactRows ? pageHeight * 0.64 : 0,
-      ),
-    );
+    // Nota dan A4: tanda tangan duduk di bawah halaman. Tanda terima A5/A6:
+    // menempel setelah barang supaya tidak melayang di tengah kertas.
+    const sigY = compactRows && type === 'terima'
+      ? Math.min(compactSigY, finalY + sigGap)
+      : compactSigY;
 
     doc.setFontSize(bodySize);
     doc.setTextColor(0);

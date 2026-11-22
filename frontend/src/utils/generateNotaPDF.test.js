@@ -96,6 +96,22 @@ describe('generateNotaPDF compact pagination', () => {
     });
   });
 
+  it.each(['A4', 'A5', 'A6'])('tanda terima %s menulis header "No" dalam satu baris', (format) => {
+    const doc = generateNotaPDF(createCompactMultiBatchOrder(), { format, type: 'terima', settings });
+    const text = doc.internal.pages.flat().join('\n');
+    expect(text).toContain('No');
+    expect(text).not.toMatch(/\bN\no\b/);
+  });
+
+  it.each(['A5', 'A6'])('nota %s menaruh garis pelanggan sebelum tabel tanpa menimpa teks', (format) => {
+    const doc = generateNotaPDF(createCompactMultiBatchOrder(), { format, settings });
+    const page = doc.internal.pages[1].join('\n');
+    // Dua garis horizontal: pemisah header dan penutup blok pelanggan.
+    expect((page.match(/\bre\b/g) || []).length).toBeGreaterThanOrEqual(2);
+    expect(page).toContain('Kepada Yth:');
+    expect(page).toContain('CV HABIL SEJAHTERA BERSAMA');
+  });
+
   it('Nota Pinjaman A5 tetap portrait', () => {
     const doc = generateNotaPDF(createCompactMultiBatchOrder(), { format: 'A5', type: 'pinjaman', settings });
     expect(doc.internal.pageSize.getWidth()).toBeCloseTo(148, 0);

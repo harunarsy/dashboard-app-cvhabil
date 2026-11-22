@@ -9,7 +9,8 @@
 - Profil baru: isi A5 9pt, A6 8pt, judul tetap 12pt, margin 7/4,5 mm, padding tabel 0,7/0,55 mm. ED dan nomor batch dipindah ke kolom sendiri (5,5-6pt) sehingga baris nama tidak lagi dua baris.
 - Hasil terukur (1 halaman, nama produk + ED/batch + jatuh tempo + ketentuan 3 baris + rekening + tanda tangan): A5 Nota **10 barang**, A5 Tanda Terima **14**, A6 Nota **5**, A6 Tanda Terima **10**. Kelebihan barang pindah halaman tanpa baris hilang.
 - Perbaikan kecil: nama pelanggan tidak lagi tercetak "Yth. Yth.", blok tanda tangan menempel ke konten pada kertas ringkas, label Opsi Cetak menampilkan batas item.
-- Verifikasi: 345 tes frontend lulus (1 skip), termasuk 10 tes kapasitas/paginasi baru; build produksi lulus. A4, Surat Pesanan, renderer v2, dan orientasi tidak berubah. Versi lokal **v1.68.2-stable**, belum di-commit/push.
+- Refinement kedua (A4/A5/A6, nota & tanda terima): kolom "No" tidak lagi pecah jadi "N / o" (lebar kolom dihitung dari teks), garis pemisah header diberi jarak agar tidak memotong huruf kapital "Kepada Yth:", ditambah garis tipis penutup blok pelanggan, jarak label-nama dihitung dari lebar teks + 2,4 mm, dan tanda tangan A4 duduk di bawah halaman sementara A5/A6 menempel setelah barang.
+- Verifikasi: 350 tes frontend lulus (1 skip), termasuk tes kapasitas dan tes header "No" satu baris; build produksi lulus. A4 Surat Pesanan, renderer v2, dan orientasi tidak berubah. Versi lokal **v1.68.2-stable**, commit lokal, belum dipush.
 
 ## Update 22 Nov 2026: perbaikan PDF A5/A6 (lokal)
 - Commit `ee4aeea` memaksa generator legacy ke portrait walau tombol A5/A6 berlabel landscape. Nota Penjualan dan Tanda Terima kembali landscape; A4, Nota Pinjaman, Surat Pesanan, dan renderer v2 tidak diganti.
