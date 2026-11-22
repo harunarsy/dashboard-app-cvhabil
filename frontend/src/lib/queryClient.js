@@ -40,6 +40,8 @@ export const qk = {
   customers: ["customers"],
   distributors: ["distributors"],
   dashboardStats: ["dashboard", "stats"],
+  dashboardInsights: ["dashboard", "insights"],
+  dayNotas: (date) => ["dashboard", "day-notas", date || "none"],
   weeklySummary: ["insights", "weekly-summary"],
   // list per-domain
   sales: ["sales"], // daftar nota → ["sales","list"]

@@ -4,6 +4,13 @@
 > Perbarui setiap kali ada tahap berubah — jangan menunggu sampai akhir.
 > Pola kerja: Opus = mandor (memecah, memutuskan, memverifikasi), Sonnet/Haiku = pelaksana. Lihat `~/.claude/CLAUDE.md`.
 
+## Update 22 Nov 2026: pilot TanStack Query Dashboard (LOKAL)
+- **Scope:** tiga panggilan insight (restock, dormant 30 hari, pinjaman) digabung menjadi satu query `dashboardInsights`, dan detail nota harian menjadi query per tanggal dengan `enabled` saat tanggal dipilih. Cache 5 menit, ikut config global.
+- **Bukti ukur endpoint produksi (akun admin, GET read-only):** restock 76 sampai 82 ms, dormant 63 sampai 71 ms, pinjaman 56 sampai 65 ms, paralel ketiganya 76 ms; detail nota harian 57 sampai 58 ms; bootstrap 72 sampai 114 ms; weekly summary 63 sampai 70 ms. Jadi kunjungan ulang yang sebelumnya memanggil ulang insight menghemat sekitar 76 ms plus server load.
+- **Tes:** hook test membuktikan dua mount berbagi satu fetch untuk insight dan day-notas, `enabled:false` sebelum tanggal dipilih, dan perhitungan pinjaman lewat jatuh tempo tetap benar. Komponen Dashboard dites memakai cache saat dibuka ulang. Suite frontend **356 lulus**, 1 skip; build lulus.
+- **Catatan jujur:** halaman setelah login tidak diukur end-to-end di browser karena fetch lintas origin dari preview lokal gagal di environment browser ini. Angka endpoint diukur langsung ke produksi dengan token admin; cache dibuktikan lewat tes perilaku. Render berat (chart/tabel) belum diukur dan belum diubah.
+- **Versi lokal v1.68.4-stable**, commit lokal, belum dipush.
+
 ## Update 22 Nov 2026: audit produksi + perbaikan cache aset (LOKAL)
 - **Pengukuran publik:** Lighthouse mobile dan desktop skor **100**, LCP 1,2 s (mobile) / 0,5 s (desktop), TBT 30 ms, CLS 0, total 248 KiB. Halaman publik sudah cepat; masalahnya bukan bundler.
 - **Temuan 1:** `frontend/vercel.json` memakai rewrite `/(.*)` sehingga `/assets/*.js|css` disajikan `max-age=0, must-revalidate`. Revalidasi 304 terukur 0,11 sampai 0,20 s per aset pada kunjungan ulang. Perbaikan: rewrite dikecualikan untuk `assets/`, ditambah header `public, max-age=31536000, immutable`. Tes penjaga: `src/__tests__/vercelConfig.test.js`.

@@ -12,6 +12,7 @@ import {
   priceListAPI,
   insightsAPI,
   dashboardAPI,
+  loansAPI,
 } from "../services/api";
 import { qk } from "../lib/queryClient";
 
@@ -146,6 +147,57 @@ export function useDashboardStats(month, options = {}) {
     queryFn: async () => (await dashboardAPI.getStats(month)).data,
     staleTime: 5 * 60 * 1000,
     placeholderData: keepPreviousData,
+    ...options,
+  });
+}
+
+// ── dashboard: insight & detail harian ───────────────────────────────────
+// Tiga request digabung dalam satu query supaya hasilnya di-cache bersama dan
+// pindah halaman tidak memicu rentetan fetch ulang.
+export function useDashboardInsights(options = {}) {
+  return useQuery({
+    queryKey: qk.dashboardInsights,
+    queryFn: async () => {
+      const [restock, dormant, loans] = await Promise.allSettled([
+        insightsAPI.getRestock(),
+        insightsAPI.getDormant(30),
+        loansAPI.getAll(),
+      ]);
+      const items = (result) =>
+        result.status === "fulfilled" ? result.value?.data?.items || [] : [];
+      const loanRows = loans.status === "fulfilled" ? loans.value?.data || [] : [];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const overdueLoans = loanRows.filter((loan) => {
+        if (loan.status === "selesai" || !loan.due_date) return false;
+        const sisa = (loan.items || []).reduce(
+          (sum, item) =>
+            sum +
+            ((parseInt(item.qty) || 0) -
+              (parseInt(item.qty_returned) || 0) -
+              (parseInt(item.qty_purchased) || 0)),
+          0,
+        );
+        if (sisa <= 0) return false;
+        const due = new Date(String(loan.due_date).split("T")[0] + "T00:00:00");
+        return due < today;
+      });
+      return { restock: items(restock), dormant: items(dormant), overdueLoans };
+    },
+    staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+}
+
+export function useDayNotas(date, options = {}) {
+  return useQuery({
+    queryKey: qk.dayNotas(date),
+    queryFn: async () => {
+      const { data } = await dashboardAPI.getDailyNotas(date);
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: Boolean(date),
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 }

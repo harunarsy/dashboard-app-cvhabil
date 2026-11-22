@@ -163,4 +163,29 @@ describe("Dashboard Component - Loading State", () => {
     expect(screen.getAllByText(/^2$/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Stok Low\/Expired/i).length).toBeGreaterThan(0);
   });
+
+  test("insight dashboard memakai cache saat halaman dibuka ulang", async () => {
+    dashboardAPI.getBootstrap.mockResolvedValue({
+      data: { stats: mockStats, heatmap: [] },
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 5 * 60 * 1000 } },
+    });
+    const wrap = (ui) => (
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    );
+
+    const first = render(wrap(<Dashboard isDarkMode={false} isSidebarOpen={true} />));
+    await waitFor(() => expect(insightsAPI.getRestock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(loansAPI.getAll).toHaveBeenCalledTimes(1));
+    first.unmount();
+
+    render(wrap(<Dashboard isDarkMode={false} isSidebarOpen={true} />));
+    await waitFor(() => expect(dashboardAPI.getBootstrap).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(insightsAPI.getRestock).toHaveBeenCalledTimes(1);
+    expect(insightsAPI.getDormant).toHaveBeenCalledTimes(1);
+    expect(loansAPI.getAll).toHaveBeenCalledTimes(1);
+  });
 });

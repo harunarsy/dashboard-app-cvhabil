@@ -2,6 +2,12 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.68.4-stable] - 2026-11-22
+
+- Dashboard memakai cache TanStack Query untuk insight (restock, dormant, pinjaman) dan detail nota harian. Pindah halaman lalu kembali dalam 5 menit tidak lagi memanggil ulang ketiga endpoint insight.
+- Hasil ukur endpoint produksi dengan akun admin: restock 76 sampai 82 ms, dormant 63 sampai 71 ms, pinjaman 56 sampai 65 ms; paralel ketiganya 76 ms; detail nota harian 57 sampai 58 ms. Cache menghapus biaya itu pada kunjungan ulang.
+- Cache dibersihkan saat login dan logout supaya data pengguna sebelumnya tidak terbawa di perangkat bersama.
+
 ## [v1.68.3-stable] - 2026-11-22
 
 - Perbaiki cache aset produksi: `vercel.json` tidak lagi mengarahkan `/assets/*` ke `index.html`, dan aset ber-hash kini memakai `Cache-Control: public, max-age=31536000, immutable`. Kunjungan ulang tidak lagi melakukan revalidasi 304 untuk setiap file JS/CSS.

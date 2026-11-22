@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspens
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import Icons from "./common/Icon";
-import api, { insightsAPI, loansAPI, purchaseOrdersAPI } from "../services/api";
+import { purchaseOrdersAPI } from "../services/api";
 import { normalizeIndonesianPhone } from "../utils/waMessage";
-import { useDashboardBootstrap, useWeeklySummary } from "../hooks/useMasterData";
+import { useDashboardBootstrap, useWeeklySummary, useDashboardInsights, useDayNotas } from "../hooks/useMasterData";
 import TasksKanban from "./TasksKanban";
 import Skeleton from "./common/Skeleton";
 import EmptyState, { EmptyStateIcons } from "./common/EmptyState";
@@ -39,9 +39,20 @@ const {
 
 const RELEASES = [
   {
-    version: "v1.68.3-stable",
+    version: "v1.68.4-stable",
     date: "22 November 2026",
     status: "latest",
+    changes: [
+      {
+        type: "improvement",
+        text: "Dashboard kini menyimpan insight restock, pelanggan dormant, pinjaman, dan detail nota harian di cache. Kembali ke Dashboard dalam 5 menit tidak memuat ulang data yang sama.",
+      },
+    ],
+  },
+  {
+    version: "v1.68.3-stable",
+    date: "22 November 2026",
+    status: "previous",
     changes: [
       {
         type: "fix",
@@ -5001,14 +5012,13 @@ export default function Dashboard({
   const [heatmapData, setHeatmapData] = useState([]);
   const [heatmapLoading, setHeatmapLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
-  const [dayNotas, setDayNotas] = useState([]);
-  const [dayNotasLoading, setDayNotasLoading] = useState(false);
-  // Insight: saran restock + customer lama gak order (rule-based)
-  const [restockList, setRestockList] = useState([]);
-  const [dormantList, setDormantList] = useState([]);
-  // v1.54.0: pinjaman lewat batas pengembalian → banner warning
-  const [overdueLoans, setOverdueLoans] = useState([]);
-  const [insightLoading, setInsightLoading] = useState(true);
+  // Insight & detail harian lewat cache TanStack Query: pindah halaman tidak
+  // memicu fetch ulang selama data masih fresh.
+  const { data: insights, isLoading: insightLoading } = useDashboardInsights();
+  const restockList = insights?.restock || [];
+  const dormantList = insights?.dormant || [];
+  const overdueLoans = insights?.overdueLoans || [];
+  const { data: dayNotas = [], isFetching: dayNotasLoading } = useDayNotas(selectedDay);
   // v1.55.0: auto-draft SP dari Saran Restock — grup per distributor termurah.
   // idle → confirm (tampil ringkasan) → saving → done/error
   const [spDraft, setSpDraft] = useState({ state: "idle", msg: "" });
@@ -5046,46 +5056,6 @@ export default function Dashboard({
     }
   };
   useEffect(() => {
-    let cancelled = false;
-    setInsightLoading(true);
-    Promise.allSettled([
-      insightsAPI.getRestock(),
-      insightsAPI.getDormant(30),
-      loansAPI.getAll(),
-    ])
-      .then(([r, d, l]) => {
-        if (cancelled) return;
-        setRestockList(r.status === "fulfilled" ? r.value.data?.items || [] : []);
-        setDormantList(d.status === "fulfilled" ? d.value.data?.items || [] : []);
-        const loans = l.status === "fulfilled" ? l.value.data || [] : [];
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        setOverdueLoans(
-          loans.filter((loan) => {
-            if (loan.status === "selesai" || !loan.due_date) return false;
-            const sisa = (loan.items || []).reduce(
-              (s, it) =>
-                s +
-                ((parseInt(it.qty) || 0) -
-                  (parseInt(it.qty_returned) || 0) -
-                  (parseInt(it.qty_purchased) || 0)),
-              0,
-            );
-            if (sisa <= 0) return false;
-            const due = new Date(String(loan.due_date).split("T")[0] + "T00:00:00");
-            return due < today;
-          }),
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setInsightLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
     if (bootstrapData?.heatmap) {
       setHeatmapData(bootstrapData.heatmap);
       setHeatmapLoading(false);
@@ -5095,19 +5065,11 @@ export default function Dashboard({
   }, [bootstrapData?.heatmap, loading]);
 
   const handleDayClick = useCallback((day) => {
-    if (selectedDay === day) { setSelectedDay(null); setDayNotas([]); return; }
-    setSelectedDay(day);
-    setDayNotasLoading(true);
-    api
-      .get(`/dashboard/daily-notas?date=${day}`)
-      .then(({ data }) => setDayNotas(Array.isArray(data) ? data : []))
-      .catch((e) => console.error("Failed to fetch day notas", e))
-      .finally(() => setDayNotasLoading(false));
-  }, [selectedDay]);
+    setSelectedDay((current) => (current === day ? null : day));
+  }, []);
 
   const navigateHeatmapMonth = useCallback((delta) => {
     setSelectedDay(null);
-    setDayNotas([]);
     setHeatmapMonth((prev) => {
       const [y, m] = prev.split("-").map(Number);
       const d = new Date(y, m - 1 + delta, 1);
@@ -5123,14 +5085,7 @@ export default function Dashboard({
     const curMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     if (heatmapMonth !== curMonth) return;
     didInitDayRef.current = true;
-    const todayStr = `${curMonth}-${String(now.getDate()).padStart(2, "0")}`;
-    setSelectedDay(todayStr);
-    setDayNotasLoading(true);
-    api
-      .get(`/dashboard/daily-notas?date=${todayStr}`)
-      .then(({ data }) => setDayNotas(Array.isArray(data) ? data : []))
-      .catch((e) => console.error("Failed to init day notas", e))
-      .finally(() => setDayNotasLoading(false));
+    setSelectedDay(`${curMonth}-${String(now.getDate()).padStart(2, "0")}`);
   }, [heatmapLoading, heatmapMonth]);
 
   // v1.46.0: weekly summary + dashboard stats kini via TanStack Query (hook di atas) —
@@ -5965,7 +5920,7 @@ export default function Dashboard({
               <span className="text-sm font-semibold" style={{ color: text }}>
                 {new Date(selectedDay + "T00:00:00").toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
               </span>
-              <button onClick={() => { setSelectedDay(null); setDayNotas([]); }} style={{ color: sub }}>
+              <button onClick={() => { setSelectedDay(null); }} style={{ color: sub }}>
                 <X size={14} />
               </button>
             </div>

@@ -1,5 +1,6 @@
 import React, { createContext, useState, useCallback, useMemo } from 'react';
 import { authAPI } from '../services/api';
+import { queryClient } from '../lib/queryClient';
 
 export const AuthContext = createContext();
 
@@ -28,6 +29,8 @@ export const AuthProvider = ({ children }) => {
       const { token, user } = response.data;
 
       localStorage.setItem('token', token);
+      // Jangan bawa cache pengguna sebelumnya ke sesi baru.
+      queryClient.clear();
       setToken(token);
       setUser(user);
 
@@ -41,6 +44,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(() => {
     localStorage.removeItem('token');
+    queryClient.clear();
     setToken(null);
     setUser(null);
   }, []);
