@@ -8,7 +8,9 @@
 - **Pengukuran publik:** Lighthouse mobile dan desktop skor **100**, LCP 1,2 s (mobile) / 0,5 s (desktop), TBT 30 ms, CLS 0, total 248 KiB. Halaman publik sudah cepat; masalahnya bukan bundler.
 - **Temuan 1:** `frontend/vercel.json` memakai rewrite `/(.*)` sehingga `/assets/*.js|css` disajikan `max-age=0, must-revalidate`. Revalidasi 304 terukur 0,11 sampai 0,20 s per aset pada kunjungan ulang. Perbaikan: rewrite dikecualikan untuk `assets/`, ditambah header `public, max-age=31536000, immutable`. Tes penjaga: `src/__tests__/vercelConfig.test.js`.
 - **Temuan 2:** halaman dalam aplikasi belum memakai React Query (Dashboard 0 `useQuery` / 3 `useEffect`, SalesOrderList 0/14, InvoiceList 0/9) padahal provider dan `staleTime` sudah ada. Endpoint hangat 0,14 sampai 0,63 s. Ini penyebab utama lag setelah login, bukan Vite/Bun.
-- **Verifikasi:** 352 tes frontend lulus (1 skip), build lulus. Versi lokal **v1.68.3-stable**, commit lokal, belum dipush. Panduan Vercel: deploy otomatis dari repo, Root Directory `frontend`; verifikasi header aset setelah deploy.
+- **Verifikasi lokal:** 352 tes frontend lulus (1 skip), tes backend lulus, build lulus, version checker lulus.
+- **Deploy:** push `66f85dd..514310e` ke `main`; CI run `45030544044` **success**; Vercel frontend dan backend **success**. Release **v1.68.3-stable** terbit sebagai Latest.
+- **Bukti produksi:** aset `/assets/index-DqU1kbJ6.js` menjawab `cache-control: public, max-age=31536000, immutable` (x-vercel-cache HIT); deep link `/nota-penjualan` **200** (TTFB 0,13 s); bundle memuat `v1.68.3-stable`. Tidak ada perubahan setelan Vercel yang diperlukan.
 
 ## Update 22 Nov 2026: redesign kapasitas cetak A5/A6 (LOKAL, belum dipush)
 - Baseline sebelum redesign: A5 Nota **1 barang/halaman**, A5 Tanda Terima 5, A6 Nota 1, A6 Tanda Terima 4. Penyebabnya header 4 baris, blok pelanggan 2-3 baris, dan reservasi tanda tangan yang terlalu besar, bukan hanya ukuran font.
