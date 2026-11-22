@@ -253,6 +253,41 @@ describe('SalesOrderList Component - Loading State', () => {
     });
   });
 
+  test('v1.68.0 batch historis disembunyikan sampai diminta', async () => {
+    const batches = [
+      expiryBatches[0],
+      expiryBatches[1],
+      {
+        id: 104, batch_no: 'B-HABIS', expired_date: '2027-01-31',
+        expired_date_precision: 'month', qty_current: 0, hna: 1000, tax_type: 'nota',
+      },
+    ];
+    await openExpiryOrder([expiryLine()], batches);
+
+    // Batch berstok tetap terlihat, batch stok 0 tidak membanjiri dropdown.
+    expect(screen.getByRole('option', { name: /B-102/ })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /B-HABIS/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /Tampilkan 1 batch historis/ }));
+    expect(screen.getByRole('option', { name: /B-HABIS/ })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /B-HABIS/ })).toHaveTextContent('stok habis');
+  });
+
+  test('v1.68.0 batch kedaluwarsa dipisah walau stoknya masih ada', async () => {
+    const batches = [
+      expiryBatches[0],
+      {
+        id: 105, batch_no: 'B-EXPIRED', expired_date: '2020-01-31',
+        expired_date_precision: 'month', qty_current: 9, hna: 1000, tax_type: 'nota',
+      },
+    ];
+    await openExpiryOrder([expiryLine()], batches);
+
+    expect(screen.queryByRole('option', { name: /B-EXPIRED/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Tampilkan 1 batch historis/ }));
+    expect(screen.getByRole('option', { name: /B-EXPIRED/ })).toHaveTextContent('KEDALUWARSA');
+  });
+
   test('fix-wave mengganti produk melepas ID sales item lama dan menandai auto-selection FEFO baru', async () => {
     await openExpiryOrder([expiryLine()], expiryBatches, [
       { id: 1, name: 'Produk uji ED', base_unit: 'pcs', pack_size: 1 },

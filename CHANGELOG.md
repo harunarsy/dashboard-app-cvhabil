@@ -2,6 +2,18 @@
 
 Semua perubahan signifikan pada Habil SuperApp akan dicatat di file ini.
 
+## [v1.68.0-stable] - 2026-11-22
+
+Integritas qty/satuan nota & faktur, UX pilih batch, dan alat audit data.
+
+### Integritas data
+- **Bug kelas "qty pcs × harga karton" ditutup di tiga lapis.** Server (`validateSaleItems` → `utils/salesItemIntegrity.js`) menolak item yang `subtotal ≠ qty × harga` (toleransi Rp 1) atau `qty_in_unit ≠ qty`; database mendapat constraint `sales_items_chk_subtotal`, `sales_items_chk_pack_qty`, `sales_items_chk_qty_positive`, `invoice_items_chk_pack_qty`, `invoice_items_chk_qty_positive` (migrasi idempotent `scripts/migrate-integrity-constraints.js`); dan audit terjadwal via `npm run audit:data`.
+- **Faktur:** `validateInvoiceItems` menolak `quantity` vs `qty_in_unit` yang berbeda; detail faktur + ekspor CSV kini memakai qty satuan beli (`invoiceFormQuantity`) sehingga tidak lagi menampilkan qty base pcs seolah-olah karton.
+- **Data historis dibersihkan** (backdoor DB, backup + revert tersedia): 49 baris nota yang tertukar qty/karton dipulihkan ke konvensi app (`qty` = base pcs, `qty_in_unit` = satuan jual), 21 nota direcompute gp sesuai rumus snapshot, HPP DUS NASI nota 0239 diisi 910 (estimasi nota 0244), batch 108 (−38) dikoreksi lewat opname, dan batch 154 HNA 0 diisi 48.733,33. Laba DB menjadi **68.837.664,09** (omzet 1.090.610.140).
+
+### UX
+- **Pilih batch di form nota**: batch siap jual dikelompokkan dan diurutkan ED terdekat (FEFO); batch stok habis/kedaluwarsa dipindah ke grup "Riwayat batch" yang tersembunyi sampai user menekan "Tampilkan batch historis". Batch yang sedang dipilih saat edit tetap tampil.
+
 ## [v1.67.24-stable] - 2026-09-29
 
 Batch hardening hasil audit: keamanan (kebocoran error, sandi, lockout login, hak hapus), integritas data (transaksi + nomor dokumen), dan performa (query Inventory, cache frontend, indeks DB). **Belum dipush** — commit lokal sesuai instruksi owner.

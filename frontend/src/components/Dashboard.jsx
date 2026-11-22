@@ -39,6 +39,33 @@ const {
 
 const RELEASES = [
   {
+    version: "v1.68.0-stable",
+    date: "22 November 2026",
+    status: "latest",
+    changes: [
+      {
+        type: "fix",
+        text: "Qty nota tidak bisa lagi tertukar karton vs pcs: server menolak subtotal yang tidak sama dengan qty x harga, dan database menolak baris karton yang qty-nya bukan qty x isi karton.",
+      },
+      {
+        type: "fix",
+        text: "Qty & Total Margin Nota tampil normal lagi setelah data lama dibersihkan (sebelumnya bisa 12x lipat untuk penjualan karton).",
+      },
+      {
+        type: "improvement",
+        text: "Pilih batch di form nota: batch siap jual dipisah dan diurutkan ED terdekat; batch stok habis/kedaluwarsa disembunyikan di balik tombol 'Tampilkan batch historis'.",
+      },
+      {
+        type: "improvement",
+        text: "Detail & ekspor CSV faktur menampilkan qty satuan beli, bukan qty pcs internal.",
+      },
+      {
+        type: "improvement",
+        text: "Alat audit data baru (npm run audit:data) mengecek konsistensi qty/harga/laba/stok nota & faktur sebelum tutup buku.",
+      },
+    ],
+  },
+  {
     version: "v1.67.24-stable",
     date: "29 September 2026",
     status: "latest",

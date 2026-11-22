@@ -178,6 +178,77 @@ const hppIncFor = (it) =>
 // di nota. Form/list money harus pakai qty_in_unit supaya 3 karton tidak mental
 // jadi 36 karton ketika nota dibuka ulang.
 const saleItemDisplayQty = (it) => parseFloat(it?.qty_in_unit ?? it?.qty) || 0;
+
+// v1.68.0: dropdown batch nota tidak lagi mencampur stok habis/kedaluwarsa
+// dengan batch yang benar-benar bisa dijual. Batch aktif diurutkan FEFO,
+// riwayat disembunyikan di balik tombol supaya produk dengan puluhan batch
+// tetap terbaca.
+const batchExpiryDate = (batch) => {
+  const raw = batch?.expired_date;
+  if (!raw) return null;
+  const d = new Date(String(raw).split("T")[0] + "T00:00:00");
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+const isBatchExpired = (batch) => {
+  const d = batchExpiryDate(batch);
+  if (!d) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d < today;
+};
+const splitBatchesForPicker = (batches = [], selectedId = "") => {
+  const selected = String(selectedId ?? "");
+  const available = [];
+  const historical = [];
+  for (const batch of batches) {
+    const zeroStock = !(parseFloat(batch.qty_current) > 0);
+    const expired = isBatchExpired(batch);
+    const isSelected = String(batch.id) === selected;
+    if (zeroStock || expired) {
+      historical.push({ ...batch, _zeroStock: zeroStock, _expired: expired, _selected: isSelected });
+    } else {
+      available.push(batch);
+    }
+  }
+  const expiryMs = (b) => {
+    const d = batchExpiryDate(b);
+    return d ? d.getTime() : Number.MAX_SAFE_INTEGER;
+  };
+  available.sort(
+    (a, b) =>
+      expiryMs(a) - expiryMs(b) ||
+      (parseFloat(b.qty_current) || 0) - (parseFloat(a.qty_current) || 0),
+  );
+  historical.sort(
+    (a, b) =>
+      Number(b._selected) - Number(a._selected) ||
+      expiryMs(b) - expiryMs(a),
+  );
+  return {
+    available,
+    historical,
+    selectedHistorical: historical.filter((b) => b._selected),
+  };
+};
+const batchOptionLabel = (batch) => {
+  const hpp =
+    batch.tax_type === "nota"
+      ? parseFloat(batch.hna) || 0
+      : hppFromHna(batch.hna);
+  const parts = [
+    batch.batch_no || "(tanpa no. batch)",
+    `ED: ${formatExpiry(batch.expired_date, batch.expired_date_precision)}`,
+    `Stok: ${batch.qty_current}`,
+    `HPP${batch.tax_type === "nota" ? " (nota)" : " (inc PPN)"}: ${new Intl.NumberFormat(
+      "id-ID",
+      { style: "currency", currency: "IDR", minimumFractionDigits: 0 },
+    ).format(hpp)}`,
+  ];
+  if (batch._expired) parts.push("KEDALUWARSA");
+  else if (batch._zeroStock) parts.push("stok habis");
+  if (batch._selected) parts.push("dipilih");
+  return parts.join(" | ");
+};
 const computeNotaMargin = (order) => {
   const items = order.items || [];
   const itemRevenue = items.reduce(
@@ -417,6 +488,8 @@ export default function SalesOrderList({
   const [showFormalDocs, setShowFormalDocs] = useState(false);
   const [items, setItems] = useState([blankItem()]);
   const [itemBatches, setItemBatches] = useState([]);
+  // v1.68.0: riwayat batch (stok habis/kedaluwarsa) default tersembunyi.
+  const [showHistoricalBatches, setShowHistoricalBatches] = useState(false);
   // v1.65.8: modal buat produk baru langsung dari dropdown item (produk baru wajib punya KODE)
   const [newProductFor, setNewProductFor] = useState(null); // { name, idx }
   const [customerInsights, setCustomerInsights] = useState([]);
@@ -6058,60 +6131,117 @@ export default function SalesOrderList({
                               </div>
                             );
                           })()}
-                          {batches.length > 0 && (
-                            <div
-                              style={{ marginTop: "4px", paddingLeft: "2px" }}
-                            >
-                              <select
-                                // v1.16.3: value wajib pakai String() agar cocok dgn option value String(b.id)
-                                value={String(it._selected_batch_id || '')}
-                                onChange={(e) =>
-                                  updateItem(
-                                    idx,
-                                    "_selected_batch",
-                                    e.target.value,
-                                  )
-                                }
-                                style={{
-
-                                  ...inputStyle,
-                                  fontSize: "11px",
-                                  padding: "5px 8px",
-                                  backgroundColor: isDarkMode
-                                    ? "var(--color-surface-elevated)"
-                                    : "#F0F8FF",
-                                  border: `1px solid var(--color-action-border-strong)`,
-                                  color: "var(--color-action)",
-                                }}
+                          {batches.length > 0 && (() => {
+                            const { available, historical, selectedHistorical } =
+                              splitBatchesForPicker(
+                                batches,
+                                it._selected_batch_id,
+                              );
+                            const visibleHistorical = showHistoricalBatches
+                              ? historical
+                              : selectedHistorical;
+                            const hiddenCount =
+                              historical.length - visibleHistorical.length;
+                            return (
+                              <div
+                                style={{ marginTop: "4px", paddingLeft: "2px" }}
                               >
-                                <option value="">Pilih Batch</option>
-                                {batches.map((b) => {
-                                  const isHistorical = (b.qty_current || 0) <= 0;
-                                  return (
-                                    <option key={b.id || b.batch_no} value={String(b.id)}>
-                                      {b.batch_no || "(tanpa no. batch)"} | ED:{" "}
-                                      {formatExpiry(b.expired_date, b.expired_date_precision)}{" "}
-                                      | Stok: {b.qty_current} | HPP
-                                      {b.tax_type === "nota"
-                                        ? " (nota)"
-                                        : " (inc PPN)"}
-                                      :{" "}
-                                      {new Intl.NumberFormat("id-ID", {
-                                        style: "currency",
-                                        currency: "IDR",
-                                        minimumFractionDigits: 0,
-                                      }).format(
-                                        b.tax_type === "nota"
-                                          ? parseFloat(b.hna) || 0
-                                          : hppFromHna(b.hna),
-                                      )}
-                                      {isHistorical ? " (historis)" : ""}
-                                    </option>
-                                  );
-                                })}
-                              </select>
-                            </div>
-                          )}
+                                <select
+                                  // v1.16.3: value wajib pakai String() agar cocok dgn option value String(b.id)
+                                  value={String(it._selected_batch_id || '')}
+                                  onChange={(e) =>
+                                    updateItem(
+                                      idx,
+                                      "_selected_batch",
+                                      e.target.value,
+                                    )
+                                  }
+                                  aria-label={`Pilih batch ${it.product_name || ""}`.trim()}
+                                  style={{
+                                    ...inputStyle,
+                                    fontSize: "11px",
+                                    padding: "5px 8px",
+                                    backgroundColor: isDarkMode
+                                      ? "var(--color-surface-elevated)"
+                                      : "#F0F8FF",
+                                    border: `1px solid var(--color-action-border-strong)`,
+                                    color: "var(--color-action)",
+                                  }}
+                                >
+                                  <option value="">Pilih Batch</option>
+                                  {available.length > 0 && (
+                                    <optgroup label={`Batch siap jual (${available.length}) · urut ED terdekat`}>
+                                      {available.map((b) => (
+                                        <option key={b.id || b.batch_no} value={String(b.id)}>
+                                          {batchOptionLabel(b)}
+                                        </option>
+                                      ))}
+                                    </optgroup>
+                                  )}
+                                  {visibleHistorical.length > 0 && (
+                                    <optgroup label={`Riwayat batch (${visibleHistorical.length}) · stok habis / kedaluwarsa`}>
+                                      {visibleHistorical.map((b) => (
+                                        <option key={b.id || b.batch_no} value={String(b.id)}>
+                                          {batchOptionLabel(b)}
+                                        </option>
+                                      ))}
+                                    </optgroup>
+                                  )}
+                                </select>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    flexWrap: "wrap",
+                                    gap: "10px",
+                                    marginTop: "3px",
+                                  }}
+                                >
+                                  {available.length === 0 && (
+                                    <span style={{ fontSize: "10.5px", color: "#B45309", fontWeight: 600 }}>
+                                      Tidak ada batch berstok. Cek stok masuk atau buka riwayat.
+                                    </span>
+                                  )}
+                                  {hiddenCount > 0 && (
+                                    <button
+                                      type="button"
+                                      className="ui-focus-ring"
+                                      onClick={() => setShowHistoricalBatches(true)}
+                                      style={{
+                                        fontSize: "10.5px",
+                                        background: "none",
+                                        border: "none",
+                                        padding: 0,
+                                        color: "var(--color-text-muted)",
+                                        cursor: "pointer",
+                                        textDecoration: "underline",
+                                      }}
+                                    >
+                                      Tampilkan {hiddenCount} batch historis
+                                    </button>
+                                  )}
+                                  {showHistoricalBatches && historical.length > 0 && (
+                                    <button
+                                      type="button"
+                                      className="ui-focus-ring"
+                                      onClick={() => setShowHistoricalBatches(false)}
+                                      style={{
+                                        fontSize: "10.5px",
+                                        background: "none",
+                                        border: "none",
+                                        padding: 0,
+                                        color: "var(--color-text-muted)",
+                                        cursor: "pointer",
+                                        textDecoration: "underline",
+                                      }}
+                                    >
+                                      Sembunyikan batch historis
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })}

@@ -866,11 +866,11 @@ export default function InvoiceList({
         // DPP per-item = hna_baru (hna×qty net disc, exc PPN). Fallback hna×quantity.
         const dpp = it
           ? parseFloat(it.hna_baru) ||
-            (parseFloat(it.hna) || 0) * (parseFloat(it.quantity) || 0)
+            (parseFloat(it.hna) || 0) * (parseFloat(invoiceFormQuantity(it)) || 0)
           : 0;
         const ppn = dpp * fRate;
         const tot = dpp + ppn;
-        const qty = it ? parseFloat(it.quantity) || 0 : 0;
+        const qty = it ? parseFloat(invoiceFormQuantity(it)) || 0 : 0;
         tDpp += dpp;
         tPpn += ppn;
         tTot += tot;
@@ -4797,7 +4797,7 @@ function ExpandedItems({ invoiceId, isDarkMode, formatRp, distColor }) {
           <div
             style={{ fontSize: "13px", color: isDarkMode ? "#FFF" : "#000" }}
           >
-            {item.quantity}
+            {invoiceFormQuantity(item)}
           </div>
           <div
             style={{ fontSize: "13px", color: isDarkMode ? "#FFF" : "#000" }}
