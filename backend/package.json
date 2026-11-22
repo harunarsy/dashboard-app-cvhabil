@@ -7,8 +7,8 @@
     "dev": "node scripts/check-db.js && nodemon server.js",
     "start": "node server.js",
     "start:bun": "bun server.js",
-    "test": "node scripts/test-sql-param-contract.js && node scripts/test-expiry.js && node scripts/test-invoice-delta.js && node scripts/test-invoice-delta-confirmation.js && node scripts/test-invoice-delta-safety.js && node scripts/test-schema-boundary.js && node scripts/test-sales-insert-contract.js && node scripts/test-route-http.js && node scripts/test-adjustment-hardening.js",
-    "test:unit": "node scripts/test-sql-param-contract.js && node scripts/test-expiry.js && node scripts/test-invoice-delta.js && node scripts/test-invoice-delta-confirmation.js && node scripts/test-invoice-delta-safety.js && node scripts/test-schema-boundary.js && node scripts/test-sales-insert-contract.js && node scripts/test-route-http.js && node scripts/test-adjustment-hardening.js",
+    "test": "node scripts/test-sql-param-contract.js && node scripts/test-expiry.js && node scripts/test-invoice-delta.js && node scripts/test-invoice-delta-confirmation.js && node scripts/test-invoice-delta-safety.js && node scripts/test-schema-boundary.js && node scripts/test-sales-insert-contract.js && node scripts/test-route-http.js && node scripts/test-adjustment-hardening.js && node scripts/test-sales-item-integrity.js",
+    "test:unit": "node scripts/test-sql-param-contract.js && node scripts/test-expiry.js && node scripts/test-invoice-delta.js && node scripts/test-invoice-delta-confirmation.js && node scripts/test-invoice-delta-safety.js && node scripts/test-schema-boundary.js && node scripts/test-sales-insert-contract.js && node scripts/test-route-http.js && node scripts/test-adjustment-hardening.js && node scripts/test-sales-item-integrity.js",
     "test:integration": "node scripts/test-adjustment-postgres-concurrency.js && node scripts/test-adjustment-http-integration.js && node scripts/test-adjustment-rollback.js",
     "test:staging": "node scripts/staging-migrate.js && node scripts/test-adjustment-postgres-concurrency.js && node scripts/test-adjustment-http-integration.js && node scripts/test-adjustment-rollback.js",
     "test-db": "node scripts/test-regression.js",
@@ -33,7 +33,9 @@
     "migrate:schema:list": "node scripts/migrate.js --list",
     "test-compat:bun": "bun scripts/test-bun-compatibility.js",
     "health": "node scripts/health-check-prod.js",
-    "test:db:docnumbers": "node scripts/test-docnumbers-live.js"
+    "test:db:docnumbers": "node scripts/test-docnumbers-live.js",
+    "audit:data": "node scripts/audit-data-integrity.js",
+    "migrate:integrity": "node scripts/migrate-integrity-constraints.js --apply"
   },
   "keywords": [],
   "author": "",

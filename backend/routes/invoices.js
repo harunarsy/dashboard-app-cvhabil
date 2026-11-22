@@ -479,6 +479,13 @@ const validateInvoiceItems = (items = []) => {
     if (!Number.isFinite(qty) || qty <= 0) return `Qty produk "${label}" harus angka lebih dari 0`;
     const hna = parseFloat(item.hna ?? 0);
     if (!Number.isFinite(hna) || hna < 0) return `Harga produk "${label}" tidak boleh minus`;
+    // v1.68.0: quantity = qty satuan beli (karton/pcs); qty_in_unit hanya alias.
+    // Kalau dua-duanya dikirim tapi beda, stok & total bisa dobel skala.
+    const qtyInUnit = parseFloat(item.qty_in_unit);
+    if (Number.isFinite(qtyInUnit) && Math.abs(qtyInUnit - qty) > 0.0001) {
+      return `Qty produk "${label}" tidak konsisten (quantity ${qty} vs qty_in_unit ${qtyInUnit}). `
+        + 'Kirim quantity dalam satuan beli saja; qty base dihitung sistem.';
+    }
   }
   return null;
 };

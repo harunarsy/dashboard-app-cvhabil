@@ -8,6 +8,7 @@ const uom = require('../utils/uom');
 const formDrafts = require('../utils/formDrafts');
 const { generateMonthlyDocNumber } = require('../utils/docNumbers');
 const adjustmentRules = require('../utils/adjustmentRules');
+const { validateSaleItemQuantities } = require('../utils/salesItemIntegrity');
 const { normalizeExpiry } = require('../utils/expiry');
 const { sendServerError } = require('../utils/serverError');
 
@@ -98,10 +99,10 @@ const resolveSelectedBatchForSale = async (client, productId, item) => {
 const validateSaleItems = (items = []) => {
   for (const it of items) {
     const label = String(it.product_name || '').trim() || '(tanpa nama)';
-    const qty = parseFloat(it.qty);
-    if (!Number.isFinite(qty) || qty <= 0) return `Qty produk "${label}" harus angka lebih dari 0`;
-    const price = parseFloat(it.unit_price ?? 0);
-    if (!Number.isFinite(price) || price < 0) return `Harga produk "${label}" tidak valid (tidak boleh minus)`;
+    // v1.68.0: qty & subtotal harus konsisten — bug "qty pcs x harga karton"
+    // (subtotal meledak / qty kelihatan 12x) tidak boleh masuk lewat API lagi.
+    const qtyError = validateSaleItemQuantities(it);
+    if (qtyError) return qtyError;
     const hpp = parseFloat(it.unit_hpp ?? 0);
     if (!Number.isFinite(hpp) || hpp < 0) return `HPP produk "${label}" tidak valid (tidak boleh minus)`;
     try { normalizeExpiry(it.expired_date_snapshot, it.expired_date_snapshot_precision); }

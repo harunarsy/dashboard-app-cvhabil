@@ -8,6 +8,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const auth = require('../middleware/auth');
 const tax = require('../utils/tax');
+const uom = require('../utils/uom');
 const { normalizeExpiry } = require('../utils/expiry');
 const { generateMonthlyDocNumber } = require('../utils/docNumbers');
 const { sendServerError } = require('../utils/serverError');
@@ -340,13 +341,20 @@ router.post('/:id/convert', auth, async (req, res) => {
 
     for (const { li, qty } of resolvedItems) {
       const price = parseFloat(li.unit_price) || 0;
-      const { rows: [pm] } = await client.query('SELECT pack_size FROM product_master WHERE id = $1', [li.product_id]);
+      // v1.68.0: qty pinjaman dalam satuan jual (karton/pcs) → qty base wajib
+      // qty x pack. Dulu dua-duanya diisi qty jual, jadi nota konversi karton
+      // menyimpan qty base yang salah (dan ditolak constraint baru).
+      const { rows: [pm] } = await client.query(
+        'SELECT pack_size, base_unit, pack_unit FROM product_master WHERE id = $1',
+        [li.product_id],
+      );
+      const qtyBase = uom.toBase(qty, li.unit || 'pcs', pm);
       await client.query(
         `INSERT INTO sales_items (sales_order_id, product_name, qty, unit, unit_price, unit_hpp,
            unit_hpp_tax_type, unit_hpp_ppn_rate, subtotal, qty_in_unit, pack_size_at_sale,
            batch_id_snapshot, batch_no_snapshot, expired_date_snapshot, expired_date_snapshot_precision)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
-        [order.id, li.product_name, qty, li.unit || 'pcs', price, li.unit_hpp || 0,
+        [order.id, li.product_name, qtyBase, li.unit || 'pcs', price, li.unit_hpp || 0,
          li.unit_hpp_tax_type ?? null, li.unit_hpp_ppn_rate ?? null, qty * price, qty, pm?.pack_size || 1,
          li.batch_id_snapshot ?? null, li.batch_no_snapshot ?? null,
          normalizeExpiry(li.expired_date_snapshot, li.expired_date_snapshot_precision).date,
